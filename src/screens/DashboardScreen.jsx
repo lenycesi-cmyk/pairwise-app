@@ -34,6 +34,11 @@ export default function DashboardScreen() {
   }, [transactions, viewMonth, viewYear]);
 
   function toBase(tx) {
+    // Conversion figée à la création (nouvelle logique) : utilisée en priorité
+    if (tx.convertedAmount !== undefined && tx.convertedCurrency === defaultCurrency) {
+      return tx.convertedAmount;
+    }
+    // Fallback pour les transactions créées avant ce correctif (conversion dynamique)
     return convert(tx.amount, tx.currency, defaultCurrency);
   }
 

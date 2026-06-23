@@ -15,6 +15,7 @@ import {
 import { db } from "../firebase";
 import { useAuth } from "./AuthContext";
 import { ALL_CATEGORIES } from "../data/categories";
+import { getExchangeRate } from "../utils/currencyConversion";
 
 const FinanceContext = createContext(null);
 
@@ -71,8 +72,17 @@ export function FinanceProvider({ children }) {
 
   async function addTransaction(tx) {
     if (!coupleId) return;
+
+    // Conversion figée au moment de la création (pas de recalcul dynamique ensuite)
+    const { rate, isFallback } = await getExchangeRate(tx.currency, defaultCurrency);
+    const convertedAmount = tx.amount * rate;
+
     await addDoc(collection(db, "couples", coupleId, "transactions"), {
       ...tx,
+      convertedAmount,
+      convertedCurrency: defaultCurrency,
+      exchangeRate: rate,
+      exchangeRateIsFallback: isFallback,
       createdAt: Date.now(),
       createdBy: user.uid,
     });
@@ -88,6 +98,23 @@ export function FinanceProvider({ children }) {
 
   async function updateTransaction(id, updates) {
     if (!coupleId) return;
+
+    // Si le montant ou la devise change, on refige la conversion
+    if (updates.amount !== undefined || updates.currency !== undefined) {
+      const existing = transactions.find((t) => t.id === id);
+      const amount = updates.amount !== undefined ? updates.amount : existing?.amount;
+      const currency = updates.currency !== undefined ? updates.currency : existing?.currency;
+
+      const { rate, isFallback } = await getExchangeRate(currency, defaultCurrency);
+      updates = {
+        ...updates,
+        convertedAmount: amount * rate,
+        convertedCurrency: defaultCurrency,
+        exchangeRate: rate,
+        exchangeRateIsFallback: isFallback,
+      };
+    }
+
     await updateDoc(doc(db, "couples", coupleId, "transactions", id), updates);
   }
 

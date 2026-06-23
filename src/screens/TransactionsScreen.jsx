@@ -14,7 +14,7 @@ const COLOR_MAP = {
 };
 
 export default function TransactionsScreen({ onEdit }) {
-  const { transactions, categories, members, deleteTransaction } = useFinance();
+  const { transactions, categories, members, deleteTransaction, defaultCurrency } = useFinance();
   const { user } = useAuth();
   const [filter, setFilter] = useState("all");
 
@@ -181,6 +181,19 @@ export default function TransactionsScreen({ onEdit }) {
                     <p style={{ fontSize: 11, color: "var(--ink-3)" }}>
                       {tx.currency}
                     </p>
+                    {tx.currency !== defaultCurrency && tx.convertedAmount !== undefined && (
+                      <p style={{ fontSize: 10, color: "var(--ink-3)", marginTop: 1 }}>
+                        ≈ {Math.round(tx.convertedAmount).toLocaleString("fr-FR")} {defaultCurrency}
+                        {tx.exchangeRateIsFallback && (
+                          <i
+                            className="ti ti-alert-triangle"
+                            title="Taux approximatif"
+                            style={{ fontSize: 9, color: "var(--amber)", marginLeft: 3 }}
+                            aria-label="Taux approximatif"
+                          />
+                        )}
+                      </p>
+                    )}
                   </div>
                   <button
                     onClick={(e) => {

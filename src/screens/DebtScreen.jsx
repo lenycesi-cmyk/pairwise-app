@@ -6,6 +6,13 @@ export default function DebtScreen() {
   const { transactions, members, defaultCurrency } = useFinance();
   const { convert, loading } = useExchangeRates(defaultCurrency);
 
+  function toBase(tx) {
+    if (tx.convertedAmount !== undefined && tx.convertedCurrency === defaultCurrency) {
+      return tx.convertedAmount;
+    }
+    return convert(tx.amount, tx.currency, defaultCurrency);
+  }
+
   const debt = useMemo(() => {
     if (members.length < 2) return null;
     const [a, b] = members;
@@ -16,7 +23,7 @@ export default function DebtScreen() {
 
     for (const tx of transactions) {
       if (tx.type !== "expense") continue;
-      const val = convert(tx.amount, tx.currency, defaultCurrency);
+      const val = toBase(tx);
 
       if (tx.split === "50/50") {
         // Dépense partagée : celui qui n'a pas payé doit la moitié
