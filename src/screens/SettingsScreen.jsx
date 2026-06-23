@@ -3,7 +3,7 @@ import { useAuth } from "../context/AuthContext";
 import { useFinance } from "../context/FinanceContext";
 import { CURRENCIES } from "../data/categories";
 
-export default function SettingsScreen({ onOpenRecurring, onOpenCategories }) {
+export default function SettingsScreen({ onOpenRecurring, onOpenCategories, onOpenDebt }) {
   const { coupleId, logout } = useAuth();
   const { defaultCurrency, updateDefaultCurrency, currencyMode, updateCurrencyMode } =
     useFinance();
@@ -141,6 +141,21 @@ export default function SettingsScreen({ onOpenRecurring, onOpenCategories }) {
         >
           <i className="ti ti-tags" style={{ fontSize: 18, color: "var(--tang)" }} aria-hidden="true" />
           <span style={{ fontSize: 14, flex: 1 }}>Catégories</span>
+          <i className="ti ti-chevron-right" style={{ fontSize: 14, color: "var(--ink-3)" }} aria-hidden="true" />
+        </div>
+        <div
+          onClick={onOpenDebt}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            padding: "12px 0",
+            cursor: "pointer",
+            borderBottom: "0.5px solid var(--rule)",
+          }}
+        >
+          <i className="ti ti-users" style={{ fontSize: 18, color: "var(--sky)" }} aria-hidden="true" />
+          <span style={{ fontSize: 14, flex: 1 }}>Qui doit quoi</span>
           <i className="ti ti-chevron-right" style={{ fontSize: 14, color: "var(--ink-3)" }} aria-hidden="true" />
         </div>
         <div

@@ -29,6 +29,8 @@ export function FinanceProvider({ children }) {
   const [currencyMode, setCurrencyMode] = useState("fixed");
   const [lastUsedCurrency, setLastUsedCurrency] = useState("EUR");
   const [recurringTx, setRecurringTx] = useState([]);
+  const [assets, setAssets] = useState([]);
+  const [netWorthHistory, setNetWorthHistory] = useState([]);
 
   useEffect(() => {
     if (!coupleId) {
@@ -64,6 +66,8 @@ export function FinanceProvider({ children }) {
         if (data.currencyMode) setCurrencyMode(data.currencyMode);
         if (data.lastUsedCurrency) setLastUsedCurrency(data.lastUsedCurrency);
         if (data.recurringTx) setRecurringTx(data.recurringTx);
+        if (data.assets) setAssets(data.assets);
+        if (data.netWorthHistory) setNetWorthHistory(data.netWorthHistory);
       }
     });
 
@@ -168,6 +172,47 @@ export function FinanceProvider({ children }) {
     await setDoc(doc(db, "couples", coupleId), { recurringTx: updated }, { merge: true });
   }
 
+  async function addAsset(asset) {
+    if (!coupleId) return;
+    const newAsset = {
+      ...asset,
+      id: `asset_${Date.now()}`,
+      createdAt: Date.now(),
+      lastUpdated: Date.now(),
+    };
+    const updated = [...assets, newAsset];
+    await setDoc(doc(db, "couples", coupleId), { assets: updated }, { merge: true });
+  }
+
+  async function updateAsset(id, updates) {
+    if (!coupleId) return;
+    const updated = assets.map((a) =>
+      a.id === id ? { ...a, ...updates, lastUpdated: Date.now() } : a
+    );
+    await setDoc(doc(db, "couples", coupleId), { assets: updated }, { merge: true });
+  }
+
+  async function removeAsset(id) {
+    if (!coupleId) return;
+    const updated = assets.filter((a) => a.id !== id);
+    await setDoc(doc(db, "couples", coupleId), { assets: updated }, { merge: true });
+  }
+
+  async function recordNetWorthSnapshot(totalValue, currency) {
+    if (!coupleId) return;
+    const today = new Date().toISOString().slice(0, 10);
+    // Un seul point par jour : on remplace s'il existe déjà pour aujourd'hui
+    const filtered = netWorthHistory.filter((h) => h.date !== today);
+    const updated = [...filtered, { date: today, value: totalValue, currency }].sort(
+      (a, b) => new Date(a.date) - new Date(b.date)
+    );
+    await setDoc(
+      doc(db, "couples", coupleId),
+      { netWorthHistory: updated },
+      { merge: true }
+    );
+  }
+
   const value = {
     transactions,
     categories,
@@ -186,6 +231,12 @@ export function FinanceProvider({ children }) {
     addRecurring,
     updateRecurring,
     removeRecurring,
+    assets,
+    addAsset,
+    updateAsset,
+    removeAsset,
+    netWorthHistory,
+    recordNetWorthSnapshot,
   };
 
   return (

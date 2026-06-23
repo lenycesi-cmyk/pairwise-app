@@ -11,11 +11,40 @@ import CategoriesScreen from "./screens/CategoriesScreen";
 import SettingsScreen from "./screens/SettingsScreen";
 import AddTransactionScreen from "./screens/AddTransactionScreen";
 import RecurringScreen from "./screens/RecurringScreen";
+import WealthScreen from "./screens/WealthScreen";
+import InvestmentCalculatorScreen from "./screens/InvestmentCalculatorScreen";
 import BottomNav from "./components/BottomNav";
 
 function RecurringGeneratorRunner() {
   useRecurringGenerator();
   return null;
+}
+
+function ModalWrapper({ onClose, children }) {
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "var(--bg)",
+        zIndex: 100,
+        overflowY: "auto",
+        maxWidth: 480,
+        margin: "0 auto",
+      }}
+    >
+      <div style={{ padding: "1.5rem 1.25rem 0" }}>
+        <button
+          onClick={onClose}
+          aria-label="Fermer"
+          style={{ background: "none", border: "none", marginBottom: 8 }}
+        >
+          <i className="ti ti-x" style={{ fontSize: 20 }} aria-hidden="true" />
+        </button>
+      </div>
+      {children}
+    </div>
+  );
 }
 
 function AppContent() {
@@ -25,6 +54,8 @@ function AppContent() {
   const [editingTx, setEditingTx] = useState(null);
   const [showRecurring, setShowRecurring] = useState(false);
   const [showCategories, setShowCategories] = useState(false);
+  const [showDebt, setShowDebt] = useState(false);
+  const [showCalculator, setShowCalculator] = useState(false);
 
   if (loading) {
     return (
@@ -55,11 +86,12 @@ function AppContent() {
 
       {tab === "dashboard" && <DashboardScreen />}
       {tab === "transactions" && <TransactionsScreen onEdit={openEdit} />}
-      {tab === "debt" && <DebtScreen />}
+      {tab === "wealth" && <WealthScreen onOpenCalculator={() => setShowCalculator(true)} />}
       {tab === "settings" && (
         <SettingsScreen
           onOpenRecurring={() => setShowRecurring(true)}
           onOpenCategories={() => setShowCategories(true)}
+          onOpenDebt={() => setShowDebt(true)}
         />
       )}
 
@@ -67,29 +99,18 @@ function AppContent() {
 
       {showAdd && <AddTransactionScreen onClose={closeAdd} editingTx={editingTx} />}
       {showRecurring && <RecurringScreen onClose={() => setShowRecurring(false)} />}
+      {showCalculator && (
+        <InvestmentCalculatorScreen onClose={() => setShowCalculator(false)} />
+      )}
       {showCategories && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "var(--bg)",
-            zIndex: 100,
-            overflowY: "auto",
-            maxWidth: 480,
-            margin: "0 auto",
-          }}
-        >
-          <div style={{ padding: "1.5rem 1.25rem" }}>
-            <button
-              onClick={() => setShowCategories(false)}
-              aria-label="Fermer"
-              style={{ background: "none", border: "none", marginBottom: 8 }}
-            >
-              <i className="ti ti-x" style={{ fontSize: 20 }} aria-hidden="true" />
-            </button>
-          </div>
+        <ModalWrapper onClose={() => setShowCategories(false)}>
           <CategoriesScreen />
-        </div>
+        </ModalWrapper>
+      )}
+      {showDebt && (
+        <ModalWrapper onClose={() => setShowDebt(false)}>
+          <DebtScreen />
+        </ModalWrapper>
       )}
     </FinanceProvider>
   );

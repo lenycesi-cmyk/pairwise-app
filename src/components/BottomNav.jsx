@@ -3,7 +3,7 @@ export default function BottomNav({ active, onChange, onAddClick }) {
     { key: "dashboard", icon: "ti-home", label: "Accueil" },
     { key: "transactions", icon: "ti-list", label: "Historique" },
     { key: "add", icon: "ti-plus", label: "" },
-    { key: "debt", icon: "ti-users", label: "Dette" },
+    { key: "wealth", icon: "ti-chart-pie", label: "Patrimoine" },
     { key: "settings", icon: "ti-settings", label: "Réglages" },
   ];
 
