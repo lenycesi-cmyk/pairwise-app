@@ -244,6 +244,16 @@ export default function DashboardScreen() {
                   <MiniRow label="Revenus" value={mt.income} formatAmount={formatAmount} color="var(--sage)" symbol={currencySymbol} />
                   <MiniRow label="Dépenses" value={mt.expense} formatAmount={formatAmount} color="var(--tang)" symbol={currencySymbol} />
                   <MiniRow label="Investi" value={mt.invested} formatAmount={formatAmount} symbol={currencySymbol} />
+                  <div style={{ borderTop: "0.5px solid var(--rule)", marginTop: 6, paddingTop: 6 }}>
+                    <MiniRow
+                      label="Solde"
+                      value={mt.income - mt.expense - mt.invested}
+                      formatAmount={formatAmount}
+                      color={mt.income - mt.expense - mt.invested >= 0 ? "var(--sage)" : "var(--tang)"}
+                      symbol={currencySymbol}
+                      bold
+                    />
+                  </div>
                 </div>
               );
             })}
@@ -322,7 +332,7 @@ function StatCard({ label, value, color }) {
   );
 }
 
-function MiniRow({ label, value, formatAmount, color = "var(--ink)", symbol = "" }) {
+function MiniRow({ label, value, formatAmount, color = "var(--ink)", symbol = "", bold = false }) {
   return (
     <div
       style={{
@@ -331,8 +341,10 @@ function MiniRow({ label, value, formatAmount, color = "var(--ink)", symbol = ""
         marginBottom: 4,
       }}
     >
-      <span style={{ fontSize: 11, color: "var(--ink-2)" }}>{label}</span>
-      <span style={{ fontSize: 12, fontWeight: 500, color }}>
+      <span style={{ fontSize: bold ? 12 : 11, color: bold ? "var(--ink)" : "var(--ink-2)", fontWeight: bold ? 500 : 400 }}>
+        {label}
+      </span>
+      <span style={{ fontSize: bold ? 13 : 12, fontWeight: bold ? 700 : 500, color }}>
         {formatAmount(value)} {symbol}
       </span>
     </div>
