@@ -11,7 +11,7 @@ const MONTHS = [
 
 export default function DashboardScreen() {
   const { transactions, categories, members, defaultCurrency, loading } = useFinance();
-  const { convert, loading: ratesLoading } = useExchangeRates(defaultCurrency);
+  const { convert, loading: ratesLoading, error: ratesError } = useExchangeRates(defaultCurrency);
 
   const now = new Date();
   const [viewMonth, setViewMonth] = useState(now.getMonth());
@@ -129,6 +129,14 @@ export default function DashboardScreen() {
         </button>
         <p style={{ fontSize: 15, fontWeight: 500 }}>
           {MONTHS[viewMonth]} {viewYear}
+          {ratesError === "using_fallback_rates" && (
+            <i
+              className="ti ti-alert-triangle"
+              title="Taux de change approximatifs (API indisponible)"
+              style={{ fontSize: 12, color: "var(--amber)", marginLeft: 6 }}
+              aria-label="Taux de change approximatifs"
+            />
+          )}
         </p>
         <button
           onClick={() => changeMonth(1)}
