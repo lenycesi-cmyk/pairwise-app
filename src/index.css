@@ -1,0 +1,115 @@
+:root {
+  --ink: #1a1a18;
+  --ink-2: #555551;
+  --ink-3: #999994;
+  --ink-4: #cccac3;
+  --bg: #f5f3ee;
+  --bg-card: #ffffff;
+  --rule: #e5e3dc;
+
+  --tang: #ff6b35;
+  --tang-light: #fff1eb;
+  --sage: #6eaa5e;
+  --sage-light: #edf7ea;
+  --lavi: #9b87f5;
+  --lavi-light: #f2f0ff;
+  --sky: #4cb8d4;
+  --sky-light: #eaf6fb;
+  --amber: #f4b942;
+  --amber-light: #fffbea;
+  --mint: #5bbfaa;
+  --mint-light: #e8f8f5;
+  --blush: #f4879c;
+  --blush-light: #fef0f4;
+  --red: #e24b4a;
+  --red-light: #fcebeb;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+
+  --shadow: 0 2px 24px rgba(26, 26, 24, 0.06);
+  --shadow-lg: 0 8px 40px rgba(26, 26, 24, 0.14);
+
+  --font-display: "DM Serif Display", Georgia, serif;
+  --font-sans: "DM Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: "DM Mono", "SF Mono", monospace;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+input,
+select {
+  font-family: inherit;
+}
+
+#root {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100dvh;
+  background: var(--bg);
+  position: relative;
+}
+
+@media (min-width: 481px) {
+  body {
+    display: flex;
+    justify-content: center;
+  }
+  #root {
+    border-left: 1px solid var(--rule);
+    border-right: 1px solid var(--rule);
+  }
+}
+
+::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.skeleton {
+  background: linear-gradient(90deg, var(--rule) 25%, #ededdf 37%, var(--rule) 63%);
+  background-size: 400% 100%;
+  animation: shimmer 1.4s ease infinite;
+  border-radius: var(--radius-sm);
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,155 @@
+import { useState } from "react";
+import { useAuth } from "../context/AuthContext";
+
+export default function AuthScreen() {
+  const { login, signup } = useAuth();
+  const [mode, setMode] = useState("login");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setError("");
+    setBusy(true);
+    try {
+      if (mode === "login") {
+        await login(email, password);
+      } else {
+        await signup(email, password, name);
+      }
+    } catch (err) {
+      setError(friendlyError(err.code));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div
+      style={{
+        minHeight: "100dvh",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        padding: "2rem 1.5rem",
+      }}
+    >
+      <div style={{ marginBottom: "2.5rem", textAlign: "center" }}>
+        <h1
+          style={{
+            fontFamily: "var(--font-display)",
+            fontSize: 40,
+            color: "var(--ink)",
+            marginBottom: 4,
+          }}
+        >
+          Pairwise
+        </h1>
+        <p style={{ fontSize: 14, color: "var(--ink-3)" }}>
+          Vos finances, à deux
+        </p>
+      </div>
+
+      <form
+        onSubmit={handleSubmit}
+        style={{ display: "flex", flexDirection: "column", gap: 12 }}
+      >
+        {mode === "signup" && (
+          <input
+            type="text"
+            placeholder="Votre prénom"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+            style={inputStyle}
+          />
+        )}
+        <input
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          style={inputStyle}
+        />
+        <input
+          type="password"
+          placeholder="Mot de passe"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          minLength={6}
+          style={inputStyle}
+        />
+
+        {error && (
+          <p style={{ fontSize: 13, color: "var(--red)", padding: "4px 2px" }}>
+            {error}
+          </p>
+        )}
+
+        <button
+          type="submit"
+          disabled={busy}
+          style={{
+            marginTop: 8,
+            background: "var(--ink)",
+            color: "var(--bg)",
+            border: "none",
+            borderRadius: "var(--radius-md)",
+            padding: 16,
+            fontSize: 15,
+            fontWeight: 500,
+            opacity: busy ? 0.6 : 1,
+          }}
+        >
+          {busy ? "..." : mode === "login" ? "Se connecter" : "Créer un compte"}
+        </button>
+      </form>
+
+      <button
+        onClick={() => {
+          setMode(mode === "login" ? "signup" : "login");
+          setError("");
+        }}
+        style={{
+          marginTop: 20,
+          background: "none",
+          border: "none",
+          fontSize: 13,
+          color: "var(--ink-3)",
+          textAlign: "center",
+        }}
+      >
+        {mode === "login"
+          ? "Pas encore de compte ? Créer un compte"
+          : "Déjà un compte ? Se connecter"}
+      </button>
+    </div>
+  );
+}
+
+const inputStyle = {
+  width: "100%",
+  padding: "14px 16px",
+  borderRadius: "var(--radius-md)",
+  border: "0.5px solid var(--rule)",
+  background: "var(--bg-card)",
+  fontSize: 15,
+  outline: "none",
+};
+
+function friendlyError(code) {
+  const map = {
+    "auth/email-already-in-use": "Cet email est déjà utilisé.",
+    "auth/invalid-email": "Email invalide.",
+    "auth/weak-password": "Mot de passe trop court (6 caractères min).",
+    "auth/user-not-found": "Aucun compte avec cet email.",
+    "auth/wrong-password": "Mot de passe incorrect.",
+    "auth/invalid-credential": "Email ou mot de passe incorrect.",
+  };
+  return map[code] || "Une erreur est survenue. Réessayez.";
+}
