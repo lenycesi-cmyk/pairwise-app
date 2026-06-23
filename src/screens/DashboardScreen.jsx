@@ -294,6 +294,8 @@ export default function DashboardScreen() {
                 maxTotal={maxCatTotal}
                 subtotals={subtotals}
                 formatAmount={formatAmount}
+                totalExpenses={totals.expense}
+                currencySymbol={currencySymbol}
               />
             ))
         )}

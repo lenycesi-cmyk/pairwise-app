@@ -10,10 +10,11 @@ const COLOR_MAP = {
   blush: { text: "var(--blush)", bg: "var(--blush-light)" },
 };
 
-export default function CategoryRow({ category, total, maxTotal, subtotals, formatAmount }) {
+export default function CategoryRow({ category, total, maxTotal, subtotals, formatAmount, totalExpenses, currencySymbol = "" }) {
   const [expanded, setExpanded] = useState(false);
   const colors = COLOR_MAP[category.color] || COLOR_MAP.tang;
-  const pct = maxTotal > 0 ? Math.round((total / maxTotal) * 100) : 0;
+  const barPct = maxTotal > 0 ? Math.round((total / maxTotal) * 100) : 0;
+  const sharePct = totalExpenses > 0 ? (total / totalExpenses) * 100 : 0;
   const hasSubs = subtotals && Object.keys(subtotals).length > 0;
 
   return (
@@ -46,24 +47,21 @@ export default function CategoryRow({ category, total, maxTotal, subtotals, form
         >
           <div
             style={{
-              width: `${pct}%`,
+              width: `${barPct}%`,
               height: 5,
               background: colors.text,
               transition: "width 0.3s ease",
             }}
           />
         </div>
-        <p
-          style={{
-            fontSize: 13,
-            fontWeight: 500,
-            minWidth: 64,
-            textAlign: "right",
-            flexShrink: 0,
-          }}
-        >
-          {formatAmount(total)}
-        </p>
+        <div style={{ textAlign: "right", flexShrink: 0, minWidth: 78 }}>
+          <p style={{ fontSize: 13, fontWeight: 500 }}>
+            {formatAmount(total)} {currencySymbol}
+          </p>
+          <p style={{ fontSize: 10, color: "var(--ink-3)" }}>
+            {sharePct.toFixed(1)}%
+          </p>
+        </div>
         {hasSubs && (
           <i
             className="ti ti-chevron-right"
@@ -83,23 +81,29 @@ export default function CategoryRow({ category, total, maxTotal, subtotals, form
         <div style={{ padding: "0 0 10px 28px" }}>
           {Object.entries(subtotals)
             .sort((a, b) => b[1] - a[1])
-            .map(([subName, subTotal]) => (
-              <div
-                key={subName}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  padding: "5px 0",
-                }}
-              >
-                <span style={{ fontSize: 12, color: "var(--ink-2)" }}>
-                  {subName}
-                </span>
-                <span style={{ fontSize: 12, fontWeight: 500 }}>
-                  {formatAmount(subTotal)}
-                </span>
-              </div>
-            ))}
+            .map(([subName, subTotal]) => {
+              const subSharePct = totalExpenses > 0 ? (subTotal / totalExpenses) * 100 : 0;
+              return (
+                <div
+                  key={subName}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    padding: "5px 0",
+                  }}
+                >
+                  <span style={{ fontSize: 12, color: "var(--ink-2)" }}>
+                    {subName}
+                  </span>
+                  <span style={{ fontSize: 12, fontWeight: 500, display: "flex", gap: 6, alignItems: "baseline" }}>
+                    {formatAmount(subTotal)} {currencySymbol}
+                    <span style={{ fontSize: 10, color: "var(--ink-3)", fontWeight: 400 }}>
+                      {subSharePct.toFixed(1)}%
+                    </span>
+                  </span>
+                </div>
+              );
+            })}
         </div>
       )}
     </div>
