@@ -3,12 +3,26 @@ import { useFinance } from "../context/FinanceContext";
 import { useAuth } from "../context/AuthContext";
 import { CURRENCIES } from "../data/categories";
 
+function todayISO() {
+  const d = new Date();
+  const tz = d.getTimezoneOffset() * 60000;
+  return new Date(d - tz).toISOString().slice(0, 16);
+}
+
+function toDateTimeLocal(isoString) {
+  if (!isoString) return todayISO();
+  const d = new Date(isoString);
+  const tz = d.getTimezoneOffset() * 60000;
+  return new Date(d - tz).toISOString().slice(0, 16);
+}
+
 export default function AddTransactionScreen({ onClose, editingTx }) {
   const {
     categories,
     members,
     addTransaction,
     updateTransaction,
+    updateCategories,
     defaultCurrency,
     currencyMode,
     lastUsedCurrency,
@@ -32,7 +46,14 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
   const [description, setDescription] = useState(editingTx?.description || "");
   const [paidBy, setPaidBy] = useState(editingTx?.paidBy || user?.uid);
   const [split, setSplit] = useState(editingTx?.split || "50/50");
+  const [dateTime, setDateTime] = useState(toDateTimeLocal(editingTx?.date));
   const [busy, setBusy] = useState(false);
+
+  // Création de catégorie / sous-catégorie à la volée
+  const [showNewCat, setShowNewCat] = useState(false);
+  const [newCatName, setNewCatName] = useState("");
+  const [showNewSub, setShowNewSub] = useState(false);
+  const [newSubName, setNewSubName] = useState("");
 
   const availableCategories = categories.filter((c) =>
     type === "income" ? c.id === "income" :
@@ -42,6 +63,10 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
 
   const selectedCategory = categories.find((c) => c.id === categoryId);
 
+  // Pour Income/Investment : on a quand même besoin de savoir QUI (paidBy)
+  // et éventuellement POUR QUI (split) si la dépense d'investissement est partagée
+  const needsMemberAttribution = type === "income" || type === "investment";
+
   function handleTypeChange(newType) {
     setType(newType);
     setCategoryId(null);
@@ -50,14 +75,52 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
 
   function selectCategory(cat) {
     setCategoryId(cat.id);
-    setSubcategory(cat.subcategories[0]);
+    setSubcategory(cat.subcategories[0] || null);
     setShowCatPicker(false);
+  }
+
+  async function handleCreateCategory() {
+    const name = newCatName.trim();
+    if (!name) return;
+    const newCat = {
+      id: `cat_${Date.now()}`,
+      name,
+      icon: "ti-tag",
+      color: "amber",
+      subcategories: [],
+    };
+    const updated = [...categories, newCat];
+    await updateCategories(updated);
+    setCategoryId(newCat.id);
+    setSubcategory(null);
+    setNewCatName("");
+    setShowNewCat(false);
+    setShowCatPicker(false);
+  }
+
+  async function handleCreateSubcategory() {
+    const name = newSubName.trim();
+    if (!name || !categoryId) return;
+    const updated = categories.map((c) =>
+      c.id === categoryId
+        ? { ...c, subcategories: [...c.subcategories, name] }
+        : c
+    );
+    await updateCategories(updated);
+    setSubcategory(name);
+    setNewSubName("");
+    setShowNewSub(false);
+  }
+
+  function getInitial(name) {
+    return name?.[0]?.toUpperCase() || "?";
   }
 
   async function handleSave() {
     if (!amount || !categoryId) return;
     setBusy(true);
     try {
+      const isoDate = new Date(dateTime).toISOString();
       const payload = {
         type,
         amount: parseFloat(amount),
@@ -65,14 +128,15 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
         categoryId,
         subcategory,
         description: description || selectedCategory?.name,
-        paidBy: type === "expense" ? paidBy : user.uid,
-        split: type === "expense" ? split : "100",
+        paidBy,
+        split: type === "expense" || needsMemberAttribution ? split : "100",
+        date: isoDate,
       };
 
       if (isEditing) {
         await updateTransaction(editingTx.id, payload);
       } else {
-        await addTransaction({ ...payload, date: new Date().toISOString() });
+        await addTransaction(payload);
       }
       onClose();
     } catch (err) {
@@ -95,18 +159,8 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
       }}
     >
       <div style={{ padding: "1.5rem 1.25rem 6rem" }}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            marginBottom: 16,
-          }}
-        >
-          <button
-            onClick={onClose}
-            aria-label="Fermer"
-            style={{ background: "none", border: "none" }}
-          >
+        <div style={{ display: "flex", alignItems: "center", marginBottom: 16 }}>
+          <button onClick={onClose} aria-label="Fermer" style={{ background: "none", border: "none" }}>
             <i className="ti ti-x" style={{ fontSize: 20 }} aria-hidden="true" />
           </button>
           <h1 style={{ fontSize: 18, flex: 1, textAlign: "center" }}>
@@ -140,6 +194,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
           ))}
         </div>
 
+        {/* Montant + devise */}
         <div
           style={{
             background: "var(--bg-card)",
@@ -150,14 +205,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
             textAlign: "center",
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 8,
-            }}
-          >
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
             <input
               type="number"
               inputMode="decimal"
@@ -185,37 +233,21 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
                 fontWeight: 500,
               }}
             >
-              {currency}{" "}
-              <i className="ti ti-chevron-down" style={{ fontSize: 12 }} aria-hidden="true" />
+              {currency} <i className="ti ti-chevron-down" style={{ fontSize: 12 }} aria-hidden="true" />
             </button>
           </div>
 
           {showCurrencyPicker && (
-            <div
-              style={{
-                marginTop: 12,
-                display: "flex",
-                flexWrap: "wrap",
-                gap: 6,
-                justifyContent: "center",
-              }}
-            >
+            <div style={{ marginTop: 12, display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "center" }}>
               {CURRENCIES.map((c) => (
                 <button
                   key={c.code}
-                  onClick={() => {
-                    setCurrency(c.code);
-                    setShowCurrencyPicker(false);
-                  }}
+                  onClick={() => { setCurrency(c.code); setShowCurrencyPicker(false); }}
                   style={{
                     padding: "6px 10px",
                     borderRadius: "var(--radius-md)",
-                    border:
-                      currency === c.code
-                        ? "0.5px solid var(--sky)"
-                        : "0.5px solid var(--rule)",
-                    background:
-                      currency === c.code ? "var(--sky-light)" : "var(--bg)",
+                    border: currency === c.code ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
+                    background: currency === c.code ? "var(--sky-light)" : "var(--bg)",
                     color: currency === c.code ? "var(--sky)" : "var(--ink)",
                     fontSize: 12,
                   }}
@@ -227,6 +259,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
           )}
         </div>
 
+        {/* Date */}
         <div
           style={{
             background: "var(--bg-card)",
@@ -236,9 +269,35 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
             marginBottom: 12,
           }}
         >
-          <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>
-            Catégorie
-          </p>
+          <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>Date</p>
+          <input
+            type="datetime-local"
+            value={dateTime}
+            onChange={(e) => setDateTime(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "8px 0",
+              border: "none",
+              borderBottom: "0.5px solid var(--rule)",
+              background: "transparent",
+              fontSize: 14,
+              outline: "none",
+              color: "var(--ink)",
+            }}
+          />
+        </div>
+
+        {/* Catégorie / sous-catégorie / description */}
+        <div
+          style={{
+            background: "var(--bg-card)",
+            borderRadius: "var(--radius-lg)",
+            border: "0.5px solid var(--rule)",
+            padding: "1rem 1.25rem",
+            marginBottom: 12,
+          }}
+        >
+          <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>Catégorie</p>
           <div
             onClick={() => setShowCatPicker(!showCatPicker)}
             style={{
@@ -252,19 +311,11 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
           >
             {selectedCategory ? (
               <>
-                <i
-                  className={`ti ${selectedCategory.icon}`}
-                  style={{ fontSize: 16 }}
-                  aria-hidden="true"
-                />
-                <span style={{ fontSize: 14, flex: 1 }}>
-                  {selectedCategory.name}
-                </span>
+                <i className={`ti ${selectedCategory.icon}`} style={{ fontSize: 16 }} aria-hidden="true" />
+                <span style={{ fontSize: 14, flex: 1 }}>{selectedCategory.name}</span>
               </>
             ) : (
-              <span style={{ fontSize: 14, flex: 1, color: "var(--ink-3)" }}>
-                Choisir une catégorie
-              </span>
+              <span style={{ fontSize: 14, flex: 1, color: "var(--ink-3)" }}>Choisir une catégorie</span>
             )}
             <i className="ti ti-chevron-down" style={{ fontSize: 14, color: "var(--ink-3)" }} aria-hidden="true" />
           </div>
@@ -275,69 +326,125 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
                 <div
                   key={cat.id}
                   onClick={() => selectCategory(cat)}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    padding: "8px 4px",
-                    cursor: "pointer",
-                  }}
+                  style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 4px", cursor: "pointer" }}
                 >
                   <i className={`ti ${cat.icon}`} style={{ fontSize: 16 }} aria-hidden="true" />
                   <span style={{ fontSize: 13 }}>{cat.name}</span>
                 </div>
               ))}
+
+              {type === "expense" && (
+                <>
+                  {!showNewCat ? (
+                    <button
+                      onClick={() => setShowNewCat(true)}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 6,
+                        background: "none", border: "none", color: "var(--sky)",
+                        fontSize: 13, padding: "8px 4px",
+                      }}
+                    >
+                      <i className="ti ti-plus" style={{ fontSize: 14 }} aria-hidden="true" />
+                      Nouvelle catégorie
+                    </button>
+                  ) : (
+                    <div style={{ display: "flex", gap: 6, padding: "8px 4px" }}>
+                      <input
+                        type="text"
+                        autoFocus
+                        placeholder="Nom de la catégorie"
+                        value={newCatName}
+                        onChange={(e) => setNewCatName(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && handleCreateCategory()}
+                        style={{
+                          flex: 1, border: "none", borderBottom: "0.5px solid var(--rule)",
+                          outline: "none", fontSize: 13, background: "transparent",
+                        }}
+                      />
+                      <button
+                        onClick={handleCreateCategory}
+                        style={{ background: "var(--ink)", color: "var(--bg)", border: "none", borderRadius: "var(--radius-sm)", padding: "4px 10px", fontSize: 12 }}
+                      >
+                        OK
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           )}
 
           {selectedCategory && (
             <>
-              <p style={{ fontSize: 12, color: "var(--ink-2)", margin: "12px 0 6px" }}>
-                Sous-catégorie
-              </p>
+              <p style={{ fontSize: 12, color: "var(--ink-2)", margin: "12px 0 6px" }}>Sous-catégorie</p>
               <select
-                value={subcategory}
+                value={subcategory || ""}
                 onChange={(e) => setSubcategory(e.target.value)}
                 style={{
-                  width: "100%",
-                  padding: "8px 0",
-                  border: "none",
-                  borderBottom: "0.5px solid var(--rule)",
-                  background: "transparent",
-                  fontSize: 14,
-                  outline: "none",
+                  width: "100%", padding: "8px 0", border: "none",
+                  borderBottom: "0.5px solid var(--rule)", background: "transparent",
+                  fontSize: 14, outline: "none",
                 }}
               >
+                <option value="" disabled>Choisir...</option>
                 {selectedCategory.subcategories.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
+                  <option key={s} value={s}>{s}</option>
                 ))}
               </select>
+
+              {!showNewSub ? (
+                <button
+                  onClick={() => setShowNewSub(true)}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 6,
+                    background: "none", border: "none", color: "var(--sky)",
+                    fontSize: 12, padding: "8px 0 0",
+                  }}
+                >
+                  <i className="ti ti-plus" style={{ fontSize: 13 }} aria-hidden="true" />
+                  Nouvelle sous-catégorie
+                </button>
+              ) : (
+                <div style={{ display: "flex", gap: 6, paddingTop: 8 }}>
+                  <input
+                    type="text"
+                    autoFocus
+                    placeholder="Nom de la sous-catégorie"
+                    value={newSubName}
+                    onChange={(e) => setNewSubName(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleCreateSubcategory()}
+                    style={{
+                      flex: 1, border: "none", borderBottom: "0.5px solid var(--rule)",
+                      outline: "none", fontSize: 13, background: "transparent",
+                    }}
+                  />
+                  <button
+                    onClick={handleCreateSubcategory}
+                    style={{ background: "var(--ink)", color: "var(--bg)", border: "none", borderRadius: "var(--radius-sm)", padding: "4px 10px", fontSize: 12 }}
+                  >
+                    OK
+                  </button>
+                </div>
+              )}
             </>
           )}
 
-          <p style={{ fontSize: 12, color: "var(--ink-2)", margin: "12px 0 6px" }}>
-            Description
-          </p>
+          <p style={{ fontSize: 12, color: "var(--ink-2)", margin: "12px 0 6px" }}>Description</p>
           <input
             type="text"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Optionnel"
             style={{
-              width: "100%",
-              padding: "8px 0",
-              border: "none",
-              borderBottom: "0.5px solid var(--rule)",
-              background: "transparent",
-              fontSize: 14,
-              outline: "none",
+              width: "100%", padding: "8px 0", border: "none",
+              borderBottom: "0.5px solid var(--rule)", background: "transparent",
+              fontSize: 14, outline: "none",
             }}
           />
         </div>
 
-        {type === "expense" && members.length > 0 && (
+        {/* Attribution membre — pour Expense (Payé par / Pour) ET Income/Investment (juste Payé par/Pour aussi) */}
+        {members.length > 0 && (
           <div
             style={{
               background: "var(--bg-card)",
@@ -348,7 +455,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
             }}
           >
             <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 8 }}>
-              Qui a payé
+              {needsMemberAttribution ? "Reçu / investi par" : "Payé par"}
             </p>
             <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
               {members.map((m) => (
@@ -356,18 +463,11 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
                   key={m.uid}
                   onClick={() => setPaidBy(m.uid)}
                   style={{
-                    flex: 1,
-                    padding: 8,
-                    borderRadius: "var(--radius-md)",
-                    border:
-                      paidBy === m.uid
-                        ? "0.5px solid var(--sky)"
-                        : "0.5px solid var(--rule)",
-                    background:
-                      paidBy === m.uid ? "var(--sky-light)" : "var(--bg-card)",
+                    flex: 1, padding: 8, borderRadius: "var(--radius-md)",
+                    border: paidBy === m.uid ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
+                    background: paidBy === m.uid ? "var(--sky-light)" : "var(--bg-card)",
                     color: paidBy === m.uid ? "var(--sky)" : "var(--ink)",
-                    fontSize: 13,
-                    fontWeight: paidBy === m.uid ? 500 : 400,
+                    fontSize: 13, fontWeight: paidBy === m.uid ? 500 : 400,
                   }}
                 >
                   {m.name}
@@ -375,22 +475,15 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
               ))}
             </div>
 
-            <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 8 }}>
-              Partage
-            </p>
+            <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 8 }}>Pour</p>
             <div style={{ display: "flex", gap: 6 }}>
               {members.map((m) => (
                 <button
                   key={m.uid}
                   onClick={() => setSplit(m.uid)}
                   style={{
-                    flex: 1,
-                    padding: 8,
-                    borderRadius: "var(--radius-md)",
-                    border:
-                      split === m.uid
-                        ? "0.5px solid var(--sky)"
-                        : "0.5px solid var(--rule)",
+                    flex: 1, padding: 8, borderRadius: "var(--radius-md)",
+                    border: split === m.uid ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
                     background: split === m.uid ? "var(--sky-light)" : "var(--bg-card)",
                     color: split === m.uid ? "var(--sky)" : "var(--ink)",
                     fontSize: 13,
@@ -402,17 +495,11 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
               <button
                 onClick={() => setSplit("50/50")}
                 style={{
-                  flex: 1,
-                  padding: 8,
-                  borderRadius: "var(--radius-md)",
-                  border:
-                    split === "50/50"
-                      ? "0.5px solid var(--sky)"
-                      : "0.5px solid var(--rule)",
+                  flex: 1, padding: 8, borderRadius: "var(--radius-md)",
+                  border: split === "50/50" ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
                   background: split === "50/50" ? "var(--sky-light)" : "var(--bg-card)",
                   color: split === "50/50" ? "var(--sky)" : "var(--ink)",
-                  fontSize: 13,
-                  fontWeight: split === "50/50" ? 500 : 400,
+                  fontSize: 13, fontWeight: split === "50/50" ? 500 : 400,
                 }}
               >
                 50/50

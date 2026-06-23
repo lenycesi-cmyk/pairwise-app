@@ -19,15 +19,25 @@ export default function DebtScreen() {
       const val = convert(tx.amount, tx.currency, defaultCurrency);
 
       if (tx.split === "50/50") {
+        // Dépense partagée : celui qui n'a pas payé doit la moitié
         const half = val / 2;
         if (tx.paidBy === a.uid) {
           aPaidForB += half;
-          sharedTx.push({ ...tx, share: half, paidByName: a.name });
+          sharedTx.push({ ...tx, share: half, paidByName: a.name, label: "50/50" });
         } else if (tx.paidBy === b.uid) {
           bPaidForA += half;
-          sharedTx.push({ ...tx, share: half, paidByName: b.name });
+          sharedTx.push({ ...tx, share: half, paidByName: b.name, label: "50/50" });
         }
+      } else if (tx.split === a.uid && tx.paidBy === b.uid) {
+        // B a payé entièrement pour A
+        bPaidForA += val;
+        sharedTx.push({ ...tx, share: val, paidByName: b.name, label: `pour ${a.name}` });
+      } else if (tx.split === b.uid && tx.paidBy === a.uid) {
+        // A a payé entièrement pour B
+        aPaidForB += val;
+        sharedTx.push({ ...tx, share: val, paidByName: a.name, label: `pour ${b.name}` });
       }
+      // Si split === paidBy (chacun paie pour soi-même), aucune dette générée
     }
 
     const net = aPaidForB - bPaidForA;
@@ -113,7 +123,7 @@ export default function DebtScreen() {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ fontSize: 13 }}>{tx.description}</p>
                 <p style={{ fontSize: 11, color: "var(--ink-3)" }}>
-                  Payé par {tx.paidByName} · 50/50
+                  Payé par {tx.paidByName} · {tx.label}
                 </p>
               </div>
               <p style={{ fontSize: 13, fontWeight: 500, color: "var(--sky)" }}>

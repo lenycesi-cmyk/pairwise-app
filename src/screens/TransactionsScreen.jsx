@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useFinance } from "../context/FinanceContext";
 import { useAuth } from "../context/AuthContext";
+import { buildMemberColorMap, getInitial } from "../utils/memberColors";
 
 const COLOR_MAP = {
   tang: { text: "var(--tang)", bg: "var(--tang-light)" },
@@ -16,6 +17,8 @@ export default function TransactionsScreen({ onEdit }) {
   const { transactions, categories, members, deleteTransaction } = useFinance();
   const { user } = useAuth();
   const [filter, setFilter] = useState("all");
+
+  const memberColorMap = useMemo(() => buildMemberColorMap(members), [members]);
 
   const filtered = useMemo(() => {
     if (filter === "all") return transactions;
@@ -138,10 +141,31 @@ export default function TransactionsScreen({ onEdit }) {
                     >
                       {tx.description}
                     </p>
-                    <p style={{ fontSize: 12, color: "var(--ink-3)" }}>
-                      {tx.subcategory} · {getMemberName(tx.paidBy)}
-                      {tx.split === "50/50" ? " · 50/50" : ""}
-                    </p>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2, flexWrap: "wrap" }}>
+                      <span style={{ fontSize: 12, color: "var(--ink-3)" }}>{tx.subcategory}</span>
+                      <span style={{ fontSize: 12, color: "var(--ink-3)" }}>·</span>
+                      <span style={{ fontSize: 11, color: "var(--ink-3)" }}>Payé par</span>
+                      <InitialBadge member={members.find(m => m.uid === tx.paidBy)} colorMap={memberColorMap} />
+                      {tx.split && (
+                        <>
+                          <span style={{ fontSize: 11, color: "var(--ink-3)" }}>· Pour</span>
+                          {tx.split === "50/50" ? (
+                            <span style={{ display: "flex", gap: 2 }}>
+                              {members.map((m, i) => (
+                                <span key={m.uid} style={{ display: "flex", alignItems: "center" }}>
+                                  <InitialBadge member={m} colorMap={memberColorMap} />
+                                  {i < members.length - 1 && (
+                                    <span style={{ fontSize: 11, color: "var(--ink-3)", margin: "0 2px" }}>&</span>
+                                  )}
+                                </span>
+                              ))}
+                            </span>
+                          ) : (
+                            <InitialBadge member={members.find(m => m.uid === tx.split)} colorMap={memberColorMap} />
+                          )}
+                        </>
+                      )}
+                    </div>
                   </div>
                   <div style={{ textAlign: "right", flexShrink: 0 }}>
                     <p
@@ -204,5 +228,29 @@ function FilterChip({ active, onClick, children }) {
     >
       {children}
     </button>
+  );
+}
+
+function InitialBadge({ member, colorMap }) {
+  if (!member) return null;
+  const color = colorMap[member.uid] || { text: "var(--ink-3)", bg: "var(--rule)" };
+  return (
+    <span
+      title={member.name}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: 16,
+        height: 16,
+        borderRadius: "50%",
+        background: color.bg,
+        color: color.text,
+        fontSize: 10,
+        fontWeight: 600,
+      }}
+    >
+      {getInitial(member.name)}
+    </span>
   );
 }
