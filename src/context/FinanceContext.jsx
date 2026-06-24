@@ -89,6 +89,7 @@ export function FinanceProvider({ children }) {
       convertedCurrency: defaultCurrency,
       exchangeRate: rate,
       exchangeRateIsFallback: isFallback,
+      memberUids: members.map((m) => m.uid),
       createdAt: Date.now(),
       createdBy: user.uid,
     });
