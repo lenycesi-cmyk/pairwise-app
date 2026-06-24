@@ -12,6 +12,8 @@ import SettingsScreen from "./screens/SettingsScreen";
 import AddTransactionScreen from "./screens/AddTransactionScreen";
 import RecurringScreen from "./screens/RecurringScreen";
 import WealthScreen from "./screens/WealthScreen";
+import AddAssetScreen from "./screens/AddAssetScreen";
+import MemberBreakdownScreen from "./screens/MemberBreakdownScreen";
 import InvestmentCalculatorScreen from "./screens/InvestmentCalculatorScreen";
 import BottomNav from "./components/BottomNav";
 
@@ -56,6 +58,8 @@ function AppContent() {
   const [showCategories, setShowCategories] = useState(false);
   const [showDebt, setShowDebt] = useState(false);
   const [showCalculator, setShowCalculator] = useState(false);
+  const [showAddAsset, setShowAddAsset] = useState(false);
+  const [showBreakdown, setShowBreakdown] = useState(false);
 
   if (loading) {
     return (
@@ -80,24 +84,38 @@ function AppContent() {
     setEditingTx(null);
   }
 
+  function handleCentralAdd(currentTab) {
+    if (currentTab === "wealth") {
+      setShowAddAsset(true);
+    } else {
+      setShowAdd(true);
+    }
+  }
+
   return (
     <FinanceProvider>
       <RecurringGeneratorRunner />
 
-      {tab === "dashboard" && <DashboardScreen onOpenDebt={() => setShowDebt(true)} />}
+      {tab === "dashboard" && (
+        <DashboardScreen
+          onOpenDebt={() => setShowDebt(true)}
+          onOpenBreakdown={() => setShowBreakdown(true)}
+        />
+      )}
       {tab === "transactions" && <TransactionsScreen onEdit={openEdit} />}
       {tab === "wealth" && <WealthScreen onOpenCalculator={() => setShowCalculator(true)} />}
       {tab === "settings" && (
         <SettingsScreen
           onOpenRecurring={() => setShowRecurring(true)}
           onOpenCategories={() => setShowCategories(true)}
-          onOpenDebt={() => setShowDebt(true)}
         />
       )}
 
-      <BottomNav active={tab} onChange={setTab} onAddClick={() => setShowAdd(true)} />
+      <BottomNav active={tab} onChange={setTab} onAddClick={handleCentralAdd} />
 
       {showAdd && <AddTransactionScreen onClose={closeAdd} editingTx={editingTx} />}
+      {showAddAsset && <AddAssetScreen onClose={() => setShowAddAsset(false)} />}
+      {showBreakdown && <MemberBreakdownScreen onClose={() => setShowBreakdown(false)} />}
       {showRecurring && <RecurringScreen onClose={() => setShowRecurring(false)} />}
       {showCalculator && (
         <InvestmentCalculatorScreen onClose={() => setShowCalculator(false)} />

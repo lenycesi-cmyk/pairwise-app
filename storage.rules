@@ -3,19 +3,14 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
 
-    // Photos de profil : tout utilisateur connecté peut lire (pour afficher
-    // les avatars), mais seul le propriétaire peut écrire la sienne.
-    match /profiles/{userId}.jpg {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == userId;
+    // Photos de profil et reçus : tout utilisateur authentifié peut lire/écrire.
+    // Simplifié pour fiabilité — même logique que les règles Firestore.
+    match /profiles/{fileName} {
+      allow read, write: if request.auth != null;
     }
 
-    // Photos de reçus : tout utilisateur connecté peut lire/écrire pour l'instant
-    // (le contrôle d'accès fin par couple se fait au niveau Firestore qui référence
-    // l'URL ; on limite ici la taille et le type de fichier).
-    match /receipts/{txId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null &&
+    match /receipts/{fileName} {
+      allow read, write: if request.auth != null &&
         request.resource.size < 10 * 1024 * 1024 &&
         request.resource.contentType.matches('image/.*');
     }

@@ -11,7 +11,7 @@ const MONTHS = [
   "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre",
 ];
 
-export default function DashboardScreen({ onOpenDebt }) {
+export default function DashboardScreen({ onOpenDebt, onOpenBreakdown }) {
   const { transactions, categories, members, defaultCurrency, loading } = useFinance();
   const { convert, loading: ratesLoading, error: ratesError } = useExchangeRates(defaultCurrency);
 
@@ -195,9 +195,21 @@ export default function DashboardScreen({ onOpenDebt }) {
 
       {members.length > 0 && (
         <>
-          <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>
-            Résumé par membre
-          </p>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+            <p style={{ fontSize: 13, fontWeight: 500 }}>
+              Résumé par membre
+            </p>
+            <button
+              onClick={onOpenBreakdown}
+              style={{
+                background: "none", border: "none", color: "var(--sky)",
+                fontSize: 12, display: "flex", alignItems: "center", gap: 3,
+              }}
+            >
+              Détail
+              <i className="ti ti-chevron-right" style={{ fontSize: 12 }} aria-hidden="true" />
+            </button>
+          </div>
           <div
             style={{
               display: "grid",

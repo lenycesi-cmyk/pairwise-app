@@ -34,7 +34,6 @@ export default function WealthScreen({ onOpenCalculator }) {
   const displayCurrency = wealthDisplayCurrency || defaultCurrency;
   const { convert, loading: ratesLoading } = useExchangeRates(displayCurrency);
 
-  const [showAdd, setShowAdd] = useState(false);
   const [editingAsset, setEditingAsset] = useState(null);
   const [livePrices, setLivePrices] = useState({});
   const [refreshing, setRefreshing] = useState(false);
@@ -140,11 +139,11 @@ export default function WealthScreen({ onOpenCalculator }) {
     return Math.round(n).toLocaleString("fr-FR");
   }
 
-  if (showAdd || editingAsset) {
+  if (editingAsset) {
     return (
       <AddAssetScreen
         editingAsset={editingAsset}
-        onClose={() => { setShowAdd(false); setEditingAsset(null); }}
+        onClose={() => setEditingAsset(null)}
       />
     );
   }
@@ -153,29 +152,16 @@ export default function WealthScreen({ onOpenCalculator }) {
     <div style={{ padding: "1.5rem 1.25rem 6rem" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <h1 style={{ fontSize: 20 }}>Patrimoine</h1>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button
-            onClick={() => setShowCurrencyPicker(!showCurrencyPicker)}
-            style={{
-              padding: "4px 10px", borderRadius: "var(--radius-md)",
-              border: "0.5px solid var(--rule)", background: "var(--bg-card)",
-              fontSize: 12, fontWeight: 500, display: "flex", alignItems: "center", gap: 4,
-            }}
-          >
-            {displayCurrency} <i className="ti ti-chevron-down" style={{ fontSize: 11 }} aria-hidden="true" />
-          </button>
-          <button
-            onClick={() => setShowAdd(true)}
-            aria-label="Ajouter un actif"
-            style={{
-              width: 32, height: 32, borderRadius: "50%",
-              background: "var(--ink)", border: "none",
-              display: "flex", alignItems: "center", justifyContent: "center",
-            }}
-          >
-            <i className="ti ti-plus" style={{ fontSize: 16, color: "var(--bg)" }} aria-hidden="true" />
-          </button>
-        </div>
+        <button
+          onClick={() => setShowCurrencyPicker(!showCurrencyPicker)}
+          style={{
+            padding: "4px 10px", borderRadius: "var(--radius-md)",
+            border: "0.5px solid var(--rule)", background: "var(--bg-card)",
+            fontSize: 12, fontWeight: 500, display: "flex", alignItems: "center", gap: 4,
+          }}
+        >
+          {displayCurrency} <i className="ti ti-chevron-down" style={{ fontSize: 11 }} aria-hidden="true" />
+        </button>
       </div>
 
       {showCurrencyPicker && (
@@ -283,7 +269,12 @@ export default function WealthScreen({ onOpenCalculator }) {
           }}
         >
           <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 8 }}>Évolution</p>
-          <NetWorthChart history={netWorthHistory} currencySymbol={currencySymbol} />
+          <NetWorthChart
+            history={netWorthHistory}
+            currencySymbol={currencySymbol}
+            displayCurrency={displayCurrency}
+            convert={convert}
+          />
         </div>
       )}
 

@@ -30,8 +30,8 @@ export default function BottomNav({ active, onChange, onAddClick }) {
           return (
             <button
               key={tab.key}
-              onClick={onAddClick}
-              aria-label="Ajouter une transaction"
+              onClick={() => onAddClick(active)}
+              aria-label="Ajouter"
               style={{
                 width: 48,
                 height: 48,
