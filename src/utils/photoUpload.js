@@ -52,7 +52,7 @@ function compressImage(file, maxWidth = 1200, quality = 0.75) {
 export async function uploadPhoto(file, path) {
   const compressed = await compressImage(file);
   const storageRef = ref(storage, path);
-  await uploadBytes(storageRef, compressed);
+  await uploadBytes(storageRef, compressed, { contentType: "image/jpeg" });
   const url = await getDownloadURL(storageRef);
   return url;
 }
