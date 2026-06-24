@@ -4,6 +4,8 @@ import { useExchangeRates } from "../hooks/useExchangeRates";
 import { useDebtCalculation } from "../hooks/useDebtCalculation";
 import CategoryRow from "../components/CategoryRow";
 import DebtSummaryCard from "../components/DebtSummaryCard";
+import Avatar from "../components/Avatar";
+import { buildMemberColorMap } from "../utils/memberColors";
 import { CURRENCIES } from "../data/categories";
 
 const MONTHS = [
@@ -16,6 +18,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown }) {
   const { convert, loading: ratesLoading, error: ratesError } = useExchangeRates(defaultCurrency);
 
   const debt = useDebtCalculation(transactions, members, defaultCurrency, convert);
+  const memberColorMap = useMemo(() => buildMemberColorMap(members), [members]);
 
   const now = new Date();
   const [viewMonth, setViewMonth] = useState(now.getMonth());
@@ -238,23 +241,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown }) {
                       marginBottom: 10,
                     }}
                   >
-                    <div
-                      style={{
-                        width: 26,
-                        height: 26,
-                        borderRadius: "50%",
-                        background: "var(--sky-light)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: 11,
-                        fontWeight: 500,
-                        color: "var(--sky)",
-                        flexShrink: 0,
-                      }}
-                    >
-                      {m.name?.[0]?.toUpperCase() || "?"}
-                    </div>
+                    <Avatar member={m} colorMap={memberColorMap} size={26} />
                     <p style={{ fontSize: 13, fontWeight: 500 }}>{m.name}</p>
                   </div>
                   <MiniRow label="Revenus" value={mt.income} formatAmount={formatAmount} color="var(--sage)" symbol={currencySymbol} />

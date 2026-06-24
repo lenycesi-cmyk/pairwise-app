@@ -132,9 +132,6 @@ export default function MemberBreakdownScreen({ onClose }) {
                 gap: 6,
               }}
             >
-              {m.photoURL ? (
-                <img src={m.photoURL} alt={m.name} style={{ width: 18, height: 18, borderRadius: "50%", objectFit: "cover" }} />
-              ) : null}
               {m.name}
             </button>
           ))}

@@ -7,6 +7,8 @@ import { CURRENCIES } from "../data/categories";
 import AddAssetScreen from "./AddAssetScreen";
 import NetWorthChart from "../components/NetWorthChart";
 import AllocationChart from "../components/AllocationChart";
+import Avatar from "../components/Avatar";
+import { buildMemberColorMap } from "../utils/memberColors";
 
 const COLOR_MAP = {
   tang: { text: "var(--tang)", bg: "var(--tang-light)" },
@@ -33,6 +35,7 @@ export default function WealthScreen({ onOpenCalculator }) {
   // La devise d'affichage du patrimoine peut différer de la devise des transactions
   const displayCurrency = wealthDisplayCurrency || defaultCurrency;
   const { convert, loading: ratesLoading } = useExchangeRates(displayCurrency);
+  const memberColorMap = useMemo(() => buildMemberColorMap(members), [members]);
 
   const [editingAsset, setEditingAsset] = useState(null);
   const [livePrices, setLivePrices] = useState({});
@@ -232,17 +235,7 @@ export default function WealthScreen({ onOpenCalculator }) {
             {members.map((m) => (
               <div key={m.uid} style={{ flex: 1 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-                  {m.photoURL ? (
-                    <img src={m.photoURL} alt={m.name} style={{ width: 18, height: 18, borderRadius: "50%", objectFit: "cover" }} />
-                  ) : (
-                    <div style={{
-                      width: 18, height: 18, borderRadius: "50%", background: "var(--sky-light)",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      fontSize: 9, fontWeight: 600, color: "var(--sky)",
-                    }}>
-                      {m.name?.[0]?.toUpperCase()}
-                    </div>
-                  )}
+                  <Avatar member={m} colorMap={memberColorMap} size={18} />
                   <span style={{ fontSize: 11, color: "var(--ink-2)" }}>{m.name}</span>
                 </div>
                 <p style={{

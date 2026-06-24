@@ -3,15 +3,44 @@ import { useAuth } from "../context/AuthContext";
 import { useFinance } from "../context/FinanceContext";
 import { CURRENCIES } from "../data/categories";
 import { uploadPhoto } from "../utils/photoUpload";
+import { AVATAR_COLOR_PALETTE, buildMemberColorMap, getInitial } from "../utils/memberColors";
 
 export default function SettingsScreen({ onOpenRecurring, onOpenCategories }) {
-  const { coupleId, logout, user, updateProfilePhoto } = useAuth();
-  const { defaultCurrency, updateDefaultCurrency, currencyMode, updateCurrencyMode, updateMemberPhoto } =
-    useFinance();
+  const { coupleId, logout, user, updateProfilePhoto, updateDisplayName } = useAuth();
+  const {
+    defaultCurrency,
+    updateDefaultCurrency,
+    currencyMode,
+    updateCurrencyMode,
+    updateMemberPhoto,
+    updateMemberName,
+    updateMemberAvatarColor,
+    members,
+  } = useFinance();
   const [showCode, setShowCode] = useState(false);
   const [copied, setCopied] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const fileInputRef = useRef(null);
+  const [editingName, setEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState(user?.displayName || "");
+  const [showColorPicker, setShowColorPicker] = useState(false);
+
+  const currentMember = members.find((m) => m.uid === user?.uid);
+  const memberColorMap = buildMemberColorMap(members);
+  const myColor = memberColorMap[user?.uid] || AVATAR_COLOR_PALETTE[0];
+
+  async function handleSaveName() {
+    const trimmed = nameInput.trim();
+    if (!trimmed) return;
+    await updateDisplayName(trimmed);
+    await updateMemberName(user.uid, trimmed);
+    setEditingName(false);
+  }
+
+  async function handlePickColor(colorKey) {
+    await updateMemberAvatarColor(user.uid, colorKey);
+    setShowColorPicker(false);
+  }
 
   async function handlePhotoSelect(e) {
     const file = e.target.files?.[0];
@@ -97,6 +126,97 @@ export default function SettingsScreen({ onOpenRecurring, onOpenCategories }) {
           style={{ display: "none" }}
         />
       </div>
+
+      {/* Nom éditable */}
+      <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
+        {editingName ? (
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <input
+              type="text"
+              value={nameInput}
+              onChange={(e) => setNameInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSaveName()}
+              autoFocus
+              style={{
+                fontSize: 16,
+                fontWeight: 500,
+                textAlign: "center",
+                border: "none",
+                borderBottom: "1px solid var(--rule)",
+                outline: "none",
+                background: "transparent",
+                width: 160,
+              }}
+            />
+            <button
+              onClick={handleSaveName}
+              aria-label="Valider"
+              style={{ background: "none", border: "none", color: "var(--sage)" }}
+            >
+              <i className="ti ti-check" style={{ fontSize: 18 }} aria-hidden="true" />
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => { setNameInput(user?.displayName || ""); setEditingName(true); }}
+            style={{
+              display: "flex", alignItems: "center", gap: 6,
+              background: "none", border: "none",
+            }}
+          >
+            <span style={{ fontSize: 16, fontWeight: 500, color: "var(--ink)" }}>
+              {user?.displayName || "Sans nom"}
+            </span>
+            <i className="ti ti-pencil" style={{ fontSize: 13, color: "var(--ink-3)" }} aria-hidden="true" />
+          </button>
+        )}
+      </div>
+
+      {/* Couleur de l'icône */}
+      <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
+        <button
+          onClick={() => setShowColorPicker(!showColorPicker)}
+          style={{
+            display: "flex", alignItems: "center", gap: 6,
+            background: "none", border: "none", fontSize: 12, color: "var(--ink-3)",
+          }}
+        >
+          <span
+            style={{
+              width: 14, height: 14, borderRadius: "50%",
+              background: myColor.bg, border: `1.5px solid ${myColor.text}`,
+            }}
+          />
+          Couleur de l'icône
+        </button>
+      </div>
+
+      {showColorPicker && (
+        <div
+          style={{
+            display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap",
+            marginBottom: 20, padding: "0.75rem", background: "var(--bg-card)",
+            borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)",
+          }}
+        >
+          {AVATAR_COLOR_PALETTE.map((c) => (
+            <button
+              key={c.key}
+              onClick={() => handlePickColor(c.key)}
+              aria-label={c.key}
+              style={{
+                width: 32, height: 32, borderRadius: "50%",
+                background: c.bg, color: c.text,
+                border: currentMember?.avatarColor === c.key ? `2px solid ${c.text}` : "2px solid transparent",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 13, fontWeight: 600,
+              }}
+            >
+              {getInitial(user?.displayName)}
+            </button>
+          ))}
+        </div>
+      )}
 
       <SectionLabel>Couple</SectionLabel>
       <Card>

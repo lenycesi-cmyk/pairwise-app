@@ -229,6 +229,30 @@ export function FinanceProvider({ children }) {
     );
   }
 
+  async function updateMemberName(uid, name) {
+    if (!coupleId) return;
+    const updatedMembers = members.map((m) =>
+      m.uid === uid ? { ...m, name } : m
+    );
+    await setDoc(
+      doc(db, "couples", coupleId),
+      { members: updatedMembers },
+      { merge: true }
+    );
+  }
+
+  async function updateMemberAvatarColor(uid, avatarColor) {
+    if (!coupleId) return;
+    const updatedMembers = members.map((m) =>
+      m.uid === uid ? { ...m, avatarColor } : m
+    );
+    await setDoc(
+      doc(db, "couples", coupleId),
+      { members: updatedMembers },
+      { merge: true }
+    );
+  }
+
   async function updateWealthDisplayCurrency(currency) {
     if (!coupleId) return;
     await setDoc(
@@ -263,6 +287,8 @@ export function FinanceProvider({ children }) {
     netWorthHistory,
     recordNetWorthSnapshot,
     updateMemberPhoto,
+    updateMemberName,
+    updateMemberAvatarColor,
     wealthDisplayCurrency,
     updateWealthDisplayCurrency,
   };

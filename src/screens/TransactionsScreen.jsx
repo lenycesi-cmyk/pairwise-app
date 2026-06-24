@@ -1,7 +1,8 @@
 import { useState, useMemo } from "react";
 import { useFinance } from "../context/FinanceContext";
 import { useAuth } from "../context/AuthContext";
-import { buildMemberColorMap, getInitial } from "../utils/memberColors";
+import { buildMemberColorMap } from "../utils/memberColors";
+import Avatar from "../components/Avatar";
 
 const COLOR_MAP = {
   tang: { text: "var(--tang)", bg: "var(--tang-light)" },
@@ -174,7 +175,7 @@ export default function TransactionsScreen({ onEdit }) {
                       <span style={{ fontSize: 12, color: "var(--ink-3)" }}>{tx.subcategory}</span>
                       <span style={{ fontSize: 12, color: "var(--ink-3)" }}>·</span>
                       <span style={{ fontSize: 11, color: "var(--ink-3)" }}>Payé par</span>
-                      <InitialBadge member={members.find(m => m.uid === tx.paidBy)} colorMap={memberColorMap} />
+                      <Avatar member={members.find(m => m.uid === tx.paidBy)} colorMap={memberColorMap} />
                       {tx.split && (
                         <>
                           <span style={{ fontSize: 11, color: "var(--ink-3)" }}>· Pour</span>
@@ -182,7 +183,7 @@ export default function TransactionsScreen({ onEdit }) {
                             <span style={{ display: "flex", gap: 2 }}>
                               {members.map((m, i) => (
                                 <span key={m.uid} style={{ display: "flex", alignItems: "center" }}>
-                                  <InitialBadge member={m} colorMap={memberColorMap} />
+                                  <Avatar member={m} colorMap={memberColorMap} />
                                   {i < members.length - 1 && (
                                     <span style={{ fontSize: 11, color: "var(--ink-3)", margin: "0 2px" }}>&</span>
                                   )}
@@ -190,7 +191,7 @@ export default function TransactionsScreen({ onEdit }) {
                               ))}
                             </span>
                           ) : (
-                            <InitialBadge member={members.find(m => m.uid === tx.split)} colorMap={memberColorMap} />
+                            <Avatar member={members.find(m => m.uid === tx.split)} colorMap={memberColorMap} />
                           )}
                         </>
                       )}
@@ -307,43 +308,3 @@ function FilterChip({ active, onClick, children }) {
   );
 }
 
-function InitialBadge({ member, colorMap }) {
-  if (!member) return null;
-  const color = colorMap[member.uid] || { text: "var(--ink-3)", bg: "var(--rule)" };
-
-  if (member.photoURL) {
-    return (
-      <img
-        src={member.photoURL}
-        alt={member.name}
-        title={member.name}
-        style={{
-          width: 16,
-          height: 16,
-          borderRadius: "50%",
-          objectFit: "cover",
-        }}
-      />
-    );
-  }
-
-  return (
-    <span
-      title={member.name}
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        width: 16,
-        height: 16,
-        borderRadius: "50%",
-        background: color.bg,
-        color: color.text,
-        fontSize: 10,
-        fontWeight: 600,
-      }}
-    >
-      {getInitial(member.name)}
-    </span>
-  );
-}

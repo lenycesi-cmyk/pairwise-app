@@ -70,6 +70,12 @@ export function AuthProvider({ children }) {
     setUser({ ...auth.currentUser });
   }
 
+  async function updateDisplayName(newName) {
+    await updateProfile(auth.currentUser, { displayName: newName });
+    await setDoc(doc(db, "users", user.uid), { displayName: newName }, { merge: true });
+    setUser({ ...auth.currentUser });
+  }
+
   const value = {
     user,
     coupleId,
@@ -80,6 +86,7 @@ export function AuthProvider({ children }) {
     joinCouple,
     setCoupleId,
     updateProfilePhoto,
+    updateDisplayName,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
