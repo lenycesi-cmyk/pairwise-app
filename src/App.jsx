@@ -84,7 +84,7 @@ function AppContent() {
     <FinanceProvider>
       <RecurringGeneratorRunner />
 
-      {tab === "dashboard" && <DashboardScreen />}
+      {tab === "dashboard" && <DashboardScreen onOpenDebt={() => setShowDebt(true)} />}
       {tab === "transactions" && <TransactionsScreen onEdit={openEdit} />}
       {tab === "wealth" && <WealthScreen onOpenCalculator={() => setShowCalculator(true)} />}
       {tab === "settings" && (

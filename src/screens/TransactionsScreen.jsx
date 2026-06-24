@@ -17,6 +17,7 @@ export default function TransactionsScreen({ onEdit }) {
   const { transactions, categories, members, deleteTransaction, defaultCurrency } = useFinance();
   const { user } = useAuth();
   const [filter, setFilter] = useState("all");
+  const [viewingReceipt, setViewingReceipt] = useState(null);
 
   const memberColorMap = useMemo(() => buildMemberColorMap(members), [members]);
 
@@ -113,6 +114,12 @@ export default function TransactionsScreen({ onEdit }) {
                   }}
                 >
                   <div
+                    onClick={(e) => {
+                      if (tx.receiptURL) {
+                        e.stopPropagation();
+                        setViewingReceipt(tx.receiptURL);
+                      }
+                    }}
                     style={{
                       width: 36,
                       height: 36,
@@ -122,13 +129,35 @@ export default function TransactionsScreen({ onEdit }) {
                       alignItems: "center",
                       justifyContent: "center",
                       flexShrink: 0,
+                      overflow: "hidden",
+                      position: "relative",
                     }}
                   >
-                    <i
-                      className={`ti ${cat.icon}`}
-                      style={{ fontSize: 16, color: colors.text }}
-                      aria-hidden="true"
-                    />
+                    {tx.receiptURL ? (
+                      <>
+                        <img
+                          src={tx.receiptURL}
+                          alt="Reçu"
+                          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                        />
+                        <div
+                          style={{
+                            position: "absolute", bottom: 0, right: 0,
+                            width: 14, height: 14, borderRadius: "50%",
+                            background: "var(--ink)", display: "flex",
+                            alignItems: "center", justifyContent: "center",
+                          }}
+                        >
+                          <i className="ti ti-receipt" style={{ fontSize: 8, color: "var(--bg)" }} aria-hidden="true" />
+                        </div>
+                      </>
+                    ) : (
+                      <i
+                        className={`ti ${cat.icon}`}
+                        style={{ fontSize: 16, color: colors.text }}
+                        aria-hidden="true"
+                      />
+                    )}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p
@@ -219,6 +248,40 @@ export default function TransactionsScreen({ onEdit }) {
           </div>
         </div>
       ))}
+
+      {viewingReceipt && (
+        <div
+          onClick={() => setViewingReceipt(null)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.9)",
+            zIndex: 200,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "2rem",
+          }}
+        >
+          <img
+            src={viewingReceipt}
+            alt="Reçu agrandi"
+            style={{ maxWidth: "100%", maxHeight: "100%", borderRadius: "var(--radius-md)" }}
+          />
+          <button
+            onClick={() => setViewingReceipt(null)}
+            aria-label="Fermer"
+            style={{
+              position: "absolute", top: 24, right: 24,
+              width: 36, height: 36, borderRadius: "50%",
+              background: "rgba(255,255,255,0.15)", border: "none",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}
+          >
+            <i className="ti ti-x" style={{ fontSize: 18, color: "white" }} aria-hidden="true" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -247,6 +310,23 @@ function FilterChip({ active, onClick, children }) {
 function InitialBadge({ member, colorMap }) {
   if (!member) return null;
   const color = colorMap[member.uid] || { text: "var(--ink-3)", bg: "var(--rule)" };
+
+  if (member.photoURL) {
+    return (
+      <img
+        src={member.photoURL}
+        alt={member.name}
+        title={member.name}
+        style={{
+          width: 16,
+          height: 16,
+          borderRadius: "50%",
+          objectFit: "cover",
+        }}
+      />
+    );
+  }
+
   return (
     <span
       title={member.name}

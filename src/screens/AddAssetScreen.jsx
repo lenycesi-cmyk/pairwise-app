@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useFinance } from "../context/FinanceContext";
-import { ASSET_TYPES, COMMON_CRYPTOS, COMMON_STOCKS } from "../data/assetTypes";
+import { ASSET_TYPES } from "../data/assetTypes";
 import { CURRENCIES } from "../data/categories";
+import { searchCrypto, searchStocks } from "../utils/assetSearch";
 
 export default function AddAssetScreen({ onClose, editingAsset }) {
-  const { addAsset, updateAsset, removeAsset, defaultCurrency } = useFinance();
+  const { addAsset, updateAsset, removeAsset, defaultCurrency, members } = useFinance();
   const isEditing = !!editingAsset;
 
   const [typeId, setTypeId] = useState(editingAsset?.typeId || "cash");
@@ -13,12 +14,55 @@ export default function AddAssetScreen({ onClose, editingAsset }) {
   const [currency, setCurrency] = useState(editingAsset?.currency || defaultCurrency);
   const [quantity, setQuantity] = useState(editingAsset?.quantity?.toString() || "");
   const [apiId, setApiId] = useState(editingAsset?.apiId || "");
-  const [showApiPicker, setShowApiPicker] = useState(false);
+  const [apiLabel, setApiLabel] = useState(editingAsset?.apiLabel || "");
   const [busy, setBusy] = useState(false);
+
+  // Recherche d'actif via API
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const [showResults, setShowResults] = useState(false);
+  const debounceRef = useRef(null);
+
+  // Propriété de l'actif (qui possède quoi)
+  const [ownership, setOwnership] = useState(
+    editingAsset?.ownership || (members[0] ? members[0].uid : "shared")
+  );
+  const [sharePct, setSharePct] = useState(editingAsset?.sharePct ?? 50);
 
   const selectedType = ASSET_TYPES.find((t) => t.id === typeId);
   const usesApi = selectedType?.hasApiPrice;
-  const apiOptions = selectedType?.priceSource === "crypto" ? COMMON_CRYPTOS : COMMON_STOCKS;
+
+  useEffect(() => {
+    if (!usesApi || searchQuery.trim().length < 1) {
+      setSearchResults([]);
+      return;
+    }
+    setSearching(true);
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      const results =
+        selectedType.priceSource === "crypto"
+          ? await searchCrypto(searchQuery)
+          : await searchStocks(searchQuery);
+      setSearchResults(results);
+      setSearching(false);
+    }, 400);
+
+    return () => clearTimeout(debounceRef.current);
+  }, [searchQuery, typeId]);
+
+  function selectSearchResult(result) {
+    if (selectedType.priceSource === "crypto") {
+      setApiId(result.id);
+      setApiLabel(`${result.name} (${result.symbol})`);
+    } else {
+      setApiId(result.symbol);
+      setApiLabel(`${result.name} (${result.symbol})`);
+    }
+    setShowResults(false);
+    setSearchQuery("");
+  }
 
   async function handleSave() {
     if (!name.trim()) return;
@@ -31,8 +75,10 @@ export default function AddAssetScreen({ onClose, editingAsset }) {
         typeId,
         name: name.trim(),
         currency,
+        ownership,
+        sharePct: ownership === "shared" ? sharePct : 100,
         ...(usesApi
-          ? { quantity: parseFloat(quantity), apiId }
+          ? { quantity: parseFloat(quantity), apiId, apiLabel }
           : { value: parseFloat(value) }),
       };
 
@@ -93,7 +139,7 @@ export default function AddAssetScreen({ onClose, editingAsset }) {
             {ASSET_TYPES.map((t) => (
               <button
                 key={t.id}
-                onClick={() => { setTypeId(t.id); setApiId(""); }}
+                onClick={() => { setTypeId(t.id); setApiId(""); setApiLabel(""); }}
                 style={{
                   padding: "6px 10px",
                   borderRadius: "var(--radius-md)",
@@ -138,7 +184,7 @@ export default function AddAssetScreen({ onClose, editingAsset }) {
           />
         </div>
 
-        {/* Valeur (manuel) ou Quantité + actif suivi (API) */}
+        {/* Valeur (manuel) ou Recherche + Quantité (API) */}
         {!usesApi ? (
           <div
             style={{
@@ -190,33 +236,80 @@ export default function AddAssetScreen({ onClose, editingAsset }) {
             <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>
               {selectedType.priceSource === "crypto" ? "Cryptomonnaie" : "Action / ETF"}
             </p>
-            <div
-              onClick={() => setShowApiPicker(!showApiPicker)}
-              style={{
-                display: "flex", alignItems: "center", gap: 8, padding: "8px 0",
-                borderBottom: "0.5px solid var(--rule)", cursor: "pointer",
-              }}
-            >
-              <span style={{ fontSize: 14, flex: 1, color: apiId ? "var(--ink)" : "var(--ink-3)" }}>
-                {apiId
-                  ? apiOptions.find((o) => (o.id || o.symbol) === apiId)?.name || apiId
-                  : "Choisir..."}
-              </span>
-              <i className="ti ti-chevron-down" style={{ fontSize: 14, color: "var(--ink-3)" }} aria-hidden="true" />
-            </div>
 
-            {showApiPicker && (
-              <div style={{ marginTop: 8 }}>
-                {apiOptions.map((o) => (
+            {apiLabel ? (
+              <div
+                style={{
+                  display: "flex", alignItems: "center", gap: 8, padding: "8px 0",
+                  borderBottom: "0.5px solid var(--rule)",
+                }}
+              >
+                <span style={{ fontSize: 14, flex: 1 }}>{apiLabel}</span>
+                <button
+                  onClick={() => { setApiId(""); setApiLabel(""); }}
+                  style={{ background: "none", border: "none", color: "var(--sky)", fontSize: 12 }}
+                >
+                  Changer
+                </button>
+              </div>
+            ) : (
+              <div style={{ position: "relative" }}>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => { setSearchQuery(e.target.value); setShowResults(true); }}
+                  onFocus={() => setShowResults(true)}
+                  placeholder={
+                    selectedType.priceSource === "crypto"
+                      ? "Rechercher (ex: Bitcoin, Solana...)"
+                      : "Rechercher (ex: Apple, MSCI World...)"
+                  }
+                  style={{
+                    width: "100%", padding: "8px 0", border: "none",
+                    borderBottom: "0.5px solid var(--rule)", background: "transparent",
+                    fontSize: 14, outline: "none",
+                  }}
+                />
+                {searching && (
+                  <i
+                    className="ti ti-loader-2"
+                    style={{ position: "absolute", right: 0, top: 8, fontSize: 14, color: "var(--ink-3)" }}
+                    aria-hidden="true"
+                  />
+                )}
+
+                {showResults && searchResults.length > 0 && (
                   <div
-                    key={o.id || o.symbol}
-                    onClick={() => { setApiId(o.id || o.symbol); setShowApiPicker(false); }}
-                    style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 4px", cursor: "pointer" }}
+                    style={{
+                      marginTop: 4,
+                      maxHeight: 220,
+                      overflowY: "auto",
+                      border: "0.5px solid var(--rule)",
+                      borderRadius: "var(--radius-md)",
+                      background: "var(--bg)",
+                    }}
                   >
-                    <span style={{ fontSize: 13, flex: 1 }}>{o.name}</span>
-                    <span style={{ fontSize: 11, color: "var(--ink-3)" }}>{o.symbol}</span>
+                    {searchResults.map((r) => (
+                      <div
+                        key={r.id || r.symbol}
+                        onClick={() => selectSearchResult(r)}
+                        style={{
+                          display: "flex", alignItems: "center", gap: 8,
+                          padding: "10px 12px", cursor: "pointer",
+                          borderBottom: "0.5px solid var(--rule)",
+                        }}
+                      >
+                        <span style={{ fontSize: 13, flex: 1 }}>{r.name}</span>
+                        <span style={{ fontSize: 11, color: "var(--ink-3)" }}>{r.symbol}</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
+                {showResults && searchQuery.length > 0 && !searching && searchResults.length === 0 && (
+                  <p style={{ fontSize: 12, color: "var(--ink-3)", marginTop: 6 }}>
+                    Aucun résultat. Essayez un autre terme.
+                  </p>
+                )}
               </div>
             )}
 
@@ -236,6 +329,80 @@ export default function AddAssetScreen({ onClose, editingAsset }) {
             <p style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 8 }}>
               <i className="ti ti-info-circle" style={{ fontSize: 12, verticalAlign: -1 }} aria-hidden="true" /> La valeur sera calculée automatiquement selon le cours actuel.
             </p>
+          </div>
+        )}
+
+        {/* Propriété / partage */}
+        {members.length > 0 && (
+          <div
+            style={{
+              background: "var(--bg-card)",
+              borderRadius: "var(--radius-lg)",
+              border: "0.5px solid var(--rule)",
+              padding: "1rem 1.25rem",
+              marginBottom: 12,
+            }}
+          >
+            <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 8 }}>À qui appartient cet actif</p>
+            <div style={{ display: "flex", gap: 6, marginBottom: ownership === "shared" ? 14 : 0 }}>
+              {members.map((m) => (
+                <button
+                  key={m.uid}
+                  onClick={() => setOwnership(m.uid)}
+                  style={{
+                    flex: 1, padding: 8, borderRadius: "var(--radius-md)",
+                    border: ownership === m.uid ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
+                    background: ownership === m.uid ? "var(--sky-light)" : "var(--bg)",
+                    color: ownership === m.uid ? "var(--sky)" : "var(--ink)",
+                    fontSize: 13,
+                  }}
+                >
+                  {m.name}
+                </button>
+              ))}
+              <button
+                onClick={() => setOwnership("shared")}
+                style={{
+                  flex: 1, padding: 8, borderRadius: "var(--radius-md)",
+                  border: ownership === "shared" ? "0.5px solid var(--lavi)" : "0.5px solid var(--rule)",
+                  background: ownership === "shared" ? "var(--lavi-light)" : "var(--bg)",
+                  color: ownership === "shared" ? "var(--lavi)" : "var(--ink)",
+                  fontSize: 13,
+                }}
+              >
+                Partagé
+              </button>
+            </div>
+
+            {ownership === "shared" && (
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                  <span style={{ fontSize: 12, color: "var(--ink-2)" }}>
+                    {members[0]?.name} : {sharePct}%
+                  </span>
+                  <span style={{ fontSize: 12, color: "var(--ink-2)" }}>
+                    {members[1]?.name || "Autre"} : {100 - sharePct}%
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={sharePct}
+                  onChange={(e) => setSharePct(parseInt(e.target.value))}
+                  style={{ width: "100%" }}
+                />
+                <button
+                  onClick={() => setSharePct(50)}
+                  style={{
+                    marginTop: 6, background: "none", border: "none",
+                    color: "var(--sky)", fontSize: 11,
+                  }}
+                >
+                  Réinitialiser à 50/50
+                </button>
+              </div>
+            )}
           </div>
         )}
 

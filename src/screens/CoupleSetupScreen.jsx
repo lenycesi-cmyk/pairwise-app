@@ -31,6 +31,7 @@ export default function CoupleSetupScreen() {
         members: [
           { uid: user.uid, name: user.displayName || "Moi" },
         ],
+        memberUids: [user.uid],
         defaultCurrency: "EUR",
       });
       // On enregistre le coupleId dans le profil SANS faire basculer l'écran
@@ -65,7 +66,11 @@ export default function CoupleSetupScreen() {
       const members = data.members || [];
       if (!members.find((m) => m.uid === user.uid)) {
         members.push({ uid: user.uid, name: user.displayName || "Moi" });
-        await setDoc(doc(db, "couples", code), { members }, { merge: true });
+        await setDoc(
+          doc(db, "couples", code),
+          { members, memberUids: members.map((m) => m.uid) },
+          { merge: true }
+        );
       }
       // Sauvegarde permanente dans le profil utilisateur (sinon perdu au refresh)
       await setDoc(doc(db, "users", user.uid), { coupleId: code }, { merge: true });

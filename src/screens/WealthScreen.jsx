@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useFinance } from "../context/FinanceContext";
 import { useExchangeRates } from "../hooks/useExchangeRates";
-import { ASSET_TYPES, getAssetType } from "../data/assetTypes";
+import { ASSET_TYPES } from "../data/assetTypes";
 import { getCryptoPrice, getStockPrice } from "../utils/assetPrices";
 import { CURRENCIES } from "../data/categories";
 import AddAssetScreen from "./AddAssetScreen";
@@ -20,32 +20,42 @@ const COLOR_MAP = {
 };
 
 export default function WealthScreen({ onOpenCalculator }) {
-  const { assets, updateAsset, removeAsset, defaultCurrency, netWorthHistory, recordNetWorthSnapshot } =
-    useFinance();
-  const { convert, loading: ratesLoading } = useExchangeRates(defaultCurrency);
+  const {
+    assets,
+    defaultCurrency,
+    netWorthHistory,
+    recordNetWorthSnapshot,
+    members,
+    wealthDisplayCurrency,
+    updateWealthDisplayCurrency,
+  } = useFinance();
+
+  // La devise d'affichage du patrimoine peut différer de la devise des transactions
+  const displayCurrency = wealthDisplayCurrency || defaultCurrency;
+  const { convert, loading: ratesLoading } = useExchangeRates(displayCurrency);
 
   const [showAdd, setShowAdd] = useState(false);
   const [editingAsset, setEditingAsset] = useState(null);
   const [livePrices, setLivePrices] = useState({});
   const [refreshing, setRefreshing] = useState(false);
+  const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
 
-  const currencySymbol = CURRENCIES.find((c) => c.code === defaultCurrency)?.symbol || defaultCurrency;
+  const currencySymbol = CURRENCIES.find((c) => c.code === displayCurrency)?.symbol || displayCurrency;
 
-  // Récupère les prix live pour les actifs avec source API (crypto/stocks)
   async function refreshPrices() {
     setRefreshing(true);
     const updates = {};
     for (const asset of assets) {
-      const type = getAssetType(asset.typeId);
-      if (!type.hasApiPrice || !asset.apiId) continue;
+      const type = ASSET_TYPES.find((t) => t.id === asset.typeId);
+      if (!type?.hasApiPrice || !asset.apiId) continue;
 
       if (type.priceSource === "crypto") {
-        const { price, success } = await getCryptoPrice(asset.apiId, defaultCurrency.toLowerCase());
+        const { price, success } = await getCryptoPrice(asset.apiId, displayCurrency.toLowerCase());
         if (success) updates[asset.id] = price * (asset.quantity || 1);
       } else if (type.priceSource === "stocks") {
         const { price, success } = await getStockPrice(asset.apiId);
         if (success) {
-          const converted = convert(price, "USD", defaultCurrency);
+          const converted = convert(price, "USD", displayCurrency);
           updates[asset.id] = converted * (asset.quantity || 1);
         }
       }
@@ -58,25 +68,33 @@ export default function WealthScreen({ onOpenCalculator }) {
     if (assets.length > 0 && !ratesLoading) {
       refreshPrices();
     }
-  }, [assets.length, ratesLoading]);
+  }, [assets.length, ratesLoading, displayCurrency]);
 
   function getAssetValue(asset) {
     if (livePrices[asset.id] !== undefined) return livePrices[asset.id];
-    // Valeur manuelle, convertie si devise différente
-    return convert(asset.value, asset.currency || defaultCurrency, defaultCurrency);
+    return convert(asset.value, asset.currency || displayCurrency, displayCurrency);
+  }
+
+  function getMemberShare(asset, memberUid) {
+    const total = getAssetValue(asset);
+    if (asset.ownership === memberUid) return total;
+    if (asset.ownership === "shared") {
+      const isFirstMember = members[0]?.uid === memberUid;
+      const pct = isFirstMember ? (asset.sharePct ?? 50) : 100 - (asset.sharePct ?? 50);
+      return total * (pct / 100);
+    }
+    return 0;
   }
 
   const totalsByType = useMemo(() => {
     const result = {};
-    for (const type of ASSET_TYPES) {
-      result[type.id] = 0;
-    }
+    for (const type of ASSET_TYPES) result[type.id] = 0;
     for (const asset of assets) {
       const val = getAssetValue(asset);
       result[asset.typeId] = (result[asset.typeId] || 0) + val;
     }
     return result;
-  }, [assets, livePrices, defaultCurrency]);
+  }, [assets, livePrices, displayCurrency]);
 
   const netWorth = useMemo(() => {
     let total = 0;
@@ -98,10 +116,23 @@ export default function WealthScreen({ onOpenCalculator }) {
 
   const totalLiabilities = totalsByType["debt"] || 0;
 
-  // Enregistre un point d'historique une fois par session (évite le spam)
+  // Patrimoine net par membre
+  const netWorthByMember = useMemo(() => {
+    const result = {};
+    for (const m of members) result[m.uid] = 0;
+    for (const asset of assets) {
+      const type = ASSET_TYPES.find((t) => t.id === asset.typeId);
+      const sign = type?.isLiability ? -1 : 1;
+      for (const m of members) {
+        result[m.uid] = (result[m.uid] || 0) + sign * Math.abs(getMemberShare(asset, m.uid));
+      }
+    }
+    return result;
+  }, [assets, livePrices, displayCurrency, members]);
+
   useEffect(() => {
     if (!ratesLoading && assets.length > 0 && netWorth !== 0) {
-      recordNetWorthSnapshot(netWorth, defaultCurrency);
+      recordNetWorthSnapshot(netWorth, displayCurrency);
     }
   }, [netWorth, ratesLoading]);
 
@@ -113,10 +144,7 @@ export default function WealthScreen({ onOpenCalculator }) {
     return (
       <AddAssetScreen
         editingAsset={editingAsset}
-        onClose={() => {
-          setShowAdd(false);
-          setEditingAsset(null);
-        }}
+        onClose={() => { setShowAdd(false); setEditingAsset(null); }}
       />
     );
   }
@@ -125,18 +153,56 @@ export default function WealthScreen({ onOpenCalculator }) {
     <div style={{ padding: "1.5rem 1.25rem 6rem" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <h1 style={{ fontSize: 20 }}>Patrimoine</h1>
-        <button
-          onClick={() => setShowAdd(true)}
-          aria-label="Ajouter un actif"
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
+            onClick={() => setShowCurrencyPicker(!showCurrencyPicker)}
+            style={{
+              padding: "4px 10px", borderRadius: "var(--radius-md)",
+              border: "0.5px solid var(--rule)", background: "var(--bg-card)",
+              fontSize: 12, fontWeight: 500, display: "flex", alignItems: "center", gap: 4,
+            }}
+          >
+            {displayCurrency} <i className="ti ti-chevron-down" style={{ fontSize: 11 }} aria-hidden="true" />
+          </button>
+          <button
+            onClick={() => setShowAdd(true)}
+            aria-label="Ajouter un actif"
+            style={{
+              width: 32, height: 32, borderRadius: "50%",
+              background: "var(--ink)", border: "none",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}
+          >
+            <i className="ti ti-plus" style={{ fontSize: 16, color: "var(--bg)" }} aria-hidden="true" />
+          </button>
+        </div>
+      </div>
+
+      {showCurrencyPicker && (
+        <div
           style={{
-            width: 32, height: 32, borderRadius: "50%",
-            background: "var(--ink)", border: "none",
-            display: "flex", alignItems: "center", justifyContent: "center",
+            display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 16,
+            background: "var(--bg-card)", borderRadius: "var(--radius-lg)",
+            border: "0.5px solid var(--rule)", padding: "0.75rem 1rem",
           }}
         >
-          <i className="ti ti-plus" style={{ fontSize: 16, color: "var(--bg)" }} aria-hidden="true" />
-        </button>
-      </div>
+          {CURRENCIES.map((c) => (
+            <button
+              key={c.code}
+              onClick={() => { updateWealthDisplayCurrency(c.code); setShowCurrencyPicker(false); }}
+              style={{
+                padding: "6px 10px", borderRadius: "var(--radius-md)",
+                border: displayCurrency === c.code ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
+                background: displayCurrency === c.code ? "var(--sky-light)" : "var(--bg)",
+                color: displayCurrency === c.code ? "var(--sky)" : "var(--ink)",
+                fontSize: 12,
+              }}
+            >
+              {c.symbol} {c.code}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Net worth total */}
       <div
@@ -173,6 +239,36 @@ export default function WealthScreen({ onOpenCalculator }) {
             </div>
           )}
         </div>
+
+        {/* Patrimoine par membre */}
+        {members.length > 0 && (
+          <div style={{ display: "flex", gap: 8, marginTop: 14, paddingTop: 14, borderTop: "0.5px solid var(--rule)" }}>
+            {members.map((m) => (
+              <div key={m.uid} style={{ flex: 1 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                  {m.photoURL ? (
+                    <img src={m.photoURL} alt={m.name} style={{ width: 18, height: 18, borderRadius: "50%", objectFit: "cover" }} />
+                  ) : (
+                    <div style={{
+                      width: 18, height: 18, borderRadius: "50%", background: "var(--sky-light)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      fontSize: 9, fontWeight: 600, color: "var(--sky)",
+                    }}>
+                      {m.name?.[0]?.toUpperCase()}
+                    </div>
+                  )}
+                  <span style={{ fontSize: 11, color: "var(--ink-2)" }}>{m.name}</span>
+                </div>
+                <p style={{
+                  fontSize: 15, fontWeight: 500,
+                  color: (netWorthByMember[m.uid] || 0) >= 0 ? "var(--sage)" : "var(--tang)",
+                }}>
+                  {formatAmount(netWorthByMember[m.uid] || 0)} {currencySymbol}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Net worth chart */}
@@ -202,8 +298,38 @@ export default function WealthScreen({ onOpenCalculator }) {
             marginBottom: 12,
           }}
         >
-          <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 8 }}>Répartition</p>
+          <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 8 }}>Répartition par type</p>
           <AllocationChart totalsByType={totalsByType} totalAssets={totalAssets} />
+        </div>
+      )}
+
+      {/* Répartition par membre */}
+      {members.length > 1 && totalAssets > 0 && (
+        <div
+          style={{
+            background: "var(--bg-card)",
+            borderRadius: "var(--radius-lg)",
+            border: "0.5px solid var(--rule)",
+            padding: "1rem 1.25rem",
+            marginBottom: 12,
+          }}
+        >
+          <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>Répartition par membre</p>
+          {members.map((m) => {
+            const share = netWorthByMember[m.uid] || 0;
+            const pct = totalAssets > 0 ? (share / totalAssets) * 100 : 0;
+            return (
+              <div key={m.uid} style={{ marginBottom: 8 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                  <span style={{ fontSize: 12, color: "var(--ink-2)" }}>{m.name}</span>
+                  <span style={{ fontSize: 12, fontWeight: 500 }}>{pct.toFixed(1)}%</span>
+                </div>
+                <div style={{ width: "100%", height: 6, background: "var(--rule)", borderRadius: 4, overflow: "hidden" }}>
+                  <div style={{ width: `${Math.max(0, Math.min(100, pct))}%`, height: 6, background: "var(--sky)" }} />
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -250,6 +376,11 @@ export default function WealthScreen({ onOpenCalculator }) {
             >
               {typeAssets.map((asset, i) => {
                 const val = getAssetValue(asset);
+                const ownerLabel =
+                  asset.ownership === "shared"
+                    ? "Partagé"
+                    : members.find((m) => m.uid === asset.ownership)?.name || "";
+
                 return (
                   <div
                     key={asset.id}
@@ -274,12 +405,11 @@ export default function WealthScreen({ onOpenCalculator }) {
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ fontSize: 14 }}>{asset.name}</p>
-                      {asset.apiId && (
-                        <p style={{ fontSize: 11, color: "var(--ink-3)" }}>
-                          {asset.quantity} {asset.apiId.toUpperCase()}
-                          {livePrices[asset.id] !== undefined && " · prix live"}
-                        </p>
-                      )}
+                      <p style={{ fontSize: 11, color: "var(--ink-3)" }}>
+                        {asset.apiId && `${asset.quantity} ${asset.apiId.toUpperCase()} · `}
+                        {ownerLabel}
+                        {asset.ownership === "shared" && ` (${asset.sharePct ?? 50}/${100 - (asset.sharePct ?? 50)})`}
+                      </p>
                     </div>
                     <p style={{ fontSize: 14, fontWeight: 500, color: type.isLiability ? "var(--red)" : "var(--ink)" }}>
                       {type.isLiability ? "−" : ""}{formatAmount(val)} {currencySymbol}

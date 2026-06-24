@@ -63,6 +63,13 @@ export function AuthProvider({ children }) {
     setCoupleId(newCoupleId);
   }
 
+  async function updateProfilePhoto(photoURL) {
+    await updateProfile(auth.currentUser, { photoURL });
+    await setDoc(doc(db, "users", user.uid), { photoURL }, { merge: true });
+    // Force le re-render avec le nouvel objet user (photoURL à jour)
+    setUser({ ...auth.currentUser });
+  }
+
   const value = {
     user,
     coupleId,
@@ -72,6 +79,7 @@ export function AuthProvider({ children }) {
     logout,
     joinCouple,
     setCoupleId,
+    updateProfilePhoto,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

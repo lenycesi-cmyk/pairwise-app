@@ -31,6 +31,7 @@ export function FinanceProvider({ children }) {
   const [recurringTx, setRecurringTx] = useState([]);
   const [assets, setAssets] = useState([]);
   const [netWorthHistory, setNetWorthHistory] = useState([]);
+  const [wealthDisplayCurrency, setWealthDisplayCurrency] = useState(null);
 
   useEffect(() => {
     if (!coupleId) {
@@ -68,6 +69,7 @@ export function FinanceProvider({ children }) {
         if (data.recurringTx) setRecurringTx(data.recurringTx);
         if (data.assets) setAssets(data.assets);
         if (data.netWorthHistory) setNetWorthHistory(data.netWorthHistory);
+        if (data.wealthDisplayCurrency) setWealthDisplayCurrency(data.wealthDisplayCurrency);
       }
     });
 
@@ -81,7 +83,7 @@ export function FinanceProvider({ children }) {
     const { rate, isFallback } = await getExchangeRate(tx.currency, defaultCurrency);
     const convertedAmount = tx.amount * rate;
 
-    await addDoc(collection(db, "couples", coupleId, "transactions"), {
+    const docRef = await addDoc(collection(db, "couples", coupleId, "transactions"), {
       ...tx,
       convertedAmount,
       convertedCurrency: defaultCurrency,
@@ -98,6 +100,7 @@ export function FinanceProvider({ children }) {
         { merge: true }
       );
     }
+    return docRef.id;
   }
 
   async function updateTransaction(id, updates) {
@@ -213,6 +216,27 @@ export function FinanceProvider({ children }) {
     );
   }
 
+  async function updateMemberPhoto(uid, photoURL) {
+    if (!coupleId) return;
+    const updatedMembers = members.map((m) =>
+      m.uid === uid ? { ...m, photoURL } : m
+    );
+    await setDoc(
+      doc(db, "couples", coupleId),
+      { members: updatedMembers, memberUids: updatedMembers.map((m) => m.uid) },
+      { merge: true }
+    );
+  }
+
+  async function updateWealthDisplayCurrency(currency) {
+    if (!coupleId) return;
+    await setDoc(
+      doc(db, "couples", coupleId),
+      { wealthDisplayCurrency: currency },
+      { merge: true }
+    );
+  }
+
   const value = {
     transactions,
     categories,
@@ -237,6 +261,9 @@ export function FinanceProvider({ children }) {
     removeAsset,
     netWorthHistory,
     recordNetWorthSnapshot,
+    updateMemberPhoto,
+    wealthDisplayCurrency,
+    updateWealthDisplayCurrency,
   };
 
   return (

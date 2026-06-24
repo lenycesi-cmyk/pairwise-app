@@ -1,14 +1,34 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useFinance } from "../context/FinanceContext";
 import { CURRENCIES } from "../data/categories";
+import { uploadPhoto } from "../utils/photoUpload";
 
 export default function SettingsScreen({ onOpenRecurring, onOpenCategories, onOpenDebt }) {
-  const { coupleId, logout } = useAuth();
-  const { defaultCurrency, updateDefaultCurrency, currencyMode, updateCurrencyMode } =
+  const { coupleId, logout, user, updateProfilePhoto } = useAuth();
+  const { defaultCurrency, updateDefaultCurrency, currencyMode, updateCurrencyMode, updateMemberPhoto } =
     useFinance();
   const [showCode, setShowCode] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const fileInputRef = useRef(null);
+
+  async function handlePhotoSelect(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingPhoto(true);
+    try {
+      const path = `profiles/${user.uid}.jpg`;
+      const url = await uploadPhoto(file, path);
+      await updateProfilePhoto(url);
+      await updateMemberPhoto(user.uid, url);
+    } catch (err) {
+      console.error("Erreur upload photo:", err);
+      alert("Impossible d'uploader la photo. Réessayez.");
+    } finally {
+      setUploadingPhoto(false);
+    }
+  }
 
   function copyCode() {
     navigator.clipboard.writeText(coupleId);
@@ -19,6 +39,64 @@ export default function SettingsScreen({ onOpenRecurring, onOpenCategories, onOp
   return (
     <div style={{ padding: "1.5rem 1.25rem 6rem" }}>
       <h1 style={{ fontSize: 20, marginBottom: 20 }}>Paramètres</h1>
+
+      <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
+        <div
+          onClick={() => fileInputRef.current?.click()}
+          style={{
+            width: 84,
+            height: 84,
+            borderRadius: "50%",
+            background: user?.photoURL ? "transparent" : "var(--sky-light)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "pointer",
+            position: "relative",
+            overflow: "hidden",
+            border: "2px solid var(--rule)",
+          }}
+        >
+          {uploadingPhoto ? (
+            <i className="ti ti-loader-2" style={{ fontSize: 24, color: "var(--ink-3)" }} aria-hidden="true" />
+          ) : user?.photoURL ? (
+            <img
+              src={user.photoURL}
+              alt="Photo de profil"
+              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            />
+          ) : (
+            <span style={{ fontSize: 28, fontWeight: 500, color: "var(--sky)" }}>
+              {user?.displayName?.[0]?.toUpperCase() || "?"}
+            </span>
+          )}
+          <div
+            style={{
+              position: "absolute",
+              bottom: 0,
+              right: 0,
+              width: 26,
+              height: 26,
+              borderRadius: "50%",
+              background: "var(--ink)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              border: "2px solid var(--bg)",
+            }}
+          >
+            <i className="ti ti-camera" style={{ fontSize: 12, color: "var(--bg)" }} aria-hidden="true" />
+          </div>
+        </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={handlePhotoSelect}
+          style={{ display: "none" }}
+        />
+      </div>
 
       <SectionLabel>Couple</SectionLabel>
       <Card>

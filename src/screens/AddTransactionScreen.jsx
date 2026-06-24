@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useFinance } from "../context/FinanceContext";
 import { useAuth } from "../context/AuthContext";
 import { CURRENCIES } from "../data/categories";
+import { uploadPhoto } from "../utils/photoUpload";
 
 function todayISO() {
   const d = new Date();
@@ -48,6 +49,22 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
   const [split, setSplit] = useState(editingTx?.split || "50/50");
   const [dateTime, setDateTime] = useState(toDateTimeLocal(editingTx?.date));
   const [busy, setBusy] = useState(false);
+  const [receiptFile, setReceiptFile] = useState(null);
+  const [receiptPreview, setReceiptPreview] = useState(editingTx?.receiptURL || null);
+  const [uploadingReceipt, setUploadingReceipt] = useState(false);
+  const receiptInputRef = useRef(null);
+
+  function handleReceiptSelect(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setReceiptFile(file);
+    setReceiptPreview(URL.createObjectURL(file));
+  }
+
+  function removeReceipt() {
+    setReceiptFile(null);
+    setReceiptPreview(null);
+  }
 
   // Création de catégorie / sous-catégorie à la volée
   const [showNewCat, setShowNewCat] = useState(false);
@@ -133,16 +150,32 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
         date: isoDate,
       };
 
+      let txId = editingTx?.id;
+
       if (isEditing) {
         await updateTransaction(editingTx.id, payload);
       } else {
-        await addTransaction(payload);
+        txId = await addTransaction(payload);
       }
+
+      // Upload du reçu après avoir l'ID de la transaction (nouveau fichier choisi)
+      if (receiptFile && txId) {
+        setUploadingReceipt(true);
+        const path = `receipts/${txId}.jpg`;
+        const url = await uploadPhoto(receiptFile, path);
+        await updateTransaction(txId, { receiptURL: url });
+        setUploadingReceipt(false);
+      } else if (receiptPreview === null && editingTx?.receiptURL) {
+        // L'utilisateur a retiré le reçu existant
+        await updateTransaction(txId, { receiptURL: null });
+      }
+
       onClose();
     } catch (err) {
       console.error(err);
     } finally {
       setBusy(false);
+      setUploadingReceipt(false);
     }
   }
 
@@ -443,6 +476,66 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
           />
         </div>
 
+        {/* Reçu / ticket */}
+        <div
+          style={{
+            background: "var(--bg-card)",
+            borderRadius: "var(--radius-lg)",
+            border: "0.5px solid var(--rule)",
+            padding: "1rem 1.25rem",
+            marginBottom: 12,
+          }}
+        >
+          <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 8 }}>Reçu / ticket</p>
+
+          {receiptPreview ? (
+            <div style={{ position: "relative", display: "inline-block" }}>
+              <img
+                src={receiptPreview}
+                alt="Reçu"
+                style={{
+                  width: 100, height: 100, objectFit: "cover",
+                  borderRadius: "var(--radius-md)", border: "0.5px solid var(--rule)",
+                }}
+              />
+              <button
+                onClick={removeReceipt}
+                aria-label="Retirer le reçu"
+                style={{
+                  position: "absolute", top: -6, right: -6,
+                  width: 22, height: 22, borderRadius: "50%",
+                  background: "var(--ink)", border: "2px solid var(--bg-card)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}
+              >
+                <i className="ti ti-x" style={{ fontSize: 11, color: "var(--bg)" }} aria-hidden="true" />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => receiptInputRef.current?.click()}
+              style={{
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                width: "100%", padding: "14px", borderRadius: "var(--radius-md)",
+                border: "0.5px dashed var(--rule)", background: "var(--bg)",
+                color: "var(--ink-3)", fontSize: 13,
+              }}
+            >
+              <i className="ti ti-camera-plus" style={{ fontSize: 16 }} aria-hidden="true" />
+              Ajouter une photo
+            </button>
+          )}
+
+          <input
+            ref={receiptInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={handleReceiptSelect}
+            style={{ display: "none" }}
+          />
+        </div>
+
         {/* Attribution membre — pour Expense (Payé par / Pour) ET Income/Investment (juste Payé par/Pour aussi) */}
         {members.length > 0 && (
           <div
@@ -523,7 +616,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
             opacity: !amount || !categoryId || busy ? 0.5 : 1,
           }}
         >
-          {busy ? "Enregistrement..." : isEditing ? "Mettre à jour" : "Enregistrer"}
+          {uploadingReceipt ? "Upload du reçu..." : busy ? "Enregistrement..." : isEditing ? "Mettre à jour" : "Enregistrer"}
         </button>
       </div>
     </div>

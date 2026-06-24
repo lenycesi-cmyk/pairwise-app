@@ -1,7 +1,9 @@
 import { useState, useMemo } from "react";
 import { useFinance } from "../context/FinanceContext";
 import { useExchangeRates } from "../hooks/useExchangeRates";
+import { useDebtCalculation } from "../hooks/useDebtCalculation";
 import CategoryRow from "../components/CategoryRow";
+import DebtSummaryCard from "../components/DebtSummaryCard";
 import { CURRENCIES } from "../data/categories";
 
 const MONTHS = [
@@ -9,9 +11,11 @@ const MONTHS = [
   "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre",
 ];
 
-export default function DashboardScreen() {
+export default function DashboardScreen({ onOpenDebt }) {
   const { transactions, categories, members, defaultCurrency, loading } = useFinance();
   const { convert, loading: ratesLoading, error: ratesError } = useExchangeRates(defaultCurrency);
+
+  const debt = useDebtCalculation(transactions, members, defaultCurrency, convert);
 
   const now = new Date();
   const [viewMonth, setViewMonth] = useState(now.getMonth());
@@ -259,6 +263,10 @@ export default function DashboardScreen() {
             })}
           </div>
         </>
+      )}
+
+      {debt && (
+        <DebtSummaryCard debt={debt} defaultCurrency={defaultCurrency} onClick={onOpenDebt} />
       )}
 
       <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>
