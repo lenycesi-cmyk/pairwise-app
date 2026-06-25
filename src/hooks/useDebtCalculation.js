@@ -47,5 +47,5 @@ export function useDebtCalculation(transactions, members, defaultCurrency, conve
       owesAmount: Math.abs(net),
       sharedTx: sharedTx.sort((x, y) => new Date(y.date) - new Date(x.date)),
     };
-  }, [transactions, members, defaultCurrency]);
+  }, [transactions, members, defaultCurrency, convert]);
 }

@@ -62,7 +62,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown }) {
       else if (tx.type === "investment") invested += val;
     }
     return { income, expense, invested, net: income - expense - invested };
-  }, [monthTx]);
+  }, [monthTx, displayCurrency, convert]);
 
   const memberTotals = useMemo(() => {
     const result = {};
@@ -84,7 +84,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown }) {
       }
     }
     return result;
-  }, [monthTx, members]);
+  }, [monthTx, members, displayCurrency, convert]);
 
   const categoryTotals = useMemo(() => {
     const result = {};
@@ -102,7 +102,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown }) {
       if (total > 0) result[cat.id] = { category: cat, total, subtotals };
     }
     return result;
-  }, [monthTx, categories]);
+  }, [monthTx, categories, displayCurrency, convert]);
 
   const maxCatTotal = Math.max(
     1,
