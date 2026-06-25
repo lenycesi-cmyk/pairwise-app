@@ -1,28 +1,25 @@
 import { useState } from "react";
 import { useFinance } from "../context/FinanceContext";
-
-const ICON_OPTIONS = [
-  "ti-tools-kitchen-2", "ti-home", "ti-car", "ti-heart", "ti-user",
-  "ti-movie", "ti-gift", "ti-dots", "ti-coin", "ti-chart-line",
-  "ti-paw", "ti-plane", "ti-device-laptop", "ti-shirt",
-];
-
-const COLOR_OPTIONS = ["tang", "sage", "lavi", "sky", "amber", "mint", "blush"];
+import IconPicker from "../components/IconPicker";
+import { AVATAR_COLOR_PALETTE } from "../utils/memberColors";
 
 export default function CategoriesScreen() {
   const { categories, updateCategories } = useFinance();
   const [expanded, setExpanded] = useState(null);
   const [showNewCat, setShowNewCat] = useState(false);
   const [newCatName, setNewCatName] = useState("");
+  const [newCatIcon, setNewCatIcon] = useState("ti-tag");
+  const [newCatColor, setNewCatColor] = useState("amber");
+  const [showIconPicker, setShowIconPicker] = useState(false);
   const [newSubInputs, setNewSubInputs] = useState({});
 
   const editableCategories = categories.filter(
-    (c) => c.id !== "income" && c.id !== "investment"
+    (c) => c.id !== "income" && c.id !== "investment" && c.id !== "savings"
   );
 
   function persist(updated) {
     const others = categories.filter(
-      (c) => c.id === "income" || c.id === "investment"
+      (c) => c.id === "income" || c.id === "investment" || c.id === "savings"
     );
     updateCategories([...updated, ...others]);
   }
@@ -53,12 +50,14 @@ export default function CategoriesScreen() {
     const newCat = {
       id: `cat_${Date.now()}`,
       name: newCatName.trim(),
-      icon: ICON_OPTIONS[Math.floor(Math.random() * ICON_OPTIONS.length)],
-      color: COLOR_OPTIONS[Math.floor(Math.random() * COLOR_OPTIONS.length)],
+      icon: newCatIcon,
+      color: newCatColor,
       subcategories: [],
     };
     persist([...editableCategories, newCat]);
     setNewCatName("");
+    setNewCatIcon("ti-tag");
+    setNewCatColor("amber");
     setShowNewCat(false);
   }
 
@@ -104,38 +103,74 @@ export default function CategoriesScreen() {
             border: "0.5px solid var(--rule)",
             padding: "1rem 1.25rem",
             marginBottom: 12,
-            display: "flex",
-            gap: 8,
           }}
         >
-          <input
-            type="text"
-            placeholder="Nom de la catégorie"
-            value={newCatName}
-            onChange={(e) => setNewCatName(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && addCategory()}
-            style={{
-              flex: 1,
-              border: "none",
-              outline: "none",
-              fontSize: 14,
-              background: "transparent",
-            }}
-            autoFocus
-          />
-          <button
-            onClick={addCategory}
-            style={{
-              background: "var(--ink)",
-              color: "var(--bg)",
-              border: "none",
-              borderRadius: "var(--radius-sm)",
-              padding: "6px 14px",
-              fontSize: 13,
-            }}
-          >
-            Ajouter
-          </button>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 10 }}>
+            <button
+              onClick={() => setShowIconPicker(!showIconPicker)}
+              aria-label="Choisir une icône et une couleur"
+              style={{
+                width: 36, height: 36, borderRadius: "var(--radius-md)",
+                border: "0.5px solid var(--rule)",
+                background: AVATAR_COLOR_PALETTE.find((c) => c.key === newCatColor)?.bg || "var(--bg)",
+                color: AVATAR_COLOR_PALETTE.find((c) => c.key === newCatColor)?.text || "var(--ink)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <i className={`ti ${newCatIcon}`} style={{ fontSize: 16 }} aria-hidden="true" />
+            </button>
+            <input
+              type="text"
+              placeholder="Nom de la catégorie"
+              value={newCatName}
+              onChange={(e) => setNewCatName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addCategory()}
+              style={{
+                flex: 1,
+                border: "none",
+                borderBottom: "0.5px solid var(--rule)",
+                outline: "none",
+                fontSize: 14,
+                background: "transparent",
+              }}
+              autoFocus
+            />
+            <button
+              onClick={addCategory}
+              style={{
+                background: "var(--ink)",
+                color: "var(--bg)",
+                border: "none",
+                borderRadius: "var(--radius-sm)",
+                padding: "6px 14px",
+                fontSize: 13,
+                flexShrink: 0,
+              }}
+            >
+              Ajouter
+            </button>
+          </div>
+
+          {showIconPicker && (
+            <>
+              <div style={{ display: "flex", gap: 5, marginBottom: 8, flexWrap: "wrap" }}>
+                {AVATAR_COLOR_PALETTE.map((c) => (
+                  <button
+                    key={c.key}
+                    onClick={() => setNewCatColor(c.key)}
+                    aria-label={c.key}
+                    style={{
+                      width: 22, height: 22, borderRadius: "50%",
+                      background: c.bg,
+                      border: newCatColor === c.key ? `2px solid ${c.text}` : "2px solid transparent",
+                    }}
+                  />
+                ))}
+              </div>
+              <IconPicker selectedIcon={newCatIcon} onSelect={setNewCatIcon} />
+            </>
+          )}
         </div>
       )}
 

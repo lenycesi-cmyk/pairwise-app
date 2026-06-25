@@ -28,8 +28,8 @@ export default function RecurringScreen({ onClose }) {
 
   const availableCategories = categories.filter((c) =>
     type === "income" ? c.id === "income" :
-    type === "investment" ? c.id === "investment" :
-    c.id !== "income" && c.id !== "investment"
+    type === "investment" ? (c.id === "investment" || c.id === "savings") :
+    c.id !== "income" && c.id !== "investment" && c.id !== "savings"
   );
   const selectedCategory = categories.find((c) => c.id === categoryId);
 

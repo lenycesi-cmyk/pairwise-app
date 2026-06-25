@@ -3,6 +3,8 @@ import { useFinance } from "../context/FinanceContext";
 import { useAuth } from "../context/AuthContext";
 import { CURRENCIES } from "../data/categories";
 import { uploadPhoto } from "../utils/photoUpload";
+import IconPicker from "../components/IconPicker";
+import { AVATAR_COLOR_PALETTE } from "../utils/memberColors";
 
 function todayISO() {
   const d = new Date();
@@ -69,13 +71,16 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
   // Création de catégorie / sous-catégorie à la volée
   const [showNewCat, setShowNewCat] = useState(false);
   const [newCatName, setNewCatName] = useState("");
+  const [newCatIcon, setNewCatIcon] = useState("ti-tag");
+  const [newCatColor, setNewCatColor] = useState("amber");
+  const [showIconPicker, setShowIconPicker] = useState(false);
   const [showNewSub, setShowNewSub] = useState(false);
   const [newSubName, setNewSubName] = useState("");
 
   const availableCategories = categories.filter((c) =>
     type === "income" ? c.id === "income" :
-    type === "investment" ? c.id === "investment" :
-    c.id !== "income" && c.id !== "investment"
+    type === "investment" ? (c.id === "investment" || c.id === "savings") :
+    c.id !== "income" && c.id !== "investment" && c.id !== "savings"
   );
 
   const selectedCategory = categories.find((c) => c.id === categoryId);
@@ -102,8 +107,8 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
     const newCat = {
       id: `cat_${Date.now()}`,
       name,
-      icon: "ti-tag",
-      color: "amber",
+      icon: newCatIcon,
+      color: newCatColor,
       subcategories: [],
     };
     const updated = [...categories, newCat];
@@ -111,6 +116,8 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
     setCategoryId(newCat.id);
     setSubcategory(null);
     setNewCatName("");
+    setNewCatIcon("ti-tag");
+    setNewCatColor("amber");
     setShowNewCat(false);
     setShowCatPicker(false);
   }
@@ -355,16 +362,40 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
 
           {showCatPicker && (
             <div style={{ marginTop: 8 }}>
-              {availableCategories.map((cat) => (
-                <div
-                  key={cat.id}
-                  onClick={() => selectCategory(cat)}
-                  style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 4px", cursor: "pointer" }}
-                >
-                  <i className={`ti ${cat.icon}`} style={{ fontSize: 16 }} aria-hidden="true" />
-                  <span style={{ fontSize: 13 }}>{cat.name}</span>
-                </div>
-              ))}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: 4,
+                  maxHeight: 320,
+                  overflowY: "auto",
+                }}
+              >
+                {availableCategories.map((cat) => (
+                  <div
+                    key={cat.id}
+                    onClick={() => selectCategory(cat)}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 6,
+                      padding: "8px 6px", cursor: "pointer",
+                      borderRadius: "var(--radius-sm)",
+                      minWidth: 0,
+                    }}
+                  >
+                    <i className={`ti ${cat.icon}`} style={{ fontSize: 15, flexShrink: 0 }} aria-hidden="true" />
+                    <span
+                      style={{
+                        fontSize: 12.5,
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
+                      {cat.name}
+                    </span>
+                  </div>
+                ))}
+              </div>
 
               {type === "expense" && (
                 <>
@@ -381,25 +412,64 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
                       Nouvelle catégorie
                     </button>
                   ) : (
-                    <div style={{ display: "flex", gap: 6, padding: "8px 4px" }}>
-                      <input
-                        type="text"
-                        autoFocus
-                        placeholder="Nom de la catégorie"
-                        value={newCatName}
-                        onChange={(e) => setNewCatName(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && handleCreateCategory()}
-                        style={{
-                          flex: 1, border: "none", borderBottom: "0.5px solid var(--rule)",
-                          outline: "none", fontSize: 13, background: "transparent",
-                        }}
-                      />
-                      <button
-                        onClick={handleCreateCategory}
-                        style={{ background: "var(--ink)", color: "var(--bg)", border: "none", borderRadius: "var(--radius-sm)", padding: "4px 10px", fontSize: 12 }}
-                      >
-                        OK
-                      </button>
+                    <div style={{ padding: "8px 4px" }}>
+                      <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 8 }}>
+                        <button
+                          onClick={() => setShowIconPicker(!showIconPicker)}
+                          aria-label="Choisir une icône et une couleur"
+                          style={{
+                            width: 36, height: 36, borderRadius: "var(--radius-md)",
+                            border: "0.5px solid var(--rule)",
+                            background: AVATAR_COLOR_PALETTE.find((c) => c.key === newCatColor)?.bg || "var(--bg)",
+                            color: AVATAR_COLOR_PALETTE.find((c) => c.key === newCatColor)?.text || "var(--ink)",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            flexShrink: 0,
+                          }}
+                        >
+                          <i className={`ti ${newCatIcon}`} style={{ fontSize: 16 }} aria-hidden="true" />
+                        </button>
+                        <input
+                          type="text"
+                          autoFocus
+                          placeholder="Nom de la catégorie"
+                          value={newCatName}
+                          onChange={(e) => setNewCatName(e.target.value)}
+                          onKeyDown={(e) => e.key === "Enter" && handleCreateCategory()}
+                          style={{
+                            flex: 1, border: "none", borderBottom: "0.5px solid var(--rule)",
+                            outline: "none", fontSize: 13, background: "transparent",
+                          }}
+                        />
+                        <button
+                          onClick={handleCreateCategory}
+                          style={{ background: "var(--ink)", color: "var(--bg)", border: "none", borderRadius: "var(--radius-sm)", padding: "4px 10px", fontSize: 12, flexShrink: 0 }}
+                        >
+                          OK
+                        </button>
+                      </div>
+
+                      {showIconPicker && (
+                        <>
+                          <div style={{ display: "flex", gap: 5, marginBottom: 8, flexWrap: "wrap" }}>
+                            {AVATAR_COLOR_PALETTE.map((c) => (
+                              <button
+                                key={c.key}
+                                onClick={() => setNewCatColor(c.key)}
+                                aria-label={c.key}
+                                style={{
+                                  width: 22, height: 22, borderRadius: "50%",
+                                  background: c.bg,
+                                  border: newCatColor === c.key ? `2px solid ${c.text}` : "2px solid transparent",
+                                }}
+                              />
+                            ))}
+                          </div>
+                          <IconPicker
+                            selectedIcon={newCatIcon}
+                            onSelect={setNewCatIcon}
+                          />
+                        </>
+                      )}
                     </div>
                   )}
                 </>
