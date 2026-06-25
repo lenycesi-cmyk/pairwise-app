@@ -5,6 +5,7 @@ import { CURRENCIES } from "../data/categories";
 import { uploadPhoto } from "../utils/photoUpload";
 import IconPicker from "../components/IconPicker";
 import { AVATAR_COLOR_PALETTE } from "../utils/memberColors";
+import { useTranslation } from "../hooks/useTranslation";
 
 function todayISO() {
   const d = new Date();
@@ -20,6 +21,7 @@ function toDateTimeLocal(isoString) {
 }
 
 export default function AddTransactionScreen({ onClose, editingTx }) {
+  const t = useTranslation();
   const {
     categories,
     members,
@@ -193,27 +195,28 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
         inset: 0,
         background: "var(--bg)",
         zIndex: 100,
-        overflowY: "auto",
         maxWidth: 480,
         margin: "0 auto",
+        display: "flex",
+        flexDirection: "column",
       }}
     >
-      <div style={{ padding: "1.5rem 1.25rem 6rem" }}>
+      <div style={{ flex: 1, overflowY: "auto", padding: "1.5rem 1.25rem 1rem" }}>
         <div style={{ display: "flex", alignItems: "center", marginBottom: 16 }}>
           <button onClick={onClose} aria-label="Fermer" style={{ background: "none", border: "none" }}>
             <i className="ti ti-x" style={{ fontSize: 20 }} aria-hidden="true" />
           </button>
           <h1 style={{ fontSize: 18, flex: 1, textAlign: "center" }}>
-            {isEditing ? "Modifier la transaction" : "Nouvelle transaction"}
+            {isEditing ? t("tx_edit") : t("tx_new")}
           </h1>
           <div style={{ width: 20 }} />
         </div>
 
         <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
           {[
-            { key: "expense", label: "Dépense" },
-            { key: "income", label: "Revenu" },
-            { key: "investment", label: "Invest." },
+            { key: "expense", label: t("tx_expense") },
+            { key: "income", label: t("tx_income") },
+            { key: "investment", label: t("tx_investment") },
           ].map((t) => (
             <button
               key={t.key}
@@ -309,7 +312,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
             marginBottom: 12,
           }}
         >
-          <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>Date</p>
+          <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>{t("tx_date")}</p>
           <input
             type="datetime-local"
             value={dateTime}
@@ -337,7 +340,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
             marginBottom: 12,
           }}
         >
-          <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>Catégorie</p>
+          <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>{t("tx_category")}</p>
           <div
             onClick={() => setShowCatPicker(!showCatPicker)}
             style={{
@@ -355,7 +358,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
                 <span style={{ fontSize: 14, flex: 1 }}>{selectedCategory.name}</span>
               </>
             ) : (
-              <span style={{ fontSize: 14, flex: 1, color: "var(--ink-3)" }}>Choisir une catégorie</span>
+              <span style={{ fontSize: 14, flex: 1, color: "var(--ink-3)" }}>{t("tx_choose_category")}</span>
             )}
             <i className="ti ti-chevron-down" style={{ fontSize: 14, color: "var(--ink-3)" }} aria-hidden="true" />
           </div>
@@ -409,7 +412,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
                       }}
                     >
                       <i className="ti ti-plus" style={{ fontSize: 14 }} aria-hidden="true" />
-                      Nouvelle catégorie
+                      {t("tx_new_category")}
                     </button>
                   ) : (
                     <div style={{ padding: "8px 4px" }}>
@@ -479,7 +482,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
 
           {selectedCategory && (
             <>
-              <p style={{ fontSize: 12, color: "var(--ink-2)", margin: "12px 0 6px" }}>Sous-catégorie</p>
+              <p style={{ fontSize: 12, color: "var(--ink-2)", margin: "12px 0 6px" }}>{t("tx_subcategory")}</p>
               <select
                 value={subcategory || ""}
                 onChange={(e) => setSubcategory(e.target.value)}
@@ -505,7 +508,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
                   }}
                 >
                   <i className="ti ti-plus" style={{ fontSize: 13 }} aria-hidden="true" />
-                  Nouvelle sous-catégorie
+                  {t("tx_new_subcategory")}
                 </button>
               ) : (
                 <div style={{ display: "flex", gap: 6, paddingTop: 8 }}>
@@ -532,12 +535,12 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
             </>
           )}
 
-          <p style={{ fontSize: 12, color: "var(--ink-2)", margin: "12px 0 6px" }}>Description</p>
+          <p style={{ fontSize: 12, color: "var(--ink-2)", margin: "12px 0 6px" }}>{t("tx_description")}</p>
           <input
             type="text"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Optionnel"
+            placeholder={t("tx_description_optional")}
             style={{
               width: "100%", padding: "8px 0", border: "none",
               borderBottom: "0.5px solid var(--rule)", background: "transparent",
@@ -556,7 +559,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
             marginBottom: 12,
           }}
         >
-          <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 8 }}>Reçu / ticket</p>
+          <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 8 }}>{t("tx_receipt")}</p>
 
           {receiptPreview ? (
             <div style={{ position: "relative", display: "inline-block" }}>
@@ -592,7 +595,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
               }}
             >
               <i className="ti ti-camera-plus" style={{ fontSize: 16 }} aria-hidden="true" />
-              Ajouter une photo
+              {t("tx_add_photo")}
             </button>
           )}
 
@@ -618,7 +621,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
             }}
           >
             <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 8 }}>
-              {needsMemberAttribution ? "Reçu / investi par" : "Payé par"}
+              {needsMemberAttribution ? t("tx_received_by") : t("tx_paid_by")}
             </p>
             <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
               {members.map((m) => (
@@ -638,7 +641,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
               ))}
             </div>
 
-            <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 8 }}>Pour</p>
+            <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 8 }}>{t("tx_for")}</p>
             <div style={{ display: "flex", gap: 6 }}>
               {members.map((m) => (
                 <button
@@ -670,7 +673,16 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
             </div>
           </div>
         )}
+      </div>
 
+      <div
+        style={{
+          flexShrink: 0,
+          padding: "0.75rem 1.25rem calc(0.75rem + env(safe-area-inset-bottom))",
+          background: "var(--bg)",
+          borderTop: "0.5px solid var(--rule)",
+        }}
+      >
         <button
           onClick={handleSave}
           disabled={!amount || !categoryId || busy}
@@ -686,7 +698,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
             opacity: !amount || !categoryId || busy ? 0.5 : 1,
           }}
         >
-          {uploadingReceipt ? "Upload du reçu..." : busy ? "Enregistrement..." : isEditing ? "Mettre à jour" : "Enregistrer"}
+          {uploadingReceipt ? t("tx_uploading_receipt") : busy ? t("tx_saving") : isEditing ? t("tx_update") : t("tx_save")}
         </button>
       </div>
     </div>

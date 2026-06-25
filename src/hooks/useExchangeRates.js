@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-const CACHE_KEY = "pairwise_fx_rates_v2";
+const CACHE_KEY_PREFIX = "pairwise_fx_rates_v3_";
 const CACHE_DURATION = 1000 * 60 * 60 * 12;
 
 // Taux de secours approximatifs (base EUR), utilisés UNIQUEMENT si l'API
@@ -33,9 +33,15 @@ export function useExchangeRates(baseCurrency = "EUR") {
   useEffect(() => {
     let cancelled = false;
 
+    // On réinitialise immédiatement à chaque changement de devise, pour
+    // empêcher tout calcul avec les anciens taux pendant le rechargement.
+    setRates(null);
+    setLoading(true);
+    setError(null);
+
     async function loadRates() {
       try {
-        const cached = localStorage.getItem(CACHE_KEY);
+        const cached = localStorage.getItem(`${CACHE_KEY_PREFIX}${baseCurrency}`);
         if (cached) {
           const parsed = JSON.parse(cached);
           const age = Date.now() - parsed.timestamp;
@@ -61,7 +67,7 @@ export function useExchangeRates(baseCurrency = "EUR") {
           setRates(json.rates);
           setLoading(false);
           localStorage.setItem(
-            CACHE_KEY,
+            `${CACHE_KEY_PREFIX}${baseCurrency}`,
             JSON.stringify({
               base: baseCurrency,
               rates: json.rates,
@@ -71,7 +77,7 @@ export function useExchangeRates(baseCurrency = "EUR") {
         }
       } catch (err) {
         if (!cancelled) {
-          const cached = localStorage.getItem(CACHE_KEY);
+          const cached = localStorage.getItem(`${CACHE_KEY_PREFIX}${baseCurrency}`);
           if (cached) {
             const parsed = JSON.parse(cached);
             setRates(parsed.rates);

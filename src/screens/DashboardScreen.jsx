@@ -7,6 +7,7 @@ import DebtSummaryCard from "../components/DebtSummaryCard";
 import Avatar from "../components/Avatar";
 import { buildMemberColorMap } from "../utils/memberColors";
 import { CURRENCIES } from "../data/categories";
+import { useTranslation } from "../hooks/useTranslation";
 
 const MONTHS = [
   "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
@@ -14,6 +15,7 @@ const MONTHS = [
 ];
 
 export default function DashboardScreen({ onOpenDebt, onOpenBreakdown }) {
+  const t = useTranslation();
   const { transactions, categories, members, defaultCurrency, dashboardDisplayCurrency, updateDashboardDisplayCurrency, loading } = useFinance();
   const displayCurrency = dashboardDisplayCurrency || defaultCurrency;
   const { convert, loading: ratesLoading, error: ratesError } = useExchangeRates(displayCurrency);
@@ -210,7 +212,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown }) {
         }}
       >
         <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 4 }}>
-          Solde net
+          {t("dashboard_net_balance")}
         </p>
         <p
           style={{
@@ -232,16 +234,16 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown }) {
           marginBottom: 20,
         }}
       >
-        <StatCard label="Revenus" value={`${formatAmount(totals.income)} ${currencySymbol}`} color="var(--sage)" />
-        <StatCard label="Dépenses" value={`${formatAmount(totals.expense)} ${currencySymbol}`} color="var(--tang)" />
-        <StatCard label="Investi" value={`${formatAmount(totals.invested)} ${currencySymbol}`} color="var(--lavi)" />
+        <StatCard label={t("dashboard_income")} value={`${formatAmount(totals.income)} ${currencySymbol}`} color="var(--sage)" />
+        <StatCard label={t("dashboard_expenses")} value={`${formatAmount(totals.expense)} ${currencySymbol}`} color="var(--tang)" />
+        <StatCard label={t("dashboard_invested")} value={`${formatAmount(totals.invested)} ${currencySymbol}`} color="var(--lavi)" />
       </div>
 
       {members.length > 0 && (
         <>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
             <p style={{ fontSize: 13, fontWeight: 500 }}>
-              Résumé par membre
+              {t("dashboard_member_summary")}
             </p>
             <button
               onClick={onOpenBreakdown}
@@ -285,12 +287,12 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown }) {
                     <Avatar member={m} colorMap={memberColorMap} size={26} />
                     <p style={{ fontSize: 13, fontWeight: 500 }}>{m.name}</p>
                   </div>
-                  <MiniRow label="Revenus" value={mt.income} formatAmount={formatAmount} color="var(--sage)" symbol={currencySymbol} />
-                  <MiniRow label="Dépenses" value={mt.expense} formatAmount={formatAmount} color="var(--tang)" symbol={currencySymbol} />
-                  <MiniRow label="Investi" value={mt.invested} formatAmount={formatAmount} symbol={currencySymbol} />
+                  <MiniRow label={t("dashboard_income")} value={mt.income} formatAmount={formatAmount} color="var(--sage)" symbol={currencySymbol} />
+                  <MiniRow label={t("dashboard_expenses")} value={mt.expense} formatAmount={formatAmount} color="var(--tang)" symbol={currencySymbol} />
+                  <MiniRow label={t("dashboard_invested")} value={mt.invested} formatAmount={formatAmount} symbol={currencySymbol} />
                   <div style={{ borderTop: "0.5px solid var(--rule)", marginTop: 6, paddingTop: 6 }}>
                     <MiniRow
-                      label="Solde"
+                      label={t("dashboard_balance")}
                       value={mt.income - mt.expense - mt.invested}
                       formatAmount={formatAmount}
                       color={mt.income - mt.expense - mt.invested >= 0 ? "var(--sage)" : "var(--tang)"}
@@ -310,7 +312,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown }) {
       )}
 
       <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>
-        Dépenses par catégorie
+        {t("dashboard_spending_by_category")}
       </p>
       <div
         style={{
@@ -329,7 +331,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown }) {
               padding: "1.5rem 0",
             }}
           >
-            Aucune dépense ce mois-ci
+            {t("dashboard_no_expenses")}
           </p>
         ) : (
           Object.values(categoryTotals)
@@ -357,7 +359,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown }) {
             marginTop: 10,
           }}
         >
-          Touchez une catégorie pour voir le détail
+          {t("dashboard_tap_category")}
         </p>
       )}
     </div>

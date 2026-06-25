@@ -4,8 +4,10 @@ import { useFinance } from "../context/FinanceContext";
 import { CURRENCIES } from "../data/categories";
 import { uploadPhoto } from "../utils/photoUpload";
 import { AVATAR_COLOR_PALETTE, buildMemberColorMap, getInitial } from "../utils/memberColors";
+import { useTranslation } from "../hooks/useTranslation";
 
 export default function SettingsScreen({ onOpenRecurring, onOpenCategories, onOpenTheme, onOpenLanguage }) {
+  const t = useTranslation();
   const { coupleId, logout, user, updateProfilePhoto, updateDisplayName } = useAuth();
   const {
     defaultCurrency,
@@ -67,7 +69,7 @@ export default function SettingsScreen({ onOpenRecurring, onOpenCategories, onOp
 
   return (
     <div style={{ padding: "1.5rem 1.25rem 6rem" }}>
-      <h1 style={{ fontSize: 20, marginBottom: 20 }}>Paramètres</h1>
+      <h1 style={{ fontSize: 20, marginBottom: 20 }}>{t("settings_title")}</h1>
 
       <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
         <div
@@ -218,14 +220,14 @@ export default function SettingsScreen({ onOpenRecurring, onOpenCategories, onOp
         </div>
       )}
 
-      <SectionLabel>Couple</SectionLabel>
+      <SectionLabel>{t("settings_couple")}</SectionLabel>
       <Card>
-        <Row label="Inviter votre partenaire">
+        <Row label={t("settings_invite_partner")}>
           <button
             onClick={() => setShowCode(!showCode)}
             style={linkBtnStyle}
           >
-            {showCode ? "Masquer" : "Afficher le code"}
+            {showCode ? t("settings_hide_code") : t("settings_show_code")}
           </button>
         </Row>
         {showCode && (
@@ -263,9 +265,9 @@ export default function SettingsScreen({ onOpenRecurring, onOpenCategories, onOp
         )}
       </Card>
 
-      <SectionLabel>Devise</SectionLabel>
+      <SectionLabel>{t("settings_currency")}</SectionLabel>
       <Card>
-        <Row label="Mode de devise par défaut">
+        <Row label={t("settings_currency_mode")}>
           <div />
         </Row>
         <div style={{ display: "flex", gap: 6, padding: "8px 0 12px" }}>
@@ -273,13 +275,13 @@ export default function SettingsScreen({ onOpenRecurring, onOpenCategories, onOp
             active={currencyMode === "fixed"}
             onClick={() => updateCurrencyMode("fixed")}
           >
-            Fixe
+            {t("settings_fixed")}
           </ModeBtn>
           <ModeBtn
             active={currencyMode === "last"}
             onClick={() => updateCurrencyMode("last")}
           >
-            Dernière utilisée
+            {t("settings_last_used")}
           </ModeBtn>
         </div>
         <p style={{ fontSize: 11, color: "var(--ink-3)", paddingBottom: 10 }}>
@@ -324,7 +326,7 @@ export default function SettingsScreen({ onOpenRecurring, onOpenCategories, onOp
         )}
       </Card>
 
-      <SectionLabel>Automatisation</SectionLabel>
+      <SectionLabel>{t("settings_automation")}</SectionLabel>
       <Card>
         <div
           onClick={onOpenCategories}
@@ -338,7 +340,7 @@ export default function SettingsScreen({ onOpenRecurring, onOpenCategories, onOp
           }}
         >
           <i className="ti ti-tags" style={{ fontSize: 18, color: "var(--tang)" }} aria-hidden="true" />
-          <span style={{ fontSize: 14, flex: 1 }}>Catégories</span>
+          <span style={{ fontSize: 14, flex: 1 }}>{t("settings_categories")}</span>
           <i className="ti ti-chevron-right" style={{ fontSize: 14, color: "var(--ink-3)" }} aria-hidden="true" />
         </div>
         <div
@@ -352,12 +354,12 @@ export default function SettingsScreen({ onOpenRecurring, onOpenCategories, onOp
           }}
         >
           <i className="ti ti-repeat" style={{ fontSize: 18, color: "var(--lavi)" }} aria-hidden="true" />
-          <span style={{ fontSize: 14, flex: 1 }}>Transactions récurrentes</span>
+          <span style={{ fontSize: 14, flex: 1 }}>{t("settings_recurring")}</span>
           <i className="ti ti-chevron-right" style={{ fontSize: 14, color: "var(--ink-3)" }} aria-hidden="true" />
         </div>
       </Card>
 
-      <SectionLabel>Apparence</SectionLabel>
+      <SectionLabel>{t("settings_appearance")}</SectionLabel>
       <Card>
         <div
           onClick={onOpenTheme}
@@ -371,7 +373,7 @@ export default function SettingsScreen({ onOpenRecurring, onOpenCategories, onOp
           }}
         >
           <i className="ti ti-palette" style={{ fontSize: 18, color: "var(--blush)" }} aria-hidden="true" />
-          <span style={{ fontSize: 14, flex: 1 }}>Thème</span>
+          <span style={{ fontSize: 14, flex: 1 }}>{t("settings_theme")}</span>
           <i className="ti ti-chevron-right" style={{ fontSize: 14, color: "var(--ink-3)" }} aria-hidden="true" />
         </div>
         <div
@@ -385,12 +387,12 @@ export default function SettingsScreen({ onOpenRecurring, onOpenCategories, onOp
           }}
         >
           <i className="ti ti-language" style={{ fontSize: 18, color: "var(--sky)" }} aria-hidden="true" />
-          <span style={{ fontSize: 14, flex: 1 }}>Langue</span>
+          <span style={{ fontSize: 14, flex: 1 }}>{t("settings_language")}</span>
           <i className="ti ti-chevron-right" style={{ fontSize: 14, color: "var(--ink-3)" }} aria-hidden="true" />
         </div>
       </Card>
 
-      <SectionLabel>Compte</SectionLabel>
+      <SectionLabel>{t("settings_account")}</SectionLabel>
       <Card>
         <button
           onClick={logout}
@@ -404,7 +406,7 @@ export default function SettingsScreen({ onOpenRecurring, onOpenCategories, onOp
             padding: "4px 0",
           }}
         >
-          Se déconnecter
+          {t("settings_logout")}
         </button>
       </Card>
     </div>

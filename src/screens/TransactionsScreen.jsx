@@ -3,6 +3,7 @@ import { useFinance } from "../context/FinanceContext";
 import { useAuth } from "../context/AuthContext";
 import { buildMemberColorMap } from "../utils/memberColors";
 import Avatar from "../components/Avatar";
+import { useTranslation } from "../hooks/useTranslation";
 
 const COLOR_MAP = {
   tang: { text: "var(--tang)", bg: "var(--tang-light)" },
@@ -15,6 +16,7 @@ const COLOR_MAP = {
 };
 
 export default function TransactionsScreen({ onEdit }) {
+  const t = useTranslation();
   const { transactions, categories, members, deleteTransaction, defaultCurrency } = useFinance();
   const { user } = useAuth();
   const [filter, setFilter] = useState("all");
@@ -67,7 +69,7 @@ export default function TransactionsScreen({ onEdit }) {
 
   return (
     <div style={{ padding: "1.5rem 1.25rem 6rem" }}>
-      <h1 style={{ fontSize: 20, marginBottom: 16 }}>Transactions</h1>
+      <h1 style={{ fontSize: 20, marginBottom: 16 }}>{t("tx_list_title")}</h1>
 
       <div
         style={{
@@ -86,7 +88,7 @@ export default function TransactionsScreen({ onEdit }) {
           type="text"
           value={searchText}
           onChange={(e) => setSearchText(e.target.value)}
-          placeholder="Rechercher une transaction..."
+          placeholder={t("tx_search_placeholder")}
           style={{
             flex: 1,
             border: "none",
@@ -138,7 +140,7 @@ export default function TransactionsScreen({ onEdit }) {
             active={categoryFilter === null}
             onClick={() => { setCategoryFilter(null); setShowCategoryFilter(false); }}
           >
-            Toutes catégories
+            {t("tx_filter_all_categories")}
           </FilterChip>
           {categories.map((c) => (
             <FilterChip
@@ -154,7 +156,7 @@ export default function TransactionsScreen({ onEdit }) {
 
       <div style={{ display: "flex", gap: 6, marginBottom: 16, overflowX: "auto" }}>
         <FilterChip active={filter === "all"} onClick={() => setFilter("all")}>
-          Tout
+          {t("tx_filter_all")}
         </FilterChip>
         {members.map((m) => (
           <FilterChip
@@ -169,7 +171,7 @@ export default function TransactionsScreen({ onEdit }) {
 
       {Object.keys(grouped).length === 0 && (
         <p style={{ fontSize: 14, color: "var(--ink-3)", textAlign: "center", padding: "3rem 0" }}>
-          Aucune transaction pour le moment
+          {t("tx_no_transactions")}
         </p>
       )}
 

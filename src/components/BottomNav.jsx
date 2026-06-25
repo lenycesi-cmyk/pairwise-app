@@ -1,10 +1,13 @@
+import { useTranslation } from "../hooks/useTranslation";
+
 export default function BottomNav({ active, onChange, onAddClick }) {
+  const t = useTranslation();
   const tabs = [
-    { key: "dashboard", icon: "ti-home", label: "Accueil" },
-    { key: "transactions", icon: "ti-list", label: "Historique" },
+    { key: "dashboard", icon: "ti-home", label: t("nav_home") },
+    { key: "transactions", icon: "ti-list", label: t("nav_history") },
     { key: "add", icon: "ti-plus", label: "" },
-    { key: "wealth", icon: "ti-chart-pie", label: "Patrimoine" },
-    { key: "settings", icon: "ti-settings", label: "Réglages" },
+    { key: "wealth", icon: "ti-chart-pie", label: t("nav_wealth") },
+    { key: "settings", icon: "ti-settings", label: t("nav_settings") },
   ];
 
   return (

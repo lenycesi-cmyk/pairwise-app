@@ -10,10 +10,11 @@ const FREQUENCIES = [
 ];
 
 export default function RecurringScreen({ onClose }) {
-  const { categories, members, recurringTx, addRecurring, removeRecurring, defaultCurrency } =
+  const { categories, members, recurringTx, addRecurring, updateRecurring, removeRecurring, defaultCurrency } =
     useFinance();
   const { user } = useAuth();
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState(null);
 
   const [type, setType] = useState("expense");
   const [amount, setAmount] = useState("");
@@ -37,9 +38,44 @@ export default function RecurringScreen({ onClose }) {
     return categories.find((c) => c.id === id) || categories[0];
   }
 
-  async function handleAdd() {
+  function resetForm() {
+    setEditingId(null);
+    setType("expense");
+    setAmount("");
+    setCurrency(defaultCurrency);
+    setCategoryId(null);
+    setSubcategory(null);
+    setDescription("");
+    setFrequency("monthly");
+    setDayOfMonth("1");
+    setPaidBy(user?.uid);
+    setSplit("50/50");
+  }
+
+  function openEdit(r) {
+    setEditingId(r.id);
+    setType(r.type);
+    setAmount(r.amount.toString());
+    setCurrency(r.currency);
+    setCategoryId(r.categoryId);
+    setSubcategory(r.subcategory);
+    setDescription(r.description || "");
+    setFrequency(r.frequency);
+    setDayOfMonth((r.dayOfMonth || 1).toString());
+    setPaidBy(r.paidBy);
+    setSplit(r.split);
+    setShowForm(true);
+  }
+
+  function openNew() {
+    resetForm();
+    setShowForm(true);
+  }
+
+  async function handleSave() {
     if (!amount || !categoryId) return;
-    await addRecurring({
+
+    const payload = {
       type,
       amount: parseFloat(amount),
       currency,
@@ -50,13 +86,24 @@ export default function RecurringScreen({ onClose }) {
       dayOfMonth: parseInt(dayOfMonth),
       paidBy: type === "expense" ? paidBy : user.uid,
       split: type === "expense" ? split : "100",
-      active: true,
-      lastGenerated: null,
-    });
+    };
+
+    if (editingId) {
+      // On modifie uniquement la règle (le "modèle"). Les transactions déjà
+      // générées pour les mois passés/en cours restent inchangées, car elles
+      // sont des copies indépendantes dans la collection transactions —
+      // seules les FUTURES générations utiliseront les nouvelles valeurs.
+      await updateRecurring(editingId, payload);
+    } else {
+      await addRecurring({ ...payload, active: true, lastGenerated: null });
+    }
+
     setShowForm(false);
-    setAmount("");
-    setCategoryId(null);
-    setDescription("");
+    resetForm();
+  }
+
+  async function toggleActive(r) {
+    await updateRecurring(r.id, { active: r.active === false ? true : false });
   }
 
   return (
@@ -73,17 +120,22 @@ export default function RecurringScreen({ onClose }) {
     >
       <div style={{ padding: "1.5rem 1.25rem 6rem" }}>
         <div style={{ display: "flex", alignItems: "center", marginBottom: 16 }}>
-          <button onClick={onClose} aria-label="Fermer" style={{ background: "none", border: "none" }}>
-            <i className="ti ti-x" style={{ fontSize: 20 }} aria-hidden="true" />
-          </button>
-          <h1 style={{ fontSize: 18, flex: 1, textAlign: "center" }}>Récurrentes</h1>
           <button
-            onClick={() => setShowForm(!showForm)}
-            aria-label="Ajouter"
+            onClick={() => { if (showForm) { setShowForm(false); resetForm(); } else onClose(); }}
+            aria-label="Fermer"
             style={{ background: "none", border: "none" }}
           >
-            <i className="ti ti-plus" style={{ fontSize: 20 }} aria-hidden="true" />
+            <i className="ti ti-x" style={{ fontSize: 20 }} aria-hidden="true" />
           </button>
+          <h1 style={{ fontSize: 18, flex: 1, textAlign: "center" }}>
+            {showForm ? (editingId ? "Modifier la récurrence" : "Nouvelle récurrence") : "Récurrentes"}
+          </h1>
+          {!showForm && (
+            <button onClick={openNew} aria-label="Ajouter" style={{ background: "none", border: "none" }}>
+              <i className="ti ti-plus" style={{ fontSize: 20 }} aria-hidden="true" />
+            </button>
+          )}
+          {showForm && <div style={{ width: 20 }} />}
         </div>
 
         {showForm && (
@@ -96,6 +148,25 @@ export default function RecurringScreen({ onClose }) {
               marginBottom: 16,
             }}
           >
+            {editingId && (
+              <div
+                style={{
+                  background: "var(--amber-light)",
+                  borderRadius: "var(--radius-md)",
+                  padding: "8px 10px",
+                  marginBottom: 12,
+                  fontSize: 11,
+                  color: "var(--amber)",
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: 6,
+                }}
+              >
+                <i className="ti ti-info-circle" style={{ fontSize: 14, flexShrink: 0, marginTop: 1 }} aria-hidden="true" />
+                Les transactions déjà générées ne seront pas modifiées. Seules les prochaines généreront avec ces nouvelles valeurs.
+              </div>
+            )}
+
             <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
               {[
                 { key: "expense", label: "Dépense" },
@@ -314,7 +385,7 @@ export default function RecurringScreen({ onClose }) {
             )}
 
             <button
-              onClick={handleAdd}
+              onClick={handleSave}
               disabled={!amount || !categoryId}
               style={{
                 width: "100%",
@@ -328,7 +399,7 @@ export default function RecurringScreen({ onClose }) {
                 opacity: !amount || !categoryId ? 0.5 : 1,
               }}
             >
-              Créer la récurrence
+              {editingId ? "Mettre à jour" : "Créer la récurrence"}
             </button>
           </div>
         )}
@@ -341,12 +412,14 @@ export default function RecurringScreen({ onClose }) {
           </p>
         )}
 
-        {recurringTx.map((r) => {
+        {!showForm && recurringTx.map((r) => {
           const cat = getCategory(r.categoryId);
           const freqLabel = FREQUENCIES.find((f) => f.key === r.frequency)?.label || r.frequency;
+          const isInactive = r.active === false;
           return (
             <div
               key={r.id}
+              onClick={() => openEdit(r)}
               style={{
                 background: "var(--bg-card)",
                 borderRadius: "var(--radius-lg)",
@@ -356,6 +429,8 @@ export default function RecurringScreen({ onClose }) {
                 display: "flex",
                 alignItems: "center",
                 gap: 10,
+                cursor: "pointer",
+                opacity: isInactive ? 0.5 : 1,
               }}
             >
               <i className={`ti ${cat.icon}`} style={{ fontSize: 18 }} aria-hidden="true" />
@@ -364,13 +439,21 @@ export default function RecurringScreen({ onClose }) {
                 <p style={{ fontSize: 11, color: "var(--ink-3)" }}>
                   {freqLabel}
                   {r.frequency === "monthly" ? ` · le ${r.dayOfMonth}` : ""}
+                  {isInactive ? " · en pause" : ""}
                 </p>
               </div>
               <p style={{ fontSize: 14, fontWeight: 500 }}>
                 {Math.round(r.amount).toLocaleString("fr-FR")} {r.currency}
               </p>
               <button
-                onClick={() => removeRecurring(r.id)}
+                onClick={(e) => { e.stopPropagation(); toggleActive(r); }}
+                aria-label={isInactive ? "Réactiver" : "Mettre en pause"}
+                style={{ background: "none", border: "none", color: "var(--ink-3)" }}
+              >
+                <i className={`ti ${isInactive ? "ti-player-play" : "ti-player-pause"}`} style={{ fontSize: 14 }} aria-hidden="true" />
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); removeRecurring(r.id); }}
                 aria-label="Supprimer"
                 style={{ background: "none", border: "none", color: "var(--ink-3)" }}
               >

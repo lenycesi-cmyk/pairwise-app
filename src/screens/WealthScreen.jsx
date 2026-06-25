@@ -9,6 +9,7 @@ import NetWorthChart from "../components/NetWorthChart";
 import AllocationChart from "../components/AllocationChart";
 import Avatar from "../components/Avatar";
 import { buildMemberColorMap } from "../utils/memberColors";
+import { useTranslation } from "../hooks/useTranslation";
 
 const COLOR_MAP = {
   tang: { text: "var(--tang)", bg: "var(--tang-light)" },
@@ -22,6 +23,7 @@ const COLOR_MAP = {
 };
 
 export default function WealthScreen({ onOpenCalculator }) {
+  const t = useTranslation();
   const {
     assets,
     defaultCurrency,
@@ -154,7 +156,7 @@ export default function WealthScreen({ onOpenCalculator }) {
   return (
     <div style={{ padding: "1.5rem 1.25rem 6rem" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-        <h1 style={{ fontSize: 20 }}>Patrimoine</h1>
+        <h1 style={{ fontSize: 20 }}>{t("wealth_title")}</h1>
         <button
           onClick={() => setShowCurrencyPicker(!showCurrencyPicker)}
           style={{
@@ -204,7 +206,7 @@ export default function WealthScreen({ onOpenCalculator }) {
         }}
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-          <p style={{ fontSize: 12, color: "var(--ink-2)" }}>Patrimoine net</p>
+          <p style={{ fontSize: 12, color: "var(--ink-2)" }}>{t("wealth_net_worth")}</p>
           {refreshing && (
             <i className="ti ti-refresh" style={{ fontSize: 13, color: "var(--ink-3)" }} aria-hidden="true" />
           )}
@@ -214,14 +216,14 @@ export default function WealthScreen({ onOpenCalculator }) {
         </p>
         <div style={{ display: "flex", gap: 16, marginTop: 8 }}>
           <div>
-            <p style={{ fontSize: 11, color: "var(--ink-3)" }}>Actifs</p>
+            <p style={{ fontSize: 11, color: "var(--ink-3)" }}>{t("wealth_assets")}</p>
             <p style={{ fontSize: 13, fontWeight: 500, color: "var(--sage)" }}>
               {formatAmount(totalAssets)} {currencySymbol}
             </p>
           </div>
           {totalLiabilities > 0 && (
             <div>
-              <p style={{ fontSize: 11, color: "var(--ink-3)" }}>Dettes</p>
+              <p style={{ fontSize: 11, color: "var(--ink-3)" }}>{t("wealth_liabilities")}</p>
               <p style={{ fontSize: 13, fontWeight: 500, color: "var(--red)" }}>
                 −{formatAmount(totalLiabilities)} {currencySymbol}
               </p>
@@ -261,7 +263,7 @@ export default function WealthScreen({ onOpenCalculator }) {
             marginBottom: 12,
           }}
         >
-          <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 8 }}>Évolution</p>
+          <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 8 }}>{t("wealth_evolution")}</p>
           <NetWorthChart
             history={netWorthHistory}
             currencySymbol={currencySymbol}
@@ -282,7 +284,7 @@ export default function WealthScreen({ onOpenCalculator }) {
             marginBottom: 12,
           }}
         >
-          <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 8 }}>Répartition par type</p>
+          <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 8 }}>{t("wealth_allocation")}</p>
           <AllocationChart totalsByType={totalsByType} totalAssets={totalAssets} />
         </div>
       )}
@@ -298,7 +300,7 @@ export default function WealthScreen({ onOpenCalculator }) {
             marginBottom: 12,
           }}
         >
-          <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>Répartition par membre</p>
+          <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>{t("wealth_member_allocation")}</p>
           {members.map((m) => {
             const share = netWorthByMember[m.uid] || 0;
             const pct = totalAssets > 0 ? (share / totalAssets) * 100 : 0;
@@ -334,7 +336,7 @@ export default function WealthScreen({ onOpenCalculator }) {
       >
         <i className="ti ti-calculator" style={{ fontSize: 18, color: "var(--lavi)" }} aria-hidden="true" />
         <span style={{ fontSize: 13, color: "var(--lavi)", fontWeight: 500, flex: 1, textAlign: "left" }}>
-          Et si j'avais investi mes dépenses superflues ?
+          {t("wealth_calculator_cta")}
         </span>
         <i className="ti ti-chevron-right" style={{ fontSize: 14, color: "var(--lavi)" }} aria-hidden="true" />
       </button>
@@ -408,9 +410,9 @@ export default function WealthScreen({ onOpenCalculator }) {
 
       {assets.length === 0 && (
         <p style={{ fontSize: 14, color: "var(--ink-3)", textAlign: "center", padding: "3rem 0" }}>
-          Aucun actif enregistré.
+          {t("wealth_no_assets")}
           <br />
-          Ajoutez votre premier compte, investissement ou bien immobilier.
+          {t("wealth_add_first_asset")}
         </p>
       )}
     </div>
