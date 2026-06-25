@@ -5,7 +5,7 @@ import { CURRENCIES } from "../data/categories";
 import { uploadPhoto } from "../utils/photoUpload";
 import { AVATAR_COLOR_PALETTE, buildMemberColorMap, getInitial } from "../utils/memberColors";
 
-export default function SettingsScreen({ onOpenRecurring, onOpenCategories }) {
+export default function SettingsScreen({ onOpenRecurring, onOpenCategories, onOpenTheme, onOpenLanguage }) {
   const { coupleId, logout, user, updateProfilePhoto, updateDisplayName } = useAuth();
   const {
     defaultCurrency,
@@ -353,6 +353,39 @@ export default function SettingsScreen({ onOpenRecurring, onOpenCategories }) {
         >
           <i className="ti ti-repeat" style={{ fontSize: 18, color: "var(--lavi)" }} aria-hidden="true" />
           <span style={{ fontSize: 14, flex: 1 }}>Transactions récurrentes</span>
+          <i className="ti ti-chevron-right" style={{ fontSize: 14, color: "var(--ink-3)" }} aria-hidden="true" />
+        </div>
+      </Card>
+
+      <SectionLabel>Apparence</SectionLabel>
+      <Card>
+        <div
+          onClick={onOpenTheme}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            padding: "4px 0 12px",
+            cursor: "pointer",
+            borderBottom: "0.5px solid var(--rule)",
+          }}
+        >
+          <i className="ti ti-palette" style={{ fontSize: 18, color: "var(--blush)" }} aria-hidden="true" />
+          <span style={{ fontSize: 14, flex: 1 }}>Thème</span>
+          <i className="ti ti-chevron-right" style={{ fontSize: 14, color: "var(--ink-3)" }} aria-hidden="true" />
+        </div>
+        <div
+          onClick={onOpenLanguage}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            padding: "12px 0 4px",
+            cursor: "pointer",
+          }}
+        >
+          <i className="ti ti-language" style={{ fontSize: 18, color: "var(--sky)" }} aria-hidden="true" />
+          <span style={{ fontSize: 14, flex: 1 }}>Langue</span>
           <i className="ti ti-chevron-right" style={{ fontSize: 14, color: "var(--ink-3)" }} aria-hidden="true" />
         </div>
       </Card>

@@ -1,4 +1,5 @@
-:root {
+:root,
+[data-theme="classic"] {
   --ink: #1a1a18;
   --ink-2: #555551;
   --ink-3: #999994;
@@ -23,7 +24,252 @@
   --blush-light: #fef0f4;
   --red: #e24b4a;
   --red-light: #fcebeb;
+}
 
+[data-theme="midnight"] {
+  --ink: #f2f2f4;
+  --ink-2: #b8b8c0;
+  --ink-3: #7d7d87;
+  --ink-4: #45454f;
+  --bg: #121214;
+  --bg-card: #1c1c20;
+  --rule: #2c2c32;
+
+  --tang: #ff8a5c;
+  --tang-light: #2e221c;
+  --sage: #7bc47f;
+  --sage-light: #1d2a1e;
+  --lavi: #7c9eff;
+  --lavi-light: #1d2438;
+  --sky: #5bc8e8;
+  --sky-light: #16282e;
+  --amber: #f5c563;
+  --amber-light: #2e2716;
+  --mint: #6fd3bd;
+  --mint-light: #16302b;
+  --blush: #ff8fae;
+  --blush-light: #2e1c23;
+  --red: #ff6b6b;
+  --red-light: #2e1818;
+}
+
+[data-theme="sage-garden"] {
+  --ink: #2c3a28;
+  --ink-2: #5a6e54;
+  --ink-3: #8a9c84;
+  --ink-4: #c5d2bf;
+  --bg: #f2f4ed;
+  --bg-card: #ffffff;
+  --rule: #e1e8d8;
+
+  --tang: #d97f4c;
+  --tang-light: #fbece1;
+  --sage: #5b8c5a;
+  --sage-light: #e6f0e3;
+  --lavi: #8a9bd9;
+  --lavi-light: #e9edf9;
+  --sky: #5b9eb0;
+  --sky-light: #e7f2f4;
+  --amber: #c9a23d;
+  --amber-light: #f8f1e0;
+  --mint: #4fa896;
+  --mint-light: #e2f3ef;
+  --blush: #c97a93;
+  --blush-light: #f7e9ef;
+  --red: #c2554f;
+  --red-light: #f6e4e2;
+}
+
+[data-theme="terracotta"] {
+  --ink: #3d2a1f;
+  --ink-2: #6e5847;
+  --ink-3: #a08d7d;
+  --ink-4: #ddc9b8;
+  --bg: #fbf1e8;
+  --bg-card: #ffffff;
+  --rule: #ecdcc9;
+
+  --tang: #c1693c;
+  --tang-light: #f5e3d6;
+  --sage: #7a9456;
+  --sage-light: #ecf1e3;
+  --lavi: #9b87c4;
+  --lavi-light: #ece6f5;
+  --sky: #4f8fa3;
+  --sky-light: #e3eef1;
+  --amber: #d99830;
+  --amber-light: #f8ecd6;
+  --mint: #5fa893;
+  --mint-light: #e3f1ec;
+  --blush: #c66b6f;
+  --blush-light: #f6e5e3;
+  --red: #b8513f;
+  --red-light: #f3e0db;
+}
+
+[data-theme="ocean-mist"] {
+  --ink: #1c2e38;
+  --ink-2: #4a6373;
+  --ink-3: #84a0ad;
+  --ink-4: #c3d6dd;
+  --bg: #eef4f7;
+  --bg-card: #ffffff;
+  --rule: #dbe6eb;
+
+  --tang: #e08a4f;
+  --tang-light: #faeade;
+  --sage: #5c9c7a;
+  --sage-light: #e6f2eb;
+  --lavi: #7d8fd4;
+  --lavi-light: #e8ebf8;
+  --sky: #3b7a9e;
+  --sky-light: #e1eef3;
+  --amber: #d4a83f;
+  --amber-light: #f8f0dc;
+  --mint: #4ea6a3;
+  --mint-light: #e1f1ef;
+  --blush: #c4768e;
+  --blush-light: #f5e6ec;
+  --red: #c25a52;
+  --red-light: #f6e3e0;
+}
+
+[data-theme="plum-luxe"] {
+  --ink: #2e1f2a;
+  --ink-2: #5e4857;
+  --ink-3: #957f8f;
+  --ink-4: #d4c2cd;
+  --bg: #f7f1f5;
+  --bg-card: #ffffff;
+  --rule: #ecdfe7;
+
+  --tang: #c97650;
+  --tang-light: #f6e6da;
+  --sage: #6d9468;
+  --sage-light: #e9f1e7;
+  --lavi: #8b6fb8;
+  --lavi-light: #ece4f5;
+  --sky: #5a8aa6;
+  --sky-light: #e6eef2;
+  --amber: #c79b45;
+  --amber-light: #f6f0dd;
+  --mint: #5fa494;
+  --mint-light: #e3f1ed;
+  --blush: #7b3f61;
+  --blush-light: #f0e1ea;
+  --red: #b4504f;
+  --red-light: #f3e1e0;
+}
+
+[data-theme="mono-ink"] {
+  --ink: #1a1a1a;
+  --ink-2: #4d4d4d;
+  --ink-3: #8c8c8c;
+  --ink-4: #d4d4d4;
+  --bg: #fafafa;
+  --bg-card: #ffffff;
+  --rule: #e8e8e8;
+
+  --tang: #1a1a1a;
+  --tang-light: #ececec;
+  --sage: #1a1a1a;
+  --sage-light: #ececec;
+  --lavi: #1a1a1a;
+  --lavi-light: #ececec;
+  --sky: #1a1a1a;
+  --sky-light: #ececec;
+  --amber: #1a1a1a;
+  --amber-light: #ececec;
+  --mint: #1a1a1a;
+  --mint-light: #ececec;
+  --blush: #1a1a1a;
+  --blush-light: #ececec;
+  --red: #b32d2d;
+  --red-light: #f6e2e2;
+}
+
+[data-theme="sunset-coral"] {
+  --ink: #3a1f24;
+  --ink-2: #6e4750;
+  --ink-3: #a8818a;
+  --ink-4: #e8c8ce;
+  --bg: #fff4f0;
+  --bg-card: #ffffff;
+  --rule: #f5dfd9;
+
+  --tang: #ff7a4d;
+  --tang-light: #ffe9e0;
+  --sage: #6ba16e;
+  --sage-light: #e8f3e9;
+  --lavi: #9b7fd4;
+  --lavi-light: #ede5f8;
+  --sky: #4fb0c4;
+  --sky-light: #e3f3f6;
+  --amber: #f0a93f;
+  --amber-light: #fdf0dd;
+  --mint: #4dbba8;
+  --mint-light: #e1f5f0;
+  --blush: #ff5c7a;
+  --blush-light: #ffe4e9;
+  --red: #e0473f;
+  --red-light: #fbe2e0;
+}
+
+[data-theme="forest-dark"] {
+  --ink: #e8f0e6;
+  --ink-2: #aac2a6;
+  --ink-3: #708c6c;
+  --ink-4: #3a4a37;
+  --bg: #16201a;
+  --bg-card: #1f2c20;
+  --rule: #2e3e2b;
+
+  --tang: #e8985f;
+  --tang-light: #2e2419;
+  --sage: #8fbc8f;
+  --sage-light: #243627;
+  --lavi: #a3b3e8;
+  --lavi-light: #1f2536;
+  --sky: #7ec4d8;
+  --sky-light: #1a2c30;
+  --amber: #e0c168;
+  --amber-light: #2e2a17;
+  --mint: #87cdb8;
+  --mint-light: #1a2f29;
+  --blush: #d99cad;
+  --blush-light: #2e2024;
+  --red: #d97a72;
+  --red-light: #2e1d1a;
+}
+
+[data-theme="butter-cream"] {
+  --ink: #3a2f1f;
+  --ink-2: #6e5d47;
+  --ink-3: #a8957e;
+  --ink-4: #e8d8be;
+  --bg: #fcf8ef;
+  --bg-card: #ffffff;
+  --rule: #f0e6d2;
+
+  --tang: #d98850;
+  --tang-light: #f8ecdf;
+  --sage: #8ba66a;
+  --sage-light: #eef2e4;
+  --lavi: #a596d4;
+  --lavi-light: #efebf8;
+  --sky: #6caec4;
+  --sky-light: #e7f1f4;
+  --amber: #d4a24c;
+  --amber-light: #f8eedb;
+  --mint: #7fb8a3;
+  --mint-light: #e6f2ed;
+  --blush: #d99cab;
+  --blush-light: #f8e9ed;
+  --red: #c2685f;
+  --red-light: #f4e3e0;
+}
+
+:root {
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 18px;

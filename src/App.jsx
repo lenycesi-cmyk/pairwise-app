@@ -15,6 +15,8 @@ import WealthScreen from "./screens/WealthScreen";
 import AddAssetScreen from "./screens/AddAssetScreen";
 import MemberBreakdownScreen from "./screens/MemberBreakdownScreen";
 import InvestmentCalculatorScreen from "./screens/InvestmentCalculatorScreen";
+import ThemeScreen from "./screens/ThemeScreen";
+import LanguageScreen from "./screens/LanguageScreen";
 import BottomNav from "./components/BottomNav";
 
 function RecurringGeneratorRunner() {
@@ -60,6 +62,8 @@ function AppContent() {
   const [showCalculator, setShowCalculator] = useState(false);
   const [showAddAsset, setShowAddAsset] = useState(false);
   const [showBreakdown, setShowBreakdown] = useState(false);
+  const [showTheme, setShowTheme] = useState(false);
+  const [showLanguage, setShowLanguage] = useState(false);
 
   if (loading) {
     return (
@@ -108,6 +112,8 @@ function AppContent() {
         <SettingsScreen
           onOpenRecurring={() => setShowRecurring(true)}
           onOpenCategories={() => setShowCategories(true)}
+          onOpenTheme={() => setShowTheme(true)}
+          onOpenLanguage={() => setShowLanguage(true)}
         />
       )}
 
@@ -129,6 +135,16 @@ function AppContent() {
         <ModalWrapper onClose={() => setShowDebt(false)}>
           <DebtScreen />
         </ModalWrapper>
+      )}
+      {showTheme && (
+        <div style={{ position: "fixed", inset: 0, background: "var(--bg)", zIndex: 100, overflowY: "auto", maxWidth: 480, margin: "0 auto" }}>
+          <ThemeScreen onClose={() => setShowTheme(false)} />
+        </div>
+      )}
+      {showLanguage && (
+        <div style={{ position: "fixed", inset: 0, background: "var(--bg)", zIndex: 100, overflowY: "auto", maxWidth: 480, margin: "0 auto" }}>
+          <LanguageScreen onClose={() => setShowLanguage(false)} />
+        </div>
       )}
     </FinanceProvider>
   );

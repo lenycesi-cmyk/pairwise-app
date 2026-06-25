@@ -14,10 +14,12 @@ const MONTHS = [
 ];
 
 export default function DashboardScreen({ onOpenDebt, onOpenBreakdown }) {
-  const { transactions, categories, members, defaultCurrency, loading } = useFinance();
-  const { convert, loading: ratesLoading, error: ratesError } = useExchangeRates(defaultCurrency);
+  const { transactions, categories, members, defaultCurrency, dashboardDisplayCurrency, updateDashboardDisplayCurrency, loading } = useFinance();
+  const displayCurrency = dashboardDisplayCurrency || defaultCurrency;
+  const { convert, loading: ratesLoading, error: ratesError } = useExchangeRates(displayCurrency);
+  const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
 
-  const debt = useDebtCalculation(transactions, members, defaultCurrency, convert);
+  const debt = useDebtCalculation(transactions, members, displayCurrency, convert);
   const memberColorMap = useMemo(() => buildMemberColorMap(members), [members]);
 
   const now = new Date();
@@ -42,11 +44,11 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown }) {
 
   function toBase(tx) {
     // Conversion figée à la création (nouvelle logique) : utilisée en priorité
-    if (tx.convertedAmount !== undefined && tx.convertedCurrency === defaultCurrency) {
+    if (tx.convertedAmount !== undefined && tx.convertedCurrency === displayCurrency) {
       return tx.convertedAmount;
     }
     // Fallback pour les transactions créées avant ce correctif (conversion dynamique)
-    return convert(tx.amount, tx.currency, defaultCurrency);
+    return convert(tx.amount, tx.currency, displayCurrency);
   }
 
   const totals = useMemo(() => {
@@ -110,7 +112,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown }) {
   }
 
   const currencySymbol =
-    CURRENCIES.find((c) => c.code === defaultCurrency)?.symbol || defaultCurrency;
+    CURRENCIES.find((c) => c.code === displayCurrency)?.symbol || displayCurrency;
 
   if (loading || ratesLoading) {
     return (
@@ -129,7 +131,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown }) {
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          marginBottom: 16,
+          marginBottom: 8,
         }}
       >
         <button
@@ -158,6 +160,45 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown }) {
           <i className="ti ti-chevron-right" style={{ fontSize: 16 }} aria-hidden="true" />
         </button>
       </div>
+
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
+        <button
+          onClick={() => setShowCurrencyPicker(!showCurrencyPicker)}
+          style={{
+            padding: "4px 10px", borderRadius: "var(--radius-md)",
+            border: "0.5px solid var(--rule)", background: "var(--bg-card)",
+            fontSize: 12, fontWeight: 500, display: "flex", alignItems: "center", gap: 4,
+          }}
+        >
+          {displayCurrency} <i className="ti ti-chevron-down" style={{ fontSize: 11 }} aria-hidden="true" />
+        </button>
+      </div>
+
+      {showCurrencyPicker && (
+        <div
+          style={{
+            display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 16,
+            background: "var(--bg-card)", borderRadius: "var(--radius-lg)",
+            border: "0.5px solid var(--rule)", padding: "0.75rem 1rem",
+          }}
+        >
+          {CURRENCIES.map((c) => (
+            <button
+              key={c.code}
+              onClick={() => { updateDashboardDisplayCurrency(c.code); setShowCurrencyPicker(false); }}
+              style={{
+                padding: "6px 10px", borderRadius: "var(--radius-md)",
+                border: displayCurrency === c.code ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
+                background: displayCurrency === c.code ? "var(--sky-light)" : "var(--bg)",
+                color: displayCurrency === c.code ? "var(--sky)" : "var(--ink)",
+                fontSize: 12,
+              }}
+            >
+              {c.symbol} {c.code}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div
         style={{
@@ -265,7 +306,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown }) {
       )}
 
       {debt && (
-        <DebtSummaryCard debt={debt} defaultCurrency={defaultCurrency} onClick={onOpenDebt} />
+        <DebtSummaryCard debt={debt} defaultCurrency={displayCurrency} onClick={onOpenDebt} />
       )}
 
       <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>

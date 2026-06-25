@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useFinance } from "../context/FinanceContext";
 import IconPicker from "../components/IconPicker";
 import { AVATAR_COLOR_PALETTE } from "../utils/memberColors";
+import SortableList from "../components/SortableList";
 
 export default function CategoriesScreen() {
   const { categories, updateCategories } = useFinance();
@@ -45,6 +46,19 @@ export default function CategoriesScreen() {
     persist(updated);
   }
 
+  function reorderSubcategories(catId, newOrderItems) {
+    // newOrderItems = [{ id: "Loyer" }, { id: "Eau" }, ...]
+    const newOrder = newOrderItems.map((i) => i.id);
+    const updated = editableCategories.map((c) =>
+      c.id === catId ? { ...c, subcategories: newOrder } : c
+    );
+    persist(updated);
+  }
+
+  function reorderCategories(newOrderItems) {
+    persist(newOrderItems);
+  }
+
   function addCategory() {
     if (!newCatName.trim()) return;
     const newCat = {
@@ -73,7 +87,7 @@ export default function CategoriesScreen() {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          marginBottom: 16,
+          marginBottom: 8,
         }}
       >
         <h1 style={{ fontSize: 20 }}>Catégories</h1>
@@ -94,6 +108,11 @@ export default function CategoriesScreen() {
           <i className="ti ti-plus" style={{ fontSize: 16, color: "var(--bg)" }} aria-hidden="true" />
         </button>
       </div>
+
+      <p style={{ fontSize: 12, color: "var(--ink-3)", marginBottom: 16 }}>
+        <i className="ti ti-grip-vertical" style={{ fontSize: 13, verticalAlign: -2 }} aria-hidden="true" />
+        {" "}Maintenez et glissez pour réorganiser
+      </p>
 
       {showNewCat && (
         <div
@@ -174,102 +193,108 @@ export default function CategoriesScreen() {
         </div>
       )}
 
-      {editableCategories.map((cat) => (
-        <div
-          key={cat.id}
-          style={{
-            background: "var(--bg-card)",
-            borderRadius: "var(--radius-lg)",
-            border: "0.5px solid var(--rule)",
-            marginBottom: 12,
-            overflow: "hidden",
-          }}
-        >
+      <SortableList
+        items={editableCategories}
+        onReorder={reorderCategories}
+        renderItem={(cat) => (
           <div
-            onClick={() => setExpanded(expanded === cat.id ? null : cat.id)}
             style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              padding: "12px 14px",
-              background: "var(--bg)",
-              cursor: "pointer",
+              background: "var(--bg-card)",
+              borderRadius: "var(--radius-lg)",
+              border: "0.5px solid var(--rule)",
+              marginBottom: 12,
+              overflow: "hidden",
             }}
           >
-            <i className={`ti ${cat.icon}`} style={{ fontSize: 18 }} aria-hidden="true" />
-            <p style={{ fontSize: 14, fontWeight: 500, flex: 1 }}>{cat.name}</p>
-            <i
-              className="ti ti-trash"
-              style={{ fontSize: 14, color: "var(--ink-3)", marginRight: 6 }}
-              aria-hidden="true"
-              onClick={(e) => {
-                e.stopPropagation();
-                removeCategory(cat.id);
+            <div
+              onClick={() => setExpanded(expanded === cat.id ? null : cat.id)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                padding: "12px 14px",
+                background: "var(--bg)",
+                cursor: "pointer",
               }}
-            />
-            <i
-              className={expanded === cat.id ? "ti ti-chevron-down" : "ti ti-chevron-right"}
-              style={{ fontSize: 14, color: "var(--ink-3)" }}
-              aria-hidden="true"
-            />
-          </div>
-
-          {expanded === cat.id && (
-            <div style={{ padding: "4px 0" }}>
-              {cat.subcategories.map((sub) => (
-                <div
-                  key={sub}
-                  style={{
-                    padding: "8px 14px 8px 42px",
-                    borderBottom: "0.5px solid var(--rule)",
-                    display: "flex",
-                    alignItems: "center",
-                  }}
-                >
-                  <p style={{ fontSize: 13, flex: 1 }}>{sub}</p>
-                  <i
-                    className="ti ti-trash"
-                    style={{ fontSize: 13, color: "var(--ink-3)", cursor: "pointer" }}
-                    aria-hidden="true"
-                    onClick={() => removeSubcategory(cat.id, sub)}
-                  />
-                </div>
-              ))}
-              <div style={{ padding: "8px 14px 12px 42px", display: "flex", gap: 8 }}>
-                <input
-                  type="text"
-                  placeholder="Nouvelle sous-catégorie"
-                  value={newSubInputs[cat.id] || ""}
-                  onChange={(e) =>
-                    setNewSubInputs({ ...newSubInputs, [cat.id]: e.target.value })
-                  }
-                  onKeyDown={(e) => e.key === "Enter" && addSubcategory(cat.id)}
-                  style={{
-                    flex: 1,
-                    border: "none",
-                    borderBottom: "0.5px solid var(--rule)",
-                    outline: "none",
-                    fontSize: 13,
-                    background: "transparent",
-                    paddingBottom: 4,
-                  }}
-                />
-                <button
-                  onClick={() => addSubcategory(cat.id)}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "var(--sky)",
-                    fontSize: 13,
-                  }}
-                >
-                  <i className="ti ti-plus" style={{ fontSize: 14 }} aria-hidden="true" />
-                </button>
-              </div>
+            >
+              <i className={`ti ${cat.icon}`} style={{ fontSize: 18 }} aria-hidden="true" />
+              <p style={{ fontSize: 14, fontWeight: 500, flex: 1 }}>{cat.name}</p>
+              <i
+                className="ti ti-trash"
+                style={{ fontSize: 14, color: "var(--ink-3)", marginRight: 6 }}
+                aria-hidden="true"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  removeCategory(cat.id);
+                }}
+              />
+              <i
+                className={expanded === cat.id ? "ti ti-chevron-down" : "ti ti-chevron-right"}
+                style={{ fontSize: 14, color: "var(--ink-3)" }}
+                aria-hidden="true"
+              />
             </div>
-          )}
-        </div>
-      ))}
+
+            {expanded === cat.id && (
+              <div style={{ padding: "4px 0" }}>
+                <SortableList
+                  items={cat.subcategories.map((s) => ({ id: s }))}
+                  onReorder={(items) => reorderSubcategories(cat.id, items)}
+                  renderItem={(item) => (
+                    <div
+                      style={{
+                        padding: "8px 14px 8px 6px",
+                        borderBottom: "0.5px solid var(--rule)",
+                        display: "flex",
+                        alignItems: "center",
+                      }}
+                    >
+                      <p style={{ fontSize: 13, flex: 1 }}>{item.id}</p>
+                      <i
+                        className="ti ti-trash"
+                        style={{ fontSize: 13, color: "var(--ink-3)", cursor: "pointer" }}
+                        aria-hidden="true"
+                        onClick={() => removeSubcategory(cat.id, item.id)}
+                      />
+                    </div>
+                  )}
+                />
+                <div style={{ padding: "8px 14px 12px 42px", display: "flex", gap: 8 }}>
+                  <input
+                    type="text"
+                    placeholder="Nouvelle sous-catégorie"
+                    value={newSubInputs[cat.id] || ""}
+                    onChange={(e) =>
+                      setNewSubInputs({ ...newSubInputs, [cat.id]: e.target.value })
+                    }
+                    onKeyDown={(e) => e.key === "Enter" && addSubcategory(cat.id)}
+                    style={{
+                      flex: 1,
+                      border: "none",
+                      borderBottom: "0.5px solid var(--rule)",
+                      outline: "none",
+                      fontSize: 13,
+                      background: "transparent",
+                      paddingBottom: 4,
+                    }}
+                  />
+                  <button
+                    onClick={() => addSubcategory(cat.id)}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: "var(--sky)",
+                      fontSize: 13,
+                    }}
+                  >
+                    <i className="ti ti-plus" style={{ fontSize: 14 }} aria-hidden="true" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      />
     </div>
   );
 }

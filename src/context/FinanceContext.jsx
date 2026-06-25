@@ -13,6 +13,7 @@ import {
   orderBy,
 } from "firebase/firestore";
 import { db } from "../firebase";
+import { applyTheme } from "../data/themes";
 import { useAuth } from "./AuthContext";
 import { ALL_CATEGORIES } from "../data/categories";
 import { getExchangeRate } from "../utils/currencyConversion";
@@ -32,6 +33,13 @@ export function FinanceProvider({ children }) {
   const [assets, setAssets] = useState([]);
   const [netWorthHistory, setNetWorthHistory] = useState([]);
   const [wealthDisplayCurrency, setWealthDisplayCurrency] = useState(null);
+  const [dashboardDisplayCurrency, setDashboardDisplayCurrency] = useState(null);
+  const [theme, setThemeState] = useState("classic");
+  const [language, setLanguageState] = useState("fr");
+
+  useEffect(() => {
+    applyTheme(theme);
+  }, [theme]);
 
   useEffect(() => {
     if (!coupleId) {
@@ -70,6 +78,9 @@ export function FinanceProvider({ children }) {
         if (data.assets) setAssets(data.assets);
         if (data.netWorthHistory) setNetWorthHistory(data.netWorthHistory);
         if (data.wealthDisplayCurrency) setWealthDisplayCurrency(data.wealthDisplayCurrency);
+        if (data.dashboardDisplayCurrency) setDashboardDisplayCurrency(data.dashboardDisplayCurrency);
+        if (data.theme) setThemeState(data.theme);
+        if (data.language) setLanguageState(data.language);
       }
     });
 
@@ -262,6 +273,29 @@ export function FinanceProvider({ children }) {
     );
   }
 
+  async function updateDashboardDisplayCurrency(currency) {
+    if (!coupleId) return;
+    await setDoc(
+      doc(db, "couples", coupleId),
+      { dashboardDisplayCurrency: currency },
+      { merge: true }
+    );
+  }
+
+  async function updateTheme(themeKey) {
+    setThemeState(themeKey);
+    if (coupleId) {
+      await setDoc(doc(db, "couples", coupleId), { theme: themeKey }, { merge: true });
+    }
+  }
+
+  async function updateLanguage(lang) {
+    setLanguageState(lang);
+    if (coupleId) {
+      await setDoc(doc(db, "couples", coupleId), { language: lang }, { merge: true });
+    }
+  }
+
   const value = {
     transactions,
     categories,
@@ -291,6 +325,12 @@ export function FinanceProvider({ children }) {
     updateMemberAvatarColor,
     wealthDisplayCurrency,
     updateWealthDisplayCurrency,
+    dashboardDisplayCurrency,
+    updateDashboardDisplayCurrency,
+    theme,
+    updateTheme,
+    language,
+    updateLanguage,
   };
 
   return (

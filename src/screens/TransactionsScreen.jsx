@@ -18,14 +18,30 @@ export default function TransactionsScreen({ onEdit }) {
   const { transactions, categories, members, deleteTransaction, defaultCurrency } = useFinance();
   const { user } = useAuth();
   const [filter, setFilter] = useState("all");
+  const [searchText, setSearchText] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState(null);
+  const [showCategoryFilter, setShowCategoryFilter] = useState(false);
   const [viewingReceipt, setViewingReceipt] = useState(null);
 
   const memberColorMap = useMemo(() => buildMemberColorMap(members), [members]);
 
   const filtered = useMemo(() => {
-    if (filter === "all") return transactions;
-    return transactions.filter((tx) => tx.paidBy === filter);
-  }, [transactions, filter]);
+    let result = transactions;
+    if (filter !== "all") {
+      result = result.filter((tx) => tx.paidBy === filter);
+    }
+    if (categoryFilter) {
+      result = result.filter((tx) => tx.categoryId === categoryFilter);
+    }
+    if (searchText.trim()) {
+      const q = searchText.trim().toLowerCase();
+      result = result.filter((tx) =>
+        (tx.description || "").toLowerCase().includes(q) ||
+        (tx.subcategory || "").toLowerCase().includes(q)
+      );
+    }
+    return result;
+  }, [transactions, filter, categoryFilter, searchText]);
 
   const grouped = useMemo(() => {
     const groups = {};
@@ -52,6 +68,89 @@ export default function TransactionsScreen({ onEdit }) {
   return (
     <div style={{ padding: "1.5rem 1.25rem 6rem" }}>
       <h1 style={{ fontSize: 20, marginBottom: 16 }}>Transactions</h1>
+
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          marginBottom: 12,
+          background: "var(--bg-card)",
+          border: "0.5px solid var(--rule)",
+          borderRadius: "var(--radius-md)",
+          padding: "8px 12px",
+        }}
+      >
+        <i className="ti ti-search" style={{ fontSize: 15, color: "var(--ink-3)" }} aria-hidden="true" />
+        <input
+          type="text"
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+          placeholder="Rechercher une transaction..."
+          style={{
+            flex: 1,
+            border: "none",
+            outline: "none",
+            fontSize: 13,
+            background: "transparent",
+            color: "var(--ink)",
+          }}
+        />
+        {searchText && (
+          <i
+            className="ti ti-x"
+            style={{ fontSize: 14, color: "var(--ink-3)", cursor: "pointer" }}
+            aria-hidden="true"
+            onClick={() => setSearchText("")}
+          />
+        )}
+        <button
+          onClick={() => setShowCategoryFilter(!showCategoryFilter)}
+          aria-label="Filtrer par catégorie"
+          style={{
+            background: categoryFilter ? "var(--sky-light)" : "none",
+            border: "none",
+            color: categoryFilter ? "var(--sky)" : "var(--ink-3)",
+            padding: "2px 4px",
+            borderRadius: "var(--radius-sm)",
+            display: "flex",
+            alignItems: "center",
+          }}
+        >
+          <i className="ti ti-filter" style={{ fontSize: 15 }} aria-hidden="true" />
+        </button>
+      </div>
+
+      {showCategoryFilter && (
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 6,
+            marginBottom: 12,
+            background: "var(--bg-card)",
+            borderRadius: "var(--radius-lg)",
+            border: "0.5px solid var(--rule)",
+            padding: "0.75rem",
+          }}
+        >
+          <FilterChip
+            active={categoryFilter === null}
+            onClick={() => { setCategoryFilter(null); setShowCategoryFilter(false); }}
+          >
+            Toutes catégories
+          </FilterChip>
+          {categories.map((c) => (
+            <FilterChip
+              key={c.id}
+              active={categoryFilter === c.id}
+              onClick={() => { setCategoryFilter(c.id); setShowCategoryFilter(false); }}
+            >
+              {c.name}
+            </FilterChip>
+          ))}
+        </div>
+      )}
 
       <div style={{ display: "flex", gap: 6, marginBottom: 16, overflowX: "auto" }}>
         <FilterChip active={filter === "all"} onClick={() => setFilter("all")}>
