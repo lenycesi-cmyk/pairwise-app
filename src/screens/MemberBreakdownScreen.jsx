@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useFinance } from "../context/FinanceContext";
 import { CURRENCIES } from "../data/categories";
+import { useTranslation } from "../hooks/useTranslation";
 
 const COLOR_MAP = {
   tang: { text: "var(--tang)", bg: "var(--tang-light)" },
@@ -13,6 +14,7 @@ const COLOR_MAP = {
 };
 
 export default function MemberBreakdownScreen({ onClose }) {
+  const t = useTranslation();
   const { categories, members, transactions, defaultCurrency } = useFinance();
   const [selectedMember, setSelectedMember] = useState(members[0]?.uid || null);
   const [expandedCat, setExpandedCat] = useState(null);
@@ -107,7 +109,7 @@ export default function MemberBreakdownScreen({ onClose }) {
           <button onClick={onClose} aria-label="Fermer" style={{ background: "none", border: "none" }}>
             <i className="ti ti-x" style={{ fontSize: 20 }} aria-hidden="true" />
           </button>
-          <h1 style={{ fontSize: 18, flex: 1, textAlign: "center" }}>Habitudes de dépense</h1>
+          <h1 style={{ fontSize: 18, flex: 1, textAlign: "center" }}>{t("breakdown_title")}</h1>
           <div style={{ width: 20 }} />
         </div>
 
@@ -147,14 +149,14 @@ export default function MemberBreakdownScreen({ onClose }) {
           }}
         >
           <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 4 }}>
-            Total dépensé ce mois (part incluse)
+            {t("breakdown_total_spent")}
           </p>
           <p style={{ fontSize: 24, fontWeight: 500, color: "var(--tang)" }}>
             {formatAmount(grandTotal)} {currencySymbol}
           </p>
         </div>
 
-        <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>Par catégorie</p>
+        <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>{t("breakdown_by_category")}</p>
 
         <div
           style={{
@@ -166,7 +168,7 @@ export default function MemberBreakdownScreen({ onClose }) {
         >
           {Object.keys(breakdown).length === 0 ? (
             <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", padding: "1.5rem 0" }}>
-              Aucune dépense ce mois-ci pour ce membre
+              {t("breakdown_no_expenses")}
             </p>
           ) : (
             Object.values(breakdown)

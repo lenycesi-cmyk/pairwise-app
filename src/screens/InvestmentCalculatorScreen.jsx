@@ -3,14 +3,19 @@ import { useFinance } from "../context/FinanceContext";
 import { useExchangeRates } from "../hooks/useExchangeRates";
 import { getCryptoPrice, getCryptoPriceAtDate, getStockPrice } from "../utils/assetPrices";
 import { CURRENCIES } from "../data/categories";
+import { useTranslation } from "../hooks/useTranslation";
 
-const PERIODS = [
-  { key: "3m", label: "3 mois", months: 3 },
-  { key: "6m", label: "6 mois", months: 6 },
-  { key: "1y", label: "1 an", months: 12 },
-];
+function getPeriods(t) {
+  return [
+    { key: "3m", label: t("calc_period_3m"), months: 3 },
+    { key: "6m", label: t("calc_period_6m"), months: 6 },
+    { key: "1y", label: t("calc_period_1y"), months: 12 },
+  ];
+}
 
 export default function InvestmentCalculatorScreen({ onClose }) {
+  const t = useTranslation();
+  const PERIODS = getPeriods(t);
   const { transactions, categories, assets, defaultCurrency } = useFinance();
   const { convert } = useExchangeRates(defaultCurrency);
 
@@ -120,13 +125,12 @@ export default function InvestmentCalculatorScreen({ onClose }) {
           <button onClick={onClose} aria-label="Fermer" style={{ background: "none", border: "none" }}>
             <i className="ti ti-x" style={{ fontSize: 20 }} aria-hidden="true" />
           </button>
-          <h1 style={{ fontSize: 18, flex: 1, textAlign: "center" }}>Et si j'avais investi ?</h1>
+          <h1 style={{ fontSize: 18, flex: 1, textAlign: "center" }}>{t("calc_title")}</h1>
           <div style={{ width: 20 }} />
         </div>
 
         <p style={{ fontSize: 13, color: "var(--ink-2)", marginBottom: 16, lineHeight: 1.5 }}>
-          Découvrez ce que vos dépenses dans une catégorie auraient pu valoir si elles avaient
-          été investies à la place.
+          {t("calc_intro")}
         </p>
 
         {/* Période */}
@@ -139,7 +143,7 @@ export default function InvestmentCalculatorScreen({ onClose }) {
             marginBottom: 12,
           }}
         >
-          <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 8 }}>Période</p>
+          <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 8 }}>{t("calc_period")}</p>
           <div style={{ display: "flex", gap: 6 }}>
             {PERIODS.map((p) => (
               <button
@@ -170,7 +174,7 @@ export default function InvestmentCalculatorScreen({ onClose }) {
           }}
         >
           <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 8 }}>
-            Catégorie de dépense (optionnel — laissez vide pour tout inclure)
+            {t("calc_category_optional")}
           </p>
           <select
             value={categoryId || ""}
@@ -181,7 +185,7 @@ export default function InvestmentCalculatorScreen({ onClose }) {
               fontSize: 14, outline: "none", marginBottom: selectedCategory ? 10 : 0,
             }}
           >
-            <option value="">Toutes les dépenses</option>
+            <option value="">{t("calc_all_expenses")}</option>
             {expenseCategories.map((c) => (
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
@@ -197,7 +201,7 @@ export default function InvestmentCalculatorScreen({ onClose }) {
                 fontSize: 14, outline: "none",
               }}
             >
-              <option value="">Toutes les sous-catégories</option>
+              <option value="">{t("calc_all_subcategories")}</option>
               {selectedCategory.subcategories.map((s) => (
                 <option key={s} value={s}>{s}</option>
               ))}
@@ -215,7 +219,7 @@ export default function InvestmentCalculatorScreen({ onClose }) {
             textAlign: "center",
           }}
         >
-          <p style={{ fontSize: 12, color: "var(--tang)" }}>Montant dépensé sur la période</p>
+          <p style={{ fontSize: 12, color: "var(--tang)" }}>{t("calc_spent_on_period")}</p>
           <p style={{ fontSize: 24, fontWeight: 500, color: "var(--tang)" }}>
             {formatAmount(totalSpent)} {currencySymbol}
           </p>
@@ -232,12 +236,11 @@ export default function InvestmentCalculatorScreen({ onClose }) {
           }}
         >
           <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 8 }}>
-            Si investi dans...
+            {t("calc_if_invested_in")}
           </p>
           {investableAssets.length === 0 ? (
             <p style={{ fontSize: 13, color: "var(--ink-3)" }}>
-              Ajoutez un actif crypto suivi par API (ex: Bitcoin) dans votre Patrimoine pour
-              activer cette comparaison.
+              {t("calc_no_asset_hint")}
             </p>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -276,12 +279,12 @@ export default function InvestmentCalculatorScreen({ onClose }) {
             opacity: !selectedAssetId || totalSpent <= 0 || computing ? 0.5 : 1,
           }}
         >
-          {computing ? "Calcul en cours..." : "Calculer"}
+          {computing ? t("calc_computing") : t("calc_compute_button")}
         </button>
 
         {result && result.error && (
           <p style={{ fontSize: 13, color: "var(--red)", textAlign: "center" }}>
-            Impossible de récupérer les données historiques pour le moment. Réessayez plus tard.
+            {t("calc_error")}
           </p>
         )}
 
@@ -295,9 +298,8 @@ export default function InvestmentCalculatorScreen({ onClose }) {
             }}
           >
             <p style={{ fontSize: 13, color: "var(--ink-2)", marginBottom: 12, lineHeight: 1.6 }}>
-              Vos <strong>{formatAmount(result.spent)} {currencySymbol}</strong> dépensés,
-              investis dans <strong>{result.assetName}</strong> il y a {PERIODS.find(p => p.key === period)?.label},
-              vaudraient aujourd'hui :
+              <strong>{formatAmount(result.spent)} {currencySymbol}</strong>, {t("calc_result_intro")} <strong>{result.assetName}</strong>,
+              {PERIODS.find(p => p.key === period)?.label} : {t("calc_result_value")}
             </p>
             <p style={{ fontSize: 30, fontWeight: 500, color: "var(--sage)" }}>
               {formatAmount(result.hypotheticalValue)} {currencySymbol}

@@ -6,6 +6,7 @@ import { uploadPhoto } from "../utils/photoUpload";
 import IconPicker from "../components/IconPicker";
 import { AVATAR_COLOR_PALETTE } from "../utils/memberColors";
 import { useTranslation } from "../hooks/useTranslation";
+import AdvancedSplitSelector from "../components/AdvancedSplitSelector";
 
 function todayISO() {
   const d = new Date();
@@ -51,6 +52,8 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
   const [description, setDescription] = useState(editingTx?.description || "");
   const [paidBy, setPaidBy] = useState(editingTx?.paidBy || user?.uid);
   const [split, setSplit] = useState(editingTx?.split || "50/50");
+  const [splitMode, setSplitMode] = useState(editingTx?.splitDetails ? "advanced" : "simple");
+  const [splitDetails, setSplitDetails] = useState(editingTx?.splitDetails || null);
   const [dateTime, setDateTime] = useState(toDateTimeLocal(editingTx?.date));
   const [busy, setBusy] = useState(false);
   const [receiptFile, setReceiptFile] = useState(null);
@@ -156,6 +159,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
         description: description || selectedCategory?.name,
         paidBy,
         split: type === "expense" || needsMemberAttribution ? split : "100",
+        splitDetails: splitMode === "advanced" ? splitDetails : null,
         date: isoDate,
       };
 
@@ -642,35 +646,79 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
             </div>
 
             <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 8 }}>{t("tx_for")}</p>
-            <div style={{ display: "flex", gap: 6 }}>
-              {members.map((m) => (
+
+            {members.length === 2 && (
+              <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
                 <button
-                  key={m.uid}
-                  onClick={() => setSplit(m.uid)}
+                  onClick={() => setSplitMode("simple")}
                   style={{
-                    flex: 1, padding: 8, borderRadius: "var(--radius-md)",
-                    border: split === m.uid ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
-                    background: split === m.uid ? "var(--sky-light)" : "var(--bg-card)",
-                    color: split === m.uid ? "var(--sky)" : "var(--ink)",
-                    fontSize: 13,
+                    flex: 1, padding: 6, borderRadius: "var(--radius-sm)",
+                    border: splitMode === "simple" ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
+                    background: splitMode === "simple" ? "var(--sky-light)" : "var(--bg)",
+                    color: splitMode === "simple" ? "var(--sky)" : "var(--ink-3)",
+                    fontSize: 11,
                   }}
                 >
-                  {m.name}
+                  {t("tx_split_simple")}
                 </button>
-              ))}
-              <button
-                onClick={() => setSplit("50/50")}
-                style={{
-                  flex: 1, padding: 8, borderRadius: "var(--radius-md)",
-                  border: split === "50/50" ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
-                  background: split === "50/50" ? "var(--sky-light)" : "var(--bg-card)",
-                  color: split === "50/50" ? "var(--sky)" : "var(--ink)",
-                  fontSize: 13, fontWeight: split === "50/50" ? 500 : 400,
-                }}
-              >
-                50/50
-              </button>
-            </div>
+                <button
+                  onClick={() => {
+                    setSplitMode("advanced");
+                    if (!splitDetails) {
+                      setSplitDetails({ mode: "custom", unit: "percent", a: 50, b: 50 });
+                    }
+                  }}
+                  style={{
+                    flex: 1, padding: 6, borderRadius: "var(--radius-sm)",
+                    border: splitMode === "advanced" ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
+                    background: splitMode === "advanced" ? "var(--sky-light)" : "var(--bg)",
+                    color: splitMode === "advanced" ? "var(--sky)" : "var(--ink-3)",
+                    fontSize: 11,
+                  }}
+                >
+                  {t("tx_split_advanced")}
+                </button>
+              </div>
+            )}
+
+            {splitMode === "advanced" && members.length === 2 ? (
+              <AdvancedSplitSelector
+                members={members}
+                totalAmount={parseFloat(amount) || 0}
+                value={splitDetails}
+                onChange={setSplitDetails}
+              />
+            ) : (
+              <div style={{ display: "flex", gap: 6 }}>
+                {members.map((m) => (
+                  <button
+                    key={m.uid}
+                    onClick={() => setSplit(m.uid)}
+                    style={{
+                      flex: 1, padding: 8, borderRadius: "var(--radius-md)",
+                      border: split === m.uid ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
+                      background: split === m.uid ? "var(--sky-light)" : "var(--bg-card)",
+                      color: split === m.uid ? "var(--sky)" : "var(--ink)",
+                      fontSize: 13,
+                    }}
+                  >
+                    {m.name}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setSplit("50/50")}
+                  style={{
+                    flex: 1, padding: 8, borderRadius: "var(--radius-md)",
+                    border: split === "50/50" ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
+                    background: split === "50/50" ? "var(--sky-light)" : "var(--bg-card)",
+                    color: split === "50/50" ? "var(--sky)" : "var(--ink)",
+                    fontSize: 13, fontWeight: split === "50/50" ? 500 : 400,
+                  }}
+                >
+                  50/50
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

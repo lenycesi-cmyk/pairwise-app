@@ -2,14 +2,19 @@ import { useState } from "react";
 import { useFinance } from "../context/FinanceContext";
 import { useAuth } from "../context/AuthContext";
 import { CURRENCIES } from "../data/categories";
+import { useTranslation } from "../hooks/useTranslation";
 
-const FREQUENCIES = [
-  { key: "monthly", label: "Mensuel" },
-  { key: "weekly", label: "Hebdomadaire" },
-  { key: "yearly", label: "Annuel" },
-];
+function getFrequencies(t) {
+  return [
+    { key: "monthly", label: t("recurring_freq_monthly") },
+    { key: "weekly", label: t("recurring_freq_weekly") },
+    { key: "yearly", label: t("recurring_freq_yearly") },
+  ];
+}
 
 export default function RecurringScreen({ onClose }) {
+  const t = useTranslation();
+  const FREQUENCIES = getFrequencies(t);
   const { categories, members, recurringTx, addRecurring, updateRecurring, removeRecurring, defaultCurrency } =
     useFinance();
   const { user } = useAuth();
@@ -128,7 +133,7 @@ export default function RecurringScreen({ onClose }) {
             <i className="ti ti-x" style={{ fontSize: 20 }} aria-hidden="true" />
           </button>
           <h1 style={{ fontSize: 18, flex: 1, textAlign: "center" }}>
-            {showForm ? (editingId ? "Modifier la récurrence" : "Nouvelle récurrence") : "Récurrentes"}
+            {showForm ? (editingId ? t("recurring_edit_title") : t("recurring_new_title")) : t("recurring_title")}
           </h1>
           {!showForm && (
             <button onClick={openNew} aria-label="Ajouter" style={{ background: "none", border: "none" }}>
@@ -163,15 +168,15 @@ export default function RecurringScreen({ onClose }) {
                 }}
               >
                 <i className="ti ti-info-circle" style={{ fontSize: 14, flexShrink: 0, marginTop: 1 }} aria-hidden="true" />
-                Les transactions déjà générées ne seront pas modifiées. Seules les prochaines généreront avec ces nouvelles valeurs.
+                {t("recurring_edit_warning")}
               </div>
             )}
 
             <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
               {[
-                { key: "expense", label: "Dépense" },
-                { key: "income", label: "Revenu" },
-                { key: "investment", label: "Invest." },
+                { key: "expense", label: t("tx_expense") },
+                { key: "income", label: t("tx_income") },
+                { key: "investment", label: t("tx_investment") },
               ].map((t) => (
                 <button
                   key={t.key}
@@ -195,7 +200,7 @@ export default function RecurringScreen({ onClose }) {
               <input
                 type="number"
                 inputMode="decimal"
-                placeholder="Montant"
+                placeholder={t("recurring_amount_placeholder")}
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 style={{
@@ -241,7 +246,7 @@ export default function RecurringScreen({ onClose }) {
                 background: "var(--bg-card)",
               }}
             >
-              <option value="">Choisir une catégorie</option>
+              <option value="">{t("recurring_choose_category")}</option>
               {availableCategories.map((c) => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
@@ -269,7 +274,7 @@ export default function RecurringScreen({ onClose }) {
 
             <input
               type="text"
-              placeholder="Description (ex: Loyer)"
+              placeholder={t("recurring_description_placeholder")}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               style={{
@@ -283,7 +288,7 @@ export default function RecurringScreen({ onClose }) {
               }}
             />
 
-            <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>Fréquence</p>
+            <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>{t("recurring_frequency")}</p>
             <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
               {FREQUENCIES.map((f) => (
                 <button
@@ -307,7 +312,7 @@ export default function RecurringScreen({ onClose }) {
             {frequency === "monthly" && (
               <>
                 <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>
-                  Jour du mois
+                  {t("recurring_day_of_month")}
                 </p>
                 <input
                   type="number"
@@ -330,7 +335,7 @@ export default function RecurringScreen({ onClose }) {
 
             {type === "expense" && members.length > 0 && (
               <>
-                <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>Qui paie</p>
+                <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>{t("recurring_who_pays")}</p>
                 <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
                   {members.map((m) => (
                     <button
@@ -349,7 +354,7 @@ export default function RecurringScreen({ onClose }) {
                     </button>
                   ))}
                 </div>
-                <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>Partage</p>
+                <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>{t("recurring_split")}</p>
                 <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
                   {members.map((m) => (
                     <button
@@ -399,16 +404,16 @@ export default function RecurringScreen({ onClose }) {
                 opacity: !amount || !categoryId ? 0.5 : 1,
               }}
             >
-              {editingId ? "Mettre à jour" : "Créer la récurrence"}
+              {editingId ? t("recurring_update_button") : t("recurring_create_button")}
             </button>
           </div>
         )}
 
         {recurringTx.length === 0 && !showForm && (
           <p style={{ fontSize: 14, color: "var(--ink-3)", textAlign: "center", padding: "3rem 0" }}>
-            Aucune transaction récurrente.
+            {t("recurring_empty")}
             <br />
-            Ajoutez votre loyer, vos investissements programmés...
+            {t("recurring_empty_hint")}
           </p>
         )}
 
@@ -439,7 +444,7 @@ export default function RecurringScreen({ onClose }) {
                 <p style={{ fontSize: 11, color: "var(--ink-3)" }}>
                   {freqLabel}
                   {r.frequency === "monthly" ? ` · le ${r.dayOfMonth}` : ""}
-                  {isInactive ? " · en pause" : ""}
+                  {isInactive ? ` · ${t("recurring_paused")}` : ""}
                 </p>
               </div>
               <p style={{ fontSize: 14, fontWeight: 500 }}>
@@ -447,7 +452,7 @@ export default function RecurringScreen({ onClose }) {
               </p>
               <button
                 onClick={(e) => { e.stopPropagation(); toggleActive(r); }}
-                aria-label={isInactive ? "Réactiver" : "Mettre en pause"}
+                aria-label={isInactive ? t("recurring_resume") : t("recurring_pause")}
                 style={{ background: "none", border: "none", color: "var(--ink-3)" }}
               >
                 <i className={`ti ${isInactive ? "ti-player-play" : "ti-player-pause"}`} style={{ fontSize: 14 }} aria-hidden="true" />

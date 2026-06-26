@@ -3,8 +3,11 @@ import { useFinance } from "../context/FinanceContext";
 import { ASSET_TYPES } from "../data/assetTypes";
 import { CURRENCIES } from "../data/categories";
 import { searchCrypto, searchStocks } from "../utils/assetSearch";
+import { useTranslation } from "../hooks/useTranslation";
+import AdvancedSplitSelector from "../components/AdvancedSplitSelector";
 
 export default function AddAssetScreen({ onClose, editingAsset }) {
+  const t = useTranslation();
   const { addAsset, updateAsset, removeAsset, defaultCurrency, members } = useFinance();
   const isEditing = !!editingAsset;
 
@@ -29,6 +32,7 @@ export default function AddAssetScreen({ onClose, editingAsset }) {
     editingAsset?.ownership || (members[0] ? members[0].uid : "shared")
   );
   const [sharePct, setSharePct] = useState(editingAsset?.sharePct ?? 50);
+  const [sharePctDetails, setSharePctDetails] = useState(editingAsset?.sharePctDetails || null);
 
   const selectedType = ASSET_TYPES.find((t) => t.id === typeId);
   const usesApi = selectedType?.hasApiPrice;
@@ -77,6 +81,7 @@ export default function AddAssetScreen({ onClose, editingAsset }) {
         currency,
         ownership,
         sharePct: ownership === "shared" ? sharePct : 100,
+        sharePctDetails: ownership === "shared" ? sharePctDetails : null,
         ...(usesApi
           ? { quantity: parseFloat(quantity), apiId, apiLabel }
           : { value: parseFloat(value) }),
@@ -96,7 +101,7 @@ export default function AddAssetScreen({ onClose, editingAsset }) {
   }
 
   async function handleDelete() {
-    if (!confirm("Supprimer cet actif ?")) return;
+    if (!confirm(t("asset_delete_confirm"))) return;
     await removeAsset(editingAsset.id);
     onClose();
   }
@@ -119,7 +124,7 @@ export default function AddAssetScreen({ onClose, editingAsset }) {
             <i className="ti ti-x" style={{ fontSize: 20 }} aria-hidden="true" />
           </button>
           <h1 style={{ fontSize: 18, flex: 1, textAlign: "center" }}>
-            {isEditing ? "Modifier l'actif" : "Nouvel actif"}
+            {isEditing ? t("asset_edit_title") : t("asset_new_title")}
           </h1>
           <div style={{ width: 20 }} />
         </div>
@@ -134,7 +139,7 @@ export default function AddAssetScreen({ onClose, editingAsset }) {
             marginBottom: 12,
           }}
         >
-          <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 8 }}>Type d'actif</p>
+          <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 8 }}>{t("asset_type_label")}</p>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
             {ASSET_TYPES.map((t) => (
               <button
@@ -170,12 +175,12 @@ export default function AddAssetScreen({ onClose, editingAsset }) {
             marginBottom: 12,
           }}
         >
-          <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>Nom</p>
+          <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>{t("asset_name_label")}</p>
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Ex: Livret A, PEA Jess, Bitcoin..."
+            placeholder={t("asset_name_placeholder")}
             style={{
               width: "100%", padding: "8px 0", border: "none",
               borderBottom: "0.5px solid var(--rule)", background: "transparent",
@@ -195,7 +200,7 @@ export default function AddAssetScreen({ onClose, editingAsset }) {
               marginBottom: 12,
             }}
           >
-            <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>Valeur actuelle</p>
+            <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>{t("asset_value_label")}</p>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <input
                 type="number"
@@ -249,7 +254,7 @@ export default function AddAssetScreen({ onClose, editingAsset }) {
                   onClick={() => { setApiId(""); setApiLabel(""); }}
                   style={{ background: "none", border: "none", color: "var(--sky)", fontSize: 12 }}
                 >
-                  Changer
+                  {t("asset_change_button")}
                 </button>
               </div>
             ) : (
@@ -261,8 +266,8 @@ export default function AddAssetScreen({ onClose, editingAsset }) {
                   onFocus={() => setShowResults(true)}
                   placeholder={
                     selectedType.priceSource === "crypto"
-                      ? "Rechercher (ex: Bitcoin, Solana...)"
-                      : "Rechercher (ex: Apple, MSCI World...)"
+                      ? t("asset_search_placeholder_crypto")
+                      : t("asset_search_placeholder_stock")
                   }
                   style={{
                     width: "100%", padding: "8px 0", border: "none",
@@ -307,13 +312,13 @@ export default function AddAssetScreen({ onClose, editingAsset }) {
                 )}
                 {showResults && searchQuery.length > 0 && !searching && searchResults.length === 0 && (
                   <p style={{ fontSize: 12, color: "var(--ink-3)", marginTop: 6 }}>
-                    Aucun résultat. Essayez un autre terme.
+                    {t("asset_no_results")}
                   </p>
                 )}
               </div>
             )}
 
-            <p style={{ fontSize: 12, color: "var(--ink-2)", margin: "12px 0 6px" }}>Quantité détenue</p>
+            <p style={{ fontSize: 12, color: "var(--ink-2)", margin: "12px 0 6px" }}>{t("asset_quantity_label")}</p>
             <input
               type="number"
               inputMode="decimal"
@@ -327,7 +332,7 @@ export default function AddAssetScreen({ onClose, editingAsset }) {
               }}
             />
             <p style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 8 }}>
-              <i className="ti ti-info-circle" style={{ fontSize: 12, verticalAlign: -1 }} aria-hidden="true" /> La valeur sera calculée automatiquement selon le cours actuel.
+              <i className="ti ti-info-circle" style={{ fontSize: 12, verticalAlign: -1 }} aria-hidden="true" /> {t("asset_auto_value_hint")}
             </p>
           </div>
         )}
@@ -343,7 +348,7 @@ export default function AddAssetScreen({ onClose, editingAsset }) {
               marginBottom: 12,
             }}
           >
-            <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 8 }}>À qui appartient cet actif</p>
+            <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 8 }}>{t("asset_ownership_label")}</p>
             <div style={{ display: "flex", gap: 6, marginBottom: ownership === "shared" ? 14 : 0 }}>
               {members.map((m) => (
                 <button
@@ -370,38 +375,34 @@ export default function AddAssetScreen({ onClose, editingAsset }) {
                   fontSize: 13,
                 }}
               >
-                Partagé
+                {t("asset_shared")}
               </button>
             </div>
 
             {ownership === "shared" && (
-              <div>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                  <span style={{ fontSize: 12, color: "var(--ink-2)" }}>
-                    {members[0]?.name} : {sharePct}%
-                  </span>
-                  <span style={{ fontSize: 12, color: "var(--ink-2)" }}>
-                    {members[1]?.name || "Autre"} : {100 - sharePct}%
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={sharePct}
-                  onChange={(e) => setSharePct(parseInt(e.target.value))}
-                  style={{ width: "100%" }}
-                />
-                <button
-                  onClick={() => setSharePct(50)}
-                  style={{
-                    marginTop: 6, background: "none", border: "none",
-                    color: "var(--sky)", fontSize: 11,
-                  }}
-                >
-                  Réinitialiser à 50/50
-                </button>
-              </div>
+              <AdvancedSplitSelector
+                members={members}
+                totalAmount={usesApi ? 0 : parseFloat(value) || 0}
+                value={
+                  sharePctDetails || {
+                    mode: "custom",
+                    unit: "percent",
+                    a: sharePct,
+                    b: 100 - sharePct,
+                  }
+                }
+                onChange={(details) => {
+                  setSharePctDetails(details);
+                  // On garde sharePct synchronisé pour rétro-compatibilité avec
+                  // le code existant qui lit ce champ (résumés, calculs simples).
+                  if (details.unit === "percent") {
+                    setSharePct(Math.round(details.a));
+                  } else {
+                    const total = details.a + details.b;
+                    setSharePct(total > 0 ? Math.round((details.a / total) * 100) : 50);
+                  }
+                }}
+              />
             )}
           </div>
         )}
@@ -422,7 +423,7 @@ export default function AddAssetScreen({ onClose, editingAsset }) {
             opacity: busy ? 0.5 : 1,
           }}
         >
-          {busy ? "Enregistrement..." : isEditing ? "Mettre à jour" : "Ajouter"}
+          {busy ? t("tx_saving") : isEditing ? t("asset_update_button") : t("asset_save_button")}
         </button>
 
         {isEditing && (
@@ -437,7 +438,7 @@ export default function AddAssetScreen({ onClose, editingAsset }) {
               padding: 10,
             }}
           >
-            Supprimer cet actif
+            {t("asset_delete_button")}
           </button>
         )}
       </div>

@@ -275,12 +275,28 @@ export default function TransactionsScreen({ onEdit }) {
                     <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2, flexWrap: "wrap" }}>
                       <span style={{ fontSize: 12, color: "var(--ink-3)" }}>{tx.subcategory}</span>
                       <span style={{ fontSize: 12, color: "var(--ink-3)" }}>·</span>
-                      <span style={{ fontSize: 11, color: "var(--ink-3)" }}>Payé par</span>
+                      <span style={{ fontSize: 11, color: "var(--ink-3)" }}>{t("tx_paid_by")}</span>
                       <Avatar member={members.find(m => m.uid === tx.paidBy)} colorMap={memberColorMap} />
                       {tx.split && (
                         <>
-                          <span style={{ fontSize: 11, color: "var(--ink-3)" }}>· Pour</span>
-                          {tx.split === "50/50" ? (
+                          <span style={{ fontSize: 11, color: "var(--ink-3)" }}>· {t("tx_for")}</span>
+                          {tx.splitDetails ? (
+                            <span style={{ display: "flex", gap: 3, alignItems: "center" }}>
+                              {members.map((m, i) => (
+                                <span key={m.uid} style={{ display: "flex", alignItems: "center", gap: 2 }}>
+                                  <Avatar member={m} colorMap={memberColorMap} />
+                                  <span style={{ fontSize: 10, color: "var(--ink-3)" }}>
+                                    {tx.splitDetails.unit === "percent"
+                                      ? `${i === 0 ? tx.splitDetails.a : tx.splitDetails.b}%`
+                                      : Math.round(i === 0 ? tx.splitDetails.a : tx.splitDetails.b).toLocaleString("fr-FR")}
+                                  </span>
+                                  {i < members.length - 1 && (
+                                    <span style={{ fontSize: 11, color: "var(--ink-3)", margin: "0 1px" }}>&</span>
+                                  )}
+                                </span>
+                              ))}
+                            </span>
+                          ) : tx.split === "50/50" ? (
                             <span style={{ display: "flex", gap: 2 }}>
                               {members.map((m, i) => (
                                 <span key={m.uid} style={{ display: "flex", alignItems: "center" }}>

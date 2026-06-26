@@ -3,8 +3,10 @@ import { useFinance } from "../context/FinanceContext";
 import IconPicker from "../components/IconPicker";
 import { AVATAR_COLOR_PALETTE } from "../utils/memberColors";
 import SortableList from "../components/SortableList";
+import { useTranslation } from "../hooks/useTranslation";
 
 export default function CategoriesScreen() {
+  const t = useTranslation();
   const { categories, updateCategories } = useFinance();
   const [expanded, setExpanded] = useState(null);
   const [showNewCat, setShowNewCat] = useState(false);
@@ -76,7 +78,7 @@ export default function CategoriesScreen() {
   }
 
   function removeCategory(catId) {
-    if (!confirm("Supprimer cette catégorie et toutes ses sous-catégories ?")) return;
+    if (!confirm(t("categories_delete_confirm"))) return;
     persist(editableCategories.filter((c) => c.id !== catId));
   }
 
@@ -90,10 +92,10 @@ export default function CategoriesScreen() {
           marginBottom: 8,
         }}
       >
-        <h1 style={{ fontSize: 20 }}>Catégories</h1>
+        <h1 style={{ fontSize: 20 }}>{t("categories_title")}</h1>
         <button
           onClick={() => setShowNewCat(!showNewCat)}
-          aria-label="Ajouter une catégorie"
+          aria-label={t("categories_add_category")}
           style={{
             width: 32,
             height: 32,
@@ -111,7 +113,7 @@ export default function CategoriesScreen() {
 
       <p style={{ fontSize: 12, color: "var(--ink-3)", marginBottom: 16 }}>
         <i className="ti ti-grip-vertical" style={{ fontSize: 13, verticalAlign: -2 }} aria-hidden="true" />
-        {" "}Maintenez et glissez pour réorganiser
+        {" "}{t("categories_drag_hint")}
       </p>
 
       {showNewCat && (
@@ -127,7 +129,7 @@ export default function CategoriesScreen() {
           <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 10 }}>
             <button
               onClick={() => setShowIconPicker(!showIconPicker)}
-              aria-label="Choisir une icône et une couleur"
+              aria-label={t("categories_choose_icon_color")}
               style={{
                 width: 36, height: 36, borderRadius: "var(--radius-md)",
                 border: "0.5px solid var(--rule)",
@@ -141,7 +143,7 @@ export default function CategoriesScreen() {
             </button>
             <input
               type="text"
-              placeholder="Nom de la catégorie"
+              placeholder={t("categories_name_placeholder")}
               value={newCatName}
               onChange={(e) => setNewCatName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && addCategory()}
@@ -167,7 +169,7 @@ export default function CategoriesScreen() {
                 flexShrink: 0,
               }}
             >
-              Ajouter
+              {t("categories_add_button")}
             </button>
           </div>
 
@@ -262,7 +264,7 @@ export default function CategoriesScreen() {
                 <div style={{ padding: "8px 14px 12px 42px", display: "flex", gap: 8 }}>
                   <input
                     type="text"
-                    placeholder="Nouvelle sous-catégorie"
+                    placeholder={t("categories_new_subcategory_placeholder")}
                     value={newSubInputs[cat.id] || ""}
                     onChange={(e) =>
                       setNewSubInputs({ ...newSubInputs, [cat.id]: e.target.value })

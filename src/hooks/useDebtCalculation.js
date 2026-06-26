@@ -8,6 +8,21 @@ export function useDebtCalculation(transactions, members, defaultCurrency, conve
     return convert(tx.amount, tx.currency, defaultCurrency);
   }
 
+  // Calcule la part de chaque membre (a, b) à partir de splitDetails, en
+  // respectant l'unité (pourcentage ou montant figé en devise d'origine).
+  function getCustomShares(tx, val, a, b) {
+    const d = tx.splitDetails;
+    if (d.unit === "percent") {
+      return { shareA: (val * d.a) / 100, shareB: (val * d.b) / 100 };
+    }
+    // unit === "amount" : d.a et d.b sont dans la devise d'origine de la
+    // transaction, on les reconvertit proportionnellement à `val` (déjà en
+    // devise d'affichage) pour rester cohérent même si la devise diffère.
+    const total = d.a + d.b;
+    if (total === 0) return { shareA: val / 2, shareB: val / 2 };
+    return { shareA: (val * d.a) / total, shareB: (val * d.b) / total };
+  }
+
   return useMemo(() => {
     if (members.length < 2) return null;
     const [a, b] = members;
@@ -20,7 +35,19 @@ export function useDebtCalculation(transactions, members, defaultCurrency, conve
       if (tx.type !== "expense") continue;
       const val = toBase(tx);
 
-      if (tx.split === "50/50") {
+      if (tx.splitDetails) {
+        // Partage avancé : chaque membre doit sa propre part, peu importe
+        // qui a payé. Seule la part de l'AUTRE membre crée une dette envers
+        // celui qui a payé.
+        const { shareA, shareB } = getCustomShares(tx, val, a, b);
+        if (tx.paidBy === a.uid) {
+          aPaidForB += shareB;
+          sharedTx.push({ ...tx, share: shareB, paidByName: a.name, label: `${shareA.toFixed(0)}/${shareB.toFixed(0)}` });
+        } else if (tx.paidBy === b.uid) {
+          bPaidForA += shareA;
+          sharedTx.push({ ...tx, share: shareA, paidByName: b.name, label: `${shareA.toFixed(0)}/${shareB.toFixed(0)}` });
+        }
+      } else if (tx.split === "50/50") {
         const half = val / 2;
         if (tx.paidBy === a.uid) {
           aPaidForB += half;
