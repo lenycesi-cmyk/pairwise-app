@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { FinanceProvider } from "./context/FinanceContext";
 import { useRecurringGenerator } from "./hooks/useRecurringGenerator";
@@ -6,18 +6,19 @@ import AuthScreen from "./screens/AuthScreen";
 import CoupleSetupScreen from "./screens/CoupleSetupScreen";
 import DashboardScreen from "./screens/DashboardScreen";
 import TransactionsScreen from "./screens/TransactionsScreen";
-import DebtScreen from "./screens/DebtScreen";
-import CategoriesScreen from "./screens/CategoriesScreen";
 import SettingsScreen from "./screens/SettingsScreen";
-import AddTransactionScreen from "./screens/AddTransactionScreen";
-import RecurringScreen from "./screens/RecurringScreen";
-import WealthScreen from "./screens/WealthScreen";
-import AddAssetScreen from "./screens/AddAssetScreen";
-import MemberBreakdownScreen from "./screens/MemberBreakdownScreen";
-import InvestmentCalculatorScreen from "./screens/InvestmentCalculatorScreen";
-import ThemeScreen from "./screens/ThemeScreen";
-import LanguageScreen from "./screens/LanguageScreen";
 import BottomNav from "./components/BottomNav";
+
+const DebtScreen = lazy(() => import("./screens/DebtScreen"));
+const CategoriesScreen = lazy(() => import("./screens/CategoriesScreen"));
+const AddTransactionScreen = lazy(() => import("./screens/AddTransactionScreen"));
+const RecurringScreen = lazy(() => import("./screens/RecurringScreen"));
+const WealthScreen = lazy(() => import("./screens/WealthScreen"));
+const AddAssetScreen = lazy(() => import("./screens/AddAssetScreen"));
+const MemberBreakdownScreen = lazy(() => import("./screens/MemberBreakdownScreen"));
+const InvestmentCalculatorScreen = lazy(() => import("./screens/InvestmentCalculatorScreen"));
+const ThemeScreen = lazy(() => import("./screens/ThemeScreen"));
+const LanguageScreen = lazy(() => import("./screens/LanguageScreen"));
 
 function RecurringGeneratorRunner() {
   useRecurringGenerator();
@@ -107,7 +108,11 @@ function AppContent() {
         />
       )}
       {tab === "transactions" && <TransactionsScreen onEdit={openEdit} />}
-      {tab === "wealth" && <WealthScreen onOpenCalculator={() => setShowCalculator(true)} />}
+      {tab === "wealth" && (
+        <Suspense fallback={null}>
+          <WealthScreen onOpenCalculator={() => setShowCalculator(true)} />
+        </Suspense>
+      )}
       {tab === "settings" && (
         <SettingsScreen
           onOpenRecurring={() => setShowRecurring(true)}
@@ -119,33 +124,35 @@ function AppContent() {
 
       <BottomNav active={tab} onChange={setTab} onAddClick={handleCentralAdd} />
 
-      {showAdd && <AddTransactionScreen onClose={closeAdd} editingTx={editingTx} />}
-      {showAddAsset && <AddAssetScreen onClose={() => setShowAddAsset(false)} />}
-      {showBreakdown && <MemberBreakdownScreen onClose={() => setShowBreakdown(false)} />}
-      {showRecurring && <RecurringScreen onClose={() => setShowRecurring(false)} />}
-      {showCalculator && (
-        <InvestmentCalculatorScreen onClose={() => setShowCalculator(false)} />
-      )}
-      {showCategories && (
-        <ModalWrapper onClose={() => setShowCategories(false)}>
-          <CategoriesScreen />
-        </ModalWrapper>
-      )}
-      {showDebt && (
-        <ModalWrapper onClose={() => setShowDebt(false)}>
-          <DebtScreen />
-        </ModalWrapper>
-      )}
-      {showTheme && (
-        <div style={{ position: "fixed", inset: 0, background: "var(--bg)", zIndex: 100, overflowY: "auto", maxWidth: 480, margin: "0 auto" }}>
-          <ThemeScreen onClose={() => setShowTheme(false)} />
-        </div>
-      )}
-      {showLanguage && (
-        <div style={{ position: "fixed", inset: 0, background: "var(--bg)", zIndex: 100, overflowY: "auto", maxWidth: 480, margin: "0 auto" }}>
-          <LanguageScreen onClose={() => setShowLanguage(false)} />
-        </div>
-      )}
+      <Suspense fallback={null}>
+        {showAdd && <AddTransactionScreen onClose={closeAdd} editingTx={editingTx} />}
+        {showAddAsset && <AddAssetScreen onClose={() => setShowAddAsset(false)} />}
+        {showBreakdown && <MemberBreakdownScreen onClose={() => setShowBreakdown(false)} />}
+        {showRecurring && <RecurringScreen onClose={() => setShowRecurring(false)} />}
+        {showCalculator && (
+          <InvestmentCalculatorScreen onClose={() => setShowCalculator(false)} />
+        )}
+        {showCategories && (
+          <ModalWrapper onClose={() => setShowCategories(false)}>
+            <CategoriesScreen />
+          </ModalWrapper>
+        )}
+        {showDebt && (
+          <ModalWrapper onClose={() => setShowDebt(false)}>
+            <DebtScreen />
+          </ModalWrapper>
+        )}
+        {showTheme && (
+          <div style={{ position: "fixed", inset: 0, background: "var(--bg)", zIndex: 100, overflowY: "auto", maxWidth: 480, margin: "0 auto" }}>
+            <ThemeScreen onClose={() => setShowTheme(false)} />
+          </div>
+        )}
+        {showLanguage && (
+          <div style={{ position: "fixed", inset: 0, background: "var(--bg)", zIndex: 100, overflowY: "auto", maxWidth: 480, margin: "0 auto" }}>
+            <LanguageScreen onClose={() => setShowLanguage(false)} />
+          </div>
+        )}
+      </Suspense>
     </FinanceProvider>
   );
 }

@@ -647,76 +647,55 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
 
             <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 8 }}>{t("tx_for")}</p>
 
-            {members.length === 2 && (
-              <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+            <div style={{ display: "flex", gap: 6 }}>
+              {members.map((m) => (
                 <button
-                  onClick={() => setSplitMode("simple")}
+                  key={m.uid}
+                  onClick={() => { setSplit(m.uid); setSplitMode("simple"); }}
                   style={{
-                    flex: 1, padding: 6, borderRadius: "var(--radius-sm)",
-                    border: splitMode === "simple" ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
-                    background: splitMode === "simple" ? "var(--sky-light)" : "var(--bg)",
-                    color: splitMode === "simple" ? "var(--sky)" : "var(--ink-3)",
-                    fontSize: 11,
+                    flex: 1, padding: 8, borderRadius: "var(--radius-md)",
+                    border: split === m.uid && splitMode === "simple" ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
+                    background: split === m.uid && splitMode === "simple" ? "var(--sky-light)" : "var(--bg-card)",
+                    color: split === m.uid && splitMode === "simple" ? "var(--sky)" : "var(--ink)",
+                    fontSize: 13,
                   }}
                 >
-                  {t("tx_split_simple")}
+                  {m.name}
                 </button>
+              ))}
+              {members.length === 2 && (
                 <button
                   onClick={() => {
+                    setSplit("50/50");
                     setSplitMode("advanced");
                     if (!splitDetails) {
                       setSplitDetails({ mode: "custom", unit: "percent", a: 50, b: 50 });
                     }
                   }}
-                  style={{
-                    flex: 1, padding: 6, borderRadius: "var(--radius-sm)",
-                    border: splitMode === "advanced" ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
-                    background: splitMode === "advanced" ? "var(--sky-light)" : "var(--bg)",
-                    color: splitMode === "advanced" ? "var(--sky)" : "var(--ink-3)",
-                    fontSize: 11,
-                  }}
-                >
-                  {t("tx_split_advanced")}
-                </button>
-              </div>
-            )}
-
-            {splitMode === "advanced" && members.length === 2 ? (
-              <AdvancedSplitSelector
-                members={members}
-                totalAmount={parseFloat(amount) || 0}
-                value={splitDetails}
-                onChange={setSplitDetails}
-              />
-            ) : (
-              <div style={{ display: "flex", gap: 6 }}>
-                {members.map((m) => (
-                  <button
-                    key={m.uid}
-                    onClick={() => setSplit(m.uid)}
-                    style={{
-                      flex: 1, padding: 8, borderRadius: "var(--radius-md)",
-                      border: split === m.uid ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
-                      background: split === m.uid ? "var(--sky-light)" : "var(--bg-card)",
-                      color: split === m.uid ? "var(--sky)" : "var(--ink)",
-                      fontSize: 13,
-                    }}
-                  >
-                    {m.name}
-                  </button>
-                ))}
-                <button
-                  onClick={() => setSplit("50/50")}
+                  aria-label={t("tx_split_share")}
                   style={{
                     flex: 1, padding: 8, borderRadius: "var(--radius-md)",
-                    border: split === "50/50" ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
-                    background: split === "50/50" ? "var(--sky-light)" : "var(--bg-card)",
-                    color: split === "50/50" ? "var(--sky)" : "var(--ink)",
-                    fontSize: 13, fontWeight: split === "50/50" ? 500 : 400,
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                    border: splitMode === "advanced" ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
+                    background: splitMode === "advanced" ? "var(--sky-light)" : "var(--bg-card)",
+                    color: splitMode === "advanced" ? "var(--sky)" : "var(--ink)",
+                    fontSize: 13, fontWeight: splitMode === "advanced" ? 500 : 400,
                   }}
                 >
-                  50/50
+                  <i className="ti ti-arrows-split-2" style={{ fontSize: 15 }} aria-hidden="true" />
+                  {t("tx_split_share")}
                 </button>
+              )}
+            </div>
+
+            {splitMode === "advanced" && members.length === 2 && (
+              <div style={{ marginTop: 10 }}>
+                <AdvancedSplitSelector
+                  members={members}
+                  totalAmount={parseFloat(amount) || 0}
+                  value={splitDetails}
+                  onChange={setSplitDetails}
+                />
               </div>
             )}
           </div>
