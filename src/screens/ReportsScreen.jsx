@@ -8,9 +8,9 @@ import { buildMemberColorMap } from "../utils/memberColors";
 import { CURRENCIES } from "../data/categories";
 import { useTranslation } from "../hooks/useTranslation";
 
-const PERIOD_TYPES = ["month", "quarter", "year"];
+const PERIOD_TYPES = ["month", "quarter", "year", "last12", "custom"];
 
-function getRange(periodType, anchor) {
+function getRange(periodType, anchor, customRange) {
   const y = anchor.getFullYear();
   if (periodType === "month") {
     const m = anchor.getMonth();
@@ -26,6 +26,26 @@ function getRange(periodType, anchor) {
       start: new Date(y, q * 3, 1),
       end: new Date(y, q * 3 + 3, 1),
       label: `T${q + 1} ${y}`,
+    };
+  }
+  if (periodType === "last12") {
+    const end = new Date(y, anchor.getMonth() + 1, 1);
+    const start = new Date(y, anchor.getMonth() - 11, 1);
+    return {
+      start,
+      end,
+      label: `${start.toLocaleDateString("fr-FR", { month: "short", year: "numeric" })} – ${anchor.toLocaleDateString("fr-FR", { month: "short", year: "numeric" })}`,
+    };
+  }
+  if (periodType === "custom") {
+    const start = customRange?.start ? new Date(customRange.start) : new Date(y, 0, 1);
+    const end = customRange?.end
+      ? new Date(new Date(customRange.end).getTime() + 24 * 60 * 60 * 1000)
+      : new Date(y + 1, 0, 1);
+    return {
+      start,
+      end,
+      label: `${start.toLocaleDateString("fr-FR")} – ${new Date(end.getTime() - 1).toLocaleDateString("fr-FR")}`,
     };
   }
   return {
@@ -52,12 +72,19 @@ export default function ReportsScreen() {
 
   const [periodType, setPeriodType] = useState("month");
   const [anchor, setAnchor] = useState(new Date());
+  const [customRange, setCustomRange] = useState({ start: "", end: "" });
 
-  const range = useMemo(() => getRange(periodType, anchor), [periodType, anchor]);
-  const prevRange = useMemo(
-    () => getRange(periodType, shiftAnchor(periodType, anchor, -1)),
-    [periodType, anchor]
+  const range = useMemo(
+    () => getRange(periodType, anchor, customRange),
+    [periodType, anchor, customRange]
   );
+  const prevRange = useMemo(() => {
+    if (periodType === "last12" || periodType === "custom") {
+      const span = range.end.getTime() - range.start.getTime();
+      return { start: new Date(range.start.getTime() - span), end: range.start };
+    }
+    return getRange(periodType, shiftAnchor(periodType, anchor, -1));
+  }, [periodType, anchor, range]);
 
   function toBase(tx) {
     if (tx.convertedAmount !== undefined && tx.convertedCurrency === displayCurrency) {
@@ -188,7 +215,7 @@ export default function ReportsScreen() {
     <div style={{ padding: "1.5rem 1.25rem 6rem" }}>
       <h1 style={{ fontSize: 20, marginBottom: 16, marginLeft: 44 }}>{t("reports_title")}</h1>
 
-      <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
+      <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
         {PERIOD_TYPES.map((p) => (
           <button
             key={p}
@@ -208,6 +235,39 @@ export default function ReportsScreen() {
         ))}
       </div>
 
+      {periodType === "custom" && (
+        <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+          <input
+            type="date"
+            value={customRange.start}
+            onChange={(e) => setCustomRange((r) => ({ ...r, start: e.target.value }))}
+            style={{
+              flex: 1,
+              padding: "8px 10px",
+              borderRadius: "var(--radius-md)",
+              border: "0.5px solid var(--rule)",
+              background: "var(--bg-card)",
+              fontSize: 13,
+              color: "var(--ink)",
+            }}
+          />
+          <input
+            type="date"
+            value={customRange.end}
+            onChange={(e) => setCustomRange((r) => ({ ...r, end: e.target.value }))}
+            style={{
+              flex: 1,
+              padding: "8px 10px",
+              borderRadius: "var(--radius-md)",
+              border: "0.5px solid var(--rule)",
+              background: "var(--bg-card)",
+              fontSize: 13,
+              color: "var(--ink)",
+            }}
+          />
+        </div>
+      )}
+
       <div
         style={{
           display: "flex",
@@ -216,21 +276,29 @@ export default function ReportsScreen() {
           marginBottom: 16,
         }}
       >
-        <button
-          onClick={() => setAnchor(shiftAnchor(periodType, anchor, -1))}
-          aria-label="Période précédente"
-          style={navBtnStyle}
-        >
-          <i className="ti ti-chevron-left" style={{ fontSize: 16 }} aria-hidden="true" />
-        </button>
+        {periodType !== "last12" && periodType !== "custom" ? (
+          <button
+            onClick={() => setAnchor(shiftAnchor(periodType, anchor, -1))}
+            aria-label="Période précédente"
+            style={navBtnStyle}
+          >
+            <i className="ti ti-chevron-left" style={{ fontSize: 16 }} aria-hidden="true" />
+          </button>
+        ) : (
+          <div style={{ width: 30 }} />
+        )}
         <p style={{ fontSize: 15, fontWeight: 500, textTransform: "capitalize" }}>{range.label}</p>
-        <button
-          onClick={() => setAnchor(shiftAnchor(periodType, anchor, 1))}
-          aria-label="Période suivante"
-          style={navBtnStyle}
-        >
-          <i className="ti ti-chevron-right" style={{ fontSize: 16 }} aria-hidden="true" />
-        </button>
+        {periodType !== "last12" && periodType !== "custom" ? (
+          <button
+            onClick={() => setAnchor(shiftAnchor(periodType, anchor, 1))}
+            aria-label="Période suivante"
+            style={navBtnStyle}
+          >
+            <i className="ti ti-chevron-right" style={{ fontSize: 16 }} aria-hidden="true" />
+          </button>
+        ) : (
+          <div style={{ width: 30 }} />
+        )}
       </div>
 
       <div
