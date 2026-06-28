@@ -14,7 +14,7 @@ const MONTHS = [
   "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre",
 ];
 
-export default function DashboardScreen({ onOpenDebt, onOpenBreakdown }) {
+export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTransactions, onEditTransaction }) {
   const t = useTranslation();
   const { transactions, categories, members, defaultCurrency, dashboardDisplayCurrency, updateDashboardDisplayCurrency, loading } = useFinance();
   const displayCurrency = dashboardDisplayCurrency || defaultCurrency;
@@ -108,6 +108,10 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown }) {
     1,
     ...Object.values(categoryTotals).map((c) => c.total)
   );
+
+  const recentTx = useMemo(() => {
+    return [...monthTx].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
+  }, [monthTx]);
 
   function formatAmount(n) {
     return Math.round(n).toLocaleString("fr-FR");
@@ -237,6 +241,64 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown }) {
         <StatCard label={t("dashboard_income")} value={`${formatAmount(totals.income)} ${currencySymbol}`} color="var(--sage)" />
         <StatCard label={t("dashboard_expenses")} value={`${formatAmount(totals.expense)} ${currencySymbol}`} color="var(--tang)" />
         <StatCard label={t("dashboard_invested")} value={`${formatAmount(totals.invested)} ${currencySymbol}`} color="var(--lavi)" />
+      </div>
+
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+        <p style={{ fontSize: 13, fontWeight: 500 }}>
+          {t("dashboard_recent_transactions")}
+        </p>
+        <button
+          onClick={onOpenTransactions}
+          style={{
+            background: "none", border: "none", color: "var(--sky)",
+            fontSize: 12, display: "flex", alignItems: "center", gap: 3,
+          }}
+        >
+          {t("dashboard_see_all")}
+          <i className="ti ti-chevron-right" style={{ fontSize: 12 }} aria-hidden="true" />
+        </button>
+      </div>
+      <div
+        style={{
+          background: "var(--bg-card)",
+          borderRadius: "var(--radius-lg)",
+          border: "0.5px solid var(--rule)",
+          marginBottom: 20,
+          overflow: "hidden",
+        }}
+      >
+        {recentTx.length === 0 ? (
+          <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", padding: "1.5rem 0" }}>
+            {t("tx_no_transactions")}
+          </p>
+        ) : (
+          recentTx.map((tx, i) => {
+            const cat = categories.find((c) => c.id === tx.categoryId) || categories[0];
+            const isIncome = tx.type === "income";
+            return (
+              <div
+                key={tx.id}
+                onClick={() => onEditTransaction?.(tx)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  padding: "10px 14px",
+                  borderBottom: i === recentTx.length - 1 ? "none" : "0.5px solid var(--rule)",
+                  cursor: "pointer",
+                }}
+              >
+                <i className={`ti ${cat.icon}`} style={{ fontSize: 16, color: "var(--ink-3)" }} aria-hidden="true" />
+                <p style={{ flex: 1, minWidth: 0, fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  {tx.description}
+                </p>
+                <p style={{ fontSize: 13, fontWeight: 500, color: isIncome ? "var(--sage)" : "var(--ink)" }}>
+                  {isIncome ? "+" : "−"}{Math.round(tx.amount).toLocaleString("fr-FR")} {tx.currency}
+                </p>
+              </div>
+            );
+          })
+        )}
       </div>
 
       {members.length > 0 && (

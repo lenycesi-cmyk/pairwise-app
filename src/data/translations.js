@@ -5,9 +5,12 @@ export const TRANSLATIONS = {
     nav_history: "Historique",
     nav_wealth: "Patrimoine",
     nav_settings: "Réglages",
+    nav_reports: "Rapports",
 
     // Dashboard
     dashboard_net_balance: "Solde net",
+    dashboard_recent_transactions: "Transactions récentes",
+    dashboard_see_all: "Tout voir",
     dashboard_income: "Revenus",
     dashboard_expenses: "Dépenses",
     dashboard_invested: "Investi",
@@ -174,6 +177,17 @@ export const TRANSLATIONS = {
     breakdown_total_spent: "Total dépensé ce mois (part incluse)",
     breakdown_by_category: "Par catégorie",
     breakdown_no_expenses: "Aucune dépense ce mois-ci pour ce membre",
+
+    // Reports
+    reports_title: "Rapports",
+    reports_period_month: "Mois",
+    reports_period_quarter: "Trimestre",
+    reports_period_year: "Année",
+    reports_evolution: "Évolution des dépenses",
+    reports_by_category: "Dépenses par catégorie",
+    reports_no_expenses: "Aucune dépense sur cette période",
+    reports_member_comparison: "Comparaison entre membres",
+    reports_vs_previous: "vs période précédente",
   },
 
   en: {
@@ -182,9 +196,12 @@ export const TRANSLATIONS = {
     nav_history: "History",
     nav_wealth: "Wealth",
     nav_settings: "Settings",
+    nav_reports: "Reports",
 
     // Dashboard
     dashboard_net_balance: "Net balance",
+    dashboard_recent_transactions: "Recent transactions",
+    dashboard_see_all: "See all",
     dashboard_income: "Income",
     dashboard_expenses: "Expenses",
     dashboard_invested: "Invested",
@@ -351,6 +368,17 @@ export const TRANSLATIONS = {
     breakdown_total_spent: "Total spent this month (your share)",
     breakdown_by_category: "By category",
     breakdown_no_expenses: "No expenses this month for this member",
+
+    // Reports
+    reports_title: "Reports",
+    reports_period_month: "Month",
+    reports_period_quarter: "Quarter",
+    reports_period_year: "Year",
+    reports_evolution: "Spending evolution",
+    reports_by_category: "Spending by category",
+    reports_no_expenses: "No expenses for this period",
+    reports_member_comparison: "Member comparison",
+    reports_vs_previous: "vs previous period",
   },
 };
 
