@@ -10,6 +10,7 @@ import BottomNav from "./components/BottomNav";
 const TransactionsScreen = lazy(() => import("./screens/TransactionsScreen"));
 const SettingsScreen = lazy(() => import("./screens/SettingsScreen"));
 const ReportsScreen = lazy(() => import("./screens/ReportsScreen"));
+const BudgetScreen = lazy(() => import("./screens/BudgetScreen"));
 const DebtScreen = lazy(() => import("./screens/DebtScreen"));
 const CategoriesScreen = lazy(() => import("./screens/CategoriesScreen"));
 const AddTransactionScreen = lazy(() => import("./screens/AddTransactionScreen"));
@@ -141,6 +142,11 @@ function AppContent() {
       {tab === "wealth" && (
         <Suspense fallback={null}>
           <WealthScreen onOpenCalculator={() => setShowCalculator(true)} />
+        </Suspense>
+      )}
+      {tab === "budget" && (
+        <Suspense fallback={null}>
+          <BudgetScreen />
         </Suspense>
       )}
 

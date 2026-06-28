@@ -110,7 +110,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
   );
 
   const recentTx = useMemo(() => {
-    return [...monthTx].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
+    return [...monthTx].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 3);
   }, [monthTx]);
 
   function formatAmount(n) {
@@ -137,37 +137,36 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          marginBottom: 8,
+          marginBottom: 16,
         }}
       >
-        <button
-          onClick={() => changeMonth(-1)}
-          aria-label="Mois précédent"
-          style={navBtnStyle}
-        >
-          <i className="ti ti-chevron-left" style={{ fontSize: 16 }} aria-hidden="true" />
-        </button>
-        <p style={{ fontSize: 15, fontWeight: 500 }}>
-          {MONTHS[viewMonth]} {viewYear}
-          {ratesError === "using_fallback_rates" && (
-            <i
-              className="ti ti-alert-triangle"
-              title="Taux de change approximatifs (API indisponible)"
-              style={{ fontSize: 12, color: "var(--amber)", marginLeft: 6 }}
-              aria-label="Taux de change approximatifs"
-            />
-          )}
-        </p>
-        <button
-          onClick={() => changeMonth(1)}
-          aria-label="Mois suivant"
-          style={navBtnStyle}
-        >
-          <i className="ti ti-chevron-right" style={{ fontSize: 16 }} aria-hidden="true" />
-        </button>
-      </div>
-
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <button
+            onClick={() => changeMonth(-1)}
+            aria-label="Mois précédent"
+            style={navBtnStyle}
+          >
+            <i className="ti ti-chevron-left" style={{ fontSize: 16 }} aria-hidden="true" />
+          </button>
+          <p style={{ fontSize: 15, fontWeight: 500 }}>
+            {MONTHS[viewMonth]} {viewYear}
+            {ratesError === "using_fallback_rates" && (
+              <i
+                className="ti ti-alert-triangle"
+                title="Taux de change approximatifs (API indisponible)"
+                style={{ fontSize: 12, color: "var(--amber)", marginLeft: 6 }}
+                aria-label="Taux de change approximatifs"
+              />
+            )}
+          </p>
+          <button
+            onClick={() => changeMonth(1)}
+            aria-label="Mois suivant"
+            style={navBtnStyle}
+          >
+            <i className="ti ti-chevron-right" style={{ fontSize: 16 }} aria-hidden="true" />
+          </button>
+        </div>
         <button
           onClick={() => setShowCurrencyPicker(!showCurrencyPicker)}
           style={{
@@ -243,64 +242,6 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
         <StatCard label={t("dashboard_invested")} value={`${formatAmount(totals.invested)} ${currencySymbol}`} color="var(--lavi)" />
       </div>
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-        <p style={{ fontSize: 13, fontWeight: 500 }}>
-          {t("dashboard_recent_transactions")}
-        </p>
-        <button
-          onClick={onOpenTransactions}
-          style={{
-            background: "none", border: "none", color: "var(--sky)",
-            fontSize: 12, display: "flex", alignItems: "center", gap: 3,
-          }}
-        >
-          {t("dashboard_see_all")}
-          <i className="ti ti-chevron-right" style={{ fontSize: 12 }} aria-hidden="true" />
-        </button>
-      </div>
-      <div
-        style={{
-          background: "var(--bg-card)",
-          borderRadius: "var(--radius-lg)",
-          border: "0.5px solid var(--rule)",
-          marginBottom: 20,
-          overflow: "hidden",
-        }}
-      >
-        {recentTx.length === 0 ? (
-          <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", padding: "1.5rem 0" }}>
-            {t("tx_no_transactions")}
-          </p>
-        ) : (
-          recentTx.map((tx, i) => {
-            const cat = categories.find((c) => c.id === tx.categoryId) || categories[0];
-            const isIncome = tx.type === "income";
-            return (
-              <div
-                key={tx.id}
-                onClick={() => onEditTransaction?.(tx)}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  padding: "10px 14px",
-                  borderBottom: i === recentTx.length - 1 ? "none" : "0.5px solid var(--rule)",
-                  cursor: "pointer",
-                }}
-              >
-                <i className={`ti ${cat.icon}`} style={{ fontSize: 16, color: "var(--ink-3)" }} aria-hidden="true" />
-                <p style={{ flex: 1, minWidth: 0, fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                  {tx.description}
-                </p>
-                <p style={{ fontSize: 13, fontWeight: 500, color: isIncome ? "var(--sage)" : "var(--ink)" }}>
-                  {isIncome ? "+" : "−"}{Math.round(tx.amount).toLocaleString("fr-FR")} {tx.currency}
-                </p>
-              </div>
-            );
-          })
-        )}
-      </div>
-
       {members.length > 0 && (
         <>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
@@ -372,6 +313,64 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
       {debt && (
         <DebtSummaryCard debt={debt} defaultCurrency={displayCurrency} onClick={onOpenDebt} />
       )}
+
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+        <p style={{ fontSize: 13, fontWeight: 500 }}>
+          {t("dashboard_recent_transactions")}
+        </p>
+        <button
+          onClick={onOpenTransactions}
+          style={{
+            background: "none", border: "none", color: "var(--sky)",
+            fontSize: 12, display: "flex", alignItems: "center", gap: 3,
+          }}
+        >
+          {t("dashboard_see_all")}
+          <i className="ti ti-chevron-right" style={{ fontSize: 12 }} aria-hidden="true" />
+        </button>
+      </div>
+      <div
+        style={{
+          background: "var(--bg-card)",
+          borderRadius: "var(--radius-lg)",
+          border: "0.5px solid var(--rule)",
+          marginBottom: 20,
+          overflow: "hidden",
+        }}
+      >
+        {recentTx.length === 0 ? (
+          <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", padding: "1.5rem 0" }}>
+            {t("tx_no_transactions")}
+          </p>
+        ) : (
+          recentTx.map((tx, i) => {
+            const cat = categories.find((c) => c.id === tx.categoryId) || categories[0];
+            const isIncome = tx.type === "income";
+            return (
+              <div
+                key={tx.id}
+                onClick={() => onEditTransaction?.(tx)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  padding: "10px 14px",
+                  borderBottom: i === recentTx.length - 1 ? "none" : "0.5px solid var(--rule)",
+                  cursor: "pointer",
+                }}
+              >
+                <i className={`ti ${cat.icon}`} style={{ fontSize: 16, color: "var(--ink-3)" }} aria-hidden="true" />
+                <p style={{ flex: 1, minWidth: 0, fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  {tx.description}
+                </p>
+                <p style={{ fontSize: 13, fontWeight: 500, color: isIncome ? "var(--sage)" : "var(--ink)" }}>
+                  {isIncome ? "+" : "−"}{Math.round(tx.amount).toLocaleString("fr-FR")} {tx.currency}
+                </p>
+              </div>
+            );
+          })
+        )}
+      </div>
 
       <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>
         {t("dashboard_spending_by_category")}
