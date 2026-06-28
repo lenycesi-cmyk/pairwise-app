@@ -67,9 +67,63 @@ export default function TransactionsScreen({ onEdit }) {
     return members.find((m) => m.uid === uid)?.name || "?";
   }
 
+  function exportCSV() {
+    const headers = [
+      "date", "type", "category", "subcategory", "description",
+      "amount", "currency", "convertedAmount", "defaultCurrency",
+      "paidBy", "split",
+    ];
+    const rows = filtered.map((tx) => [
+      new Date(tx.date).toISOString().slice(0, 10),
+      tx.type,
+      getCategory(tx.categoryId).name,
+      tx.subcategory || "",
+      tx.description || "",
+      tx.amount,
+      tx.currency,
+      tx.convertedAmount ?? "",
+      defaultCurrency,
+      getMemberName(tx.paidBy),
+      tx.split || "",
+    ]);
+    const escapeCell = (cell) => {
+      const str = String(cell);
+      return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
+    };
+    const csv = [headers, ...rows].map((row) => row.map(escapeCell).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `transactions-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div style={{ padding: "1.5rem 1.25rem 6rem" }}>
-      <h1 style={{ fontSize: 20, marginBottom: 16 }}>{t("tx_list_title")}</h1>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+        <h1 style={{ fontSize: 20 }}>{t("tx_list_title")}</h1>
+        <button
+          onClick={exportCSV}
+          disabled={filtered.length === 0}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+            padding: "6px 10px",
+            borderRadius: "var(--radius-md)",
+            border: "0.5px solid var(--rule)",
+            background: "var(--bg-card)",
+            fontSize: 12,
+            fontWeight: 500,
+            opacity: filtered.length === 0 ? 0.5 : 1,
+          }}
+        >
+          <i className="ti ti-download" style={{ fontSize: 14 }} aria-hidden="true" />
+          {t("tx_export")}
+        </button>
+      </div>
 
       <div
         style={{
