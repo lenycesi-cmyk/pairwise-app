@@ -13,6 +13,10 @@ npm run preview   # Serve the dist/ build locally
 
 There is no test suite configured.
 
+### Pull requests
+
+After completing any code task on this repo, always open a pull request to `main` when done — don't ask first. Always subscribe to the PR's activity afterward so CI failures and review comments get handled automatically.
+
 ### Deploying
 
 `firebase-tools` does not work on this machine (incompatible with Node v24's HTTP stack — `firebase deploy` fails with `Premature close`). Deploys go through a custom script instead:
