@@ -156,14 +156,8 @@ function AppContent() {
         {showAdd && <AddTransactionScreen onClose={closeAdd} editingTx={editingTx} />}
         {showAddAsset && <AddAssetScreen onClose={() => setShowAddAsset(false)} />}
         {showBreakdown && <MemberBreakdownScreen onClose={() => setShowBreakdown(false)} />}
-        {showRecurring && <RecurringScreen onClose={() => setShowRecurring(false)} />}
         {showCalculator && (
           <InvestmentCalculatorScreen onClose={() => setShowCalculator(false)} />
-        )}
-        {showCategories && (
-          <ModalWrapper onClose={() => setShowCategories(false)}>
-            <CategoriesScreen />
-          </ModalWrapper>
         )}
         {showDebt && (
           <ModalWrapper onClose={() => setShowDebt(false)}>
@@ -188,6 +182,12 @@ function AppContent() {
               onOpenTheme={() => setShowTheme(true)}
               onOpenLanguage={() => setShowLanguage(true)}
             />
+          </ModalWrapper>
+        )}
+        {showRecurring && <RecurringScreen onClose={() => setShowRecurring(false)} />}
+        {showCategories && (
+          <ModalWrapper onClose={() => setShowCategories(false)}>
+            <CategoriesScreen />
           </ModalWrapper>
         )}
         {showTheme && (
