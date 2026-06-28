@@ -4,7 +4,7 @@ export default function BudgetScreen() {
   const t = useTranslation();
   return (
     <div style={{ padding: "1.5rem 1.25rem 6rem" }}>
-      <h1 style={{ fontSize: 20, marginBottom: 16 }}>{t("budget_title")}</h1>
+      <h1 style={{ fontSize: 20, marginBottom: 16, marginLeft: 44 }}>{t("budget_title")}</h1>
       <div
         style={{
           background: "var(--bg-card)",

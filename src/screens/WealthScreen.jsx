@@ -156,7 +156,7 @@ export default function WealthScreen({ onOpenCalculator }) {
   return (
     <div style={{ padding: "1.5rem 1.25rem 6rem" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-        <h1 style={{ fontSize: 20 }}>{t("wealth_title")}</h1>
+        <h1 style={{ fontSize: 20, marginLeft: 44 }}>{t("wealth_title")}</h1>
         <button
           onClick={() => setShowCurrencyPicker(!showCurrencyPicker)}
           style={{
