@@ -186,7 +186,7 @@ export default function ReportsScreen() {
 
   return (
     <div style={{ padding: "1.5rem 1.25rem 6rem" }}>
-      <h1 style={{ fontSize: 20, marginBottom: 16 }}>{t("reports_title")}</h1>
+      <h1 style={{ fontSize: 20, marginBottom: 16, marginLeft: 44 }}>{t("reports_title")}</h1>
 
       <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
         {PERIOD_TYPES.map((p) => (

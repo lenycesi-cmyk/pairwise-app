@@ -134,13 +134,14 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
     <div style={{ padding: "1.5rem 1.25rem 6rem" }}>
       <div
         style={{
-          display: "flex",
+          display: "grid",
+          gridTemplateColumns: "1fr auto 1fr",
           alignItems: "center",
-          justifyContent: "space-between",
           marginBottom: 16,
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div />
+        <div style={{ display: "flex", alignItems: "center", gap: 10, justifySelf: "center" }}>
           <button
             onClick={() => changeMonth(-1)}
             aria-label="Mois précédent"
@@ -173,6 +174,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
             padding: "4px 10px", borderRadius: "var(--radius-md)",
             border: "0.5px solid var(--rule)", background: "var(--bg-card)",
             fontSize: 12, fontWeight: 500, display: "flex", alignItems: "center", gap: 4,
+            justifySelf: "end",
           }}
         >
           {displayCurrency} <i className="ti ti-chevron-down" style={{ fontSize: 11 }} aria-hidden="true" />
