@@ -4,10 +4,9 @@ export default function BottomNav({ active, onChange, onAddClick }) {
   const t = useTranslation();
   const tabs = [
     { key: "dashboard", icon: "ti-home", label: t("nav_home") },
-    { key: "transactions", icon: "ti-list", label: t("nav_history") },
+    { key: "reports", icon: "ti-chart-bar", label: t("nav_reports") },
     { key: "add", icon: "ti-plus", label: "" },
     { key: "wealth", icon: "ti-chart-pie", label: t("nav_wealth") },
-    { key: "settings", icon: "ti-settings", label: t("nav_settings") },
   ];
 
   return (

@@ -14,8 +14,17 @@ const KEY_PATH =
   "C:\\Users\\Chenipe\\Documents\\Projet Pairwise\\Keys\\pairwise-12df2-97a5d677db9b.json";
 const DIST_DIR = join(import.meta.dirname, "..", "dist");
 
+function loadServiceAccountKey() {
+  // En CI/cloud il n'y a pas de système de fichiers persistant pour y déposer la clé:
+  // on accepte aussi le JSON brut de la clé via une variable d'environnement.
+  if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
+    return JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
+  }
+  return JSON.parse(readFileSync(KEY_PATH, "utf8"));
+}
+
 async function getAccessToken() {
-  const key = JSON.parse(readFileSync(KEY_PATH, "utf8"));
+  const key = loadServiceAccountKey();
   const now = Math.floor(Date.now() / 1000);
   const header = Buffer.from(JSON.stringify({ alg: "RS256", typ: "JWT" })).toString(
     "base64url"

@@ -5,10 +5,11 @@ import { useRecurringGenerator } from "./hooks/useRecurringGenerator";
 import AuthScreen from "./screens/AuthScreen";
 import CoupleSetupScreen from "./screens/CoupleSetupScreen";
 import DashboardScreen from "./screens/DashboardScreen";
-import TransactionsScreen from "./screens/TransactionsScreen";
-import SettingsScreen from "./screens/SettingsScreen";
 import BottomNav from "./components/BottomNav";
 
+const TransactionsScreen = lazy(() => import("./screens/TransactionsScreen"));
+const SettingsScreen = lazy(() => import("./screens/SettingsScreen"));
+const ReportsScreen = lazy(() => import("./screens/ReportsScreen"));
 const DebtScreen = lazy(() => import("./screens/DebtScreen"));
 const CategoriesScreen = lazy(() => import("./screens/CategoriesScreen"));
 const AddTransactionScreen = lazy(() => import("./screens/AddTransactionScreen"));
@@ -65,6 +66,8 @@ function AppContent() {
   const [showBreakdown, setShowBreakdown] = useState(false);
   const [showTheme, setShowTheme] = useState(false);
   const [showLanguage, setShowLanguage] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showTransactions, setShowTransactions] = useState(false);
 
   if (loading) {
     return (
@@ -101,25 +104,44 @@ function AppContent() {
     <FinanceProvider>
       <RecurringGeneratorRunner />
 
+      <button
+        onClick={() => setShowSettings(true)}
+        aria-label="Réglages"
+        style={{
+          position: "fixed",
+          top: "calc(1.25rem + env(safe-area-inset-top))",
+          left: "max(1.25rem, calc((100vw - 480px) / 2 + 1.25rem))",
+          zIndex: 60,
+          width: 34,
+          height: 34,
+          borderRadius: "50%",
+          background: "var(--bg-card)",
+          border: "0.5px solid var(--rule)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <i className="ti ti-settings" style={{ fontSize: 17 }} aria-hidden="true" />
+      </button>
+
       {tab === "dashboard" && (
         <DashboardScreen
           onOpenDebt={() => setShowDebt(true)}
           onOpenBreakdown={() => setShowBreakdown(true)}
+          onOpenTransactions={() => setShowTransactions(true)}
+          onEditTransaction={openEdit}
         />
       )}
-      {tab === "transactions" && <TransactionsScreen onEdit={openEdit} />}
+      {tab === "reports" && (
+        <Suspense fallback={null}>
+          <ReportsScreen />
+        </Suspense>
+      )}
       {tab === "wealth" && (
         <Suspense fallback={null}>
           <WealthScreen onOpenCalculator={() => setShowCalculator(true)} />
         </Suspense>
-      )}
-      {tab === "settings" && (
-        <SettingsScreen
-          onOpenRecurring={() => setShowRecurring(true)}
-          onOpenCategories={() => setShowCategories(true)}
-          onOpenTheme={() => setShowTheme(true)}
-          onOpenLanguage={() => setShowLanguage(true)}
-        />
       )}
 
       <BottomNav active={tab} onChange={setTab} onAddClick={handleCentralAdd} />
@@ -140,6 +162,26 @@ function AppContent() {
         {showDebt && (
           <ModalWrapper onClose={() => setShowDebt(false)}>
             <DebtScreen />
+          </ModalWrapper>
+        )}
+        {showTransactions && (
+          <ModalWrapper onClose={() => setShowTransactions(false)}>
+            <TransactionsScreen
+              onEdit={(tx) => {
+                setShowTransactions(false);
+                openEdit(tx);
+              }}
+            />
+          </ModalWrapper>
+        )}
+        {showSettings && (
+          <ModalWrapper onClose={() => setShowSettings(false)}>
+            <SettingsScreen
+              onOpenRecurring={() => setShowRecurring(true)}
+              onOpenCategories={() => setShowCategories(true)}
+              onOpenTheme={() => setShowTheme(true)}
+              onOpenLanguage={() => setShowLanguage(true)}
+            />
           </ModalWrapper>
         )}
         {showTheme && (
