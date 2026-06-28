@@ -238,21 +238,19 @@ for (const { year, month } of MONTHS) {
     description: "Assurance vie études enfant", paidBy: SOPHIE_UID, split: "100",
   });
 
-  // --- DCA Bitcoin quotidien (2x/jour, 5 EUR chacun = 150 EUR/mois/personne) ---
-  for (let day = 1; day <= nDays; day++) {
-    addTx({
-      date: dstr(year, month, day) + "T07:00:00",
-      type: "investment", amount: 5, currency: "EUR",
-      categoryId: "investment", subcategory: "Achat crypto",
-      description: "DCA Bitcoin Paul", paidBy: PAUL_UID, split: "100",
-    });
-    addTx({
-      date: dstr(year, month, day) + "T07:01:00",
-      type: "investment", amount: 5, currency: "EUR",
-      categoryId: "investment", subcategory: "Achat crypto",
-      description: "DCA Bitcoin Sophie", paidBy: SOPHIE_UID, split: "100",
-    });
-  }
+  // --- DCA Bitcoin mensuel (150 EUR/mois chacun, pour ne pas surcharger l'historique) ---
+  addTx({
+    date: dstr(year, month, 4) + "T07:00:00",
+    type: "investment", amount: 150, currency: "EUR",
+    categoryId: "investment", subcategory: "Achat crypto",
+    description: "DCA Bitcoin Paul", paidBy: PAUL_UID, split: "100",
+  });
+  addTx({
+    date: dstr(year, month, 4) + "T07:01:00",
+    type: "investment", amount: 150, currency: "EUR",
+    categoryId: "investment", subcategory: "Achat crypto",
+    description: "DCA Bitcoin Sophie", paidBy: SOPHIE_UID, split: "100",
+  });
 
   // --- Animaux (croquettes) ---
   addTx({
@@ -384,6 +382,9 @@ for (const { year, month } of MONTHS) {
     });
   }
 }
+
+// --- Vétérinaire (visite annuelle ponctuelle) ---
+addTx({ date: "2026-02-12T11:00:00", type: "expense", amount: 600000, currency: "VND", categoryId: "pets", subcategory: "Vétérinaire", description: "Visite vétérinaire", paidBy: PAUL_UID, split: "50/50" });
 
 // --- Voyage Krabi (fin octobre 2025, 10 jours, ~1500 EUR) ---
 addTx({ date: "2025-09-20T10:00:00", type: "expense", amount: 700, currency: "EUR", categoryId: "travel", subcategory: "Billets d'avion", description: "Vols Krabi", paidBy: PAUL_UID, split: "50/50" });
