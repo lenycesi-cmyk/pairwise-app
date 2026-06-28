@@ -15,7 +15,7 @@ There is no test suite configured.
 
 ### Pull requests
 
-After completing any code task on this repo, always open a pull request to `main` when done — don't ask first. Always subscribe to the PR's activity afterward so CI failures and review comments get handled automatically.
+After completing any code task on this repo, always open a pull request to `main` when done — don't ask first. Once opened, merge it automatically (no need to ask) as long as it's a normal code change with no failing checks or unresolved review comments. Always subscribe to the PR's activity afterward so CI failures and review comments get handled automatically.
 
 ### Deploying
 
