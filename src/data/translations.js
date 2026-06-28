@@ -6,6 +6,7 @@ export const TRANSLATIONS = {
     nav_wealth: "Patrimoine",
     nav_settings: "Réglages",
     nav_reports: "Rapports",
+    nav_budget: "Budget",
 
     // Dashboard
     dashboard_net_balance: "Solde net",
@@ -188,6 +189,11 @@ export const TRANSLATIONS = {
     reports_no_expenses: "Aucune dépense sur cette période",
     reports_member_comparison: "Comparaison entre membres",
     reports_vs_previous: "vs période précédente",
+
+    // Budget
+    budget_title: "Budget",
+    budget_coming_soon: "Bientôt disponible",
+    budget_coming_soon_hint: "La planification de budget arrive prochainement.",
   },
 
   en: {
@@ -197,6 +203,7 @@ export const TRANSLATIONS = {
     nav_wealth: "Wealth",
     nav_settings: "Settings",
     nav_reports: "Reports",
+    nav_budget: "Budget",
 
     // Dashboard
     dashboard_net_balance: "Net balance",
@@ -379,6 +386,11 @@ export const TRANSLATIONS = {
     reports_no_expenses: "No expenses for this period",
     reports_member_comparison: "Member comparison",
     reports_vs_previous: "vs previous period",
+
+    // Budget
+    budget_title: "Budget",
+    budget_coming_soon: "Coming soon",
+    budget_coming_soon_hint: "Budget planning is coming soon.",
   },
 };
 

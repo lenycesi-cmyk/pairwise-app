@@ -6,6 +6,7 @@ export default function BottomNav({ active, onChange, onAddClick }) {
     { key: "dashboard", icon: "ti-home", label: t("nav_home") },
     { key: "reports", icon: "ti-chart-bar", label: t("nav_reports") },
     { key: "add", icon: "ti-plus", label: "" },
+    { key: "budget", icon: "ti-wallet", label: t("nav_budget") },
     { key: "wealth", icon: "ti-chart-pie", label: t("nav_wealth") },
   ];
 
