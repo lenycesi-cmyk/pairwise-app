@@ -54,6 +54,7 @@ export const TRANSLATIONS = {
     tx_filter_all_categories: "Toutes catégories",
     tx_filter_all: "Tout",
     tx_no_transactions: "Aucune transaction pour le moment",
+    tx_export: "Exporter",
 
     // Settings
     settings_title: "Paramètres",
@@ -251,6 +252,7 @@ export const TRANSLATIONS = {
     tx_filter_all_categories: "All categories",
     tx_filter_all: "All",
     tx_no_transactions: "No transactions yet",
+    tx_export: "Export",
 
     // Settings
     settings_title: "Settings",
