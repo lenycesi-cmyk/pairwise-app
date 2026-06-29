@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { useFinance } from "../context/FinanceContext";
 import { useExchangeRates } from "../hooks/useExchangeRates";
 import CategoryRow from "../components/CategoryRow";
@@ -154,6 +154,28 @@ export default function ReportsScreen() {
       const key = bucketKey(d);
       const existing = buckets.get(key) || { label: bucketLabel(d), value: 0, sortKey: d.getTime() };
       existing.value += toBase(tx);
+      buckets.set(key, existing);
+    }
+    return [...buckets.values()].sort((a, b) => a.sortKey - b.sortKey);
+  }, [periodTx, periodType, displayCurrency, convert]);
+
+  const incomeExpenseData = useMemo(() => {
+    const buckets = new Map();
+    let bucketKey, bucketLabel;
+    if (periodType === "month") {
+      bucketKey = (d) => d.getDate();
+      bucketLabel = (d) => d.getDate().toString();
+    } else {
+      bucketKey = (d) => `${d.getFullYear()}-${d.getMonth()}`;
+      bucketLabel = (d) => d.toLocaleDateString("fr-FR", { month: "short" });
+    }
+    for (const tx of periodTx) {
+      if (tx.type !== "expense" && tx.type !== "income") continue;
+      const d = new Date(tx.date);
+      const key = bucketKey(d);
+      const existing = buckets.get(key) || { label: bucketLabel(d), income: 0, expense: 0, sortKey: d.getTime() };
+      if (tx.type === "income") existing.income += toBase(tx);
+      else existing.expense += toBase(tx);
       buckets.set(key, existing);
     }
     return [...buckets.values()].sort((a, b) => a.sortKey - b.sortKey);
@@ -365,6 +387,44 @@ export default function ReportsScreen() {
                   activeDot={{ r: 4 }}
                 />
               </LineChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </div>
+
+      <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>{t("reports_income_vs_expense")}</p>
+      <div
+        style={{
+          background: "var(--bg-card)",
+          borderRadius: "var(--radius-lg)",
+          border: "0.5px solid var(--rule)",
+          padding: "1rem 1.25rem",
+          marginBottom: 20,
+        }}
+      >
+        {incomeExpenseData.length === 0 ? (
+          <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", padding: "1rem 0" }}>
+            {t("reports_no_expenses")}
+          </p>
+        ) : (
+          <div style={{ width: "100%", height: 160 }}>
+            <ResponsiveContainer>
+              <BarChart data={incomeExpenseData} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
+                <XAxis
+                  dataKey="label"
+                  tick={{ fontSize: 10, fill: "var(--ink-3)" }}
+                  axisLine={{ stroke: "var(--rule)" }}
+                  tickLine={false}
+                />
+                <YAxis hide domain={["auto", "auto"]} />
+                <Tooltip
+                  formatter={(value, name) => [`${formatAmount(value)} ${currencySymbol}`, name]}
+                  labelStyle={{ color: "var(--ink)" }}
+                />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <Bar dataKey="income" name={t("dashboard_income")} fill="var(--sage)" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="expense" name={t("dashboard_expenses")} fill="var(--tang)" radius={[3, 3, 0, 0]} />
+              </BarChart>
             </ResponsiveContainer>
           </div>
         )}
