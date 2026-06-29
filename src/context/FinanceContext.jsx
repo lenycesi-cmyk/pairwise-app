@@ -30,6 +30,7 @@ export function FinanceProvider({ children }) {
   const [currencyMode, setCurrencyMode] = useState("fixed");
   const [lastUsedCurrency, setLastUsedCurrency] = useState("EUR");
   const [recurringTx, setRecurringTx] = useState([]);
+  const [budgets, setBudgets] = useState([]);
   const [assets, setAssets] = useState([]);
   const [netWorthHistory, setNetWorthHistory] = useState([]);
   const [wealthDisplayCurrency, setWealthDisplayCurrency] = useState(null);
@@ -75,6 +76,7 @@ export function FinanceProvider({ children }) {
         if (data.currencyMode) setCurrencyMode(data.currencyMode);
         if (data.lastUsedCurrency) setLastUsedCurrency(data.lastUsedCurrency);
         if (data.recurringTx) setRecurringTx(data.recurringTx);
+        if (data.budgets) setBudgets(data.budgets);
         if (data.assets) setAssets(data.assets);
         if (data.netWorthHistory) setNetWorthHistory(data.netWorthHistory);
         if (data.wealthDisplayCurrency) setWealthDisplayCurrency(data.wealthDisplayCurrency);
@@ -185,6 +187,30 @@ export function FinanceProvider({ children }) {
     if (!coupleId) return;
     const updated = recurringTx.filter((r) => r.id !== id);
     await setDoc(doc(db, "couples", coupleId), { recurringTx: updated }, { merge: true });
+  }
+
+  async function addBudget(budget) {
+    if (!coupleId) return;
+    const newBudget = {
+      ...budget,
+      id: `budget_${Date.now()}`,
+      active: budget.active ?? true,
+      createdAt: Date.now(),
+    };
+    const updated = [...budgets, newBudget];
+    await setDoc(doc(db, "couples", coupleId), { budgets: updated }, { merge: true });
+  }
+
+  async function updateBudget(id, updates) {
+    if (!coupleId) return;
+    const updated = budgets.map((b) => (b.id === id ? { ...b, ...updates } : b));
+    await setDoc(doc(db, "couples", coupleId), { budgets: updated }, { merge: true });
+  }
+
+  async function removeBudget(id) {
+    if (!coupleId) return;
+    const updated = budgets.filter((b) => b.id !== id);
+    await setDoc(doc(db, "couples", coupleId), { budgets: updated }, { merge: true });
   }
 
   async function addAsset(asset) {
@@ -314,6 +340,10 @@ export function FinanceProvider({ children }) {
     addRecurring,
     updateRecurring,
     removeRecurring,
+    budgets,
+    addBudget,
+    updateBudget,
+    removeBudget,
     assets,
     addAsset,
     updateAsset,
