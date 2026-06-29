@@ -207,6 +207,12 @@ export const TRANSLATIONS = {
     budget_update_button: "Mettre à jour",
     budget_empty: "Aucun budget pour le moment.",
     budget_empty_hint: "Ajoutez un budget global ou par catégorie pour suivre vos dépenses.",
+    budget_quick_5030: "Règle 50/30/20",
+    budget_quick_5030_hint: "50% essentiel, 30% plaisirs, 20% investi — calculé sur vos revenus moyens des 3 derniers mois.",
+    budget_quick_history: "Basé sur l'historique",
+    budget_quick_history_hint: "Suggère un montant à partir de votre moyenne de dépense des 3 derniers mois.",
+    budget_quick_manual: "Saisie manuelle",
+    budget_quick_history_next: "Suivant",
   },
 
   en: {
@@ -417,6 +423,12 @@ export const TRANSLATIONS = {
     budget_update_button: "Update",
     budget_empty: "No budget yet.",
     budget_empty_hint: "Add a global or per-category budget to track your spending.",
+    budget_quick_5030: "50/30/20 rule",
+    budget_quick_5030_hint: "50% essentials, 30% fun, 20% invested — based on your average income over the last 3 months.",
+    budget_quick_history: "Based on history",
+    budget_quick_history_hint: "Suggests an amount from your average spending over the last 3 months.",
+    budget_quick_manual: "Manual entry",
+    budget_quick_history_next: "Next",
   },
 };
 
