@@ -195,8 +195,18 @@ export const TRANSLATIONS = {
 
     // Budget
     budget_title: "Budget",
-    budget_coming_soon: "Bientôt disponible",
-    budget_coming_soon_hint: "La planification de budget arrive prochainement.",
+    budget_new_title: "Nouveau budget",
+    budget_edit_title: "Modifier le budget",
+    budget_scope: "Type de budget",
+    budget_scope_global: "Global",
+    budget_scope_category: "Par catégorie",
+    budget_choose_categories: "Choisir une ou plusieurs catégories",
+    budget_amount_placeholder: "Montant",
+    budget_alert_threshold: "Alerte à partir de (%)",
+    budget_create_button: "Créer le budget",
+    budget_update_button: "Mettre à jour",
+    budget_empty: "Aucun budget pour le moment.",
+    budget_empty_hint: "Ajoutez un budget global ou par catégorie pour suivre vos dépenses.",
   },
 
   en: {
@@ -395,8 +405,18 @@ export const TRANSLATIONS = {
 
     // Budget
     budget_title: "Budget",
-    budget_coming_soon: "Coming soon",
-    budget_coming_soon_hint: "Budget planning is coming soon.",
+    budget_new_title: "New budget",
+    budget_edit_title: "Edit budget",
+    budget_scope: "Budget type",
+    budget_scope_global: "Global",
+    budget_scope_category: "By category",
+    budget_choose_categories: "Choose one or more categories",
+    budget_amount_placeholder: "Amount",
+    budget_alert_threshold: "Alert from (%)",
+    budget_create_button: "Create budget",
+    budget_update_button: "Update",
+    budget_empty: "No budget yet.",
+    budget_empty_hint: "Add a global or per-category budget to track your spending.",
   },
 };
 
