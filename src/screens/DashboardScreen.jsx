@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useFinance } from "../context/FinanceContext";
 import { useExchangeRates } from "../hooks/useExchangeRates";
 import { useDebtCalculation } from "../hooks/useDebtCalculation";
+import { useBudgetProgress } from "../hooks/useBudgetProgress";
 import CategoryRow from "../components/CategoryRow";
 import DebtSummaryCard from "../components/DebtSummaryCard";
 import Avatar from "../components/Avatar";
@@ -23,6 +24,10 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
 
   const debt = useDebtCalculation(transactions, members, displayCurrency, convert);
   const memberColorMap = useMemo(() => buildMemberColorMap(members), [members]);
+  const { progress: budgetProgress } = useBudgetProgress();
+  const topBudgets = useMemo(() => {
+    return [...budgetProgress].sort((a, b) => b.pct - a.pct).slice(0, 3);
+  }, [budgetProgress]);
 
   const now = new Date();
   const [viewMonth, setViewMonth] = useState(now.getMonth());
@@ -303,6 +308,55 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                       color={mt.income - mt.expense - mt.invested >= 0 ? "var(--sage)" : "var(--tang)"}
                       symbol={currencySymbol}
                       bold
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {topBudgets.length > 0 && (
+        <>
+          <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>
+            {t("dashboard_budget_progress")}
+          </p>
+          <div
+            style={{
+              background: "var(--bg-card)",
+              borderRadius: "var(--radius-lg)",
+              border: "0.5px solid var(--rule)",
+              padding: "0.75rem 1.25rem",
+              marginBottom: 20,
+            }}
+          >
+            {topBudgets.map(({ budget, pct }, i) => {
+              const over = pct >= 100;
+              const warn = pct >= (budget.alertThreshold ?? 80);
+              const barColor = over ? "var(--red)" : warn ? "var(--amber)" : "var(--sky)";
+              const label = budget.scope === "global"
+                ? t("budget_scope_global")
+                : budget.categoryIds
+                    .map((id) => categories.find((c) => c.id === id)?.name)
+                    .filter(Boolean)
+                    .join(", ");
+              return (
+                <div key={budget.id} style={{ marginBottom: i === topBudgets.length - 1 ? 0 : 12 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                    <span style={{ fontSize: 12 }}>{label}</span>
+                    <span style={{ fontSize: 12, fontWeight: 500, color: barColor }}>
+                      {Math.round(pct)}%
+                    </span>
+                  </div>
+                  <div style={{ height: 6, borderRadius: 3, background: "var(--rule)", overflow: "hidden" }}>
+                    <div
+                      style={{
+                        height: "100%",
+                        width: `${Math.min(pct, 100)}%`,
+                        background: barColor,
+                        borderRadius: 3,
+                      }}
                     />
                   </div>
                 </div>

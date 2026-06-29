@@ -22,6 +22,7 @@ export const TRANSLATIONS = {
     dashboard_no_expenses: "Aucune dépense ce mois-ci",
     dashboard_tap_category: "Touchez une catégorie pour voir le détail",
     dashboard_owes: "doit à",
+    dashboard_budget_progress: "Suivi budget",
 
     // Add transaction
     tx_new: "Nouvelle transaction",
@@ -238,6 +239,7 @@ export const TRANSLATIONS = {
     dashboard_no_expenses: "No expenses this month",
     dashboard_tap_category: "Tap a category to see the detail",
     dashboard_owes: "owes",
+    dashboard_budget_progress: "Budget tracking",
 
     // Add transaction
     tx_new: "New transaction",
