@@ -7,8 +7,9 @@ import { useTranslation } from "../hooks/useTranslation";
 
 export default function CategoriesScreen() {
   const t = useTranslation();
-  const { categories, updateCategories } = useFinance();
+  const { categories, updateCategories, assets, incomeAccountLinks, setIncomeAccountLinks } = useFinance();
   const [expanded, setExpanded] = useState(null);
+  const [showIncomeLinks, setShowIncomeLinks] = useState(false);
   const [showNewCat, setShowNewCat] = useState(false);
   const [newCatName, setNewCatName] = useState("");
   const [newCatIcon, setNewCatIcon] = useState("ti-tag");
@@ -80,6 +81,16 @@ export default function CategoriesScreen() {
   function removeCategory(catId) {
     if (!confirm(t("categories_delete_confirm"))) return;
     persist(editableCategories.filter((c) => c.id !== catId));
+  }
+
+  const incomeCategory = categories.find((c) => c.id === "income");
+  const linkableAssets = assets.filter((a) => a.typeId === "account" || a.typeId === "cash");
+
+  function setLink(subcategory, assetId) {
+    const updated = { ...incomeAccountLinks };
+    if (assetId) updated[subcategory] = assetId;
+    else delete updated[subcategory];
+    setIncomeAccountLinks(updated);
   }
 
   return (
@@ -297,6 +308,80 @@ export default function CategoriesScreen() {
           </div>
         )}
       />
+
+      {incomeCategory && (
+        <div
+          style={{
+            background: "var(--bg-card)",
+            borderRadius: "var(--radius-lg)",
+            border: "0.5px solid var(--rule)",
+            marginTop: 8,
+            overflow: "hidden",
+          }}
+        >
+          <div
+            onClick={() => setShowIncomeLinks(!showIncomeLinks)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              padding: "12px 14px",
+              cursor: "pointer",
+            }}
+          >
+            <i className={`ti ${incomeCategory.icon}`} style={{ fontSize: 18 }} aria-hidden="true" />
+            <p style={{ fontSize: 14, fontWeight: 500, flex: 1 }}>{t("categories_income_account_links")}</p>
+            <i
+              className={showIncomeLinks ? "ti ti-chevron-down" : "ti ti-chevron-right"}
+              style={{ fontSize: 14, color: "var(--ink-3)" }}
+              aria-hidden="true"
+            />
+          </div>
+
+          {showIncomeLinks && (
+            <div style={{ padding: "0 14px 12px" }}>
+              {linkableAssets.length === 0 ? (
+                <p style={{ fontSize: 12, color: "var(--ink-3)", padding: "4px 0 8px" }}>
+                  {t("categories_income_account_links_empty")}
+                </p>
+              ) : (
+                incomeCategory.subcategories.map((sub) => (
+                  <div
+                    key={sub}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      padding: "6px 0",
+                    }}
+                  >
+                    <span style={{ fontSize: 13, flex: 1 }}>{sub}</span>
+                    <select
+                      value={incomeAccountLinks[sub] || ""}
+                      onChange={(e) => setLink(sub, e.target.value)}
+                      style={{
+                        fontSize: 12,
+                        background: "var(--bg)",
+                        border: "0.5px solid var(--rule)",
+                        borderRadius: "var(--radius-sm)",
+                        padding: "4px 6px",
+                        color: "var(--ink)",
+                      }}
+                    >
+                      <option value="">{t("categories_income_account_none")}</option>
+                      {linkableAssets.map((a) => (
+                        <option key={a.id} value={a.id}>
+                          {a.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
