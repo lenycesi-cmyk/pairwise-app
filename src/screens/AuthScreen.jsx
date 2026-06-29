@@ -9,6 +9,7 @@ export default function AuthScreen() {
   const [name, setName] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -75,15 +76,39 @@ export default function AuthScreen() {
           required
           style={inputStyle}
         />
-        <input
-          type="password"
-          placeholder="Mot de passe"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          minLength={6}
-          style={inputStyle}
-        />
+        <div style={{ position: "relative" }}>
+          <input
+            type={showPassword ? "text" : "password"}
+            placeholder="Mot de passe"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            minLength={6}
+            style={{ ...inputStyle, paddingRight: 40, width: "100%" }}
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((v) => !v)}
+            aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+            style={{
+              position: "absolute",
+              right: 8,
+              top: "50%",
+              transform: "translateY(-50%)",
+              background: "none",
+              border: "none",
+              display: "flex",
+              alignItems: "center",
+              color: "var(--ink-3)",
+            }}
+          >
+            <i
+              className={showPassword ? "ti ti-eye-off" : "ti ti-eye"}
+              style={{ fontSize: 18 }}
+              aria-hidden="true"
+            />
+          </button>
+        </div>
 
         {error && (
           <p style={{ fontSize: 13, color: "var(--red)", padding: "4px 2px" }}>
