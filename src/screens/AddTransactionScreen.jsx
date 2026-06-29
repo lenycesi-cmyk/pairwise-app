@@ -96,8 +96,14 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
 
   function handleTypeChange(newType) {
     setType(newType);
-    setCategoryId(null);
-    setSubcategory(null);
+    if (newType === "income") {
+      const incomeCat = categories.find((c) => c.id === "income");
+      setCategoryId(incomeCat?.id || null);
+      setSubcategory(incomeCat?.subcategories[0] || null);
+    } else {
+      setCategoryId(null);
+      setSubcategory(null);
+    }
   }
 
   function selectCategory(cat) {
