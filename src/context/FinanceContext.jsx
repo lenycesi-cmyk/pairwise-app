@@ -31,6 +31,7 @@ export function FinanceProvider({ children }) {
   const [lastUsedCurrency, setLastUsedCurrency] = useState("EUR");
   const [recurringTx, setRecurringTx] = useState([]);
   const [budgets, setBudgets] = useState([]);
+  const [incomeAccountLinks, setIncomeAccountLinksState] = useState({});
   const [assets, setAssets] = useState([]);
   const [netWorthHistory, setNetWorthHistory] = useState([]);
   const [wealthDisplayCurrency, setWealthDisplayCurrency] = useState(null);
@@ -77,6 +78,7 @@ export function FinanceProvider({ children }) {
         if (data.lastUsedCurrency) setLastUsedCurrency(data.lastUsedCurrency);
         if (data.recurringTx) setRecurringTx(data.recurringTx);
         if (data.budgets) setBudgets(data.budgets);
+        if (data.incomeAccountLinks) setIncomeAccountLinksState(data.incomeAccountLinks);
         if (data.assets) setAssets(data.assets);
         if (data.netWorthHistory) setNetWorthHistory(data.netWorthHistory);
         if (data.wealthDisplayCurrency) setWealthDisplayCurrency(data.wealthDisplayCurrency);
@@ -114,6 +116,17 @@ export function FinanceProvider({ children }) {
         { merge: true }
       );
     }
+
+    // Si la sous-catégorie de revenu est liée à un compte du Patrimoine, on crédite ce compte
+    if (tx.type === "income" && tx.subcategory) {
+      const linkedAssetId = incomeAccountLinks[tx.subcategory];
+      const linkedAsset = linkedAssetId && assets.find((a) => a.id === linkedAssetId);
+      if (linkedAsset) {
+        const { rate } = await getExchangeRate(tx.currency, linkedAsset.currency);
+        await updateAsset(linkedAssetId, { value: linkedAsset.value + tx.amount * rate });
+      }
+    }
+
     return docRef.id;
   }
 
@@ -211,6 +224,11 @@ export function FinanceProvider({ children }) {
     if (!coupleId) return;
     const updated = budgets.filter((b) => b.id !== id);
     await setDoc(doc(db, "couples", coupleId), { budgets: updated }, { merge: true });
+  }
+
+  async function setIncomeAccountLinks(map) {
+    if (!coupleId) return;
+    await setDoc(doc(db, "couples", coupleId), { incomeAccountLinks: map }, { merge: true });
   }
 
   async function addAsset(asset) {
@@ -344,6 +362,8 @@ export function FinanceProvider({ children }) {
     addBudget,
     updateBudget,
     removeBudget,
+    incomeAccountLinks,
+    setIncomeAccountLinks,
     assets,
     addAsset,
     updateAsset,
