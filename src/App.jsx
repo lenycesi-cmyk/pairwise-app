@@ -2,6 +2,7 @@ import { useState, lazy, Suspense } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { FinanceProvider } from "./context/FinanceContext";
 import { useRecurringGenerator } from "./hooks/useRecurringGenerator";
+import { useBudgetAlerts } from "./hooks/useBudgetAlerts";
 import AuthScreen from "./screens/AuthScreen";
 import CoupleSetupScreen from "./screens/CoupleSetupScreen";
 import DashboardScreen from "./screens/DashboardScreen";
@@ -24,6 +25,11 @@ const LanguageScreen = lazy(() => import("./screens/LanguageScreen"));
 
 function RecurringGeneratorRunner() {
   useRecurringGenerator();
+  return null;
+}
+
+function BudgetAlertsRunner() {
+  useBudgetAlerts();
   return null;
 }
 
@@ -104,6 +110,7 @@ function AppContent() {
   return (
     <FinanceProvider>
       <RecurringGeneratorRunner />
+      <BudgetAlertsRunner />
 
       <button
         onClick={() => setShowSettings(true)}

@@ -26,6 +26,14 @@ export default function SettingsScreen({ onOpenRecurring, onOpenCategories, onOp
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState(user?.displayName || "");
   const [showColorPicker, setShowColorPicker] = useState(false);
+  const [notificationStatus, setNotificationStatus] = useState(
+    typeof Notification !== "undefined" ? Notification.permission : "denied"
+  );
+
+  function requestNotificationPermission() {
+    if (typeof Notification === "undefined" || notificationStatus === "granted") return;
+    Notification.requestPermission().then(setNotificationStatus);
+  }
 
   const currentMember = members.find((m) => m.uid === user?.uid);
   const memberColorMap = buildMemberColorMap(members);
@@ -351,11 +359,37 @@ export default function SettingsScreen({ onOpenRecurring, onOpenCategories, onOp
             gap: 10,
             padding: "12px 0 4px",
             cursor: "pointer",
+            borderBottom: "0.5px solid var(--rule)",
           }}
         >
           <i className="ti ti-repeat" style={{ fontSize: 18, color: "var(--lavi)" }} aria-hidden="true" />
           <span style={{ fontSize: 14, flex: 1 }}>{t("settings_recurring")}</span>
           <i className="ti ti-chevron-right" style={{ fontSize: 14, color: "var(--ink-3)" }} aria-hidden="true" />
+        </div>
+        <div
+          onClick={requestNotificationPermission}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            padding: "12px 0 4px",
+            cursor: notificationStatus === "granted" ? "default" : "pointer",
+          }}
+        >
+          <i className="ti ti-bell" style={{ fontSize: 18, color: "var(--sage)" }} aria-hidden="true" />
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: 14, margin: 0 }}>{t("settings_budget_alerts")}</p>
+            <p style={{ fontSize: 11, color: "var(--ink-3)", margin: "2px 0 0" }}>
+              {t("settings_budget_alerts_hint")}
+            </p>
+          </div>
+          {notificationStatus === "granted" ? (
+            <i className="ti ti-check" style={{ fontSize: 16, color: "var(--sage)" }} aria-hidden="true" />
+          ) : notificationStatus === "denied" ? (
+            <span style={{ fontSize: 11, color: "var(--ink-3)" }}>{t("settings_notifications_denied")}</span>
+          ) : (
+            <span style={{ fontSize: 12, color: "var(--sky)" }}>{t("settings_notifications_enable")}</span>
+          )}
         </div>
       </Card>
 
