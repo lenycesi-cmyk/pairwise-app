@@ -39,12 +39,32 @@ toggling in [src/App.jsx](src/App.jsx).
 
 **Data model is couple-centric, not user-centric.** Every signed-in user belongs to one `coupleId`
 (`users/{uid}.coupleId`), and essentially all app data lives on a single Firestore document:
-`couples/{coupleId}`. Members, categories, currency settings, recurring rules, assets, and net-worth
-history are all fields on that one doc (merged via `setDoc(..., { merge: true })`), while transactions
-are a subcollection (`couples/{coupleId}/transactions`) since they grow unbounded. Both are subscribed
-in real time via `onSnapshot` in [FinanceContext](src/context/FinanceContext.jsx). This means most writes
-read-modify-merge the whole couple doc client-side (e.g. `addRecurring`, `addAsset`, `updateMemberName`)
-rather than touching individual fields — keep that pattern when adding new couple-level state.
+`couples/{coupleId}`. Members, categories, currency settings, recurring rules, assets, budgets,
+income↔account links, and net-worth history are all fields on that one doc (merged via
+`setDoc(..., { merge: true })`), while transactions are a subcollection
+(`couples/{coupleId}/transactions`) since they grow unbounded. Both are subscribed in real time via
+`onSnapshot` in [FinanceContext](src/context/FinanceContext.jsx). This means most writes
+read-modify-merge the whole couple doc client-side (e.g. `addRecurring`, `addAsset`, `addBudget`,
+`updateMemberName`) rather than touching individual fields — keep that pattern when adding new
+couple-level state.
+
+**Budgets** (`budgets` array field) follow the same shape/CRUD pattern as `recurringTx`/`assets`
+(`addBudget`/`updateBudget`/`removeBudget` in FinanceContext). Each budget has `scope`
+(`"global"` or `"category"`), `categoryIds`, `amount`/`currency`, and `alertThreshold` (% of amount,
+default 80). Spend-vs-budget math for the *current calendar month* lives in one shared hook,
+[useBudgetProgress](src/hooks/useBudgetProgress.js), consumed by `BudgetScreen`, the Dashboard
+progress widget, and `useBudgetAlerts`. `useBudgetAlerts` fires browser `Notification`s when a
+budget crosses its threshold, deduped per `budgetId`+month via `localStorage` — it's mounted
+globally as an always-on "runner" component in App.jsx (`BudgetAlertsRunner`, same pattern as
+`RecurringGeneratorRunner`) so alerts fire regardless of which tab is active. Notifications only
+work while the tab/app is open (no Service Worker/push).
+
+**Income subcategories can be linked to a Wealth account** via the `incomeAccountLinks` map
+(`{ subcategoryName: assetId }`, set whole via `setIncomeAccountLinks`, edited in
+`CategoriesScreen`). When `addTransaction` creates an `income` transaction whose subcategory has a
+link, it credits the linked asset's `value` directly (converting through `getExchangeRate`) — this
+only affects new transactions, never retroactively, consistent with the frozen-conversion rule
+below.
 
 **Two contexts, layered:** `AuthProvider` (top-level, owns `user`/`coupleId`/auth methods) wraps
 `FinanceProvider` (mounted only once a couple exists, owns everything else: transactions, categories,
@@ -63,11 +83,18 @@ totals via on-the-fly reconversion in the screens. There are two parallel FX imp
 both fail — keep that table in sync if you touch one file.
 
 **Screens are split into "always mounted" vs lazy.** Dashboard/Transactions/Settings load eagerly;
-everything else (Wealth, AddTransaction, Recurring, Categories, Debt, AddAsset, MemberBreakdown,
-InvestmentCalculator, Theme, Language) is `React.lazy` + `Suspense` in App.jsx specifically to keep
-`recharts` and `@dnd-kit` out of the initial bundle — see the `manualChunks` function in
-[vite.config.js](vite.config.js), which only works as a function (object form) under Vite 8's rolldown
-bundler. Adding a new heavy dependency should follow the same lazy-screen + manualChunks split.
+everything else (Wealth, Budget, Reports, AddTransaction, Recurring, Categories, Debt, AddAsset,
+MemberBreakdown, InvestmentCalculator, Theme, Language) is `React.lazy` + `Suspense` in App.jsx
+specifically to keep `recharts` and `@dnd-kit` out of the initial bundle — see the `manualChunks`
+function in [vite.config.js](vite.config.js), which only works as a function (object form) under
+Vite 8's rolldown bundler. Adding a new heavy dependency should follow the same lazy-screen +
+manualChunks split.
+
+**Always-mounted side-effect hooks use a "runner" component.** Logic that must run regardless of
+the active tab (e.g. generating due recurring transactions, firing budget-threshold notifications)
+is wrapped in a tiny component that calls the hook and renders `null`, then mounted unconditionally
+inside `<FinanceProvider>` in App.jsx (`RecurringGeneratorRunner`, `BudgetAlertsRunner`). Follow this
+pattern for new cross-tab background effects instead of embedding them in a specific screen.
 
 **i18n is a flat key lookup**, not a library: `data/translations.js` holds FR/EN strings, `useTranslation()`
 reads `language` off FinanceContext and returns a `t(key)` function.
