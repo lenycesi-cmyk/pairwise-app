@@ -218,35 +218,49 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
           borderRadius: "var(--radius-lg)",
           border: "0.5px solid var(--rule)",
           padding: "1rem 1.25rem",
-          marginBottom: 12,
-        }}
-      >
-        <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 4 }}>
-          {t("dashboard_net_balance")}
-        </p>
-        <p
-          style={{
-            fontSize: 28,
-            fontWeight: 500,
-            color: totals.net >= 0 ? "var(--sage)" : "var(--tang)",
-          }}
-        >
-          {totals.net >= 0 ? "+" : ""}
-          {formatAmount(totals.net)} {currencySymbol}
-        </p>
-      </div>
-
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-          gap: 8,
           marginBottom: 20,
         }}
       >
-        <StatCard label={t("dashboard_income")} value={`${formatAmount(totals.income)} ${currencySymbol}`} color="var(--sage)" />
-        <StatCard label={t("dashboard_expenses")} value={`${formatAmount(totals.expense)} ${currencySymbol}`} color="var(--tang)" />
-        <StatCard label={t("dashboard_invested")} value={`${formatAmount(totals.invested)} ${currencySymbol}`} color="var(--lavi)" />
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "baseline",
+            marginBottom: 12,
+          }}
+        >
+          <p style={{ fontSize: 12, color: "var(--ink-3)" }}>
+            {t("dashboard_net_balance")}
+          </p>
+          <p
+            style={{
+              fontSize: 18,
+              fontWeight: 600,
+              color: totals.net >= 0 ? "var(--sage)" : "var(--tang)",
+            }}
+          >
+            {totals.net >= 0 ? "+" : ""}
+            {formatAmount(totals.net)} {currencySymbol}
+          </p>
+        </div>
+        <BreakdownRow
+          color="var(--sage)"
+          label={t("dashboard_income")}
+          value={`${formatAmount(totals.income)} ${currencySymbol}`}
+          valueColor="var(--sage)"
+        />
+        <BreakdownRow
+          color="var(--tang)"
+          label={t("dashboard_expenses")}
+          value={`${formatAmount(totals.expense)} ${currencySymbol}`}
+          valueColor="var(--tang)"
+        />
+        <BreakdownRow
+          color="var(--lavi)"
+          label={t("dashboard_invested")}
+          value={`${formatAmount(totals.invested)} ${currencySymbol}`}
+          last
+        />
       </div>
 
       {members.length > 0 && (
@@ -483,20 +497,20 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
   );
 }
 
-function StatCard({ label, value, color }) {
+function BreakdownRow({ color, label, value, valueColor = "var(--ink)", last = false }) {
   return (
     <div
       style={{
-        background: "var(--bg-card)",
-        borderRadius: "var(--radius-md)",
-        border: "0.5px solid var(--rule)",
-        padding: "10px 8px",
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        padding: "7px 0",
+        borderBottom: last ? "none" : "0.5px solid var(--rule)",
       }}
     >
-      <p style={{ fontSize: 10, color: "var(--ink-3)", marginBottom: 2 }}>
-        {label}
-      </p>
-      <p style={{ fontSize: 14, fontWeight: 500, color }}>{value}</p>
+      <span style={{ width: 9, height: 9, borderRadius: "50%", background: color, flexShrink: 0 }} />
+      <span style={{ fontSize: 13, color: "var(--ink-2)", flex: 1 }}>{label}</span>
+      <span style={{ fontSize: 13, fontWeight: 600, color: valueColor }}>{value}</span>
     </div>
   );
 }
