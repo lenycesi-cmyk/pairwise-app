@@ -47,7 +47,7 @@
     <ul>
       <li><strong>Données d'identification :</strong> adresse e-mail, prénom (fournis lors de l'inscription).</li>
       <li><strong>Données financières :</strong> transactions, actifs, budgets, revenus et dépenses que vous saisissez vous-même.</li>
-      <li><strong>Connexion bancaire (optionnelle) :</strong> via Plaid, nous stockons un jeton d'accès chiffré côté serveur pour lire vos soldes. Nous ne stockons jamais vos identifiants bancaires.</li>
+      <li><strong>Connexion bancaire (optionnelle) :</strong> via Plaid, nous stockons un jeton d'accès chiffré côté serveur pour lire vos soldes. Vos identifiants bancaires (nom d'utilisateur, mot de passe) sont saisis exclusivement dans l'interface sécurisée de Plaid et ne transitent à aucun moment par nos serveurs — il nous est techniquement impossible de les intercepter ou de les stocker.</li>
       <li><strong>Données d'utilisation :</strong> journaux d'erreurs techniques (Firebase Crashlytics) à des fins de débogage.</li>
     </ul>
 
@@ -106,7 +106,7 @@
     <ul>
       <li><strong>Identity data:</strong> email address and first name (provided at registration).</li>
       <li><strong>Financial data:</strong> transactions, assets, budgets, income, and expenses you enter yourself.</li>
-      <li><strong>Bank connection (optional):</strong> via Plaid, we store an encrypted access token server-side to read your balances. We never store your banking credentials.</li>
+      <li><strong>Bank connection (optional):</strong> via Plaid, we store an encrypted access token server-side to read your balances. Your banking credentials (username, password) are entered exclusively within Plaid's secure interface and never pass through our servers — it is technically impossible for us to intercept or store them.</li>
       <li><strong>Usage data:</strong> technical error logs (Firebase) for debugging purposes.</li>
     </ul>
 
