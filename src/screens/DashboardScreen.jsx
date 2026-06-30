@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useCallback } from "react";
+import { useState, useMemo, useRef } from "react";
 import {
   DndContext,
   closestCenter,
@@ -19,6 +19,7 @@ import { useExchangeRates } from "../hooks/useExchangeRates";
 import { useDebtCalculation } from "../hooks/useDebtCalculation";
 import { useBudgetProgress } from "../hooks/useBudgetProgress";
 import { useDashboardPrefs } from "../hooks/useDashboardPrefs";
+import { useNetWorth } from "../hooks/useNetWorth";
 import CategoryRow from "../components/CategoryRow";
 import DebtSummaryCard from "../components/DebtSummaryCard";
 import Avatar from "../components/Avatar";
@@ -204,16 +205,10 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
 
   const bankAccounts = useMemo(() => assets.filter((a) => a.typeId === "account"), [assets]);
   const availableSavings = useMemo(
-    () => bankAccounts.reduce((sum, a) => sum + convert(a.value, a.currency, displayCurrency), 0),
+    () => bankAccounts.reduce((sum, a) => sum + convert(a.value ?? 0, a.currency, displayCurrency), 0),
     [bankAccounts, convert, displayCurrency]
   );
-  const netWorth = useMemo(
-    () => assets.reduce((sum, a) => {
-      const val = convert(a.value, a.currency, displayCurrency);
-      return sum + (a.isLiability ? -val : val);
-    }, 0),
-    [assets, convert, displayCurrency]
-  );
+  const { netWorth, netWorthByMember } = useNetWorth(displayCurrency);
 
   function formatAmount(n) {
     return Math.round(n).toLocaleString("fr-FR");
@@ -429,12 +424,27 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
           <div>
             <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>{t("widget_net_worth_total")}</p>
             <div style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "1rem 1.25rem" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: members.length > 0 ? 12 : 0 }}>
                 <span style={{ fontSize: 12, color: "var(--ink-3)" }}>{t("wealth_net_worth")}</span>
                 <span style={{ fontSize: 18, fontWeight: 700, color: netWorth >= 0 ? "var(--sage)" : "var(--tang)" }}>
                   {netWorth >= 0 ? "+" : ""}{formatAmount(netWorth)} {currencySymbol}
                 </span>
               </div>
+              {members.length > 0 && (
+                <div style={{ borderTop: "0.5px solid var(--rule)", paddingTop: 10, display: "flex", gap: 12 }}>
+                  {members.map((m) => (
+                    <div key={m.uid} style={{ flex: 1 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 3 }}>
+                        <Avatar member={m} colorMap={memberColorMap} size={16} />
+                        <span style={{ fontSize: 11, color: "var(--ink-2)" }}>{m.name}</span>
+                      </div>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: (netWorthByMember[m.uid] || 0) >= 0 ? "var(--sage)" : "var(--tang)" }}>
+                        {formatAmount(netWorthByMember[m.uid] || 0)} {currencySymbol}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         );
