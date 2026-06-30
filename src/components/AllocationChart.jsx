@@ -1,5 +1,6 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { ASSET_TYPES } from "../data/assetTypes";
+import { useFinance } from "../context/FinanceContext";
 
 const COLOR_HEX = {
   tang: "#FF6B35",
@@ -13,9 +14,10 @@ const COLOR_HEX = {
 };
 
 export default function AllocationChart({ totalsByType, totalAssets }) {
+  const { language } = useFinance();
   const data = ASSET_TYPES.filter((t) => !t.isLiability && (totalsByType[t.id] || 0) > 0).map(
     (t) => ({
-      name: t.name,
+      name: language === "en" && t.nameEn ? t.nameEn : t.name,
       value: totalsByType[t.id],
       pct: totalAssets > 0 ? ((totalsByType[t.id] / totalAssets) * 100).toFixed(1) : 0,
       color: COLOR_HEX[t.color] || "#999",

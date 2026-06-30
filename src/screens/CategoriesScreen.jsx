@@ -4,9 +4,11 @@ import IconPicker from "../components/IconPicker";
 import { AVATAR_COLOR_PALETTE } from "../utils/memberColors";
 import SortableList from "../components/SortableList";
 import { useTranslation } from "../hooks/useTranslation";
+import { useCategoryName } from "../hooks/useCategoryName";
 
 export default function CategoriesScreen() {
   const t = useTranslation();
+  const { catName, subName: tSubName } = useCategoryName();
   const { categories, updateCategories, assets, incomeAccountLinks, setIncomeAccountLinks } = useFinance();
   const [expanded, setExpanded] = useState(null);
   const [showIncomeLinks, setShowIncomeLinks] = useState(false);
@@ -231,7 +233,7 @@ export default function CategoriesScreen() {
               }}
             >
               <i className={`ti ${cat.icon}`} style={{ fontSize: 18 }} aria-hidden="true" />
-              <p style={{ fontSize: 14, fontWeight: 500, flex: 1 }}>{cat.name}</p>
+              <p style={{ fontSize: 14, fontWeight: 500, flex: 1 }}>{catName(cat)}</p>
               <i
                 className="ti ti-trash"
                 style={{ fontSize: 14, color: "var(--ink-3)", marginRight: 6 }}
@@ -262,7 +264,7 @@ export default function CategoriesScreen() {
                         alignItems: "center",
                       }}
                     >
-                      <p style={{ fontSize: 13, flex: 1 }}>{item.id}</p>
+                      <p style={{ fontSize: 13, flex: 1 }}>{tSubName(item.id, cat.id)}</p>
                       <i
                         className="ti ti-trash"
                         style={{ fontSize: 13, color: "var(--ink-3)", cursor: "pointer" }}
@@ -355,7 +357,7 @@ export default function CategoriesScreen() {
                       padding: "6px 0",
                     }}
                   >
-                    <span style={{ fontSize: 13, flex: 1 }}>{sub}</span>
+                    <span style={{ fontSize: 13, flex: 1 }}>{tSubName(sub, "income")}</span>
                     <select
                       value={incomeAccountLinks[sub] || ""}
                       onChange={(e) => setLink(sub, e.target.value)}

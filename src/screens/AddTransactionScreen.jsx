@@ -6,6 +6,7 @@ import { uploadPhoto } from "../utils/photoUpload";
 import IconPicker from "../components/IconPicker";
 import { AVATAR_COLOR_PALETTE } from "../utils/memberColors";
 import { useTranslation } from "../hooks/useTranslation";
+import { useCategoryName } from "../hooks/useCategoryName";
 import AdvancedSplitSelector from "../components/AdvancedSplitSelector";
 
 function todayISO() {
@@ -23,6 +24,7 @@ function toDateTimeLocal(isoString) {
 
 export default function AddTransactionScreen({ onClose, editingTx }) {
   const t = useTranslation();
+  const { catName, subName: tSubName } = useCategoryName();
   const {
     categories,
     members,
@@ -404,7 +406,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
                         textOverflow: "ellipsis",
                       }}
                     >
-                      {cat.name}
+                      {catName(cat)}
                     </span>
                   </div>
                 ))}
@@ -504,7 +506,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
               >
                 <option value="" disabled>Choisir...</option>
                 {selectedCategory.subcategories.map((s) => (
-                  <option key={s} value={s}>{s}</option>
+                  <option key={s} value={s}>{tSubName(s, selectedCategory.id)}</option>
                 ))}
               </select>
 

@@ -1,4 +1,4 @@
-const PRICE_CACHE_PREFIX = "pairwise_asset_price_";
+const PRICE_CACHE_PREFIX = "pairwise_asset_price_v2_";
 const PRICE_CACHE_DURATION = 1000 * 60 * 30; // 30 min
 
 /**
@@ -14,7 +14,7 @@ export async function getCryptoPrice(coinId, vsCurrency = "eur") {
     if (cached) {
       const parsed = JSON.parse(cached);
       if (Date.now() - parsed.timestamp < PRICE_CACHE_DURATION) {
-        return { price: parsed.price, success: true };
+        return { price: parsed.price, change24h: parsed.change24h ?? null, success: true };
       }
     }
   } catch (e) {
@@ -23,23 +23,24 @@ export async function getCryptoPrice(coinId, vsCurrency = "eur") {
 
   try {
     const res = await fetch(
-      `https://api.coingecko.com/api/v3/simple/price?ids=${coinId}&vs_currencies=${vsCurrency}`
+      `https://api.coingecko.com/api/v3/simple/price?ids=${coinId}&vs_currencies=${vsCurrency}&include_24hr_change=true`
     );
     if (!res.ok) throw new Error("crypto_fetch_failed");
     const json = await res.json();
     const price = json[coinId]?.[vsCurrency];
+    const change24h = json[coinId]?.[`${vsCurrency}_24h_change`] ?? null;
     if (price === undefined) throw new Error("crypto_price_not_found");
 
     try {
-      localStorage.setItem(cacheKey, JSON.stringify({ price, timestamp: Date.now() }));
+      localStorage.setItem(cacheKey, JSON.stringify({ price, change24h, timestamp: Date.now() }));
     } catch (e) {
       // pas bloquant
     }
 
-    return { price, success: true };
+    return { price, change24h, success: true };
   } catch (err) {
     console.warn(`Impossible de récupérer le prix de ${coinId}:`, err.message);
-    return { price: null, success: false };
+    return { price: null, change24h: null, success: false };
   }
 }
 

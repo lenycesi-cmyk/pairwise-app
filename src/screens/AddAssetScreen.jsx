@@ -4,10 +4,12 @@ import { ASSET_TYPES } from "../data/assetTypes";
 import { CURRENCIES } from "../data/categories";
 import { searchCrypto, searchStocks } from "../utils/assetSearch";
 import { useTranslation } from "../hooks/useTranslation";
+import { useCategoryName } from "../hooks/useCategoryName";
 import AdvancedSplitSelector from "../components/AdvancedSplitSelector";
 
 export default function AddAssetScreen({ onClose, editingAsset }) {
   const t = useTranslation();
+  const { language } = useFinance();
   const { addAsset, updateAsset, removeAsset, defaultCurrency, members } = useFinance();
   const isEditing = !!editingAsset;
 
@@ -158,11 +160,13 @@ export default function AddAssetScreen({ onClose, editingAsset }) {
                 }}
               >
                 <i className={`ti ${t.icon}`} style={{ fontSize: 13 }} aria-hidden="true" />
-                {t.name}
+                {language === "en" && t.nameEn ? t.nameEn : t.name}
               </button>
             ))}
           </div>
-          <p style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 8 }}>{selectedType?.description}</p>
+          <p style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 8 }}>
+            {language === "en" && selectedType?.descriptionEn ? selectedType.descriptionEn : selectedType?.description}
+          </p>
         </div>
 
         {/* Nom */}

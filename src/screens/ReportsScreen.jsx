@@ -65,7 +65,7 @@ function shiftAnchor(periodType, anchor, delta) {
 
 export default function ReportsScreen() {
   const t = useTranslation();
-  const { transactions, categories, members, defaultCurrency, dashboardDisplayCurrency } = useFinance();
+  const { transactions, categories, members, defaultCurrency, dashboardDisplayCurrency, netWorthHistory } = useFinance();
   const displayCurrency = dashboardDisplayCurrency || defaultCurrency;
   const { convert, loading: ratesLoading } = useExchangeRates(displayCurrency);
   const memberColorMap = useMemo(() => buildMemberColorMap(members), [members]);
@@ -111,12 +111,32 @@ export default function ReportsScreen() {
     () => periodTx.filter((tx) => tx.type === "expense").reduce((s, tx) => s + toBase(tx), 0),
     [periodTx, displayCurrency, convert]
   );
+  const totalIncome = useMemo(
+    () => periodTx.filter((tx) => tx.type === "income").reduce((s, tx) => s + toBase(tx), 0),
+    [periodTx, displayCurrency, convert]
+  );
   const prevTotalExpense = useMemo(
     () => prevPeriodTx.filter((tx) => tx.type === "expense").reduce((s, tx) => s + toBase(tx), 0),
     [prevPeriodTx, displayCurrency, convert]
   );
+  const prevTotalIncome = useMemo(
+    () => prevPeriodTx.filter((tx) => tx.type === "income").reduce((s, tx) => s + toBase(tx), 0),
+    [prevPeriodTx, displayCurrency, convert]
+  );
   const expenseDiffPct =
     prevTotalExpense > 0 ? ((totalExpense - prevTotalExpense) / prevTotalExpense) * 100 : null;
+  const incomeDiffPct =
+    prevTotalIncome > 0 ? ((totalIncome - prevTotalIncome) / prevTotalIncome) * 100 : null;
+
+  const netWorthChartData = useMemo(() => {
+    return [...netWorthHistory]
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .slice(-12)
+      .map((h) => ({
+        label: new Date(h.date).toLocaleDateString("fr-FR", { month: "short" }),
+        value: convert(h.netWorth ?? 0, defaultCurrency, displayCurrency),
+      }));
+  }, [netWorthHistory, convert, displayCurrency, defaultCurrency]);
 
   const categoryTotals = useMemo(() => {
     const result = {};
@@ -351,6 +371,52 @@ export default function ReportsScreen() {
           </p>
         )}
       </div>
+
+      {/* This period vs previous period comparison */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 20 }}>
+        {[
+          { label: t("dashboard_income"), current: totalIncome, prev: prevTotalIncome, diff: incomeDiffPct, color: "var(--sage)" },
+          { label: t("dashboard_expenses"), current: totalExpense, prev: prevTotalExpense, diff: expenseDiffPct, color: "var(--tang)", invert: true },
+        ].map(({ label, current, prev, diff, color, invert }) => (
+          <div key={label} style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "12px 14px" }}>
+            <p style={{ fontSize: 11, color: "var(--ink-3)", marginBottom: 4 }}>{label}</p>
+            <p style={{ fontSize: 16, fontWeight: 500, color }}>{formatAmount(current)} {currencySymbol}</p>
+            {diff !== null && (
+              <p style={{ fontSize: 11, marginTop: 3, color: (invert ? diff <= 0 : diff >= 0) ? "var(--sage)" : "var(--tang)" }}>
+                {diff >= 0 ? "+" : ""}{diff.toFixed(1)}% <span style={{ color: "var(--ink-3)" }}>{t("reports_vs_previous")}</span>
+              </p>
+            )}
+            {prev > 0 && (
+              <p style={{ fontSize: 10, color: "var(--ink-3)", marginTop: 2 }}>
+                {t("reports_previous")}: {formatAmount(prev)} {currencySymbol}
+              </p>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Net worth evolution */}
+      {netWorthChartData.length >= 2 && (
+        <>
+          <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>{t("reports_net_worth_evolution")}</p>
+          <div style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "1rem 1.25rem", marginBottom: 20 }}>
+            <div style={{ width: "100%", height: 140 }}>
+              <ResponsiveContainer>
+                <BarChart data={netWorthChartData} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
+                  <XAxis dataKey="label" tick={{ fontSize: 10, fill: "var(--ink-3)" }} axisLine={{ stroke: "var(--rule)" }} tickLine={false} />
+                  <YAxis hide domain={["auto", "auto"]} />
+                  <Tooltip content={({ active, payload, label }) => active && payload?.length ? (
+                    <div style={{ background: "var(--ink)", color: "var(--bg)", padding: "6px 10px", borderRadius: "var(--radius-sm)", fontSize: 12 }}>
+                      {label}: {formatAmount(payload[0].value)} {currencySymbol}
+                    </div>
+                  ) : null} />
+                  <Bar dataKey="value" fill="var(--lavi)" radius={[3, 3, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </>
+      )}
 
       <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>{t("reports_evolution")}</p>
       <div

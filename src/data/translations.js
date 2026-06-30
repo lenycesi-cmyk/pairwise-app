@@ -105,6 +105,12 @@ export const TRANSLATIONS = {
     wealth_calculator_cta: "Et si j'avais investi mes dépenses superflues ?",
     wealth_no_assets: "Aucun actif enregistré.",
     wealth_add_first_asset: "Ajoutez votre premier compte, investissement ou bien immobilier.",
+    wealth_period_1m: "1 mois",
+    wealth_period_3m: "3 mois",
+    wealth_period_6m: "6 mois",
+    wealth_period_1y: "1 an",
+    wealth_period_all: "Tout",
+    wealth_period_over: "sur",
 
     // Advanced split
     split_amount_unit: "Montant",
@@ -212,6 +218,8 @@ export const TRANSLATIONS = {
     reports_no_expenses: "Aucune dépense sur cette période",
     reports_member_comparison: "Comparaison entre membres",
     reports_vs_previous: "vs période précédente",
+    reports_previous: "Période précédente",
+    reports_net_worth_evolution: "Évolution du patrimoine net",
 
     // Budget
     budget_title: "Budget",
@@ -360,6 +368,12 @@ export const TRANSLATIONS = {
     wealth_calculator_cta: "What if I had invested my unnecessary spending?",
     wealth_no_assets: "No assets recorded yet.",
     wealth_add_first_asset: "Add your first account, investment or property.",
+    wealth_period_1m: "1 month",
+    wealth_period_3m: "3 months",
+    wealth_period_6m: "6 months",
+    wealth_period_1y: "1 year",
+    wealth_period_all: "All",
+    wealth_period_over: "over",
 
     // Advanced split
     split_amount_unit: "Amount",
@@ -467,6 +481,8 @@ export const TRANSLATIONS = {
     reports_no_expenses: "No expenses for this period",
     reports_member_comparison: "Member comparison",
     reports_vs_previous: "vs previous period",
+    reports_previous: "Previous period",
+    reports_net_worth_evolution: "Net Worth Evolution",
 
     // Budget
     budget_title: "Budget",
