@@ -195,6 +195,21 @@ async function deployFunction(token, name, storageSource, isScheduled = false) {
   }
 }
 
+async function allowUnauthenticated(token, name) {
+  // Firebase callable functions need allUsers invoker access (auth is handled inside the function)
+  const url = `https://run.googleapis.com/v2/projects/${PROJECT_ID}/locations/${REGION}/services/${name.toLowerCase()}:setIamPolicy`;
+  try {
+    await api(token, "POST", url, {
+      policy: {
+        bindings: [{ role: "roles/run.invoker", members: ["allUsers"] }],
+      },
+    });
+  } catch (e) {
+    // Non-fatal: log but continue
+    console.warn(`   ⚠ IAM allUsers: ${e.message}`);
+  }
+}
+
 async function waitForOperation(token, operationName) {
   for (let i = 0; i < 30; i++) {
     await new Promise((r) => setTimeout(r, 10000)); // wait 10s
@@ -231,6 +246,7 @@ async function main() {
     if (op.name) {
       await waitForOperation(token, op.name.replace("projects/", "projects/"));
     }
+    await allowUnauthenticated(token, name);
     console.log(" ✓");
   }
 
