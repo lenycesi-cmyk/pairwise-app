@@ -1,4 +1,4 @@
-const PRICE_CACHE_PREFIX = "pairwise_asset_price_v2_";
+const PRICE_CACHE_PREFIX = "pairwise_asset_price_v3_";
 const PRICE_CACHE_DURATION = 1000 * 60 * 30; // 30 min
 
 /**
@@ -58,7 +58,7 @@ export async function getStockPrice(symbol, apiKey = "") {
     if (cached) {
       const parsed = JSON.parse(cached);
       if (Date.now() - parsed.timestamp < PRICE_CACHE_DURATION) {
-        return { price: parsed.price, success: true };
+        return { price: parsed.price, change24h: parsed.change24h ?? null, success: true };
       }
     }
   } catch (e) {
@@ -67,24 +67,28 @@ export async function getStockPrice(symbol, apiKey = "") {
 
   try {
     const keyParam = apiKey ? `&apikey=${apiKey}` : "&apikey=demo";
+    // /quote (vs /price) renvoie aussi `percent_change` = variation du jour vs clôture
+    // précédente, l'équivalent boursier du "24h" affiché pour les cryptos.
     const res = await fetch(
-      `https://api.twelvedata.com/price?symbol=${symbol}${keyParam}`
+      `https://api.twelvedata.com/quote?symbol=${symbol}${keyParam}`
     );
     if (!res.ok) throw new Error("stock_fetch_failed");
     const json = await res.json();
-    const price = parseFloat(json.price);
+    const price = parseFloat(json.close);
     if (isNaN(price)) throw new Error("stock_price_invalid");
+    const parsedChange = parseFloat(json.percent_change);
+    const change24h = Number.isFinite(parsedChange) ? parsedChange : null;
 
     try {
-      localStorage.setItem(cacheKey, JSON.stringify({ price, timestamp: Date.now() }));
+      localStorage.setItem(cacheKey, JSON.stringify({ price, change24h, timestamp: Date.now() }));
     } catch (e) {
       // pas bloquant
     }
 
-    return { price, success: true };
+    return { price, change24h, success: true };
   } catch (err) {
     console.warn(`Impossible de récupérer le prix de ${symbol}:`, err.message);
-    return { price: null, success: false };
+    return { price: null, change24h: null, success: false };
   }
 }
 
