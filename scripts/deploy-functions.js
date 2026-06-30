@@ -17,15 +17,13 @@
  *   (ou via console.cloud.google.com > Secret Manager)
  */
 import { createSign } from "node:crypto";
-import { readFileSync, createReadStream, readdirSync, statSync, createWriteStream } from "node:fs";
+import { readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
-import { createGzip } from "node:zlib";
-import { pipeline } from "node:stream/promises";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 
 const require = createRequire(import.meta.url);
-const archiver = require("archiver");
+const AdmZip = require("adm-zip");
 
 const PROJECT_ID = "pairwise-12df2";
 const REGION = "europe-west1";
@@ -94,21 +92,34 @@ async function api(token, method, url, body) {
   return text ? JSON.parse(text) : null;
 }
 
+function shouldIgnore(relPath) {
+  return (
+    relPath.startsWith("node_modules/") ||
+    relPath === ".env" ||
+    relPath === ".env.example" ||
+    relPath.endsWith(".zip")
+  );
+}
+
+function addDirToZip(zip, dir, base) {
+  for (const entry of readdirSync(dir)) {
+    const full = join(dir, entry);
+    const rel = base ? `${base}/${entry}` : entry;
+    if (shouldIgnore(rel)) continue;
+    if (statSync(full).isDirectory()) {
+      addDirToZip(zip, full, rel);
+    } else {
+      zip.addLocalFile(full, base || "");
+    }
+  }
+}
+
 async function zipFunctions() {
   const zipPath = join(tmpdir(), "pairwise-functions.zip");
-  return new Promise((resolve, reject) => {
-    const output = createWriteStream(zipPath);
-    const archive = archiver("zip", { zlib: { level: 9 } });
-    output.on("close", () => resolve(zipPath));
-    archive.on("error", reject);
-    archive.pipe(output);
-    // Include all files except node_modules and .env
-    archive.glob("**", {
-      cwd: FUNCTIONS_DIR,
-      ignore: ["node_modules/**", ".env", ".env.example", "*.zip"],
-    });
-    archive.finalize();
-  });
+  const zip = new AdmZip();
+  addDirToZip(zip, FUNCTIONS_DIR, "");
+  zip.writeZip(zipPath);
+  return zipPath;
 }
 
 async function uploadSource(token, zipPath) {
