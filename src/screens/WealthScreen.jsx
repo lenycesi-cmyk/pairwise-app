@@ -84,7 +84,11 @@ export default function WealthScreen({ onOpenCalculator }) {
 
   function getAssetValue(asset) {
     if (livePrices[asset.id] !== undefined) return livePrices[asset.id];
-    return convert(asset.value, asset.currency || displayCurrency, displayCurrency);
+    // API-priced assets (stocks/crypto) store no `value` — only quantity + apiId.
+    // If the live price fetch failed (e.g. Twelve Data's demo key only prices AAPL),
+    // we have nothing to convert, so guard against NaN leaking into per-asset display and totals.
+    const converted = convert(asset.value, asset.currency || displayCurrency, displayCurrency);
+    return Number.isFinite(converted) ? converted : 0;
   }
 
   function getMemberShare(asset, memberUid) {
@@ -370,6 +374,9 @@ export default function WealthScreen({ onOpenCalculator }) {
             >
               {typeAssets.map((asset, i) => {
                 const val = getAssetValue(asset);
+                // API-priced asset with no live price and no stored value: price couldn't be fetched
+                const priceUnavailable =
+                  !!asset.apiId && livePrices[asset.id] === undefined && !Number.isFinite(asset.value);
                 const ownerLabel =
                   asset.ownership === "shared"
                     ? "Partagé"
@@ -408,9 +415,15 @@ export default function WealthScreen({ onOpenCalculator }) {
                         </p>
                       </div>
                       <div style={{ textAlign: "right" }}>
-                        <p style={{ fontSize: 14, fontWeight: 500, color: type.isLiability ? "var(--red)" : "var(--ink)" }}>
-                          {type.isLiability ? "−" : ""}{formatAmount(val)} {currencySymbol}
-                        </p>
+                        {priceUnavailable ? (
+                          <p style={{ fontSize: 13, fontWeight: 500, color: "var(--ink-3)" }} title={t("wealth_price_unavailable")}>
+                            {t("wealth_price_unavailable_short")}
+                          </p>
+                        ) : (
+                          <p style={{ fontSize: 14, fontWeight: 500, color: type.isLiability ? "var(--red)" : "var(--ink)" }}>
+                            {type.isLiability ? "−" : ""}{formatAmount(val)} {currencySymbol}
+                          </p>
+                        )}
                         {liveChanges[asset.id] !== undefined && (
                           <p style={{ fontSize: 11, color: liveChanges[asset.id] >= 0 ? "var(--sage)" : "var(--tang)", marginTop: 1 }}>
                             {liveChanges[asset.id] >= 0 ? "+" : ""}{liveChanges[asset.id].toFixed(2)}%
