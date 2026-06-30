@@ -21,7 +21,7 @@ import { readFileSync, createReadStream, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { createGzip } from "node:zlib";
 import { pipeline } from "node:stream/promises";
-import archiver from "archiver";
+import { create as archiverCreate } from "archiver";
 import { createWriteStream } from "node:fs";
 import { tmpdir } from "node:os";
 
@@ -96,7 +96,7 @@ async function zipFunctions() {
   const zipPath = join(tmpdir(), "pairwise-functions.zip");
   return new Promise((resolve, reject) => {
     const output = createWriteStream(zipPath);
-    const archive = archiver("zip", { zlib: { level: 9 } });
+    const archive = archiverCreate("zip", { zlib: { level: 9 } });
     output.on("close", () => resolve(zipPath));
     archive.on("error", reject);
     archive.pipe(output);
