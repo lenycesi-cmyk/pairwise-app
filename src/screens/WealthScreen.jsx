@@ -5,6 +5,7 @@ import { ASSET_TYPES } from "../data/assetTypes";
 import { getCryptoPrice, getStockPrice } from "../utils/assetPrices";
 import { CURRENCIES } from "../data/categories";
 import AddAssetScreen from "./AddAssetScreen";
+import ConnectBankButton from "../components/ConnectBankButton";
 import NetWorthChart from "../components/NetWorthChart";
 import AllocationChart from "../components/AllocationChart";
 import Avatar from "../components/Avatar";
@@ -370,39 +371,50 @@ export default function WealthScreen({ onOpenCalculator }) {
                 return (
                   <div
                     key={asset.id}
-                    onClick={() => setEditingAsset(asset)}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 10,
-                      padding: "12px 14px",
-                      borderBottom: i === typeAssets.length - 1 ? "none" : "0.5px solid var(--rule)",
-                      cursor: "pointer",
-                    }}
+                    style={{ borderBottom: i === typeAssets.length - 1 ? "none" : "0.5px solid var(--rule)" }}
                   >
                     <div
+                      onClick={() => setEditingAsset(asset)}
                       style={{
-                        width: 36, height: 36, borderRadius: "var(--radius-md)",
-                        background: colors.bg, display: "flex",
-                        alignItems: "center", justifyContent: "center", flexShrink: 0,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 10,
+                        padding: "12px 14px",
+                        cursor: "pointer",
                       }}
                     >
-                      <i className={`ti ${type.icon}`} style={{ fontSize: 16, color: colors.text }} aria-hidden="true" />
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontSize: 14 }}>{asset.name}</p>
-                      <p style={{ fontSize: 11, color: "var(--ink-3)" }}>
-                        {asset.apiId && `${asset.quantity} ${asset.apiId.toUpperCase()} · `}
-                        {ownerLabel}
-                        {asset.ownership === "shared" && ` (${asset.sharePct ?? 50}/${100 - (asset.sharePct ?? 50)})`}
+                      <div
+                        style={{
+                          width: 36, height: 36, borderRadius: "var(--radius-md)",
+                          background: colors.bg, display: "flex",
+                          alignItems: "center", justifyContent: "center", flexShrink: 0,
+                        }}
+                      >
+                        <i className={`ti ${type.icon}`} style={{ fontSize: 16, color: colors.text }} aria-hidden="true" />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: 14 }}>{asset.name}</p>
+                        <p style={{ fontSize: 11, color: "var(--ink-3)" }}>
+                          {asset.apiId && `${asset.quantity} ${asset.apiId.toUpperCase()} · `}
+                          {ownerLabel}
+                          {asset.ownership === "shared" && ` (${asset.sharePct ?? 50}/${100 - (asset.sharePct ?? 50)})`}
+                        </p>
+                      </div>
+                      <p style={{ fontSize: 14, fontWeight: 500, color: type.isLiability ? "var(--red)" : "var(--ink)" }}>
+                        {type.isLiability ? "−" : ""}{formatAmount(val)} {currencySymbol}
                       </p>
                     </div>
-                    <p style={{ fontSize: 14, fontWeight: 500, color: type.isLiability ? "var(--red)" : "var(--ink)" }}>
-                      {type.isLiability ? "−" : ""}{formatAmount(val)} {currencySymbol}
-                    </p>
+                    {type.id === "account" && (
+                      <div style={{ paddingLeft: 46, paddingRight: 14, paddingBottom: 10 }}>
+                        <ConnectBankButton
+                          asset={asset}
+                          onSuccess={() => setEditingAsset(null)}
+                        />
+                      </div>
+                    )}
                   </div>
                 );
-              })}
+            })}
             </div>
           </div>
         );
