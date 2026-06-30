@@ -1,4 +1,4 @@
-const PRICE_CACHE_PREFIX = "pairwise_asset_price_";
+const PRICE_CACHE_PREFIX = "pairwise_asset_price_v2_";
 const PRICE_CACHE_DURATION = 1000 * 60 * 30; // 30 min
 
 /**

@@ -1,6 +1,17 @@
+// EN names for all built-in categories keyed by id — used when Firestore objects don't carry nameEn
+const CATEGORY_EN = {
+  housing: "Housing", food: "Food & Groceries", transport: "Transport",
+  health: "Health", leisure: "Leisure & Entertainment", subscriptions: "Subscriptions & Media",
+  travel: "Travel", education: "Education & Training", children: "Children",
+  beauty: "Beauty & Wellness", sport: "Sport & Fitness", clothing: "Clothing",
+  pets: "Pets", gifts: "Gifts & Donations", taxes: "Taxes & Duties",
+  banking: "Banking & Insurance", professional: "Professional Expenses",
+  misc: "Misc & Shopping", income: "Income", investment: "Investments", savings: "Savings",
+};
+
 // Returns the localized name of a category or subcategory (falls back to stored name if no translation)
 export function getCategoryName(cat, lang) {
-  if (lang === "en" && cat.nameEn) return cat.nameEn;
+  if (lang === "en") return CATEGORY_EN[cat.id] || cat.nameEn || cat.name;
   return cat.name;
 }
 
