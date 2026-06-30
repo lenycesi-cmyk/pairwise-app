@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Politique de Confidentialité / Privacy Policy — Pairwise</title>
+  <style>
+    :root { --ink: #1a1a2e; --ink-2: #4a4a6a; --bg: #f8f8fc; --rule: #e0e0ee; --sky: #4f7cff; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--ink); line-height: 1.7; }
+    .container { max-width: 780px; margin: 0 auto; padding: 48px 24px 80px; }
+    .logo { font-size: 22px; font-weight: 700; color: var(--sky); margin-bottom: 8px; }
+    .lang-switch { display: flex; gap: 8px; margin-bottom: 40px; }
+    .lang-btn { padding: 6px 16px; border-radius: 20px; border: 1.5px solid var(--sky); background: none; color: var(--sky); font-size: 13px; font-weight: 600; cursor: pointer; transition: all .15s; }
+    .lang-btn.active { background: var(--sky); color: #fff; }
+    section { display: none; }
+    section.active { display: block; }
+    h1 { font-size: 28px; font-weight: 700; margin-bottom: 6px; }
+    .updated { font-size: 13px; color: var(--ink-2); margin-bottom: 36px; }
+    h2 { font-size: 17px; font-weight: 700; margin: 32px 0 10px; color: var(--ink); }
+    p, li { font-size: 15px; color: var(--ink-2); margin-bottom: 10px; }
+    ul { padding-left: 20px; margin-bottom: 10px; }
+    a { color: var(--sky); }
+    hr { border: none; border-top: 1px solid var(--rule); margin: 40px 0; }
+    .back { display: inline-block; margin-bottom: 32px; font-size: 14px; color: var(--sky); text-decoration: none; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="logo">Pairwise</div>
+  <a class="back" href="javascript:history.back()">← Retour / Back</a>
+
+  <div class="lang-switch">
+    <button class="lang-btn active" onclick="setLang('fr')">Français</button>
+    <button class="lang-btn" onclick="setLang('en')">English</button>
+  </div>
+
+  <!-- FRENCH -->
+  <section id="fr" class="active">
+    <h1>Politique de Confidentialité</h1>
+    <p class="updated">Dernière mise à jour : 30 juin 2026</p>
+
+    <h2>1. Introduction</h2>
+    <p>Pairwise (« nous », « notre ») est une application de gestion financière personnelle destinée aux couples. La présente politique explique comment nous collectons, utilisons et protégeons vos données personnelles, conformément au Règlement Général sur la Protection des Données (RGPD), à la Loi sur la Protection des Renseignements Personnels et les Documents Électroniques (LPRPDE/PIPEDA) du Canada, ainsi qu'au California Consumer Privacy Act (CCPA).</p>
+
+    <h2>2. Données collectées</h2>
+    <ul>
+      <li><strong>Données d'identification :</strong> adresse e-mail, prénom (fournis lors de l'inscription).</li>
+      <li><strong>Données financières :</strong> transactions, actifs, budgets, revenus et dépenses que vous saisissez vous-même.</li>
+      <li><strong>Connexion bancaire (optionnelle) :</strong> via Plaid, nous stockons un jeton d'accès chiffré côté serveur pour lire vos soldes. Nous ne stockons jamais vos identifiants bancaires.</li>
+      <li><strong>Données d'utilisation :</strong> journaux d'erreurs techniques (Firebase Crashlytics) à des fins de débogage.</li>
+    </ul>
+
+    <h2>3. Base légale du traitement (RGPD)</h2>
+    <ul>
+      <li><strong>Exécution du contrat</strong> : traitement nécessaire à la fourniture du service.</li>
+      <li><strong>Consentement</strong> : connexion bancaire optionnelle via Plaid — révocable à tout moment depuis l'application.</li>
+      <li><strong>Intérêt légitime</strong> : sécurité et débogage technique.</li>
+    </ul>
+
+    <h2>4. Utilisation des données</h2>
+    <p>Vos données sont utilisées exclusivement pour :</p>
+    <ul>
+      <li>Afficher et synchroniser vos informations financières dans l'application.</li>
+      <li>Calculer vos budgets, soldes et rapports personnalisés.</li>
+      <li>Synchroniser les soldes de vos comptes bancaires liés.</li>
+    </ul>
+    <p>Nous ne vendons, ne louons ni ne partageons vos données personnelles avec des tiers à des fins commerciales ou publicitaires.</p>
+
+    <h2>5. Partage des données</h2>
+    <ul>
+      <li><strong>Firebase (Google LLC)</strong> : hébergement, authentification et base de données. Données hébergées dans l'Union Européenne (europe-west1). <a href="https://firebase.google.com/support/privacy" target="_blank">Politique Firebase</a>.</li>
+      <li><strong>Plaid Inc.</strong> : agrégateur bancaire, uniquement si vous connectez un compte. <a href="https://plaid.com/legal/privacy-policy" target="_blank">Politique Plaid</a>.</li>
+    </ul>
+
+    <h2>6. Conservation des données</h2>
+    <p>Vos données sont conservées tant que votre compte est actif. Vous pouvez demander leur suppression à tout moment en nous contactant.</p>
+
+    <h2>7. Vos droits</h2>
+    <p><strong>Résidents de l'UE (RGPD) :</strong> droit d'accès, de rectification, d'effacement, de portabilité, d'opposition et de limitation du traitement. Droit de déposer une plainte auprès de votre autorité de protection des données locale.</p>
+    <p><strong>Résidents du Canada (PIPEDA) :</strong> droit d'accès et de correction de vos renseignements personnels.</p>
+    <p><strong>Résidents de Californie (CCPA) :</strong> droit de savoir, de supprimer et de ne pas être discriminé. Nous ne vendons pas vos données personnelles.</p>
+
+    <h2>8. Sécurité</h2>
+    <p>Vos données sont chiffrées en transit (TLS) et au repos. Les jetons bancaires sont stockés dans Google Secret Manager avec contrôle d'accès strict. Nous appliquons le principe du moindre privilège.</p>
+
+    <h2>9. Mineurs</h2>
+    <p>Pairwise n'est pas destiné aux personnes de moins de 18 ans. Nous ne collectons pas sciemment de données relatives à des mineurs.</p>
+
+    <h2>10. Modifications</h2>
+    <p>Nous nous réservons le droit de modifier cette politique. En cas de changement substantiel, vous serez notifié dans l'application.</p>
+
+    <h2>11. Contact</h2>
+    <p>Pour toute question ou demande d'exercice de vos droits : <a href="mailto:leny.cesi@gmail.com">leny.cesi@gmail.com</a></p>
+  </section>
+
+  <!-- ENGLISH -->
+  <section id="en">
+    <h1>Privacy Policy</h1>
+    <p class="updated">Last updated: June 30, 2026</p>
+
+    <h2>1. Introduction</h2>
+    <p>Pairwise ("we", "our") is a personal finance management application for couples. This policy explains how we collect, use, and protect your personal data, in compliance with the General Data Protection Regulation (GDPR), Canada's Personal Information Protection and Electronic Documents Act (PIPEDA), and the California Consumer Privacy Act (CCPA).</p>
+
+    <h2>2. Data We Collect</h2>
+    <ul>
+      <li><strong>Identity data:</strong> email address and first name (provided at registration).</li>
+      <li><strong>Financial data:</strong> transactions, assets, budgets, income, and expenses you enter yourself.</li>
+      <li><strong>Bank connection (optional):</strong> via Plaid, we store an encrypted access token server-side to read your balances. We never store your banking credentials.</li>
+      <li><strong>Usage data:</strong> technical error logs (Firebase) for debugging purposes.</li>
+    </ul>
+
+    <h2>3. Legal Basis for Processing (GDPR)</h2>
+    <ul>
+      <li><strong>Contract performance:</strong> processing necessary to provide the service.</li>
+      <li><strong>Consent:</strong> optional bank connection via Plaid — revocable at any time from within the app.</li>
+      <li><strong>Legitimate interest:</strong> security and technical debugging.</li>
+    </ul>
+
+    <h2>4. Use of Data</h2>
+    <p>Your data is used exclusively to:</p>
+    <ul>
+      <li>Display and sync your financial information in the application.</li>
+      <li>Calculate your budgets, balances, and personalized reports.</li>
+      <li>Synchronize balances from your linked bank accounts.</li>
+    </ul>
+    <p>We do not sell, rent, or share your personal data with third parties for commercial or advertising purposes.</p>
+
+    <h2>5. Data Sharing</h2>
+    <ul>
+      <li><strong>Firebase (Google LLC):</strong> hosting, authentication, and database. Data hosted in the European Union (europe-west1). <a href="https://firebase.google.com/support/privacy" target="_blank">Firebase Privacy Policy</a>.</li>
+      <li><strong>Plaid Inc.:</strong> banking aggregator, only if you connect an account. <a href="https://plaid.com/legal/privacy-policy" target="_blank">Plaid Privacy Policy</a>.</li>
+    </ul>
+
+    <h2>6. Data Retention</h2>
+    <p>Your data is retained as long as your account is active. You may request deletion at any time by contacting us.</p>
+
+    <h2>7. Your Rights</h2>
+    <p><strong>EU residents (GDPR):</strong> right of access, rectification, erasure, portability, objection, and restriction of processing. Right to lodge a complaint with your local data protection authority.</p>
+    <p><strong>Canadian residents (PIPEDA):</strong> right to access and correct your personal information.</p>
+    <p><strong>California residents (CCPA):</strong> right to know, delete, and not be discriminated against. We do not sell your personal data.</p>
+
+    <h2>8. Security</h2>
+    <p>Your data is encrypted in transit (TLS) and at rest. Banking tokens are stored in Google Secret Manager with strict access control. We apply the principle of least privilege.</p>
+
+    <h2>9. Minors</h2>
+    <p>Pairwise is not intended for persons under 18 years of age. We do not knowingly collect data from minors.</p>
+
+    <h2>10. Changes</h2>
+    <p>We reserve the right to modify this policy. In the event of a substantial change, you will be notified within the application.</p>
+
+    <h2>11. Contact</h2>
+    <p>For any questions or to exercise your rights: <a href="mailto:leny.cesi@gmail.com">leny.cesi@gmail.com</a></p>
+  </section>
+</div>
+
+<script>
+  function setLang(lang) {
+    document.querySelectorAll("section").forEach(s => s.classList.remove("active"));
+    document.querySelectorAll(".lang-btn").forEach(b => b.classList.remove("active"));
+    document.getElementById(lang).classList.add("active");
+    document.querySelector(`[onclick="setLang('${lang}')"]`).classList.add("active");
+    document.documentElement.lang = lang;
+  }
+  // Auto-detect browser language
+  if (navigator.language.startsWith("fr")) setLang("fr"); else setLang("en");
+</script>
+</body>
+</html>
