@@ -222,6 +222,25 @@ export const TRANSLATIONS = {
     budget_quick_history_hint: "Suggère un montant à partir de votre moyenne de dépense des 3 derniers mois.",
     budget_quick_manual: "Saisie manuelle",
     budget_quick_history_next: "Suivant",
+
+    // Dashboard customization
+    dashboard_customize: "Personnaliser",
+    dashboard_edit_hint: "Glissez pour réorganiser · appuyez pour afficher/masquer",
+    dashboard_done: "Terminer",
+    widget_net_balance: "Solde net",
+    widget_available_savings: "Liquidités disponibles",
+    widget_budget_tracking: "Suivi budget",
+    widget_member_breakdown: "Résumé par membre",
+    widget_spending_by_category: "Dépenses par catégorie",
+    widget_transaction_history: "Transactions récentes",
+    widget_net_worth: "Patrimoine net",
+    widget_debt_tracker: "Suivi des dettes",
+    widget_recurring: "Transactions récurrentes",
+    widget_available_savings_label: "Liquidités en banque",
+    widget_no_bank_accounts: "Aucun compte bancaire dans le Patrimoine",
+    widget_net_worth_total: "Patrimoine total",
+    widget_recurring_upcoming: "Prochaines récurrences",
+    widget_recurring_empty: "Aucune transaction récurrente",
   },
 
   en: {
@@ -447,6 +466,25 @@ export const TRANSLATIONS = {
     budget_quick_history_hint: "Suggests an amount from your average spending over the last 3 months.",
     budget_quick_manual: "Manual entry",
     budget_quick_history_next: "Next",
+
+    // Dashboard customization
+    dashboard_customize: "Customize",
+    dashboard_edit_hint: "Drag to reorder · tap to show/hide",
+    dashboard_done: "Done",
+    widget_net_balance: "Net Balance",
+    widget_available_savings: "Available Savings",
+    widget_budget_tracking: "Budget Tracking",
+    widget_member_breakdown: "Summary by Member",
+    widget_spending_by_category: "Spending by Category",
+    widget_transaction_history: "Recent Transactions",
+    widget_net_worth: "Net Worth",
+    widget_debt_tracker: "Debt Tracker",
+    widget_recurring: "Recurring Transactions",
+    widget_available_savings_label: "Cash in bank accounts",
+    widget_no_bank_accounts: "No bank accounts in Wealth",
+    widget_net_worth_total: "Total net worth",
+    widget_recurring_upcoming: "Upcoming recurring",
+    widget_recurring_empty: "No recurring transactions",
   },
 };
 

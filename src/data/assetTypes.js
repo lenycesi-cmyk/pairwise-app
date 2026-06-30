@@ -1,11 +1,19 @@
 export const ASSET_TYPES = [
   {
-    id: "cash",
-    name: "Liquidités",
-    icon: "ti-cash",
+    id: "account",
+    name: "Compte en banque",
+    icon: "ti-building-bank",
     color: "sage",
     hasApiPrice: false,
     description: "Compte courant, livret A, LDDS...",
+  },
+  {
+    id: "cash",
+    name: "Liquidités",
+    icon: "ti-cash",
+    color: "mint",
+    hasApiPrice: false,
+    description: "Espèces, petite caisse",
   },
   {
     id: "stocks",
