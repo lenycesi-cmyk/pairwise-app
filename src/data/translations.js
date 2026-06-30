@@ -84,7 +84,15 @@ export const TRANSLATIONS = {
     settings_privacy_policy: "Politique de confidentialité",
     settings_terms: "Conditions générales d'utilisation",
     settings_account: "Compte",
+    settings_export_data: "Exporter mes données (CSV)",
     settings_logout: "Se déconnecter",
+    settings_delete_account: "Supprimer mon compte",
+    settings_delete_warning: "Cette action est irréversible. Toutes vos données seront supprimées immédiatement et définitivement. Nous vous recommandons d'exporter vos données avant de continuer.",
+    settings_export_before_delete: "Télécharger mon historique avant de continuer",
+    settings_delete_confirm_password: "Confirmez avec votre mot de passe pour continuer :",
+    settings_password_placeholder: "Mot de passe",
+    settings_delete_wrong_password: "Mot de passe incorrect.",
+    settings_delete_confirm: "Supprimer définitivement",
 
     // Wealth
     wealth_title: "Patrimoine",
@@ -331,7 +339,15 @@ export const TRANSLATIONS = {
     settings_privacy_policy: "Privacy Policy",
     settings_terms: "Terms of Service",
     settings_account: "Account",
+    settings_export_data: "Export my data (CSV)",
     settings_logout: "Log out",
+    settings_delete_account: "Delete my account",
+    settings_delete_warning: "This action is irreversible. All your data will be immediately and permanently deleted. We recommend exporting your data before proceeding.",
+    settings_export_before_delete: "Download my transaction history first",
+    settings_delete_confirm_password: "Confirm with your password to continue:",
+    settings_password_placeholder: "Password",
+    settings_delete_wrong_password: "Incorrect password.",
+    settings_delete_confirm: "Delete permanently",
 
     // Wealth
     wealth_title: "Wealth",
