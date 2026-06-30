@@ -20,7 +20,7 @@
     "recharts": "^3.8.1"
   },
   "optionalDependencies": {
-    "adm-zip": "^0.5.16"
+    "adm-zip": "^0.5.18"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
