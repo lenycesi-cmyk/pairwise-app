@@ -426,6 +426,35 @@ export default function SettingsScreen({ onOpenRecurring, onOpenCategories, onOp
         </div>
       </Card>
 
+      <SectionLabel>{t("settings_legal")}</SectionLabel>
+      <Card>
+        <a
+          href="/privacy.html"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            padding: "4px 0", textDecoration: "none", color: "var(--ink)",
+            fontSize: 14, borderBottom: "0.5px solid var(--rule)", paddingBottom: 12, marginBottom: 12,
+          }}
+        >
+          <span>{t("settings_privacy_policy")}</span>
+          <i className="ti ti-external-link" style={{ fontSize: 14, color: "var(--ink-3)" }} aria-hidden="true" />
+        </a>
+        <a
+          href="/terms.html"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            padding: "4px 0", textDecoration: "none", color: "var(--ink)", fontSize: 14,
+          }}
+        >
+          <span>{t("settings_terms")}</span>
+          <i className="ti ti-external-link" style={{ fontSize: 14, color: "var(--ink-3)" }} aria-hidden="true" />
+        </a>
+      </Card>
+
       <SectionLabel>{t("settings_account")}</SectionLabel>
       <Card>
         <button

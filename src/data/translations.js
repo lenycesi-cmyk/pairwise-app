@@ -80,6 +80,9 @@ export const TRANSLATIONS = {
     settings_appearance: "Apparence",
     settings_theme: "Thème",
     settings_language: "Langue",
+    settings_legal: "Mentions légales",
+    settings_privacy_policy: "Politique de confidentialité",
+    settings_terms: "Conditions générales d'utilisation",
     settings_account: "Compte",
     settings_logout: "Se déconnecter",
 
@@ -324,6 +327,9 @@ export const TRANSLATIONS = {
     settings_appearance: "Appearance",
     settings_theme: "Theme",
     settings_language: "Language",
+    settings_legal: "Legal",
+    settings_privacy_policy: "Privacy Policy",
+    settings_terms: "Terms of Service",
     settings_account: "Account",
     settings_logout: "Log out",
 
