@@ -1,13 +1,27 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useCallback } from "react";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { useFinance } from "../context/FinanceContext";
 import { useExchangeRates } from "../hooks/useExchangeRates";
 import { useDebtCalculation } from "../hooks/useDebtCalculation";
 import { useBudgetProgress } from "../hooks/useBudgetProgress";
-import { useDashboardPrefs, DEFAULT_WIDGETS } from "../hooks/useDashboardPrefs";
+import { useDashboardPrefs } from "../hooks/useDashboardPrefs";
 import CategoryRow from "../components/CategoryRow";
 import DebtSummaryCard from "../components/DebtSummaryCard";
 import Avatar from "../components/Avatar";
-import SortableList from "../components/SortableList";
 import { buildMemberColorMap } from "../utils/memberColors";
 import { CURRENCIES } from "../data/categories";
 import { useTranslation } from "../hooks/useTranslation";
@@ -17,6 +31,72 @@ const MONTHS = [
   "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre",
 ];
 
+const LONG_PRESS_DELAY = 500;
+
+// ── Sortable widget wrapper ──────────────────────────────────────────────────
+function SortableWidget({ id, editMode, onLongPress, children }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id, disabled: !editMode });
+
+  const longPressTimer = useRef(null);
+
+  function startLongPress() {
+    if (editMode) return;
+    longPressTimer.current = setTimeout(() => onLongPress?.(), LONG_PRESS_DELAY);
+  }
+  function cancelLongPress() {
+    clearTimeout(longPressTimer.current);
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+        position: "relative",
+      }}
+      onMouseDown={startLongPress}
+      onMouseUp={cancelLongPress}
+      onMouseLeave={cancelLongPress}
+      onTouchStart={startLongPress}
+      onTouchEnd={cancelLongPress}
+      onTouchMove={cancelLongPress}
+    >
+      {editMode && (
+        <div
+          style={{
+            position: "absolute", inset: 0,
+            border: "1.5px dashed var(--sky)",
+            borderRadius: "var(--radius-lg)",
+            pointerEvents: "none",
+            zIndex: 2,
+          }}
+        />
+      )}
+      {editMode && (
+        <button
+          {...attributes}
+          {...listeners}
+          aria-label="Réorganiser"
+          style={{
+            position: "absolute", top: 8, left: 8,
+            zIndex: 3, background: "var(--bg-card)", border: "0.5px solid var(--rule)",
+            borderRadius: "var(--radius-sm)", width: 28, height: 28,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            cursor: "grab", touchAction: "none",
+          }}
+        >
+          <i className="ti ti-grip-vertical" style={{ fontSize: 14, color: "var(--ink-3)" }} aria-hidden="true" />
+        </button>
+      )}
+      {children}
+    </div>
+  );
+}
+
+// ── Main component ───────────────────────────────────────────────────────────
 export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTransactions, onEditTransaction }) {
   const t = useTranslation();
   const {
@@ -27,9 +107,10 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
   const { convert, loading: ratesLoading, error: ratesError } = useExchangeRates(displayCurrency);
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
   const [editMode, setEditMode] = useState(false);
-  const [draftWidgets, setDraftWidgets] = useState(null);
 
   const { widgets, saveWidgets } = useDashboardPrefs();
+  const [localWidgets, setLocalWidgets] = useState(null);
+  const activeWidgets = localWidgets ?? widgets;
 
   const debt = useDebtCalculation(transactions, members, displayCurrency, convert);
   const memberColorMap = useMemo(() => buildMemberColorMap(members), [members]);
@@ -79,9 +160,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
 
   const memberTotals = useMemo(() => {
     const result = {};
-    for (const m of members) {
-      result[m.uid] = { name: m.name, income: 0, expense: 0, invested: 0 };
-    }
+    for (const m of members) result[m.uid] = { name: m.name, income: 0, expense: 0, invested: 0 };
     for (const tx of monthTx) {
       const val = toBase(tx);
       const payers = tx.split === "50/50"
@@ -118,158 +197,82 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
 
   const maxCatTotal = Math.max(1, ...Object.values(categoryTotals).map((c) => c.total));
 
-  const recentTx = useMemo(() => {
-    return [...monthTx].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
-  }, [monthTx]);
-
-  // Available savings: sum of bank account assets
-  const availableSavings = useMemo(() => {
-    return assets
-      .filter((a) => a.typeId === "account")
-      .reduce((sum, a) => sum + convert(a.value, a.currency, displayCurrency), 0);
-  }, [assets, convert, displayCurrency]);
+  const recentTx = useMemo(
+    () => [...monthTx].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5),
+    [monthTx]
+  );
 
   const bankAccounts = useMemo(() => assets.filter((a) => a.typeId === "account"), [assets]);
-
-  // Net worth: sum of all assets (liabilities negative)
-  const netWorth = useMemo(() => {
-    return assets.reduce((sum, a) => {
+  const availableSavings = useMemo(
+    () => bankAccounts.reduce((sum, a) => sum + convert(a.value, a.currency, displayCurrency), 0),
+    [bankAccounts, convert, displayCurrency]
+  );
+  const netWorth = useMemo(
+    () => assets.reduce((sum, a) => {
       const val = convert(a.value, a.currency, displayCurrency);
       return sum + (a.isLiability ? -val : val);
-    }, 0);
-  }, [assets, convert, displayCurrency]);
+    }, 0),
+    [assets, convert, displayCurrency]
+  );
 
   function formatAmount(n) {
     return Math.round(n).toLocaleString("fr-FR");
   }
-
   const currencySymbol = CURRENCIES.find((c) => c.code === displayCurrency)?.symbol || displayCurrency;
 
   // ── Edit mode ──────────────────────────────────────────────────────────────
 
   function enterEditMode() {
-    setDraftWidgets([...widgets]);
+    setLocalWidgets([...activeWidgets]);
     setEditMode(true);
   }
 
   function exitEditMode() {
-    saveWidgets(draftWidgets);
+    saveWidgets(localWidgets ?? activeWidgets);
     setEditMode(false);
   }
 
   function toggleWidget(id) {
-    setDraftWidgets((prev) =>
-      prev.map((w) => (w.id === id ? { ...w, visible: !w.visible } : w))
+    setLocalWidgets((prev) =>
+      (prev ?? activeWidgets).map((w) => (w.id === id ? { ...w, visible: !w.visible } : w))
     );
   }
 
-  // ── Loading ────────────────────────────────────────────────────────────────
+  // dnd-kit sensors: in edit mode only
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } })
+  );
 
-  if (loading || ratesLoading) {
-    return (
-      <div style={{ padding: "2rem 1.5rem" }}>
-        <div className="skeleton" style={{ height: 100, marginBottom: 16 }} />
-        <div className="skeleton" style={{ height: 200, marginBottom: 16 }} />
-        <div className="skeleton" style={{ height: 300 }} />
-      </div>
-    );
+  function handleDragEnd({ active, over }) {
+    if (!over || active.id === over.id) return;
+    setLocalWidgets((prev) => {
+      const list = prev ?? activeWidgets;
+      const oldIdx = list.findIndex((w) => w.id === active.id);
+      const newIdx = list.findIndex((w) => w.id === over.id);
+      return arrayMove(list, oldIdx, newIdx);
+    });
   }
 
-  // ── Edit mode view ─────────────────────────────────────────────────────────
+  // ── Widget labels ──────────────────────────────────────────────────────────
+  const WIDGET_LABELS = {
+    net_balance: t("widget_net_balance"),
+    available_savings: t("widget_available_savings"),
+    budget_tracking: t("widget_budget_tracking"),
+    member_breakdown: t("widget_member_breakdown"),
+    spending_by_category: t("widget_spending_by_category"),
+    transaction_history: t("widget_transaction_history"),
+    net_worth: t("widget_net_worth"),
+    debt_tracker: t("widget_debt_tracker"),
+    recurring: t("widget_recurring"),
+  };
 
-  if (editMode && draftWidgets) {
-    const allWidgetLabels = {
-      net_balance: t("widget_net_balance"),
-      available_savings: t("widget_available_savings"),
-      budget_tracking: t("widget_budget_tracking"),
-      member_breakdown: t("widget_member_breakdown"),
-      spending_by_category: t("widget_spending_by_category"),
-      transaction_history: t("widget_transaction_history"),
-      net_worth: t("widget_net_worth"),
-      debt_tracker: t("widget_debt_tracker"),
-      recurring: t("widget_recurring"),
-    };
-
-    return (
-      <div style={{ padding: "1.5rem 1.25rem 6rem" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-          <h1 style={{ fontSize: 18, fontWeight: 600 }}>{t("dashboard_customize")}</h1>
-          <button
-            onClick={exitEditMode}
-            style={{
-              background: "var(--ink)", color: "var(--bg)", border: "none",
-              borderRadius: "var(--radius-md)", padding: "6px 16px", fontSize: 13, fontWeight: 500,
-            }}
-          >
-            {t("dashboard_done")}
-          </button>
-        </div>
-        <p style={{ fontSize: 12, color: "var(--ink-3)", marginBottom: 16 }}>
-          {t("dashboard_edit_hint")}
-        </p>
-        <div
-          style={{
-            background: "var(--bg-card)",
-            borderRadius: "var(--radius-lg)",
-            border: "0.5px solid var(--rule)",
-            overflow: "hidden",
-          }}
-        >
-          <SortableList
-            items={draftWidgets}
-            onReorder={setDraftWidgets}
-            renderItem={(w) => (
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  padding: "13px 14px 13px 4px",
-                  borderBottom: "0.5px solid var(--rule)",
-                  gap: 10,
-                }}
-              >
-                <span style={{ fontSize: 13, flex: 1 }}>{allWidgetLabels[w.id] || w.id}</span>
-                <button
-                  onClick={() => toggleWidget(w.id)}
-                  aria-label={w.visible ? "Masquer" : "Afficher"}
-                  style={{
-                    width: 38, height: 22, borderRadius: 11, border: "none",
-                    background: w.visible ? "var(--sky)" : "var(--rule)",
-                    position: "relative", flexShrink: 0, transition: "background 0.2s",
-                  }}
-                >
-                  <span
-                    style={{
-                      position: "absolute", top: 3, left: w.visible ? 19 : 3,
-                      width: 16, height: 16, borderRadius: "50%", background: "var(--bg)",
-                      transition: "left 0.2s",
-                    }}
-                  />
-                </button>
-              </div>
-            )}
-          />
-        </div>
-      </div>
-    );
-  }
-
-  // ── Normal dashboard view ──────────────────────────────────────────────────
-
-  const visibleWidgets = new Set(widgets.filter((w) => w.visible).map((w) => w.id));
-  const widgetOrder = widgets.map((w) => w.id);
-
-  function renderWidget(id) {
+  // ── Widget renderers ───────────────────────────────────────────────────────
+  function renderWidgetContent(id) {
     switch (id) {
       case "net_balance":
         return (
-          <div
-            key="net_balance"
-            style={{
-              background: "var(--bg-card)", borderRadius: "var(--radius-lg)",
-              border: "0.5px solid var(--rule)", padding: "1rem 1.25rem", marginBottom: 20,
-            }}
-          >
+          <div style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "1rem 1.25rem" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12 }}>
               <p style={{ fontSize: 12, color: "var(--ink-3)" }}>{t("dashboard_net_balance")}</p>
               <p style={{ fontSize: 18, fontWeight: 600, color: totals.net >= 0 ? "var(--sage)" : "var(--tang)" }}>
@@ -284,7 +287,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
 
       case "available_savings":
         return (
-          <div key="available_savings" style={{ marginBottom: 20 }}>
+          <div>
             <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>{t("widget_available_savings_label")}</p>
             {bankAccounts.length === 0 ? (
               <div style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "1rem 1.25rem" }}>
@@ -293,19 +296,11 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
             ) : (
               <div style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "0.75rem 1.25rem" }}>
                 {bankAccounts.map((a, i) => (
-                  <BreakdownRow
-                    key={a.id}
-                    color="var(--sage)"
-                    label={a.name}
-                    value={`${formatAmount(convert(a.value, a.currency, displayCurrency))} ${currencySymbol}`}
-                    last={i === bankAccounts.length - 1}
-                  />
+                  <BreakdownRow key={a.id} color="var(--sage)" label={a.name} value={`${formatAmount(convert(a.value, a.currency, displayCurrency))} ${currencySymbol}`} last={i === bankAccounts.length - 1} />
                 ))}
                 <div style={{ borderTop: "0.5px solid var(--rule)", marginTop: 6, paddingTop: 8, display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)" }}>Total</span>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: "var(--sage)" }}>
-                    {formatAmount(availableSavings)} {currencySymbol}
-                  </span>
+                  <span style={{ fontSize: 12, fontWeight: 600 }}>Total</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: "var(--sage)" }}>{formatAmount(availableSavings)} {currencySymbol}</span>
                 </div>
               </div>
             )}
@@ -315,7 +310,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
       case "budget_tracking":
         if (topBudgets.length === 0) return null;
         return (
-          <div key="budget_tracking" style={{ marginBottom: 20 }}>
+          <div>
             <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>{t("dashboard_budget_progress")}</p>
             <div style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "0.75rem 1.25rem" }}>
               {topBudgets.map(({ budget, pct }, i) => {
@@ -324,7 +319,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                 const barColor = over ? "var(--red)" : warn ? "var(--amber)" : "var(--sky)";
                 const label = budget.scope === "global"
                   ? t("budget_scope_global")
-                  : budget.categoryIds.map((id) => categories.find((c) => c.id === id)?.name).filter(Boolean).join(", ");
+                  : budget.categoryIds.map((cid) => categories.find((c) => c.id === cid)?.name).filter(Boolean).join(", ");
                 return (
                   <div key={budget.id} style={{ marginBottom: i === topBudgets.length - 1 ? 0 : 12 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
@@ -344,12 +339,14 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
       case "member_breakdown":
         if (members.length === 0) return null;
         return (
-          <div key="member_breakdown" style={{ marginBottom: 20 }}>
+          <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
               <p style={{ fontSize: 13, fontWeight: 500 }}>{t("dashboard_member_summary")}</p>
-              <button onClick={onOpenBreakdown} style={{ background: "none", border: "none", color: "var(--sky)", fontSize: 12, display: "flex", alignItems: "center", gap: 3 }}>
-                Détail <i className="ti ti-chevron-right" style={{ fontSize: 12 }} aria-hidden="true" />
-              </button>
+              {!editMode && (
+                <button onClick={onOpenBreakdown} style={{ background: "none", border: "none", color: "var(--sky)", fontSize: 12, display: "flex", alignItems: "center", gap: 3 }}>
+                  Détail <i className="ti ti-chevron-right" style={{ fontSize: 12 }} aria-hidden="true" />
+                </button>
+              )}
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8 }}>
               {members.map((m) => {
@@ -364,7 +361,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                     <MiniRow label={t("dashboard_expenses")} value={mt.expense} formatAmount={formatAmount} color="var(--tang)" symbol={currencySymbol} />
                     <MiniRow label={t("dashboard_invested")} value={mt.invested} formatAmount={formatAmount} symbol={currencySymbol} />
                     <div style={{ borderTop: "0.5px solid var(--rule)", marginTop: 6, paddingTop: 6 }}>
-                      <MiniRow label={t("dashboard_balance")} value={mt.income - mt.expense - mt.invested} formatAmount={formatAmount} color={mt.income - mt.expense - mt.invested >= 0 ? "var(--sage)" : "var(--tang)"} symbol={currencySymbol} bold />
+                      <MiniRow label={t("dashboard_balance")} value={mt.income - mt.expense - mt.invested} formatAmount={formatAmount} color={(mt.income - mt.expense - mt.invested) >= 0 ? "var(--sage)" : "var(--tang)"} symbol={currencySymbol} bold />
                     </div>
                   </div>
                 );
@@ -375,7 +372,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
 
       case "spending_by_category":
         return (
-          <div key="spending_by_category" style={{ marginBottom: 20 }}>
+          <div>
             <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>{t("dashboard_spending_by_category")}</p>
             <div style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "0.5rem 1.25rem" }}>
               {Object.keys(categoryTotals).length === 0 ? (
@@ -388,7 +385,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                   ))
               )}
             </div>
-            {Object.keys(categoryTotals).length > 0 && (
+            {Object.keys(categoryTotals).length > 0 && !editMode && (
               <p style={{ fontSize: 11, color: "var(--ink-3)", textAlign: "center", marginTop: 10 }}>{t("dashboard_tap_category")}</p>
             )}
           </div>
@@ -396,12 +393,14 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
 
       case "transaction_history":
         return (
-          <div key="transaction_history" style={{ marginBottom: 20 }}>
+          <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
               <p style={{ fontSize: 13, fontWeight: 500 }}>{t("dashboard_recent_transactions")}</p>
-              <button onClick={onOpenTransactions} style={{ background: "none", border: "none", color: "var(--sky)", fontSize: 12, display: "flex", alignItems: "center", gap: 3 }}>
-                {t("dashboard_see_all")} <i className="ti ti-chevron-right" style={{ fontSize: 12 }} aria-hidden="true" />
-              </button>
+              {!editMode && (
+                <button onClick={onOpenTransactions} style={{ background: "none", border: "none", color: "var(--sky)", fontSize: 12, display: "flex", alignItems: "center", gap: 3 }}>
+                  {t("dashboard_see_all")} <i className="ti ti-chevron-right" style={{ fontSize: 12 }} aria-hidden="true" />
+                </button>
+              )}
             </div>
             <div style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", overflow: "hidden" }}>
               {recentTx.length === 0 ? (
@@ -411,7 +410,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                   const cat = categories.find((c) => c.id === tx.categoryId) || categories[0];
                   const isIncome = tx.type === "income";
                   return (
-                    <div key={tx.id} onClick={() => onEditTransaction?.(tx)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderBottom: i === recentTx.length - 1 ? "none" : "0.5px solid var(--rule)", cursor: "pointer" }}>
+                    <div key={tx.id} onClick={() => !editMode && onEditTransaction?.(tx)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderBottom: i === recentTx.length - 1 ? "none" : "0.5px solid var(--rule)", cursor: editMode ? "default" : "pointer" }}>
                       <i className={`ti ${cat.icon}`} style={{ fontSize: 16, color: "var(--ink-3)" }} aria-hidden="true" />
                       <p style={{ flex: 1, minWidth: 0, fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{tx.description}</p>
                       <p style={{ fontSize: 13, fontWeight: 500, color: isIncome ? "var(--sage)" : "var(--ink)" }}>
@@ -427,7 +426,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
 
       case "net_worth":
         return (
-          <div key="net_worth" style={{ marginBottom: 20 }}>
+          <div>
             <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>{t("widget_net_worth_total")}</p>
             <div style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "1rem 1.25rem" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
@@ -442,20 +441,15 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
 
       case "debt_tracker":
         if (!debt) return null;
-        return (
-          <div key="debt_tracker" style={{ marginBottom: 20 }}>
-            <DebtSummaryCard debt={debt} defaultCurrency={displayCurrency} onClick={onOpenDebt} />
-          </div>
-        );
+        return <DebtSummaryCard debt={debt} defaultCurrency={displayCurrency} onClick={!editMode ? onOpenDebt : undefined} />;
 
       case "recurring": {
-        const today = new Date();
         const upcoming = [...recurringTx]
           .filter((r) => r.active !== false)
           .sort((a, b) => (a.nextDate || "").localeCompare(b.nextDate || ""))
           .slice(0, 3);
         return (
-          <div key="recurring" style={{ marginBottom: 20 }}>
+          <div>
             <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>{t("widget_recurring_upcoming")}</p>
             <div style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", overflow: "hidden" }}>
               {upcoming.length === 0 ? (
@@ -470,9 +464,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                         <p style={{ fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.description || cat?.name}</p>
                         {r.nextDate && <p style={{ fontSize: 11, color: "var(--ink-3)" }}>{new Date(r.nextDate).toLocaleDateString("fr-FR")}</p>}
                       </div>
-                      <p style={{ fontSize: 13, fontWeight: 500 }}>
-                        {Math.round(r.amount).toLocaleString("fr-FR")} {r.currency}
-                      </p>
+                      <p style={{ fontSize: 13, fontWeight: 500 }}>{Math.round(r.amount).toLocaleString("fr-FR")} {r.currency}</p>
                     </div>
                   );
                 })
@@ -487,20 +479,25 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
     }
   }
 
+  // ── Loading ────────────────────────────────────────────────────────────────
+  if (loading || ratesLoading) {
+    return (
+      <div style={{ padding: "2rem 1.5rem" }}>
+        <div className="skeleton" style={{ height: 100, marginBottom: 16 }} />
+        <div className="skeleton" style={{ height: 200, marginBottom: 16 }} />
+        <div className="skeleton" style={{ height: 300 }} />
+      </div>
+    );
+  }
+
+  const displayList = activeWidgets;
+  const visibleIds = displayList.filter((w) => w.visible || editMode).map((w) => w.id);
+
   return (
     <div style={{ padding: "1.5rem 1.25rem 6rem" }}>
-      {/* Header: month nav + currency + customize button */}
+      {/* Header */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", marginBottom: 16 }}>
-        <button
-          onClick={enterEditMode}
-          aria-label={t("dashboard_customize")}
-          style={{
-            width: 32, height: 32, borderRadius: "50%", background: "var(--bg-card)",
-            border: "0.5px solid var(--rule)", display: "flex", alignItems: "center", justifyContent: "center",
-          }}
-        >
-          <i className="ti ti-layout-dashboard" style={{ fontSize: 15 }} aria-hidden="true" />
-        </button>
+        <div />
         <div style={{ display: "flex", alignItems: "center", gap: 10, justifySelf: "center" }}>
           <button onClick={() => changeMonth(-1)} aria-label="Mois précédent" style={navBtnStyle}>
             <i className="ti ti-chevron-left" style={{ fontSize: 16 }} aria-hidden="true" />
@@ -508,26 +505,60 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
           <p style={{ fontSize: 15, fontWeight: 500 }}>
             {MONTHS[viewMonth]} {viewYear}
             {ratesError === "using_fallback_rates" && (
-              <i className="ti ti-alert-triangle" title="Taux de change approximatifs (API indisponible)" style={{ fontSize: 12, color: "var(--amber)", marginLeft: 6 }} aria-label="Taux de change approximatifs" />
+              <i className="ti ti-alert-triangle" title="Taux de change approximatifs" style={{ fontSize: 12, color: "var(--amber)", marginLeft: 6 }} aria-hidden="true" />
             )}
           </p>
           <button onClick={() => changeMonth(1)} aria-label="Mois suivant" style={navBtnStyle}>
             <i className="ti ti-chevron-right" style={{ fontSize: 16 }} aria-hidden="true" />
           </button>
         </div>
-        <button
-          onClick={() => setShowCurrencyPicker(!showCurrencyPicker)}
-          style={{
-            padding: "4px 10px", borderRadius: "var(--radius-md)", border: "0.5px solid var(--rule)",
-            background: "var(--bg-card)", fontSize: 12, fontWeight: 500,
-            display: "flex", alignItems: "center", gap: 4, justifySelf: "end",
-          }}
-        >
-          {displayCurrency} <i className="ti ti-chevron-down" style={{ fontSize: 11 }} aria-hidden="true" />
-        </button>
+        <div style={{ justifySelf: "end", display: "flex", alignItems: "center", gap: 6 }}>
+          {editMode ? (
+            <button
+              onClick={exitEditMode}
+              style={{
+                background: "var(--ink)", color: "var(--bg)", border: "none",
+                borderRadius: "var(--radius-md)", padding: "5px 14px", fontSize: 13, fontWeight: 500,
+              }}
+            >
+              {t("dashboard_done")}
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={() => setShowCurrencyPicker(!showCurrencyPicker)}
+                style={{
+                  padding: "4px 10px", borderRadius: "var(--radius-md)", border: "0.5px solid var(--rule)",
+                  background: "var(--bg-card)", fontSize: 12, fontWeight: 500,
+                  display: "flex", alignItems: "center", gap: 4,
+                }}
+              >
+                {displayCurrency} <i className="ti ti-chevron-down" style={{ fontSize: 11 }} aria-hidden="true" />
+              </button>
+              <button
+                onClick={enterEditMode}
+                aria-label={t("dashboard_customize")}
+                style={{
+                  width: 30, height: 30, borderRadius: "50%", background: "var(--bg-card)",
+                  border: "0.5px solid var(--rule)", display: "flex", alignItems: "center", justifyContent: "center",
+                }}
+              >
+                <i className="ti ti-pencil" style={{ fontSize: 14 }} aria-hidden="true" />
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
-      {showCurrencyPicker && (
+      {/* Edit mode hint */}
+      {editMode && (
+        <p style={{ fontSize: 12, color: "var(--ink-3)", marginBottom: 14, textAlign: "center" }}>
+          {t("dashboard_edit_hint")}
+        </p>
+      )}
+
+      {/* Currency picker */}
+      {showCurrencyPicker && !editMode && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 16, background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "0.75rem 1rem" }}>
           {CURRENCIES.map((c) => (
             <button
@@ -546,8 +577,63 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
         </div>
       )}
 
-      {/* Widgets in user-defined order */}
-      {widgetOrder.filter((id) => visibleWidgets.has(id)).map((id) => renderWidget(id))}
+      {/* Widgets — sortable in edit mode */}
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={visibleIds} strategy={verticalListSortingStrategy}>
+          {displayList
+            .filter((w) => w.visible || editMode)
+            .map((w) => {
+              const content = renderWidgetContent(w.id);
+              if (!content && !editMode) return null;
+              return (
+                <SortableWidget
+                  key={w.id}
+                  id={w.id}
+                  editMode={editMode}
+                  onLongPress={enterEditMode}
+                >
+                  <div
+                    style={{
+                      marginBottom: 20,
+                      opacity: editMode && !w.visible ? 0.4 : 1,
+                      paddingLeft: editMode ? 36 : 0,
+                      transition: "opacity 0.2s, padding 0.2s",
+                    }}
+                  >
+                    {/* Toggle button overlay in edit mode */}
+                    {editMode && (
+                      <button
+                        onClick={() => toggleWidget(w.id)}
+                        aria-label={w.visible ? "Masquer" : "Afficher"}
+                        style={{
+                          position: "absolute", top: 8, right: 8, zIndex: 3,
+                          width: 38, height: 22, borderRadius: 11, border: "none",
+                          background: w.visible ? "var(--sky)" : "var(--rule)",
+                          position: "absolute",
+                        }}
+                      >
+                        <span
+                          style={{
+                            display: "block", width: 16, height: 16, borderRadius: "50%",
+                            background: "var(--bg)", margin: "3px",
+                            marginLeft: w.visible ? "auto" : "3px",
+                            marginRight: w.visible ? "3px" : "auto",
+                            transition: "margin 0.15s",
+                          }}
+                        />
+                      </button>
+                    )}
+                    {content || (
+                      <div style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px dashed var(--rule)", padding: "0.75rem 1.25rem" }}>
+                        <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center" }}>{WIDGET_LABELS[w.id]}</p>
+                      </div>
+                    )}
+                  </div>
+                </SortableWidget>
+              );
+            })}
+        </SortableContext>
+      </DndContext>
     </div>
   );
 }
