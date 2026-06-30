@@ -3,6 +3,7 @@ import { useFinance } from "../context/FinanceContext";
 import { useAuth } from "../context/AuthContext";
 import { CURRENCIES } from "../data/categories";
 import { useTranslation } from "../hooks/useTranslation";
+import { useCategoryName } from "../hooks/useCategoryName";
 
 function getFrequencies(t) {
   return [
@@ -14,6 +15,7 @@ function getFrequencies(t) {
 
 export default function RecurringScreen({ onClose }) {
   const t = useTranslation();
+  const { catName, subName: tSubName } = useCategoryName();
   const FREQUENCIES = getFrequencies(t);
   const { categories, members, recurringTx, addRecurring, updateRecurring, removeRecurring, defaultCurrency } =
     useFinance();
@@ -38,6 +40,9 @@ export default function RecurringScreen({ onClose }) {
     c.id !== "income" && c.id !== "investment" && c.id !== "savings"
   );
   const selectedCategory = categories.find((c) => c.id === categoryId);
+  // Income et Investment ont aussi besoin d'une attribution membre (à qui le
+  // revenu / l'investissement récurrent est rattaché), comme dans AddTransactionScreen.
+  const needsMemberAttribution = type === "income" || type === "investment";
 
   function getCategory(id) {
     return categories.find((c) => c.id === id) || categories[0];
@@ -89,8 +94,8 @@ export default function RecurringScreen({ onClose }) {
       description: description || selectedCategory?.name,
       frequency,
       dayOfMonth: parseInt(dayOfMonth),
-      paidBy: type === "expense" ? paidBy : user.uid,
-      split: type === "expense" ? split : "100",
+      paidBy: type === "expense" || needsMemberAttribution ? paidBy : user.uid,
+      split: type === "expense" || needsMemberAttribution ? split : "100",
     };
 
     if (editingId) {
@@ -248,7 +253,7 @@ export default function RecurringScreen({ onClose }) {
             >
               <option value="">{t("recurring_choose_category")}</option>
               {availableCategories.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
+                <option key={c.id} value={c.id}>{catName(c)}</option>
               ))}
             </select>
 
@@ -267,7 +272,7 @@ export default function RecurringScreen({ onClose }) {
                 }}
               >
                 {selectedCategory.subcategories.map((s) => (
-                  <option key={s} value={s}>{s}</option>
+                  <option key={s} value={s}>{tSubName(s, selectedCategory.id)}</option>
                 ))}
               </select>
             )}
@@ -333,9 +338,11 @@ export default function RecurringScreen({ onClose }) {
               </>
             )}
 
-            {type === "expense" && members.length > 0 && (
+            {(type === "expense" || needsMemberAttribution) && members.length > 0 && (
               <>
-                <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>{t("recurring_who_pays")}</p>
+                <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>
+                  {needsMemberAttribution ? t("tx_received_by") : t("recurring_who_pays")}
+                </p>
                 <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
                   {members.map((m) => (
                     <button
@@ -354,7 +361,9 @@ export default function RecurringScreen({ onClose }) {
                     </button>
                   ))}
                 </div>
-                <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>{t("recurring_split")}</p>
+                <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>
+                  {needsMemberAttribution ? t("tx_for") : t("recurring_split")}
+                </p>
                 <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
                   {members.map((m) => (
                     <button
