@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Analyse — Connectivité bancaire Asie du Sud-Est — Pairwise</title>
+  <style>
+    body { font-family: Georgia, serif; max-width: 780px; margin: 40px auto; padding: 0 24px 80px; color: #1a1a2e; line-height: 1.7; }
+    h1 { font-size: 24px; margin-bottom: 4px; }
+    .meta { font-size: 13px; color: #888; margin-bottom: 40px; }
+    h2 { font-size: 18px; margin-top: 36px; border-bottom: 1px solid #e0e0ee; padding-bottom: 6px; }
+    h3 { font-size: 15px; margin-top: 24px; color: #333; }
+    p, li { font-size: 14px; color: #333; }
+    table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px; }
+    th { background: #f0f0f8; text-align: left; padding: 8px 10px; border: 1px solid #ddd; }
+    td { padding: 7px 10px; border: 1px solid #ddd; }
+    tr:nth-child(even) { background: #fafafe; }
+    .tag { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+    .green { background: #e8f5e9; color: #2e7d32; }
+    .orange { background: #fff3e0; color: #e65100; }
+    .red { background: #fce4ec; color: #c62828; }
+    .blue { background: #e3f2fd; color: #1565c0; }
+    a { color: #4f7cff; }
+    ul { padding-left: 20px; }
+    .recommendation { background: #f0f4ff; border-left: 4px solid #4f7cff; padding: 16px 20px; border-radius: 0 8px 8px 0; margin: 24px 0; }
+    @media print { body { margin: 20px; } }
+  </style>
+</head>
+<body>
+
+<h1>Connectivité bancaire — Asie du Sud-Est</h1>
+<p class="meta">Pairwise — Analyse réalisée le 30 juin 2026</p>
+
+<h2>1. Maturité du marché open banking par pays</h2>
+<table>
+  <tr><th>Pays</th><th>Maturité</th><th>Remarque</th></tr>
+  <tr><td>Singapour</td><td><span class="tag green">⭐⭐⭐⭐ Mature</span></td><td>MAS framework API depuis 2016 — DBS, OCBC, UOB ont des APIs publiques</td></tr>
+  <tr><td>Malaisie</td><td><span class="tag green">⭐⭐⭐⭐ Mature</span></td><td>BNM Open Banking Framework actif</td></tr>
+  <tr><td>Thaïlande</td><td><span class="tag orange">⭐⭐⭐ Intermédiaire</span></td><td>BOT framework — SCB, Kasikorn, Krungsri ont des APIs</td></tr>
+  <tr><td>Philippines</td><td><span class="tag orange">⭐⭐⭐ Intermédiaire</span></td><td>BSP Open Finance Framework (2021)</td></tr>
+  <tr><td>Indonésie</td><td><span class="tag orange">⭐⭐⭐ Intermédiaire</span></td><td>OJK Open API framework, deadline 2025</td></tr>
+  <tr><td>Vietnam</td><td><span class="tag red">⭐⭐ Précoce</span></td><td>Quelques initiatives (VietinBank iConnect) mais pas de standard national</td></tr>
+</table>
+
+<h2>2. Providers disponibles</h2>
+
+<h3>Brick (onebrick.io) — Recommandé #1</h3>
+<ul>
+  <li>Couverture : Indonésie (90%+ des banques), Singapour, Philippines</li>
+  <li>Tarif : ~$0.54/mois par compte connecté</li>
+  <li>Sandbox gratuit disponible</li>
+  <li><strong>Le plus proche d'un "Plaid pour SEA"</strong></li>
+</ul>
+
+<h3>Finverse — Meilleure couverture géographique</h3>
+<ul>
+  <li>Couverture : Singapour, Hong Kong, Thaïlande, Indonésie, Philippines, Vietnam, Inde</li>
+  <li>API REST similaire à Plaid — intégration facilitée</li>
+  <li>Tarif non public (contacter sales)</li>
+</ul>
+
+<h3>Brankas (brankas.com)</h3>
+<ul>
+  <li>Couverture : Indonésie, Philippines, Thaïlande (beta)</li>
+  <li>Tarif : $0.10/paiement, $0.50/relevé bancaire</li>
+  <li>Plutôt orienté paiements + data</li>
+</ul>
+
+<div class="recommendation">
+  <strong>Recommandation actuelle :</strong> Ne pas implémenter de provider SEA maintenant — Brick et Finverse sont moins matures que Plaid. Priorité aux fonctionnalités core. Quand l'expansion SEA sera envisagée, <strong>Finverse</strong> est probablement le meilleur choix (couverture la plus large, API REST compatible avec l'architecture existante).
+</div>
+
+<h2>3. Impact sur les CGU et Politique de Confidentialité</h2>
+<p>L'expansion en SEA nécessiterait d'ajouter les lois locales de protection des données :</p>
+<table>
+  <tr><th>Pays</th><th>Loi</th><th>Droits clés</th></tr>
+  <tr><td>Singapour</td><td>PDPA 2012</td><td>Consentement, accès, correction</td></tr>
+  <tr><td>Thaïlande</td><td>PDPA B.E. 2562 (2022)</td><td>Similaire RGPD — consentement explicite</td></tr>
+  <tr><td>Indonésie</td><td>UU PDP 2022</td><td>Consentement explicite obligatoire</td></tr>
+  <tr><td>Philippines</td><td>Data Privacy Act 2012</td><td>Droits d'accès et suppression</td></tr>
+  <tr><td>Vietnam</td><td>Décret 13/2023</td><td>Consentement, localisation des données</td></tr>
+</table>
+
+<h2>4. Impact sur le Google Play Store et l'App Store</h2>
+<table>
+  <tr><th>Exigence</th><th>Statut Pairwise</th></tr>
+  <tr><td>Politique de confidentialité publique</td><td><span class="tag green">✅ Déjà en place</span></td></tr>
+  <tr><td>Suppression de compte depuis l'app</td><td><span class="tag green">✅ Déjà implémentée</span></td></tr>
+  <tr><td>Déclaration permissions de données (finances)</td><td><span class="tag orange">⚠️ À faire lors de la soumission</span></td></tr>
+  <tr><td>Licence régulateur (lecture seule)</td><td><span class="tag green">✅ Généralement non requise</span></td></tr>
+  <tr><td>Licence régulateur si transferts d'argent</td><td><span class="tag red">🚫 Requise (MAS, OJK…)</span></td></tr>
+</table>
+
+<p><strong>Risque principal :</strong> Si l'app est distribuée publiquement en Indonésie ou aux Philippines, les régulateurs pourraient demander une déclaration d'activité FinTech même pour du read-only. À anticiper si le projet dépasse l'usage privé couple.</p>
+
+<h2>5. Sources</h2>
+<ul>
+  <li><a href="https://fintechnews.sg/106292/openbanking/open-finance-southeast-asia/">Open Banking in Southeast Asia 2026 — Fintech Singapore</a></li>
+  <li><a href="https://www.onebrick.io/">Brick — Open Finance API SEA</a></li>
+  <li><a href="https://www.brankas.com/">Brankas — Open Banking SEA</a></li>
+  <li><a href="https://www.openbankingtracker.com/open-banking-providers">Open Banking Providers Directory 2026</a></li>
+  <li><a href="https://www.cbinsights.com/research/brankas-series-b-funding/">Brankas vs Finverse vs Brick — CB Insights</a></li>
+</ul>
+
+</body>
+</html>
