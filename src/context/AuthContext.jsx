@@ -5,8 +5,11 @@ import {
   createUserWithEmailAndPassword,
   signOut,
   updateProfile,
+  deleteUser,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
 } from "firebase/auth";
-import { doc, setDoc, getDoc } from "firebase/firestore";
+import { doc, setDoc, getDoc, deleteDoc, getDocs, collection, writeBatch } from "firebase/firestore";
 import { auth, db } from "../firebase";
 
 const AuthContext = createContext(null);
@@ -70,6 +73,35 @@ export function AuthProvider({ children }) {
     setUser({ ...auth.currentUser });
   }
 
+  async function deleteAccount(password, members) {
+    const credential = EmailAuthProvider.credential(user.email, password);
+    await reauthenticateWithCredential(auth.currentUser, credential);
+
+    const uid = user.uid;
+    const batch = writeBatch(db);
+
+    // Remove this member from the couple's members list
+    const remainingMembers = (members || []).filter((m) => m.uid !== uid);
+    if (remainingMembers.length === 0 && coupleId) {
+      // Last member — delete all couple data
+      const txSnap = await getDocs(collection(db, "couples", coupleId, "transactions"));
+      txSnap.forEach((d) => batch.delete(d.ref));
+      const connSnap = await getDocs(collection(db, "couples", coupleId, "bankConnections"));
+      connSnap.forEach((d) => batch.delete(d.ref));
+      batch.delete(doc(db, "couples", coupleId));
+    } else if (coupleId) {
+      // Other member remains — just remove this user from members array
+      batch.set(doc(db, "couples", coupleId), { members: remainingMembers }, { merge: true });
+    }
+
+    // Delete user doc
+    batch.delete(doc(db, "users", uid));
+    await batch.commit();
+
+    // Delete Firebase Auth account (must be last)
+    await deleteUser(auth.currentUser);
+  }
+
   async function updateDisplayName(newName) {
     await updateProfile(auth.currentUser, { displayName: newName });
     await setDoc(doc(db, "users", user.uid), { displayName: newName }, { merge: true });
@@ -87,6 +119,7 @@ export function AuthProvider({ children }) {
     setCoupleId,
     updateProfilePhoto,
     updateDisplayName,
+    deleteAccount,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

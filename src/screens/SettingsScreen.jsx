@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useFinance } from "../context/FinanceContext";
 import { CURRENCIES } from "../data/categories";
@@ -8,7 +8,7 @@ import { useTranslation } from "../hooks/useTranslation";
 
 export default function SettingsScreen({ onOpenRecurring, onOpenCategories, onOpenTheme, onOpenLanguage }) {
   const t = useTranslation();
-  const { coupleId, logout, user, updateProfilePhoto, updateDisplayName } = useAuth();
+  const { coupleId, logout, user, updateProfilePhoto, updateDisplayName, deleteAccount } = useAuth();
   const {
     defaultCurrency,
     updateDefaultCurrency,
@@ -18,6 +18,7 @@ export default function SettingsScreen({ onOpenRecurring, onOpenCategories, onOp
     updateMemberName,
     updateMemberAvatarColor,
     members,
+    transactions,
   } = useFinance();
   const [showCode, setShowCode] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -29,6 +30,49 @@ export default function SettingsScreen({ onOpenRecurring, onOpenCategories, onOp
   const [notificationStatus, setNotificationStatus] = useState(
     typeof Notification !== "undefined" ? Notification.permission : "denied"
   );
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteError, setDeleteError] = useState("");
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  function exportCSV() {
+    const header = ["Date", "Type", "Catégorie", "Sous-catégorie", "Description", "Montant", "Devise", "Membre"];
+    const rows = [...transactions]
+      .sort((a, b) => b.date - a.date)
+      .map((tx) => [
+        new Date(tx.date).toLocaleDateString("fr-FR"),
+        tx.type,
+        tx.category,
+        tx.subcategory || "",
+        (tx.description || "").replace(/,/g, " "),
+        tx.amount,
+        tx.currency,
+        members.find((m) => m.uid === tx.memberId)?.name || tx.memberId || "",
+      ]);
+    const csv = [header, ...rows].map((r) => r.join(",")).join("\n");
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `pairwise-transactions-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function handleDeleteAccount() {
+    setDeleteError("");
+    setDeleteLoading(true);
+    try {
+      await deleteAccount(deletePassword, members);
+    } catch (err) {
+      setDeleteError(
+        err.code === "auth/wrong-password" || err.code === "auth/invalid-credential"
+          ? t("settings_delete_wrong_password")
+          : err.message
+      );
+      setDeleteLoading(false);
+    }
+  }
 
   function requestNotificationPermission() {
     if (typeof Notification === "undefined" || notificationStatus === "granted") return;
@@ -458,20 +502,115 @@ export default function SettingsScreen({ onOpenRecurring, onOpenCategories, onOp
       <SectionLabel>{t("settings_account")}</SectionLabel>
       <Card>
         <button
+          onClick={exportCSV}
+          style={{
+            width: "100%", background: "none", border: "none",
+            color: "var(--sky)", fontSize: 14, textAlign: "left",
+            padding: "4px 0", borderBottom: "0.5px solid var(--rule)",
+            paddingBottom: 12, marginBottom: 12, display: "flex",
+            alignItems: "center", gap: 8, cursor: "pointer",
+          }}
+        >
+          <i className="ti ti-download" style={{ fontSize: 15 }} aria-hidden="true" />
+          {t("settings_export_data")}
+        </button>
+        <button
           onClick={logout}
           style={{
-            width: "100%",
-            background: "none",
-            border: "none",
-            color: "var(--red)",
-            fontSize: 14,
-            textAlign: "left",
-            padding: "4px 0",
+            width: "100%", background: "none", border: "none",
+            color: "var(--ink-2)", fontSize: 14, textAlign: "left",
+            padding: "4px 0", borderBottom: "0.5px solid var(--rule)",
+            paddingBottom: 12, marginBottom: 12, cursor: "pointer",
           }}
         >
           {t("settings_logout")}
         </button>
+        <button
+          onClick={() => setShowDeleteModal(true)}
+          style={{
+            width: "100%", background: "none", border: "none",
+            color: "var(--red)", fontSize: 14, textAlign: "left",
+            padding: "4px 0", cursor: "pointer",
+          }}
+        >
+          {t("settings_delete_account")}
+        </button>
       </Card>
+
+      {showDeleteModal && (
+        <div style={{
+          position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          zIndex: 1000, padding: 24,
+        }}>
+          <div style={{
+            background: "var(--bg)", borderRadius: "var(--radius-lg)",
+            padding: 24, width: "100%", maxWidth: 360,
+          }}>
+            <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 8, color: "var(--red)" }}>
+              {t("settings_delete_account")}
+            </h3>
+            <p style={{ fontSize: 14, color: "var(--ink-2)", marginBottom: 16 }}>
+              {t("settings_delete_warning")}
+            </p>
+            <button
+              onClick={exportCSV}
+              style={{
+                width: "100%", padding: "10px 0", marginBottom: 16,
+                background: "var(--sky-light)", border: "0.5px solid var(--sky)",
+                borderRadius: "var(--radius-md)", color: "var(--sky)",
+                fontSize: 14, fontWeight: 500, cursor: "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+              }}
+            >
+              <i className="ti ti-download" aria-hidden="true" />
+              {t("settings_export_before_delete")}
+            </button>
+            <p style={{ fontSize: 13, color: "var(--ink-3)", marginBottom: 8 }}>
+              {t("settings_delete_confirm_password")}
+            </p>
+            <input
+              type="password"
+              value={deletePassword}
+              onChange={(e) => setDeletePassword(e.target.value)}
+              placeholder={t("settings_password_placeholder")}
+              style={{
+                width: "100%", padding: "10px 12px", marginBottom: 8,
+                border: "0.5px solid var(--rule)", borderRadius: "var(--radius-md)",
+                background: "var(--bg)", color: "var(--ink)", fontSize: 14,
+              }}
+            />
+            {deleteError && (
+              <p style={{ fontSize: 13, color: "var(--red)", marginBottom: 8 }}>{deleteError}</p>
+            )}
+            <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+              <button
+                onClick={() => { setShowDeleteModal(false); setDeletePassword(""); setDeleteError(""); }}
+                style={{
+                  flex: 1, padding: "10px 0", background: "none",
+                  border: "0.5px solid var(--rule)", borderRadius: "var(--radius-md)",
+                  color: "var(--ink-2)", fontSize: 14, cursor: "pointer",
+                }}
+              >
+                {t("cancel")}
+              </button>
+              <button
+                onClick={handleDeleteAccount}
+                disabled={!deletePassword || deleteLoading}
+                style={{
+                  flex: 1, padding: "10px 0", background: "var(--red)",
+                  border: "none", borderRadius: "var(--radius-md)",
+                  color: "#fff", fontSize: 14, fontWeight: 600,
+                  cursor: deletePassword && !deleteLoading ? "pointer" : "not-allowed",
+                  opacity: deletePassword && !deleteLoading ? 1 : 0.5,
+                }}
+              >
+                {deleteLoading ? "..." : t("settings_delete_confirm")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
