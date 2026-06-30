@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useCategoryName } from "../hooks/useCategoryName";
 
 const COLOR_MAP = {
   tang: { text: "var(--tang)", bg: "var(--tang-light)" },
@@ -12,6 +13,7 @@ const COLOR_MAP = {
 
 export default function CategoryRow({ category, total, maxTotal, subtotals, formatAmount, totalExpenses, currencySymbol = "" }) {
   const [expanded, setExpanded] = useState(false);
+  const { catName, subName: tSubName } = useCategoryName();
   const colors = COLOR_MAP[category.color] || COLOR_MAP.tang;
   const barPct = maxTotal > 0 ? Math.round((total / maxTotal) * 100) : 0;
   const sharePct = totalExpenses > 0 ? (total / totalExpenses) * 100 : 0;
@@ -34,7 +36,7 @@ export default function CategoryRow({ category, total, maxTotal, subtotals, form
           style={{ fontSize: 18, color: colors.text, flexShrink: 0 }}
           aria-hidden="true"
         />
-        <p style={{ fontSize: 13, flex: 1, minWidth: 0 }}>{category.name}</p>
+        <p style={{ fontSize: 13, flex: 1, minWidth: 0 }}>{catName(category)}</p>
         <div
           style={{
             width: 50,
@@ -93,7 +95,7 @@ export default function CategoryRow({ category, total, maxTotal, subtotals, form
                   }}
                 >
                   <span style={{ fontSize: 12, color: "var(--ink-2)" }}>
-                    {subName}
+                    {tSubName(subName, category.id)}
                   </span>
                   <span style={{ fontSize: 12, fontWeight: 500, display: "flex", gap: 6, alignItems: "baseline" }}>
                     {formatAmount(subTotal)} {currencySymbol}

@@ -25,6 +25,7 @@ const COLOR_MAP = {
 
 export default function WealthScreen({ onOpenCalculator }) {
   const t = useTranslation();
+  const { language } = useFinance();
   const {
     assets,
     defaultCurrency,
@@ -42,6 +43,7 @@ export default function WealthScreen({ onOpenCalculator }) {
 
   const [editingAsset, setEditingAsset] = useState(null);
   const [livePrices, setLivePrices] = useState({});
+  const [liveChanges, setLiveChanges] = useState({});
   const [refreshing, setRefreshing] = useState(false);
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
 
@@ -50,13 +52,17 @@ export default function WealthScreen({ onOpenCalculator }) {
   async function refreshPrices() {
     setRefreshing(true);
     const updates = {};
+    const changes = {};
     for (const asset of assets) {
       const type = ASSET_TYPES.find((t) => t.id === asset.typeId);
       if (!type?.hasApiPrice || !asset.apiId) continue;
 
       if (type.priceSource === "crypto") {
-        const { price, success } = await getCryptoPrice(asset.apiId, displayCurrency.toLowerCase());
-        if (success) updates[asset.id] = price * (asset.quantity || 1);
+        const { price, change24h, success } = await getCryptoPrice(asset.apiId, displayCurrency.toLowerCase());
+        if (success) {
+          updates[asset.id] = price * (asset.quantity || 1);
+          if (change24h !== null) changes[asset.id] = change24h;
+        }
       } else if (type.priceSource === "stocks") {
         const { price, success } = await getStockPrice(asset.apiId);
         if (success) {
@@ -66,6 +72,7 @@ export default function WealthScreen({ onOpenCalculator }) {
       }
     }
     setLivePrices(updates);
+    setLiveChanges(changes);
     setRefreshing(false);
   }
 
@@ -351,7 +358,7 @@ export default function WealthScreen({ onOpenCalculator }) {
         return (
           <div key={type.id} style={{ marginBottom: 16 }}>
             <p style={{ fontSize: 12, color: "var(--ink-3)", marginBottom: 8, fontWeight: 500 }}>
-              {type.name.toUpperCase()}
+              {(language === "en" && type.nameEn ? type.nameEn : type.name).toUpperCase()}
             </p>
             <div
               style={{
@@ -400,9 +407,16 @@ export default function WealthScreen({ onOpenCalculator }) {
                           {asset.ownership === "shared" && ` (${asset.sharePct ?? 50}/${100 - (asset.sharePct ?? 50)})`}
                         </p>
                       </div>
-                      <p style={{ fontSize: 14, fontWeight: 500, color: type.isLiability ? "var(--red)" : "var(--ink)" }}>
-                        {type.isLiability ? "−" : ""}{formatAmount(val)} {currencySymbol}
-                      </p>
+                      <div style={{ textAlign: "right" }}>
+                        <p style={{ fontSize: 14, fontWeight: 500, color: type.isLiability ? "var(--red)" : "var(--ink)" }}>
+                          {type.isLiability ? "−" : ""}{formatAmount(val)} {currencySymbol}
+                        </p>
+                        {liveChanges[asset.id] !== undefined && (
+                          <p style={{ fontSize: 11, color: liveChanges[asset.id] >= 0 ? "var(--sage)" : "var(--tang)", marginTop: 1 }}>
+                            {liveChanges[asset.id] >= 0 ? "+" : ""}{liveChanges[asset.id].toFixed(2)}%
+                          </p>
+                        )}
+                      </div>
                     </div>
                     {type.id === "account" && (
                       <div style={{ paddingLeft: 46, paddingRight: 14, paddingBottom: 10 }}>

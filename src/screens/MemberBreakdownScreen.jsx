@@ -2,6 +2,8 @@ import { useState, useMemo } from "react";
 import { useFinance } from "../context/FinanceContext";
 import { CURRENCIES } from "../data/categories";
 import { useTranslation } from "../hooks/useTranslation";
+import { useExchangeRates } from "../hooks/useExchangeRates";
+import { useCategoryName } from "../hooks/useCategoryName";
 
 const COLOR_MAP = {
   tang: { text: "var(--tang)", bg: "var(--tang-light)" },
@@ -15,7 +17,10 @@ const COLOR_MAP = {
 
 export default function MemberBreakdownScreen({ onClose }) {
   const t = useTranslation();
-  const { categories, members, transactions, defaultCurrency } = useFinance();
+  const { categories, members, transactions, defaultCurrency, dashboardDisplayCurrency } = useFinance();
+  const displayCurrency = dashboardDisplayCurrency || defaultCurrency;
+  const { convert } = useExchangeRates(displayCurrency);
+  const { catName, subName: tSubName } = useCategoryName();
   const [selectedMember, setSelectedMember] = useState(members[0]?.uid || null);
   const [expandedCat, setExpandedCat] = useState(null);
 
@@ -27,12 +32,11 @@ export default function MemberBreakdownScreen({ onClose }) {
     });
   }, [transactions]);
 
-  const currencySymbol = CURRENCIES.find((c) => c.code === defaultCurrency)?.symbol || defaultCurrency;
+  const currencySymbol = CURRENCIES.find((c) => c.code === displayCurrency)?.symbol || displayCurrency;
 
   function toBase(tx) {
-    return tx.convertedAmount !== undefined && tx.convertedCurrency === defaultCurrency
-      ? tx.convertedAmount
-      : tx.amount;
+    if (tx.convertedAmount !== undefined && tx.convertedCurrency === displayCurrency) return tx.convertedAmount;
+    return convert(tx.amount, tx.currency, displayCurrency);
   }
 
   // Pour chaque catégorie/sous-catégorie, calcule la part du membre sélectionné
@@ -189,7 +193,7 @@ export default function MemberBreakdownScreen({ onClose }) {
                       }}
                     >
                       <i className={`ti ${category.icon}`} style={{ fontSize: 18, color: colors.text }} aria-hidden="true" />
-                      <p style={{ fontSize: 13, flex: 1 }}>{category.name}</p>
+                      <p style={{ fontSize: 13, flex: 1 }}>{catName(category)}</p>
                       <div style={{ width: 50, height: 5, background: "var(--rule)", borderRadius: 4, overflow: "hidden" }}>
                         <div style={{ width: `${barPct}%`, height: 5, background: colors.text }} />
                       </div>
@@ -219,7 +223,7 @@ export default function MemberBreakdownScreen({ onClose }) {
                               key={subName}
                               style={{ display: "flex", justifyContent: "space-between", padding: "5px 0" }}
                             >
-                              <span style={{ fontSize: 12, color: "var(--ink-2)" }}>{subName}</span>
+                              <span style={{ fontSize: 12, color: "var(--ink-2)" }}>{tSubName(subName, category.id)}</span>
                               <span style={{ fontSize: 12, fontWeight: 500 }}>
                                 {formatAmount(subTotal)} {currencySymbol}
                               </span>
