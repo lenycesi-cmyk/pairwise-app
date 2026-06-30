@@ -64,10 +64,12 @@ export default function WealthScreen({ onOpenCalculator }) {
           if (change24h !== null) changes[asset.id] = change24h;
         }
       } else if (type.priceSource === "stocks") {
-        const { price, success } = await getStockPrice(asset.apiId);
+        const { price, change24h, success } = await getStockPrice(asset.apiId);
         if (success) {
           const converted = convert(price, "USD", displayCurrency);
           updates[asset.id] = converted * (asset.quantity || 1);
+          // percent_change is currency-independent, no conversion needed
+          if (change24h !== null) changes[asset.id] = change24h;
         }
       }
     }
