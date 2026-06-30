@@ -111,6 +111,8 @@ export const TRANSLATIONS = {
     wealth_period_1y: "1 an",
     wealth_period_all: "Tout",
     wealth_period_over: "sur",
+    wealth_price_unavailable: "Prix indisponible — l'API de cotation n'a pas répondu pour cet actif. Ajoutez votre propre clé API pour fiabiliser les cours boursiers.",
+    wealth_price_unavailable_short: "Prix indispo.",
 
     // Advanced split
     split_amount_unit: "Montant",
@@ -374,6 +376,8 @@ export const TRANSLATIONS = {
     wealth_period_1y: "1 year",
     wealth_period_all: "All",
     wealth_period_over: "over",
+    wealth_price_unavailable: "Price unavailable — the quote API did not return a price for this asset. Add your own API key for reliable stock quotes.",
+    wealth_price_unavailable_short: "Price N/A",
 
     // Advanced split
     split_amount_unit: "Amount",
