@@ -13,7 +13,9 @@ function generateCoupleCode() {
 }
 
 export default function CoupleSetupScreen() {
-  const { user, setCoupleId } = useAuth();
+  const { user, setCoupleId, setOnboardingComplete } = useAuth();
+  // null = ask solo vs couple first; "couple-choice" = create/join buttons;
+  // "join" = join-by-code form. Solo skips straight to handleCreate below.
   const [mode, setMode] = useState(null);
   const [joinCode, setJoinCode] = useState("");
   const [error, setError] = useState("");
@@ -21,7 +23,7 @@ export default function CoupleSetupScreen() {
   const [createdCode, setCreatedCode] = useState("");
   const [pendingCoupleId, setPendingCoupleId] = useState(null);
 
-  async function handleCreate() {
+  async function handleCreate({ showCode = true } = {}) {
     setBusy(true);
     setError("");
     try {
@@ -34,15 +36,22 @@ export default function CoupleSetupScreen() {
         memberUids: [user.uid],
         defaultCurrency: "EUR",
       });
-      // On enregistre le coupleId dans le profil SANS faire basculer l'écran
-      // tout de suite, pour que la personne ait le temps de voir le code
+      // onboardingComplete: false triggers the setup wizard right after this
+      // screen (see App.jsx) — only set on a genuinely new couple.
       await setDoc(
         doc(db, "users", user.uid),
-        { coupleId: code },
+        { coupleId: code, onboardingComplete: false },
         { merge: true }
       );
-      setPendingCoupleId(code);
-      setCreatedCode(code);
+      if (showCode) {
+        // On enregistre le coupleId dans le profil SANS faire basculer l'écran
+        // tout de suite, pour que la personne ait le temps de voir le code
+        setPendingCoupleId(code);
+        setCreatedCode(code);
+      } else {
+        setOnboardingComplete(false);
+        setCoupleId(code);
+      }
     } catch (err) {
       setError("Erreur lors de la création. Réessayez.");
     } finally {
@@ -73,7 +82,8 @@ export default function CoupleSetupScreen() {
         );
       }
       // Sauvegarde permanente dans le profil utilisateur (sinon perdu au refresh)
-      await setDoc(doc(db, "users", user.uid), { coupleId: code }, { merge: true });
+      await setDoc(doc(db, "users", user.uid), { coupleId: code, onboardingComplete: false }, { merge: true });
+      setOnboardingComplete(false);
       setCoupleId(code);
     } catch (err) {
       console.error("Erreur jointure couple:", err);
@@ -112,7 +122,7 @@ export default function CoupleSetupScreen() {
           {createdCode}
         </div>
         <button
-          onClick={() => setCoupleId(pendingCoupleId)}
+          onClick={() => { setOnboardingComplete(false); setCoupleId(pendingCoupleId); }}
           style={{
             background: "var(--ink)",
             color: "var(--bg)",
@@ -183,7 +193,7 @@ export default function CoupleSetupScreen() {
           </button>
         </form>
         <button
-          onClick={() => setMode(null)}
+          onClick={() => setMode("couple-choice")}
           style={{
             marginTop: 16,
             background: "none",
@@ -198,10 +208,84 @@ export default function CoupleSetupScreen() {
     );
   }
 
+  if (mode === "couple-choice") {
+    return (
+      <div style={screenStyle}>
+        <i
+          className="ti ti-users"
+          style={{ fontSize: 40, color: "var(--tang)", marginBottom: 16 }}
+          aria-hidden="true"
+        />
+        <h1 style={{ fontSize: 22, marginBottom: 8, textAlign: "center" }}>
+          Bienvenue sur Pairwise
+        </h1>
+        <p
+          style={{
+            fontSize: 14,
+            color: "var(--ink-3)",
+            marginBottom: 32,
+            textAlign: "center",
+          }}
+        >
+          Créez votre espace ou rejoignez celui de votre partenaire
+        </p>
+
+        <button
+          onClick={() => handleCreate({ showCode: true })}
+          disabled={busy}
+          style={{
+            background: "var(--ink)",
+            color: "var(--bg)",
+            border: "none",
+            borderRadius: "var(--radius-md)",
+            padding: 16,
+            fontSize: 15,
+            fontWeight: 500,
+            width: "100%",
+            marginBottom: 12,
+            opacity: busy ? 0.6 : 1,
+          }}
+        >
+          {busy ? "Création..." : "Créer notre espace"}
+        </button>
+        <button
+          onClick={() => setMode("join")}
+          style={{
+            background: "var(--bg-card)",
+            color: "var(--ink)",
+            border: "0.5px solid var(--rule)",
+            borderRadius: "var(--radius-md)",
+            padding: 16,
+            fontSize: 15,
+            fontWeight: 500,
+            width: "100%",
+          }}
+        >
+          Rejoindre avec un code
+        </button>
+        {error && (
+          <p style={{ fontSize: 13, color: "var(--red)", marginTop: 12 }}>
+            {error}
+          </p>
+        )}
+        <button
+          onClick={() => setMode(null)}
+          style={{ marginTop: 16, background: "none", border: "none", fontSize: 13, color: "var(--ink-3)" }}
+        >
+          Retour
+        </button>
+      </div>
+    );
+  }
+
+  // Écran initial : seul·e ou en couple. Solo crée un espace à un seul
+  // membre en arrière-plan (sans montrer de code, sans forcer une invitation)
+  // — l'option d'inviter un partenaire reste accessible plus tard depuis
+  // Réglages, donc rien n'est perdu à choisir "seul·e" maintenant.
   return (
     <div style={screenStyle}>
       <i
-        className="ti ti-users"
+        className="ti ti-heart"
         style={{ fontSize: 40, color: "var(--tang)", marginBottom: 16 }}
         aria-hidden="true"
       />
@@ -216,11 +300,12 @@ export default function CoupleSetupScreen() {
           textAlign: "center",
         }}
       >
-        Créez votre espace ou rejoignez celui de votre partenaire
+        Tu prévois d'utiliser Pairwise seul·e ou en couple ? Tu pourras
+        toujours changer plus tard.
       </p>
 
       <button
-        onClick={handleCreate}
+        onClick={() => setMode("couple-choice")}
         disabled={busy}
         style={{
           background: "var(--ink)",
@@ -235,10 +320,11 @@ export default function CoupleSetupScreen() {
           opacity: busy ? 0.6 : 1,
         }}
       >
-        {busy ? "Création..." : "Créer notre espace"}
+        En couple
       </button>
       <button
-        onClick={() => setMode("join")}
+        onClick={() => handleCreate({ showCode: false })}
+        disabled={busy}
         style={{
           background: "var(--bg-card)",
           color: "var(--ink)",
@@ -248,9 +334,10 @@ export default function CoupleSetupScreen() {
           fontSize: 15,
           fontWeight: 500,
           width: "100%",
+          opacity: busy ? 0.6 : 1,
         }}
       >
-        Rejoindre avec un code
+        {busy ? "Création..." : "Seul·e"}
       </button>
       {error && (
         <p style={{ fontSize: 13, color: "var(--red)", marginTop: 12 }}>

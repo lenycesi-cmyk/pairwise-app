@@ -5,6 +5,7 @@ import { useRecurringGenerator } from "./hooks/useRecurringGenerator";
 import { useBudgetAlerts } from "./hooks/useBudgetAlerts";
 import AuthScreen from "./screens/AuthScreen";
 import CoupleSetupScreen from "./screens/CoupleSetupScreen";
+import OnboardingScreen from "./screens/OnboardingScreen";
 import DashboardScreen from "./screens/DashboardScreen";
 import BottomNav from "./components/BottomNav";
 
@@ -61,7 +62,7 @@ function ModalWrapper({ onClose, children }) {
 }
 
 function AppContent() {
-  const { user, coupleId, loading } = useAuth();
+  const { user, coupleId, onboardingComplete, loading } = useAuth();
   const [tab, setTab] = useState("dashboard");
   const [showAdd, setShowAdd] = useState(false);
   const [editingTx, setEditingTx] = useState(null);
@@ -113,6 +114,14 @@ function AppContent() {
     } else {
       setShowAdd(true);
     }
+  }
+
+  if (!onboardingComplete) {
+    return (
+      <FinanceProvider>
+        <OnboardingScreen />
+      </FinanceProvider>
+    );
   }
 
   return (

@@ -17,6 +17,10 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [coupleId, setCoupleId] = useState(null);
+  // Only ever explicitly false right after a fresh couple create/join (see
+  // CoupleSetupScreen) — missing/undefined defaults to true so existing
+  // users (who predate this field) never get routed back into onboarding.
+  const [onboardingComplete, setOnboardingComplete] = useState(true);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -25,11 +29,14 @@ export function AuthProvider({ children }) {
         setUser(firebaseUser);
         const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
         if (userDoc.exists()) {
-          setCoupleId(userDoc.data().coupleId || null);
+          const data = userDoc.data();
+          setCoupleId(data.coupleId || null);
+          setOnboardingComplete(data.onboardingComplete !== false);
         }
       } else {
         setUser(null);
         setCoupleId(null);
+        setOnboardingComplete(true);
       }
       setLoading(false);
     });
@@ -108,9 +115,18 @@ export function AuthProvider({ children }) {
     setUser({ ...auth.currentUser });
   }
 
+  async function completeOnboarding() {
+    if (!user) return;
+    await setDoc(doc(db, "users", user.uid), { onboardingComplete: true }, { merge: true });
+    setOnboardingComplete(true);
+  }
+
   const value = {
     user,
     coupleId,
+    onboardingComplete,
+    setOnboardingComplete,
+    completeOnboarding,
     loading,
     signup,
     login,

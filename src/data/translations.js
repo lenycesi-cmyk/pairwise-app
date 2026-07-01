@@ -1,5 +1,12 @@
 export const TRANSLATIONS = {
   fr: {
+    // Onboarding
+    onboarding_currency_title: "Quelle devise utilises-tu au quotidien ?",
+    onboarding_currency_subtitle: "Tu pourras toujours en ajouter d'autres plus tard.",
+    onboarding_continue: "Continuer",
+    onboarding_finish: "Terminer",
+    onboarding_skip_all: "Configurer plus tard",
+
     // Navigation
     nav_home: "Accueil",
     nav_history: "Historique",
@@ -279,6 +286,13 @@ export const TRANSLATIONS = {
   },
 
   en: {
+    // Onboarding
+    onboarding_currency_title: "What currency do you use day-to-day?",
+    onboarding_currency_subtitle: "You can always add more later.",
+    onboarding_continue: "Continue",
+    onboarding_finish: "Finish",
+    onboarding_skip_all: "Set up later",
+
     // Navigation
     nav_home: "Home",
     nav_history: "History",
