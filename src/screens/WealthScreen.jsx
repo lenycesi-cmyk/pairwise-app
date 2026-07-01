@@ -24,7 +24,7 @@ const COLOR_MAP = {
   red: { text: "var(--red)", bg: "var(--red-light)" },
 };
 
-export default function WealthScreen({ onOpenCalculator }) {
+export default function WealthScreen({ onOpenCalculator, addButtonRef }) {
   const t = useTranslation();
   const { language } = useFinance();
   const netWorthCardRef = useRef(null);
@@ -185,7 +185,13 @@ export default function WealthScreen({ onOpenCalculator }) {
         </button>
       </div>
 
-      <SpotlightHint tabKey="wealth" targetRef={netWorthCardRef} text={t("hint_wealth")} />
+      <SpotlightHint
+        tabKey="wealth"
+        steps={[
+          { ref: netWorthCardRef, text: t("hint_wealth") },
+          addButtonRef && { ref: addButtonRef, text: t("hint_wealth_add") },
+        ].filter(Boolean)}
+      />
 
       {showCurrencyPicker && (
         <div

@@ -1,4 +1,4 @@
-import { useState, lazy, Suspense } from "react";
+import { useState, useRef, lazy, Suspense } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { FinanceProvider } from "./context/FinanceContext";
 import { useRecurringGenerator } from "./hooks/useRecurringGenerator";
@@ -82,6 +82,8 @@ function AppContent() {
   const now = new Date();
   const [sharedMonth, setSharedMonth] = useState({ month: now.getMonth(), year: now.getFullYear() });
   const [budgetAddSignal, setBudgetAddSignal] = useState(0);
+  const addButtonRef = useRef(null);
+  const settingsButtonRef = useRef(null);
 
   if (loading) {
     return (
@@ -130,6 +132,7 @@ function AppContent() {
       <BudgetAlertsRunner />
 
       <button
+        ref={settingsButtonRef}
         onClick={() => setShowSettings(true)}
         aria-label="Réglages"
         style={{
@@ -158,6 +161,8 @@ function AppContent() {
           onEditTransaction={openEdit}
           sharedMonth={sharedMonth}
           onSharedMonthChange={setSharedMonth}
+          addButtonRef={addButtonRef}
+          settingsButtonRef={settingsButtonRef}
         />
       )}
       {tab === "reports" && (
@@ -171,7 +176,7 @@ function AppContent() {
       )}
       {tab === "wealth" && (
         <Suspense fallback={null}>
-          <WealthScreen onOpenCalculator={() => setShowCalculator(true)} />
+          <WealthScreen onOpenCalculator={() => setShowCalculator(true)} addButtonRef={addButtonRef} />
         </Suspense>
       )}
       {tab === "budget" && (
@@ -180,7 +185,7 @@ function AppContent() {
         </Suspense>
       )}
 
-      <BottomNav active={tab} onChange={setTab} onAddClick={handleCentralAdd} />
+      <BottomNav active={tab} onChange={setTab} onAddClick={handleCentralAdd} addButtonRef={addButtonRef} />
 
       <Suspense fallback={null}>
         {showAdd && <AddTransactionScreen onClose={closeAdd} editingTx={editingTx} />}
