@@ -117,11 +117,6 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
 
   const debt = useDebtCalculation(transactions, members, displayCurrency, convert);
   const memberColorMap = useMemo(() => buildMemberColorMap(members), [members]);
-  const { progress: budgetProgress } = useBudgetProgress();
-  const topBudgets = useMemo(
-    () => [...budgetProgress].sort((a, b) => b.pct - a.pct).slice(0, 3),
-    [budgetProgress]
-  );
 
   const now = new Date();
   // Controlled by the shared month state in App.jsx when provided (keeps Home
@@ -130,6 +125,15 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
   const [localMonth, setLocalMonth] = useState({ month: now.getMonth(), year: now.getFullYear() });
   const { month: viewMonth, year: viewYear } = sharedMonth ?? localMonth;
   const setViewMonthYear = onSharedMonthChange ?? setLocalMonth;
+
+  // Budget progress must follow the currently viewed month, not always the
+  // real calendar month — otherwise the widget silently shows next/prev
+  // month's spend while the rest of the screen is browsing a different one.
+  const { progress: budgetProgress } = useBudgetProgress(viewMonth, viewYear);
+  const topBudgets = useMemo(
+    () => [...budgetProgress].sort((a, b) => b.pct - a.pct).slice(0, 3),
+    [budgetProgress]
+  );
 
   function changeMonth(delta) {
     let m = viewMonth + delta;

@@ -25,6 +25,7 @@ export function FinanceProvider({ children }) {
   const [transactions, setTransactions] = useState([]);
   const [categories, setCategories] = useState(ALL_CATEGORIES);
   const [members, setMembers] = useState([]);
+  const [coupleName, setCoupleName] = useState("");
   const [loading, setLoading] = useState(true);
   const [defaultCurrency, setDefaultCurrency] = useState("EUR");
   const [currencyMode, setCurrencyMode] = useState("fixed");
@@ -74,6 +75,7 @@ export function FinanceProvider({ children }) {
         if (data.categories) setCategories(data.categories);
         if (data.defaultCurrency) setDefaultCurrency(data.defaultCurrency);
         if (data.members) setMembers(data.members);
+        if (data.coupleName !== undefined) setCoupleName(data.coupleName);
         if (data.currencyMode) setCurrencyMode(data.currencyMode);
         if (data.lastUsedCurrency) setLastUsedCurrency(data.lastUsedCurrency);
         if (data.recurringTx) setRecurringTx(data.recurringTx);
@@ -296,6 +298,11 @@ export function FinanceProvider({ children }) {
     );
   }
 
+  async function updateCoupleName(name) {
+    if (!coupleId) return;
+    await setDoc(doc(db, "couples", coupleId), { coupleName: name }, { merge: true });
+  }
+
   async function updateMemberAvatarColor(uid, avatarColor) {
     if (!coupleId) return;
     const updatedMembers = members.map((m) =>
@@ -344,6 +351,8 @@ export function FinanceProvider({ children }) {
     transactions,
     categories,
     members,
+    coupleName,
+    updateCoupleName,
     loading,
     defaultCurrency,
     currencyMode,

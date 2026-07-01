@@ -19,9 +19,10 @@ function monthsAgoRange(n) {
 export default function BudgetScreen({ openSignal }) {
   const t = useTranslation();
   const { catName, subName } = useCategoryName();
-  const { categories, transactions, budgets, addBudget, updateBudget, removeBudget, defaultCurrency, members } =
+  const { categories, transactions, budgets, addBudget, updateBudget, removeBudget, defaultCurrency, members, coupleName } =
     useFinance();
   const { progress } = useBudgetProgress();
+  const coupleLabel = coupleName || t("budget_for_couple");
   const { convert } = useExchangeRates(defaultCurrency);
 
   const [showForm, setShowForm] = useState(false);
@@ -29,6 +30,7 @@ export default function BudgetScreen({ openSignal }) {
   const [editingId, setEditingId] = useState(null);
   const [name, setName] = useState("");
   const [scope, setScope] = useState("global");
+  const [period, setPeriod] = useState("monthly");
   // Map of selected categoryId -> array of currently-included subcategory
   // names. Selecting a category includes ALL its subcategories by default;
   // the subcategory refine UI (shown only for selected categories) lets the
@@ -54,6 +56,7 @@ export default function BudgetScreen({ openSignal }) {
     setEditingId(null);
     setName("");
     setScope("global");
+    setPeriod("monthly");
     setCategorySelection({});
     setExpandedCatId(null);
     setAmount("");
@@ -103,6 +106,7 @@ export default function BudgetScreen({ openSignal }) {
       if (ids.length === 0) continue;
       await addBudget({
         scope: "category",
+        period: "monthly",
         categoryIds: ids,
         amount: Math.round(avgIncome * GROUP_PCT[key]),
         currency: defaultCurrency,
@@ -126,6 +130,7 @@ export default function BudgetScreen({ openSignal }) {
     setEditingId(b.id);
     setName(b.name || "");
     setScope(b.scope);
+    setPeriod(b.period || "monthly");
     const selection = {};
     for (const catId of b.categoryIds || []) {
       const cat = categories.find((c) => c.id === catId);
@@ -194,6 +199,7 @@ export default function BudgetScreen({ openSignal }) {
     const payload = {
       name: name.trim() || null,
       scope,
+      period,
       categoryIds: scope === "global" ? [] : categoryIds,
       subcategoryKeys: scope === "global" ? [] : subcategoryKeys,
       amount: parseFloat(amount),
@@ -237,8 +243,8 @@ export default function BudgetScreen({ openSignal }) {
   }
 
   function memberLabel(b) {
-    if (!b.memberUid || b.memberUid === "couple") return t("budget_for_couple");
-    return members.find((m) => m.uid === b.memberUid)?.name || t("budget_for_couple");
+    if (!b.memberUid || b.memberUid === "couple") return coupleLabel;
+    return members.find((m) => m.uid === b.memberUid)?.name || coupleLabel;
   }
 
   return (
@@ -430,6 +436,30 @@ export default function BudgetScreen({ openSignal }) {
             ))}
           </div>
 
+          <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>{t("budget_period")}</p>
+          <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
+            {[
+              { key: "monthly", label: t("budget_period_monthly") },
+              { key: "yearly", label: t("budget_period_yearly") },
+            ].map((p) => (
+              <button
+                key={p.key}
+                onClick={() => setPeriod(p.key)}
+                style={{
+                  flex: 1,
+                  padding: 8,
+                  borderRadius: "var(--radius-md)",
+                  border: "0.5px solid var(--rule)",
+                  background: period === p.key ? "var(--lavi-light)" : "var(--bg)",
+                  color: period === p.key ? "var(--lavi)" : "var(--ink)",
+                  fontSize: 12,
+                }}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+
           {members.length > 0 && (
             <>
               <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>{t("budget_for")}</p>
@@ -446,7 +476,7 @@ export default function BudgetScreen({ openSignal }) {
                     fontSize: 12,
                   }}
                 >
-                  {t("budget_for_couple")}
+                  {coupleLabel}
                 </button>
                 {members.map((m) => (
                   <button
@@ -688,6 +718,7 @@ export default function BudgetScreen({ openSignal }) {
                 )}
                 <p style={{ fontSize: 11, color: "var(--ink-3)" }}>
                   {Math.round(spent).toLocaleString("fr-FR")} / {Math.round(amountInBase).toLocaleString("fr-FR")} {defaultCurrency}
+                  {budget.period === "yearly" && ` · ${t("budget_period_yearly")}`}
                 </p>
               </div>
               <p style={{ fontSize: 13, fontWeight: 500, color: barColor }}>
