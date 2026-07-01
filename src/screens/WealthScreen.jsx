@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useFinance } from "../context/FinanceContext";
 import { useExchangeRates } from "../hooks/useExchangeRates";
 import { ASSET_TYPES } from "../data/assetTypes";
@@ -11,7 +11,7 @@ import AllocationChart from "../components/AllocationChart";
 import Avatar from "../components/Avatar";
 import { buildMemberColorMap } from "../utils/memberColors";
 import { useTranslation } from "../hooks/useTranslation";
-import TabHint from "../components/TabHint";
+import SpotlightHint from "../components/SpotlightHint";
 
 const COLOR_MAP = {
   tang: { text: "var(--tang)", bg: "var(--tang-light)" },
@@ -27,6 +27,7 @@ const COLOR_MAP = {
 export default function WealthScreen({ onOpenCalculator }) {
   const t = useTranslation();
   const { language } = useFinance();
+  const netWorthCardRef = useRef(null);
   const {
     assets,
     defaultCurrency,
@@ -184,7 +185,7 @@ export default function WealthScreen({ onOpenCalculator }) {
         </button>
       </div>
 
-      <TabHint tabKey="wealth">{t("hint_wealth")}</TabHint>
+      <SpotlightHint tabKey="wealth" targetRef={netWorthCardRef} text={t("hint_wealth")} />
 
       {showCurrencyPicker && (
         <div
@@ -214,6 +215,7 @@ export default function WealthScreen({ onOpenCalculator }) {
 
       {/* Net worth total */}
       <div
+        ref={netWorthCardRef}
         style={{
           background: "var(--bg-card)",
           borderRadius: "var(--radius-lg)",

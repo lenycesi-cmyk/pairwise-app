@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useFinance } from "../context/FinanceContext";
 import { useTranslation } from "../hooks/useTranslation";
 import { useCategoryName } from "../hooks/useCategoryName";
@@ -6,7 +6,7 @@ import { useBudgetProgress } from "../hooks/useBudgetProgress";
 import { useExchangeRates } from "../hooks/useExchangeRates";
 import { CURRENCIES } from "../data/categories";
 import { BUDGET_GROUPS, BUDGET_GROUP_KEYS } from "../data/budgetGroups";
-import TabHint from "../components/TabHint";
+import SpotlightHint from "../components/SpotlightHint";
 
 const EXPENSE_EXCLUDED = ["income", "investment", "savings"];
 const GROUP_PCT = { essential: 0.5, fun: 0.3, investment: 0.2 };
@@ -27,6 +27,7 @@ export default function BudgetScreen({ openSignal }) {
   const { convert } = useExchangeRates(defaultCurrency);
 
   const [showForm, setShowForm] = useState(false);
+  const addButtonRef = useRef(null);
   const [quickMode, setQuickMode] = useState(null); // null | "5030" | "history" | "manual"
   const [editingId, setEditingId] = useState(null);
   const [name, setName] = useState("");
@@ -263,7 +264,7 @@ export default function BudgetScreen({ openSignal }) {
             : t("budget_title")}
         </h1>
         {!showForm && (
-          <button onClick={openNew} aria-label={t("common_add")} style={{ background: "none", border: "none" }}>
+          <button ref={addButtonRef} onClick={openNew} aria-label={t("common_add")} style={{ background: "none", border: "none" }}>
             <i className="ti ti-plus" style={{ fontSize: 20 }} aria-hidden="true" />
           </button>
         )}
@@ -278,7 +279,7 @@ export default function BudgetScreen({ openSignal }) {
         )}
       </div>
 
-      {!showForm && <TabHint tabKey="budget">{t("hint_budget")}</TabHint>}
+      {!showForm && <SpotlightHint tabKey="budget" targetRef={addButtonRef} text={t("hint_budget")} />}
 
       {showForm && quickMode === null && (
         <div
