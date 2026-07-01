@@ -36,6 +36,38 @@ const MONTHS = [
 
 const LONG_PRESS_DELAY = 500;
 
+// Recurring rules don't store an explicit "next date" field — only
+// frequency/dayOfMonth/lastGenerated (see useRecurringGenerator's
+// shouldGenerate) — so we derive one for display purposes, mirroring that
+// same logic as closely as the stored fields allow.
+function nextOccurrence(rule, now) {
+  if (rule.frequency === "monthly") {
+    const day = rule.dayOfMonth || 1;
+    let year = now.getFullYear();
+    let month = now.getMonth();
+    if (now.getDate() > day) { month += 1; if (month > 11) { month = 0; year += 1; } }
+    const clampedDay = Math.min(day, new Date(year, month + 1, 0).getDate());
+    return new Date(year, month, clampedDay);
+  }
+  if (rule.frequency === "weekly") {
+    if (rule.lastGenerated) {
+      const d = new Date(rule.lastGenerated);
+      d.setDate(d.getDate() + 7);
+      return d;
+    }
+    return now;
+  }
+  if (rule.frequency === "yearly") {
+    if (rule.lastGenerated) {
+      const d = new Date(rule.lastGenerated);
+      d.setFullYear(d.getFullYear() + 1);
+      return d;
+    }
+    return null;
+  }
+  return null;
+}
+
 // ── Sortable widget wrapper ──────────────────────────────────────────────────
 function SortableWidget({ id, editMode, onLongPress, children }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
@@ -100,7 +132,7 @@ function SortableWidget({ id, editMode, onLongPress, children }) {
 }
 
 // ── Main component ───────────────────────────────────────────────────────────
-export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTransactions, onEditTransaction, sharedMonth, onSharedMonthChange }) {
+export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTransactions, onEditTransaction, sharedMonth, onSharedMonthChange, addButtonRef, settingsButtonRef }) {
   const t = useTranslation();
   const { catName } = useCategoryName();
   const {
@@ -112,6 +144,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const customizeButtonRef = useRef(null);
+  const currencyButtonRef = useRef(null);
 
   const { widgets, saveWidgets } = useDashboardPrefs();
   const [localWidgets, setLocalWidgets] = useState(null);
@@ -317,12 +350,13 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
         );
 
       case "budget_tracking":
-        if (topBudgets.length === 0) return null;
         return (
           <div>
             <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>{t("dashboard_budget_progress")}</p>
             <div style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "0.75rem 1.25rem" }}>
-              {topBudgets.map(({ budget, pct }, i) => {
+              {topBudgets.length === 0 ? (
+                <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", padding: "0.75rem 0" }}>{t("widget_budget_empty")}</p>
+              ) : topBudgets.map(({ budget, pct }, i) => {
                 const over = pct >= 100;
                 const warn = pct >= (budget.alertThreshold ?? 80);
                 const barColor = over ? "var(--red)" : warn ? "var(--amber)" : "var(--sky)";
@@ -479,9 +513,11 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
         );
 
       case "recurring": {
-        const upcoming = [...recurringTx]
+        const now = new Date();
+        const upcoming = recurringTx
           .filter((r) => r.active !== false)
-          .sort((a, b) => (a.nextDate || "").localeCompare(b.nextDate || ""))
+          .map((r) => ({ ...r, nextDate: nextOccurrence(r, now) }))
+          .sort((a, b) => (a.nextDate?.getTime() ?? Infinity) - (b.nextDate?.getTime() ?? Infinity))
           .slice(0, 3);
         return (
           <div>
@@ -497,7 +533,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                       <i className={`ti ${cat?.icon || "ti-refresh"}`} style={{ fontSize: 16, color: "var(--ink-3)" }} aria-hidden="true" />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <p style={{ fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.description || cat?.name}</p>
-                        {r.nextDate && <p style={{ fontSize: 11, color: "var(--ink-3)" }}>{new Date(r.nextDate).toLocaleDateString("fr-FR")}</p>}
+                        {r.nextDate && <p style={{ fontSize: 11, color: "var(--ink-3)" }}>{r.nextDate.toLocaleDateString("fr-FR")}</p>}
                       </div>
                       <p style={{ fontSize: 13, fontWeight: 500 }}>{Math.round(r.amount).toLocaleString("fr-FR")} {r.currency}</p>
                     </div>
@@ -561,6 +597,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
           ) : (
             <>
               <button
+                ref={currencyButtonRef}
                 onClick={() => setShowCurrencyPicker(!showCurrencyPicker)}
                 style={{
                   padding: "4px 10px", borderRadius: "var(--radius-md)", border: "0.5px solid var(--rule)",
@@ -587,7 +624,15 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
       </div>
 
       {!editMode && (
-        <SpotlightHint tabKey="dashboard" targetRef={customizeButtonRef} text={t("hint_dashboard")} />
+        <SpotlightHint
+          tabKey="dashboard"
+          steps={[
+            addButtonRef && { ref: addButtonRef, text: t("hint_dashboard_add") },
+            { ref: currencyButtonRef, text: t("hint_dashboard_currency") },
+            settingsButtonRef && { ref: settingsButtonRef, text: t("hint_dashboard_settings") },
+            { ref: customizeButtonRef, text: t("hint_dashboard_customize") },
+          ].filter(Boolean)}
+        />
       )}
 
       {/* Edit mode hint */}

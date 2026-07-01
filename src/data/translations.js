@@ -1,11 +1,18 @@
 export const TRANSLATIONS = {
   fr: {
     // First-visit tab hints
-    hint_dashboard: "Bienvenue ! Personnalise cet écran en appuyant sur le crayon en haut à droite, et ajoute une transaction avec le bouton + en bas.",
+    hint_dashboard_add: "Ajoute une dépense, un revenu ou un investissement en un tap, où que tu sois dans l'app.",
+    hint_dashboard_currency: "Choisis la devise d'affichage du tableau de bord. Tes transactions gardent toujours leur devise d'origine — seul l'affichage change.",
+    hint_dashboard_settings: "Retrouve ici tes catégories, la langue, le thème, ton profil et les alertes de budget.",
+    hint_dashboard_customize: "Personnalise cet écran : réorganise ou masque les widgets avec le crayon.",
     hint_reports: "Compare tes périodes, filtre par catégorie et suis l'évolution de tes finances dans le temps.",
     hint_budget: "Crée ton premier budget avec le bouton + en bas — global, par catégorie, mensuel ou annuel.",
-    hint_wealth: "Ajoute tes comptes, investissements et dettes ici pour suivre ton patrimoine net.",
+    hint_wealth: "Ton patrimoine net, calculé à partir de tous tes comptes, investissements et dettes.",
+    hint_wealth_add: "Ajoute un compte bancaire, un actif (ETF, immobilier, crypto...) ou un crédit avec ce bouton.",
     hint_got_it: "Compris",
+    hint_next: "Suivant",
+    hint_previous: "Précédent",
+    widget_budget_empty: "Aucun budget pour l'instant. Crée-en un dans l'onglet Budget.",
 
     // Onboarding
     onboarding_recurring_title: "Tes dépenses récurrentes",
@@ -319,11 +326,18 @@ export const TRANSLATIONS = {
 
   en: {
     // First-visit tab hints
-    hint_dashboard: "Welcome! Customize this screen with the pencil icon top-right, and add a transaction with the + button below.",
+    hint_dashboard_add: "Add an expense, income or investment in one tap, from anywhere in the app.",
+    hint_dashboard_currency: "Pick the dashboard's display currency. Your transactions always keep their original currency — only the display changes.",
+    hint_dashboard_settings: "Find your categories, language, theme, profile and budget alerts here.",
+    hint_dashboard_customize: "Customize this screen: reorder or hide widgets with the pencil.",
     hint_reports: "Compare your periods, filter by category, and follow your finances over time.",
     hint_budget: "Create your first budget with the + button below — global or per-category, monthly or yearly.",
-    hint_wealth: "Add your accounts, investments and debts here to track your net worth.",
+    hint_wealth: "Your net worth, computed from all your accounts, investments and debts.",
+    hint_wealth_add: "Add a bank account, an asset (ETF, real estate, crypto...) or a debt with this button.",
     hint_got_it: "Got it",
+    hint_next: "Next",
+    hint_previous: "Previous",
+    widget_budget_empty: "No budget yet. Create one in the Budget tab.",
 
     // Onboarding
     onboarding_recurring_title: "Your recurring expenses",

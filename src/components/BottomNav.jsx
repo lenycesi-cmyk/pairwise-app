@@ -1,6 +1,6 @@
 import { useTranslation } from "../hooks/useTranslation";
 
-export default function BottomNav({ active, onChange, onAddClick }) {
+export default function BottomNav({ active, onChange, onAddClick, addButtonRef }) {
   const t = useTranslation();
   const tabs = [
     { key: "dashboard", icon: "ti-home", label: t("nav_home") },
@@ -33,6 +33,7 @@ export default function BottomNav({ active, onChange, onAddClick }) {
           return (
             <button
               key={tab.key}
+              ref={addButtonRef}
               onClick={() => onAddClick(active)}
               aria-label="Ajouter"
               style={{
