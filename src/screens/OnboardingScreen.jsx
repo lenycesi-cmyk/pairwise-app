@@ -76,14 +76,21 @@ export default function OnboardingScreen() {
   const investmentPick = useQuickPick(lastCurrency, setLastCurrency);
   const [bankAccountName, setBankAccountName] = useState("");
   const [bankAccountBalance, setBankAccountBalance] = useState("");
-  // Set once the account has actually been created in Firestore (needed
-  // before ConnectBankButton can target it — Plaid's exchange step writes
-  // the connection back onto this specific asset id).
-  const [createdBankAccount, setCreatedBankAccount] = useState(null);
+  // Accounts created so far this step (multiple sources of income can land
+  // on different accounts — salary here, rental income there). Each entry
+  // is the asset object as written to Firestore, so it has a known id
+  // before ConnectBankButton can target it (Plaid's exchange step writes
+  // the connection back onto that specific asset id).
+  const [bankAccounts, setBankAccounts] = useState([]);
+  const [showAccountForm, setShowAccountForm] = useState(true);
   const [busy, setBusy] = useState(false);
 
   const step = STEPS[stepIndex];
   const isLastStep = stepIndex === STEPS.length - 1;
+
+  function goBack() {
+    setStepIndex((i) => Math.max(0, i - 1));
+  }
 
   function buildItems(selection, type) {
     return Object.entries(selection)
@@ -124,14 +131,17 @@ export default function OnboardingScreen() {
 
   // Separate from goNext: creating the account happens on its own button so
   // the just-created asset (with a known id) can be handed to
-  // ConnectBankButton without waiting for a step transition.
+  // ConnectBankButton without waiting for a step transition. Bases the write
+  // on assets + bankAccounts (not just assets) so accounts added earlier in
+  // this same step aren't lost — context's `assets` won't reflect them yet
+  // since the Firestore listener hasn't caught up.
   async function createBankAccount() {
     setBusy(true);
     try {
       const asset = {
         id: `asset_${Date.now()}`,
         typeId: "account",
-        name: bankAccountName.trim() || t("onboarding_bank_account_default_name"),
+        name: bankAccountName.trim() || `${t("onboarding_bank_account_fallback_name")}${bankAccounts.length > 0 ? ` ${bankAccounts.length + 1}` : ""}`,
         currency: lastCurrency,
         value: parseFloat(bankAccountBalance) || 0,
         ownership: user.uid,
@@ -142,10 +152,13 @@ export default function OnboardingScreen() {
       };
       await setDoc(
         doc(db, "couples", coupleId),
-        { assets: [...assets, asset] },
+        { assets: [...assets, ...bankAccounts, asset] },
         { merge: true }
       );
-      setCreatedBankAccount(asset);
+      setBankAccounts((prev) => [...prev, asset]);
+      setBankAccountName("");
+      setBankAccountBalance("");
+      setShowAccountForm(false);
     } finally {
       setBusy(false);
     }
@@ -267,18 +280,31 @@ export default function OnboardingScreen() {
     <div style={screenStyle}>
       <div style={{ width: "100%", maxWidth: 400 }}>
         {STEPS.length > 1 && (
-          <div style={{ display: "flex", justifyContent: "center", gap: 6, marginBottom: 32 }}>
-            {STEPS.map((s, i) => (
-              <span
-                key={s}
-                style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: "50%",
-                  background: i <= stepIndex ? "var(--sky)" : "var(--rule)",
-                }}
-              />
-            ))}
+          <div style={{ display: "grid", gridTemplateColumns: "32px 1fr 32px", alignItems: "center", marginBottom: 32 }}>
+            {stepIndex > 0 ? (
+              <button
+                onClick={goBack}
+                disabled={busy}
+                aria-label={t("onboarding_back")}
+                style={{ background: "none", border: "none", color: "var(--ink-3)", justifySelf: "start" }}
+              >
+                <i className="ti ti-chevron-left" style={{ fontSize: 20 }} aria-hidden="true" />
+              </button>
+            ) : <span />}
+            <div style={{ display: "flex", justifyContent: "center", gap: 6 }}>
+              {STEPS.map((s, i) => (
+                <span
+                  key={s}
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: "50%",
+                    background: i <= stepIndex ? "var(--sky)" : "var(--rule)",
+                  }}
+                />
+              ))}
+            </div>
+            <span />
           </div>
         )}
 
@@ -322,11 +348,31 @@ export default function OnboardingScreen() {
               {t("onboarding_bank_account_subtitle")}
             </p>
 
-            {!createdBankAccount ? (
+            {bankAccounts.length > 0 && (
+              <div style={{ marginBottom: 16 }}>
+                {bankAccounts.map((acc) => (
+                  <div key={acc.id} style={{ marginBottom: 16 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderRadius: "var(--radius-md)", background: "var(--sage-light)", marginBottom: 8 }}>
+                      <i className="ti ti-check" style={{ fontSize: 16, color: "var(--sage)" }} aria-hidden="true" />
+                      <span style={{ fontSize: 13, color: "var(--sage)" }}>{acc.name}</span>
+                    </div>
+                    <p style={{ fontSize: 12, color: "var(--ink-3)", marginBottom: 8, textAlign: "center" }}>
+                      {t("onboarding_bank_connect_hint")}
+                    </p>
+                    <ConnectBankButton
+                      asset={assets.find((a) => a.id === acc.id) || acc}
+                      onSuccess={() => {}}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {showAccountForm ? (
               <div style={{ marginBottom: 28 }}>
                 <input
                   type="text"
-                  placeholder={t("onboarding_bank_account_default_name")}
+                  placeholder={t("onboarding_bank_account_name_placeholder")}
                   value={bankAccountName}
                   onChange={(e) => setBankAccountName(e.target.value)}
                   style={{
@@ -390,19 +436,27 @@ export default function OnboardingScreen() {
                 </button>
               </div>
             ) : (
-              <div style={{ marginBottom: 28 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderRadius: "var(--radius-md)", background: "var(--sage-light)", marginBottom: 14 }}>
-                  <i className="ti ti-check" style={{ fontSize: 16, color: "var(--sage)" }} aria-hidden="true" />
-                  <span style={{ fontSize: 13, color: "var(--sage)" }}>{createdBankAccount.name}</span>
-                </div>
-                <p style={{ fontSize: 12, color: "var(--ink-3)", marginBottom: 10, textAlign: "center" }}>
-                  {t("onboarding_bank_connect_hint")}
-                </p>
-                <ConnectBankButton
-                  asset={assets.find((a) => a.id === createdBankAccount.id) || createdBankAccount}
-                  onSuccess={() => {}}
-                />
-              </div>
+              <button
+                onClick={() => setShowAccountForm(true)}
+                disabled={busy}
+                style={{
+                  width: "100%",
+                  padding: 12,
+                  marginBottom: 28,
+                  borderRadius: "var(--radius-md)",
+                  border: "0.5px dashed var(--rule)",
+                  background: "none",
+                  color: "var(--ink-2)",
+                  fontSize: 13,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 6,
+                }}
+              >
+                <i className="ti ti-plus" style={{ fontSize: 14 }} aria-hidden="true" />
+                {t("onboarding_bank_account_add_another")}
+              </button>
             )}
           </>
         )}

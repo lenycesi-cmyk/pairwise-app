@@ -101,7 +101,7 @@ export default function CoupleSetupScreen() {
           style={{ fontSize: 40, color: "var(--tang)", marginBottom: 16 }}
           aria-hidden="true"
         />
-        <h1 style={{ fontSize: 22, marginBottom: 8 }}>Votre code de couple</h1>
+        <h1 style={{ fontSize: 22, marginBottom: 8 }}>Votre code couple</h1>
         <p style={{ fontSize: 14, color: "var(--ink-3)", marginBottom: 24 }}>
           Partagez-le avec votre partenaire pour qu'il/elle rejoigne votre
           espace
@@ -116,11 +116,14 @@ export default function CoupleSetupScreen() {
             fontFamily: "var(--font-mono)",
             fontWeight: 500,
             letterSpacing: 4,
-            marginBottom: 24,
+            marginBottom: 16,
           }}
         >
           {createdCode}
         </div>
+        <p style={{ fontSize: 12, color: "var(--ink-3)", marginBottom: 24 }}>
+          Tu pourras toujours le retrouver plus tard dans Réglages → Couple.
+        </p>
         <button
           onClick={() => { setOnboardingComplete(false); setCoupleId(pendingCoupleId); }}
           style={{
