@@ -27,6 +27,7 @@ import { buildMemberColorMap } from "../utils/memberColors";
 import { CURRENCIES } from "../data/categories";
 import { useTranslation } from "../hooks/useTranslation";
 import { useCategoryName } from "../hooks/useCategoryName";
+import TabHint from "../components/TabHint";
 
 const MONTHS = [
   "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
@@ -582,6 +583,8 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
           )}
         </div>
       </div>
+
+      <TabHint tabKey="dashboard">{t("hint_dashboard")}</TabHint>
 
       {/* Edit mode hint */}
       {editMode && (

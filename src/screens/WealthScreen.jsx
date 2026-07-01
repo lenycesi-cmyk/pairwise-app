@@ -11,6 +11,7 @@ import AllocationChart from "../components/AllocationChart";
 import Avatar from "../components/Avatar";
 import { buildMemberColorMap } from "../utils/memberColors";
 import { useTranslation } from "../hooks/useTranslation";
+import TabHint from "../components/TabHint";
 
 const COLOR_MAP = {
   tang: { text: "var(--tang)", bg: "var(--tang-light)" },
@@ -182,6 +183,8 @@ export default function WealthScreen({ onOpenCalculator }) {
           {displayCurrency} <i className="ti ti-chevron-down" style={{ fontSize: 11 }} aria-hidden="true" />
         </button>
       </div>
+
+      <TabHint tabKey="wealth">{t("hint_wealth")}</TabHint>
 
       {showCurrencyPicker && (
         <div

@@ -7,6 +7,7 @@ import Avatar from "../components/Avatar";
 import { buildMemberColorMap } from "../utils/memberColors";
 import { CURRENCIES } from "../data/categories";
 import { useTranslation } from "../hooks/useTranslation";
+import TabHint from "../components/TabHint";
 
 const PERIOD_TYPES = ["month", "quarter", "year", "last12", "custom"];
 
@@ -280,6 +281,8 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
   return (
     <div style={{ padding: "1.5rem 1.25rem 6rem" }}>
       <h1 style={{ fontSize: 20, marginBottom: 16, marginLeft: 44 }}>{t("reports_title")}</h1>
+
+      <TabHint tabKey="reports">{t("hint_reports")}</TabHint>
 
       <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
         {PERIOD_TYPES.map((p) => (

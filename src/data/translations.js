@@ -1,5 +1,11 @@
 export const TRANSLATIONS = {
   fr: {
+    // First-visit tab hints
+    hint_dashboard: "Bienvenue ! Personnalise cet écran en appuyant sur le crayon en haut à droite, et ajoute une transaction avec le bouton + en bas.",
+    hint_reports: "Compare tes périodes, filtre par catégorie et suis l'évolution de tes finances dans le temps.",
+    hint_budget: "Crée ton premier budget avec le bouton + en bas — global, par catégorie, mensuel ou annuel.",
+    hint_wealth: "Ajoute tes comptes, investissements et dettes ici pour suivre ton patrimoine net.",
+
     // Onboarding
     onboarding_recurring_title: "Tes dépenses récurrentes",
     onboarding_recurring_subtitle: "Sélectionne celles qui te concernent — tu pourras en ajouter d'autres plus tard dans Récurrent.",
@@ -25,6 +31,14 @@ export const TRANSLATIONS = {
     onboarding_possessions_value_placeholder: "Valeur actuelle",
     onboarding_possessions_add: "Ajouter",
     onboarding_possessions_add_another: "Ajouter un autre élément",
+    onboarding_tour_home_title: "Ton tableau de bord",
+    onboarding_tour_home_subtitle: "Solde net, dépenses par catégorie, résumé par membre — personnalise les widgets avec le crayon en haut à droite.",
+    onboarding_tour_budget_title: "Fixe tes budgets",
+    onboarding_tour_budget_subtitle: "Un budget global ou par catégorie, mensuel ou annuel, avec des alertes quand tu approches la limite.",
+    onboarding_tour_wealth_title: "Suis ton patrimoine",
+    onboarding_tour_wealth_subtitle: "Comptes, investissements, dettes — vois ton patrimoine net évoluer et sa répartition par membre.",
+    onboarding_tour_reports_title: "Analyse tes dépenses",
+    onboarding_tour_reports_subtitle: "Compare tes mois, filtre par catégorie et suis l'évolution de tes finances dans le temps.",
     onboarding_back: "Retour",
     onboarding_continue: "Continuer",
     onboarding_finish: "Terminer",
@@ -309,6 +323,12 @@ export const TRANSLATIONS = {
   },
 
   en: {
+    // First-visit tab hints
+    hint_dashboard: "Welcome! Customize this screen with the pencil icon top-right, and add a transaction with the + button below.",
+    hint_reports: "Compare your periods, filter by category, and follow your finances over time.",
+    hint_budget: "Create your first budget with the + button below — global or per-category, monthly or yearly.",
+    hint_wealth: "Add your accounts, investments and debts here to track your net worth.",
+
     // Onboarding
     onboarding_recurring_title: "Your recurring expenses",
     onboarding_recurring_subtitle: "Pick the ones that apply to you — you can add more later in Recurring.",
@@ -334,6 +354,14 @@ export const TRANSLATIONS = {
     onboarding_possessions_value_placeholder: "Current value",
     onboarding_possessions_add: "Add",
     onboarding_possessions_add_another: "Add another item",
+    onboarding_tour_home_title: "Your dashboard",
+    onboarding_tour_home_subtitle: "Net balance, spending by category, summary by member — customize the widgets with the pencil icon top-right.",
+    onboarding_tour_budget_title: "Set your budgets",
+    onboarding_tour_budget_subtitle: "A global or per-category budget, monthly or yearly, with alerts as you approach the limit.",
+    onboarding_tour_wealth_title: "Track your wealth",
+    onboarding_tour_wealth_subtitle: "Accounts, investments, debts — watch your net worth evolve and its breakdown by member.",
+    onboarding_tour_reports_title: "Analyze your spending",
+    onboarding_tour_reports_subtitle: "Compare your months, filter by category, and follow your finances over time.",
     onboarding_back: "Back",
     onboarding_continue: "Continue",
     onboarding_finish: "Finish",
