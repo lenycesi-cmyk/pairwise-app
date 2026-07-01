@@ -7,7 +7,9 @@ import { useCategoryName } from "../hooks/useCategoryName";
 import { CURRENCIES } from "../data/categories";
 import { COMMON_RECURRING } from "../data/commonRecurring";
 import { COMMON_INCOME } from "../data/commonIncome";
+import { COMMON_INVESTMENT } from "../data/commonInvestment";
 import { useTranslation } from "../hooks/useTranslation";
+import ConnectBankButton from "../components/ConnectBankButton";
 
 const COLOR_MAP = {
   tang: { text: "var(--tang)", bg: "var(--tang-light)" },
@@ -21,14 +23,14 @@ const COLOR_MAP = {
 
 // Ordered list of onboarding step keys. Each new step just needs an entry
 // here plus a render branch below — the progress dots and skip-all/continue
-// plumbing are shared. Bank account, assets/debts and the feature tour land
-// in follow-up PRs.
+// plumbing are shared. Assets/debts/valuables and the feature tour land in
+// follow-up PRs.
 // No dedicated "pick a currency" step: every place currency actually gets
-// used (recurring/income items here, transactions elsewhere in the app)
-// already lets you choose it per entry, defaulting to whatever was last
-// picked — forcing a single couple-wide choice upfront was redundant
+// used (recurring/income/investment items here, transactions elsewhere in
+// the app) already lets you choose it per entry, defaulting to whatever was
+// last picked — forcing a single couple-wide choice upfront was redundant
 // friction.
-const STEPS = ["recurring", "income"];
+const STEPS = ["recurring", "income", "investment", "bank_account"];
 
 // Local state + handlers for a chip-pick-then-fill-amount step (used for both
 // recurring expenses and income). Selection is keyed by "categoryId::sub",
@@ -62,14 +64,22 @@ export default function OnboardingScreen() {
   const t = useTranslation();
   const { subName } = useCategoryName();
   const { user, coupleId, completeOnboarding } = useAuth();
-  const { categories, recurringTx, defaultCurrency } = useFinance();
+  const { categories, recurringTx, assets, defaultCurrency } = useFinance();
   const [stepIndex, setStepIndex] = useState(0);
-  // Remembers the last currency picked across both quick-pick steps, so
-  // newly selected chips default to it instead of always falling back to
-  // defaultCurrency (mirrors the app's "last used currency" behavior).
+  // Remembers the last currency picked across every step, so newly selected
+  // chips (or the bank account form) default to it instead of always
+  // falling back to defaultCurrency (mirrors the app's "last used currency"
+  // behavior).
   const [lastCurrency, setLastCurrency] = useState(defaultCurrency);
   const recurringPick = useQuickPick(lastCurrency, setLastCurrency);
   const incomePick = useQuickPick(lastCurrency, setLastCurrency);
+  const investmentPick = useQuickPick(lastCurrency, setLastCurrency);
+  const [bankAccountName, setBankAccountName] = useState("");
+  const [bankAccountBalance, setBankAccountBalance] = useState("");
+  // Set once the account has actually been created in Firestore (needed
+  // before ConnectBankButton can target it — Plaid's exchange step writes
+  // the connection back onto this specific asset id).
+  const [createdBankAccount, setCreatedBankAccount] = useState(null);
   const [busy, setBusy] = useState(false);
 
   const step = STEPS[stepIndex];
@@ -112,6 +122,35 @@ export default function OnboardingScreen() {
     );
   }
 
+  // Separate from goNext: creating the account happens on its own button so
+  // the just-created asset (with a known id) can be handed to
+  // ConnectBankButton without waiting for a step transition.
+  async function createBankAccount() {
+    setBusy(true);
+    try {
+      const asset = {
+        id: `asset_${Date.now()}`,
+        typeId: "account",
+        name: bankAccountName.trim() || t("onboarding_bank_account_default_name"),
+        currency: lastCurrency,
+        value: parseFloat(bankAccountBalance) || 0,
+        ownership: user.uid,
+        sharePct: 100,
+        sharePctDetails: null,
+        createdAt: Date.now(),
+        lastUpdated: Date.now(),
+      };
+      await setDoc(
+        doc(db, "couples", coupleId),
+        { assets: [...assets, asset] },
+        { merge: true }
+      );
+      setCreatedBankAccount(asset);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function goNext() {
     setBusy(true);
     try {
@@ -119,6 +158,8 @@ export default function OnboardingScreen() {
         await saveQuickPickStep(recurringPick.selection, "expense");
       } else if (step === "income") {
         await saveQuickPickStep(incomePick.selection, "income");
+      } else if (step === "investment") {
+        await saveQuickPickStep(investmentPick.selection, "investment");
       }
       if (isLastStep) {
         await completeOnboarding();
@@ -260,6 +301,111 @@ export default function OnboardingScreen() {
             items: COMMON_INCOME,
             pick: incomePick,
           })}
+
+        {step === "investment" &&
+          renderQuickPickStep({
+            icon: "ti-chart-line",
+            titleKey: "onboarding_investment_title",
+            subtitleKey: "onboarding_investment_subtitle",
+            amountHintKey: "onboarding_investment_amount_hint",
+            items: COMMON_INVESTMENT,
+            pick: investmentPick,
+          })}
+
+        {step === "bank_account" && (
+          <>
+            <i className="ti ti-building-bank" style={{ fontSize: 40, color: "var(--tang)", marginBottom: 16, display: "block", textAlign: "center" }} aria-hidden="true" />
+            <h1 style={{ fontSize: 22, marginBottom: 8, textAlign: "center" }}>
+              {t("onboarding_bank_account_title")}
+            </h1>
+            <p style={{ fontSize: 14, color: "var(--ink-3)", marginBottom: 20, textAlign: "center" }}>
+              {t("onboarding_bank_account_subtitle")}
+            </p>
+
+            {!createdBankAccount ? (
+              <div style={{ marginBottom: 28 }}>
+                <input
+                  type="text"
+                  placeholder={t("onboarding_bank_account_default_name")}
+                  value={bankAccountName}
+                  onChange={(e) => setBankAccountName(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "10px 12px",
+                    borderRadius: "var(--radius-md)",
+                    border: "0.5px solid var(--rule)",
+                    fontSize: 14,
+                    marginBottom: 10,
+                    outline: "none",
+                  }}
+                />
+                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 14 }}>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    placeholder={t("onboarding_bank_account_balance_placeholder")}
+                    value={bankAccountBalance}
+                    onChange={(e) => setBankAccountBalance(e.target.value)}
+                    style={{
+                      flex: 1,
+                      padding: "10px 12px",
+                      borderRadius: "var(--radius-md)",
+                      border: "0.5px solid var(--rule)",
+                      fontSize: 14,
+                      outline: "none",
+                    }}
+                  />
+                  <select
+                    value={lastCurrency}
+                    onChange={(e) => setLastCurrency(e.target.value)}
+                    style={{
+                      padding: "10px 6px",
+                      borderRadius: "var(--radius-md)",
+                      border: "0.5px solid var(--rule)",
+                      fontSize: 13,
+                      background: "var(--bg-card)",
+                    }}
+                  >
+                    {CURRENCIES.map((c) => (
+                      <option key={c.code} value={c.code}>{c.code}</option>
+                    ))}
+                  </select>
+                </div>
+                <button
+                  onClick={createBankAccount}
+                  disabled={busy}
+                  style={{
+                    width: "100%",
+                    padding: 14,
+                    borderRadius: "var(--radius-md)",
+                    border: "0.5px solid var(--sky)",
+                    background: "var(--sky-light)",
+                    color: "var(--sky)",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    opacity: busy ? 0.6 : 1,
+                  }}
+                >
+                  {t("onboarding_bank_account_create")}
+                </button>
+              </div>
+            ) : (
+              <div style={{ marginBottom: 28 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderRadius: "var(--radius-md)", background: "var(--sage-light)", marginBottom: 14 }}>
+                  <i className="ti ti-check" style={{ fontSize: 16, color: "var(--sage)" }} aria-hidden="true" />
+                  <span style={{ fontSize: 13, color: "var(--sage)" }}>{createdBankAccount.name}</span>
+                </div>
+                <p style={{ fontSize: 12, color: "var(--ink-3)", marginBottom: 10, textAlign: "center" }}>
+                  {t("onboarding_bank_connect_hint")}
+                </p>
+                <ConnectBankButton
+                  asset={assets.find((a) => a.id === createdBankAccount.id) || createdBankAccount}
+                  onSuccess={() => {}}
+                />
+              </div>
+            )}
+          </>
+        )}
 
         <button
           onClick={goNext}
