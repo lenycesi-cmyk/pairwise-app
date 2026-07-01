@@ -121,7 +121,13 @@ export default function OnboardingScreen() {
           frequency: "monthly",
           dayOfMonth: 1,
           paidBy: user.uid,
-          split: "50/50",
+          // Attributed entirely to whoever is doing onboarding, not "50/50".
+          // At this point a partner may not have joined yet (their uid isn't
+          // even known), and even once they do, a salary or personal
+          // investment has no reason to default to a 50/50 split the way a
+          // shared rent payment might — that's a couple-specific choice best
+          // made later in Recurring, not guessed here.
+          split: user.uid,
           active: true,
           lastGenerated: null,
         };
