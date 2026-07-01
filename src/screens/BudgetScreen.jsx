@@ -29,10 +29,12 @@ export default function BudgetScreen({ openSignal }) {
   const [editingId, setEditingId] = useState(null);
   const [name, setName] = useState("");
   const [scope, setScope] = useState("global");
-  const [categoryIds, setCategoryIds] = useState([]);
-  // Subcategory-level picks, stored as "categoryId::subcategoryName" — lets a
-  // budget target specific subcategories without pulling in the whole category.
-  const [subcategoryKeys, setSubcategoryKeys] = useState([]);
+  // Map of selected categoryId -> array of currently-included subcategory
+  // names. Selecting a category includes ALL its subcategories by default;
+  // the subcategory refine UI (shown only for selected categories) lets the
+  // user narrow that down. A category with every subcategory checked is
+  // saved as a full categoryId; a narrowed one is saved as subcategoryKeys.
+  const [categorySelection, setCategorySelection] = useState({});
   const [expandedCatId, setExpandedCatId] = useState(null);
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState(defaultCurrency);
@@ -52,8 +54,7 @@ export default function BudgetScreen({ openSignal }) {
     setEditingId(null);
     setName("");
     setScope("global");
-    setCategoryIds([]);
-    setSubcategoryKeys([]);
+    setCategorySelection({});
     setExpandedCatId(null);
     setAmount("");
     setCurrency(defaultCurrency);
@@ -115,7 +116,7 @@ export default function BudgetScreen({ openSignal }) {
   }
 
   function chooseHistoryCategories() {
-    const avg = average3MonthSpend(categoryIds);
+    const avg = average3MonthSpend(Object.keys(categorySelection));
     setAmount(avg > 0 ? Math.round(avg).toString() : "");
     setCurrency(defaultCurrency);
     setQuickMode("manual");
@@ -125,8 +126,17 @@ export default function BudgetScreen({ openSignal }) {
     setEditingId(b.id);
     setName(b.name || "");
     setScope(b.scope);
-    setCategoryIds(b.categoryIds || []);
-    setSubcategoryKeys(b.subcategoryKeys || []);
+    const selection = {};
+    for (const catId of b.categoryIds || []) {
+      const cat = categories.find((c) => c.id === catId);
+      if (cat) selection[catId] = [...cat.subcategories];
+    }
+    for (const key of b.subcategoryKeys || []) {
+      const [catId, sub] = key.split("::");
+      if (!selection[catId]) selection[catId] = [];
+      if (!selection[catId].includes(sub)) selection[catId].push(sub);
+    }
+    setCategorySelection(selection);
     setAmount(b.amount.toString());
     setCurrency(b.currency);
     setAlertThreshold((b.alertThreshold ?? 80).toString());
@@ -135,25 +145,51 @@ export default function BudgetScreen({ openSignal }) {
     setShowForm(true);
   }
 
+  // Toggling a category chip selects/deselects it entirely (all subcategories
+  // included by default). Refining to specific subcategories only happens via
+  // toggleSubcategory, and is only offered for categories already selected here.
   function toggleCategory(id) {
-    setCategoryIds((prev) => {
-      if (prev.includes(id)) return prev.filter((c) => c !== id);
-      // Selecting the whole category makes any individually-picked
-      // subcategories under it redundant.
-      setSubcategoryKeys((sk) => sk.filter((k) => !k.startsWith(`${id}::`)));
-      return [...prev, id];
+    setCategorySelection((prev) => {
+      if (prev[id]) {
+        const { [id]: _removed, ...rest } = prev;
+        return rest;
+      }
+      const cat = categories.find((c) => c.id === id);
+      return { ...prev, [id]: cat ? [...cat.subcategories] : [] };
     });
+    setExpandedCatId((prev) => (prev === id ? null : prev));
   }
 
   function toggleSubcategory(catId, subcategoryName) {
-    const key = `${catId}::${subcategoryName}`;
-    setSubcategoryKeys((prev) =>
-      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
-    );
+    setCategorySelection((prev) => {
+      const current = prev[catId] || [];
+      const updated = current.includes(subcategoryName)
+        ? current.filter((s) => s !== subcategoryName)
+        : [...current, subcategoryName];
+      // Unchecking the last remaining subcategory drops the category entirely.
+      if (updated.length === 0) {
+        const { [catId]: _removed, ...rest } = prev;
+        return rest;
+      }
+      return { ...prev, [catId]: updated };
+    });
   }
 
   async function handleSave() {
-    if (!amount || (scope === "category" && categoryIds.length === 0 && subcategoryKeys.length === 0)) return;
+    const selectedCatIds = Object.keys(categorySelection);
+    if (!amount || (scope === "category" && selectedCatIds.length === 0)) return;
+
+    const categoryIds = [];
+    const subcategoryKeys = [];
+    for (const catId of selectedCatIds) {
+      const cat = categories.find((c) => c.id === catId);
+      const subs = categorySelection[catId];
+      if (cat && subs.length === cat.subcategories.length) {
+        categoryIds.push(catId);
+      } else {
+        for (const s of subs) subcategoryKeys.push(`${catId}::${s}`);
+      }
+    }
 
     const payload = {
       name: name.trim() || null,
@@ -310,9 +346,9 @@ export default function BudgetScreen({ openSignal }) {
                 style={{
                   padding: "6px 10px",
                   borderRadius: "var(--radius-md)",
-                  border: categoryIds.includes(c.id) ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
-                  background: categoryIds.includes(c.id) ? "var(--sky-light)" : "var(--bg)",
-                  color: categoryIds.includes(c.id) ? "var(--sky)" : "var(--ink)",
+                  border: categorySelection[c.id] ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
+                  background: categorySelection[c.id] ? "var(--sky-light)" : "var(--bg)",
+                  color: categorySelection[c.id] ? "var(--sky)" : "var(--ink)",
                   fontSize: 12,
                   display: "flex",
                   alignItems: "center",
@@ -326,7 +362,7 @@ export default function BudgetScreen({ openSignal }) {
           </div>
           <button
             onClick={chooseHistoryCategories}
-            disabled={categoryIds.length === 0}
+            disabled={Object.keys(categorySelection).length === 0}
             style={{
               width: "100%",
               background: "var(--ink)",
@@ -336,7 +372,7 @@ export default function BudgetScreen({ openSignal }) {
               padding: 14,
               fontSize: 14,
               fontWeight: 500,
-              opacity: categoryIds.length === 0 ? 0.5 : 1,
+              opacity: Object.keys(categorySelection).length === 0 ? 0.5 : 1,
             }}
           >
             {t("budget_quick_history_next")}
@@ -438,7 +474,7 @@ export default function BudgetScreen({ openSignal }) {
               <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>
                 {t("budget_choose_categories")}
               </p>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
                 {expenseCategories.map((c) => (
                   <button
                     key={c.id}
@@ -446,9 +482,9 @@ export default function BudgetScreen({ openSignal }) {
                     style={{
                       padding: "6px 10px",
                       borderRadius: "var(--radius-md)",
-                      border: categoryIds.includes(c.id) ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
-                      background: categoryIds.includes(c.id) ? "var(--sky-light)" : "var(--bg)",
-                      color: categoryIds.includes(c.id) ? "var(--sky)" : "var(--ink)",
+                      border: categorySelection[c.id] ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
+                      background: categorySelection[c.id] ? "var(--sky-light)" : "var(--bg)",
+                      color: categorySelection[c.id] ? "var(--sky)" : "var(--ink)",
                       fontSize: 12,
                       display: "flex",
                       alignItems: "center",
@@ -461,76 +497,81 @@ export default function BudgetScreen({ openSignal }) {
                 ))}
               </div>
 
-              <p style={{ fontSize: 11, color: "var(--ink-3)", marginBottom: 8 }}>
-                {t("budget_choose_subcategories_hint")}
-              </p>
-              <div style={{ marginBottom: 12 }}>
-                {expenseCategories
-                  .filter((c) => !categoryIds.includes(c.id))
-                  .map((c) => {
-                    const isExpanded = expandedCatId === c.id;
-                    const pickedCount = c.subcategories.filter((s) =>
-                      subcategoryKeys.includes(`${c.id}::${s}`)
-                    ).length;
-                    return (
-                      <div key={c.id} style={{ borderBottom: "0.5px solid var(--rule)" }}>
-                        <button
-                          onClick={() => setExpandedCatId(isExpanded ? null : c.id)}
-                          style={{
-                            width: "100%",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 8,
-                            padding: "8px 0",
-                            background: "none",
-                            border: "none",
-                            textAlign: "left",
-                          }}
-                        >
-                          <i className={`ti ${c.icon}`} style={{ fontSize: 14, color: "var(--ink-3)" }} aria-hidden="true" />
-                          <span style={{ fontSize: 13, flex: 1 }}>{catName(c)}</span>
-                          {pickedCount > 0 && (
-                            <span style={{ fontSize: 11, color: "var(--sky)" }}>{pickedCount}</span>
-                          )}
-                          <i
-                            className="ti ti-chevron-right"
+              {/* Refine to specific subcategories — only offered for categories
+                  already selected above; every subcategory is included by
+                  default until the user narrows it down here. */}
+              {Object.keys(categorySelection).length > 0 && (
+                <div style={{ marginBottom: 12 }}>
+                  {expenseCategories
+                    .filter((c) => categorySelection[c.id])
+                    .map((c) => {
+                      const isExpanded = expandedCatId === c.id;
+                      const selectedSubs = categorySelection[c.id] || [];
+                      const isFull = selectedSubs.length === c.subcategories.length;
+                      return (
+                        <div key={c.id} style={{ borderBottom: "0.5px solid var(--rule)" }}>
+                          <button
+                            onClick={() => setExpandedCatId(isExpanded ? null : c.id)}
                             style={{
-                              fontSize: 13,
-                              color: "var(--ink-3)",
-                              transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
-                              transition: "transform 0.15s",
+                              width: "100%",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 8,
+                              padding: "8px 0",
+                              background: "none",
+                              border: "none",
+                              textAlign: "left",
                             }}
-                            aria-hidden="true"
-                          />
-                        </button>
-                        {isExpanded && (
-                          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, padding: "0 0 10px 22px" }}>
-                            {c.subcategories.map((s) => {
-                              const key = `${c.id}::${s}`;
-                              const picked = subcategoryKeys.includes(key);
-                              return (
-                                <button
-                                  key={s}
-                                  onClick={() => toggleSubcategory(c.id, s)}
-                                  style={{
-                                    padding: "5px 9px",
-                                    borderRadius: "var(--radius-md)",
-                                    border: picked ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
-                                    background: picked ? "var(--sky-light)" : "var(--bg)",
-                                    color: picked ? "var(--sky)" : "var(--ink)",
-                                    fontSize: 11,
-                                  }}
-                                >
-                                  {subName(s, c.id)}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-              </div>
+                          >
+                            <i className={`ti ${c.icon}`} style={{ fontSize: 14, color: "var(--ink-3)" }} aria-hidden="true" />
+                            <span style={{ fontSize: 13, flex: 1 }}>{catName(c)}</span>
+                            <span style={{ fontSize: 11, color: isFull ? "var(--ink-3)" : "var(--sky)" }}>
+                              {isFull ? t("budget_all_subcategories") : `${selectedSubs.length}/${c.subcategories.length}`}
+                            </span>
+                            <i
+                              className="ti ti-chevron-right"
+                              style={{
+                                fontSize: 13,
+                                color: "var(--ink-3)",
+                                transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
+                                transition: "transform 0.15s",
+                              }}
+                              aria-hidden="true"
+                            />
+                          </button>
+                          {isExpanded && (
+                            <div style={{ padding: "0 0 10px 22px" }}>
+                              <p style={{ fontSize: 11, color: "var(--ink-3)", marginBottom: 6 }}>
+                                {t("budget_refine_hint")}
+                              </p>
+                              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                                {c.subcategories.map((s) => {
+                                  const picked = selectedSubs.includes(s);
+                                  return (
+                                    <button
+                                      key={s}
+                                      onClick={() => toggleSubcategory(c.id, s)}
+                                      style={{
+                                        padding: "5px 9px",
+                                        borderRadius: "var(--radius-md)",
+                                        border: picked ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
+                                        background: picked ? "var(--sky-light)" : "var(--bg)",
+                                        color: picked ? "var(--sky)" : "var(--ink)",
+                                        fontSize: 11,
+                                      }}
+                                    >
+                                      {subName(s, c.id)}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
             </>
           )}
 
@@ -589,7 +630,7 @@ export default function BudgetScreen({ openSignal }) {
 
           <button
             onClick={handleSave}
-            disabled={!amount || (scope === "category" && categoryIds.length === 0 && subcategoryKeys.length === 0)}
+            disabled={!amount || (scope === "category" && Object.keys(categorySelection).length === 0)}
             style={{
               width: "100%",
               background: "var(--ink)",
@@ -599,7 +640,7 @@ export default function BudgetScreen({ openSignal }) {
               padding: 14,
               fontSize: 14,
               fontWeight: 500,
-              opacity: !amount || (scope === "category" && categoryIds.length === 0 && subcategoryKeys.length === 0) ? 0.5 : 1,
+              opacity: !amount || (scope === "category" && Object.keys(categorySelection).length === 0) ? 0.5 : 1,
             }}
           >
             {editingId ? t("budget_update_button") : t("budget_create_button")}
