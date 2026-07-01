@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { useFinance } from "../context/FinanceContext";
 import { useExchangeRates } from "../hooks/useExchangeRates";
@@ -7,7 +7,7 @@ import Avatar from "../components/Avatar";
 import { buildMemberColorMap } from "../utils/memberColors";
 import { CURRENCIES } from "../data/categories";
 import { useTranslation } from "../hooks/useTranslation";
-import TabHint from "../components/TabHint";
+import SpotlightHint from "../components/SpotlightHint";
 
 const PERIOD_TYPES = ["month", "quarter", "year", "last12", "custom"];
 
@@ -70,6 +70,7 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
   const displayCurrency = dashboardDisplayCurrency || defaultCurrency;
   const { convert, loading: ratesLoading } = useExchangeRates(displayCurrency);
   const memberColorMap = useMemo(() => buildMemberColorMap(members), [members]);
+  const periodRowRef = useRef(null);
 
   const [periodType, setPeriodType] = useState("month");
   // Initialize from the month shared with Home so arriving here keeps whatever
@@ -282,9 +283,9 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
     <div style={{ padding: "1.5rem 1.25rem 6rem" }}>
       <h1 style={{ fontSize: 20, marginBottom: 16, marginLeft: 44 }}>{t("reports_title")}</h1>
 
-      <TabHint tabKey="reports">{t("hint_reports")}</TabHint>
+      <SpotlightHint tabKey="reports" targetRef={periodRowRef} text={t("hint_reports")} />
 
-      <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
+      <div ref={periodRowRef} style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
         {PERIOD_TYPES.map((p) => (
           <button
             key={p}

@@ -27,7 +27,7 @@ import { buildMemberColorMap } from "../utils/memberColors";
 import { CURRENCIES } from "../data/categories";
 import { useTranslation } from "../hooks/useTranslation";
 import { useCategoryName } from "../hooks/useCategoryName";
-import TabHint from "../components/TabHint";
+import SpotlightHint from "../components/SpotlightHint";
 
 const MONTHS = [
   "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
@@ -111,6 +111,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
   const { convert, loading: ratesLoading, error: ratesError } = useExchangeRates(displayCurrency);
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
   const [editMode, setEditMode] = useState(false);
+  const customizeButtonRef = useRef(null);
 
   const { widgets, saveWidgets } = useDashboardPrefs();
   const [localWidgets, setLocalWidgets] = useState(null);
@@ -570,6 +571,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                 {displayCurrency} <i className="ti ti-chevron-down" style={{ fontSize: 11 }} aria-hidden="true" />
               </button>
               <button
+                ref={customizeButtonRef}
                 onClick={enterEditMode}
                 aria-label={t("dashboard_customize")}
                 style={{
@@ -584,7 +586,9 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
         </div>
       </div>
 
-      <TabHint tabKey="dashboard">{t("hint_dashboard")}</TabHint>
+      {!editMode && (
+        <SpotlightHint tabKey="dashboard" targetRef={customizeButtonRef} text={t("hint_dashboard")} />
+      )}
 
       {/* Edit mode hint */}
       {editMode && (

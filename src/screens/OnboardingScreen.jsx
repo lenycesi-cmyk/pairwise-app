@@ -34,17 +34,17 @@ const COLOR_MAP = {
 // elsewhere in the app) already lets you choose it per entry, defaulting to
 // whatever was last picked — forcing a single couple-wide choice upfront
 // was redundant friction.
-const STEPS = ["recurring", "income", "investment", "bank_account", "possessions", "tour"];
+// bank_account sits right after income (where does that money land?),
+// before investment (recurring contributions typically debit that account).
+// No feature-carousel step — usability feedback was that nobody reads a
+// slideshow of "here's what you can do" at the end of a multi-step setup;
+// the first-visit contextual tab hints (TabHint/SpotlightHint) replace it.
+const STEPS = ["recurring", "income", "bank_account", "investment", "possessions"];
 
-// Short feature carousel — not a step-by-step guided tour (low completion,
-// easily zapped) but a handful of "here's what you can do" slides. Icon +
-// title + description only, no data entry.
-const TOUR_SLIDES = [
-  { icon: "ti-home", titleKey: "onboarding_tour_home_title", subtitleKey: "onboarding_tour_home_subtitle" },
-  { icon: "ti-wallet", titleKey: "onboarding_tour_budget_title", subtitleKey: "onboarding_tour_budget_subtitle" },
-  { icon: "ti-chart-pie", titleKey: "onboarding_tour_wealth_title", subtitleKey: "onboarding_tour_wealth_subtitle" },
-  { icon: "ti-report-analytics", titleKey: "onboarding_tour_reports_title", subtitleKey: "onboarding_tour_reports_subtitle" },
-];
+// Asset types whose value should be entered as quantity × unit price (like
+// the main Wealth flow) rather than a single lump value — stocks and crypto
+// are held in units, not just a euro amount.
+const QUANTITY_TYPES = ["stocks", "crypto"];
 
 // Local state + handlers for a chip-pick-then-fill-amount step (used for both
 // recurring expenses and income). Selection is keyed by "categoryId::sub",
@@ -106,19 +106,30 @@ export default function OnboardingScreen() {
   const [possessionValue, setPossessionValue] = useState("");
   const [possessions, setPossessions] = useState([]);
   const [showPossessionForm, setShowPossessionForm] = useState(true);
-  const [tourSlideIndex, setTourSlideIndex] = useState(0);
+  const [possessionQuantity, setPossessionQuantity] = useState("");
+  const [possessionUnitPrice, setPossessionUnitPrice] = useState("");
+  // Own running copy of recurringTx, seeded once from context at mount and
+  // updated on every write — never re-read from context mid-session. Each
+  // quick-pick step (recurring/income/investment) can be revisited via the
+  // back arrow and re-submitted; without this, saveQuickPickStep would base
+  // its write on a context snapshot that may not yet include our own very
+  // recent write (Firestore listener lag), silently reverting or duplicating
+  // entries depending on timing.
+  const [sessionRecurringTx, setSessionRecurringTx] = useState(() => recurringTx);
+  // Same reasoning as sessionRecurringTx, for assets (bank accounts +
+  // possessions) — seeded once, never re-read from context mid-session.
+  const [sessionAssets, setSessionAssets] = useState(() => assets);
+  // Ids most recently written to sessionRecurringTx per quick-pick step, so
+  // re-saving that step (after going back and changing something, or just
+  // continuing again) replaces its own previous contribution instead of
+  // appending a second copy.
+  const [writtenIds, setWrittenIds] = useState({ expense: [], income: [], investment: [] });
   const [busy, setBusy] = useState(false);
 
   const step = STEPS[stepIndex];
   const isLastStep = stepIndex === STEPS.length - 1;
-  const isTourStep = step === "tour";
-  const isLastTourSlide = tourSlideIndex === TOUR_SLIDES.length - 1;
 
   function goBack() {
-    if (isTourStep && tourSlideIndex > 0) {
-      setTourSlideIndex((i) => i - 1);
-      return;
-    }
     setStepIndex((i) => Math.max(0, i - 1));
   }
 
@@ -153,24 +164,26 @@ export default function OnboardingScreen() {
 
   async function saveQuickPickStep(selection, type) {
     const items = buildItems(selection, type);
-    if (items.length === 0) return;
-    // Bulk write instead of calling addRecurring per item — that hook reads
-    // the current recurringTx array from context state, so several calls in
-    // a row without waiting for a re-render would each overwrite the last
-    // instead of accumulating.
+    const previousIds = writtenIds[type] || [];
+    // Drop this step's own previous batch before adding the fresh one, so
+    // revisiting a step via the back arrow replaces rather than duplicates.
+    const base = sessionRecurringTx.filter((tx) => !previousIds.includes(tx.id));
+    const updated = [...base, ...items];
+    if (items.length === 0 && previousIds.length === 0) return;
     await setDoc(
       doc(db, "couples", coupleId),
-      { recurringTx: [...recurringTx, ...items] },
+      { recurringTx: updated },
       { merge: true }
     );
+    setSessionRecurringTx(updated);
+    setWrittenIds((prev) => ({ ...prev, [type]: items.map((it) => it.id) }));
   }
 
   // Separate from goNext: creating the account happens on its own button so
   // the just-created asset (with a known id) can be handed to
   // ConnectBankButton without waiting for a step transition. Bases the write
-  // on assets + bankAccounts (not just assets) so accounts added earlier in
-  // this same step aren't lost — context's `assets` won't reflect them yet
-  // since the Firestore listener hasn't caught up.
+  // on sessionAssets (our own running copy, not context's `assets`) so nothing
+  // is lost to Firestore listener lag between writes.
   async function createBankAccount() {
     setBusy(true);
     try {
@@ -186,11 +199,9 @@ export default function OnboardingScreen() {
         createdAt: Date.now(),
         lastUpdated: Date.now(),
       };
-      await setDoc(
-        doc(db, "couples", coupleId),
-        { assets: [...assets, ...bankAccounts, asset] },
-        { merge: true }
-      );
+      const updated = [...sessionAssets, asset];
+      await setDoc(doc(db, "couples", coupleId), { assets: updated }, { merge: true });
+      setSessionAssets(updated);
       setBankAccounts((prev) => [...prev, asset]);
       setBankAccountName("");
       setBankAccountBalance("");
@@ -200,35 +211,43 @@ export default function OnboardingScreen() {
     }
   }
 
-  // Same pattern as createBankAccount: writes directly (not addAsset()) so
-  // multiple possessions added in this step accumulate instead of
-  // overwriting each other, basing the write on assets + bankAccounts +
-  // possessions already added this session.
+  const isQuantityType = QUANTITY_TYPES.includes(possessionType);
+  const possessionIsValid = possessionName.trim() && (isQuantityType
+    ? possessionQuantity && possessionUnitPrice
+    : possessionValue);
+
+  // Same pattern as createBankAccount: writes directly (not addAsset()),
+  // basing the write on our own sessionAssets copy so nothing is lost to
+  // Firestore listener lag between writes.
   async function createPossession() {
-    if (!possessionName.trim() || !possessionValue) return;
+    if (!possessionIsValid) return;
     setBusy(true);
     try {
       const type = ASSET_TYPES.find((t2) => t2.id === possessionType);
+      const computedValue = isQuantityType
+        ? Math.abs(parseFloat(possessionQuantity) * parseFloat(possessionUnitPrice)) || 0
+        : Math.abs(parseFloat(possessionValue)) || 0;
       const asset = {
         id: `asset_${Date.now()}`,
         typeId: possessionType,
         name: possessionName.trim(),
         currency: lastCurrency,
-        value: Math.abs(parseFloat(possessionValue)) || 0,
+        value: computedValue,
+        ...(isQuantityType ? { quantity: parseFloat(possessionQuantity) } : {}),
         ownership: user.uid,
         sharePct: 100,
         sharePctDetails: null,
         createdAt: Date.now(),
         lastUpdated: Date.now(),
       };
-      await setDoc(
-        doc(db, "couples", coupleId),
-        { assets: [...assets, ...bankAccounts, ...possessions, asset] },
-        { merge: true }
-      );
+      const updated = [...sessionAssets, asset];
+      await setDoc(doc(db, "couples", coupleId), { assets: updated }, { merge: true });
+      setSessionAssets(updated);
       setPossessions((prev) => [...prev, { ...asset, typeIcon: type?.icon, typeColor: type?.color }]);
       setPossessionName("");
       setPossessionValue("");
+      setPossessionQuantity("");
+      setPossessionUnitPrice("");
       setShowPossessionForm(false);
     } finally {
       setBusy(false);
@@ -236,10 +255,6 @@ export default function OnboardingScreen() {
   }
 
   async function goNext() {
-    if (isTourStep && !isLastTourSlide) {
-      setTourSlideIndex((i) => i + 1);
-      return;
-    }
     setBusy(true);
     try {
       if (step === "recurring") {
@@ -403,15 +418,6 @@ export default function OnboardingScreen() {
             pick: incomePick,
           })}
 
-        {step === "investment" &&
-          renderQuickPickStep({
-            icon: "ti-chart-line",
-            titleKey: "onboarding_investment_title",
-            subtitleKey: "onboarding_investment_subtitle",
-            amountHintKey: "onboarding_investment_amount_hint",
-            items: COMMON_INVESTMENT,
-            pick: investmentPick,
-          })}
 
         {step === "bank_account" && (
           <>
@@ -536,6 +542,16 @@ export default function OnboardingScreen() {
           </>
         )}
 
+        {step === "investment" &&
+          renderQuickPickStep({
+            icon: "ti-chart-line",
+            titleKey: "onboarding_investment_title",
+            subtitleKey: "onboarding_investment_subtitle",
+            amountHintKey: "onboarding_investment_amount_hint",
+            items: COMMON_INVESTMENT,
+            pick: investmentPick,
+          })}
+
         {step === "possessions" && (
           <>
             <i className="ti ti-briefcase" style={{ fontSize: 40, color: "var(--tang)", marginBottom: 16, display: "block", textAlign: "center" }} aria-hidden="true" />
@@ -619,41 +635,91 @@ export default function OnboardingScreen() {
                     outline: "none",
                   }}
                 />
-                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 14 }}>
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    placeholder={t("onboarding_possessions_value_placeholder")}
-                    value={possessionValue}
-                    onChange={(e) => setPossessionValue(e.target.value)}
-                    style={{
-                      flex: 1,
-                      padding: "10px 12px",
-                      borderRadius: "var(--radius-md)",
-                      border: "0.5px solid var(--rule)",
-                      fontSize: 14,
-                      outline: "none",
-                    }}
-                  />
-                  <select
-                    value={lastCurrency}
-                    onChange={(e) => setLastCurrency(e.target.value)}
-                    style={{
-                      padding: "10px 6px",
-                      borderRadius: "var(--radius-md)",
-                      border: "0.5px solid var(--rule)",
-                      fontSize: 13,
-                      background: "var(--bg-card)",
-                    }}
-                  >
-                    {CURRENCIES.map((c) => (
-                      <option key={c.code} value={c.code}>{c.code}</option>
-                    ))}
-                  </select>
-                </div>
+                {isQuantityType ? (
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 14 }}>
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      placeholder={t("onboarding_possessions_quantity_placeholder")}
+                      value={possessionQuantity}
+                      onChange={(e) => setPossessionQuantity(e.target.value)}
+                      style={{
+                        flex: 1,
+                        padding: "10px 12px",
+                        borderRadius: "var(--radius-md)",
+                        border: "0.5px solid var(--rule)",
+                        fontSize: 14,
+                        outline: "none",
+                      }}
+                    />
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      placeholder={t("onboarding_possessions_unit_price_placeholder")}
+                      value={possessionUnitPrice}
+                      onChange={(e) => setPossessionUnitPrice(e.target.value)}
+                      style={{
+                        flex: 1,
+                        padding: "10px 12px",
+                        borderRadius: "var(--radius-md)",
+                        border: "0.5px solid var(--rule)",
+                        fontSize: 14,
+                        outline: "none",
+                      }}
+                    />
+                    <select
+                      value={lastCurrency}
+                      onChange={(e) => setLastCurrency(e.target.value)}
+                      style={{
+                        padding: "10px 6px",
+                        borderRadius: "var(--radius-md)",
+                        border: "0.5px solid var(--rule)",
+                        fontSize: 13,
+                        background: "var(--bg-card)",
+                      }}
+                    >
+                      {CURRENCIES.map((c) => (
+                        <option key={c.code} value={c.code}>{c.code}</option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 14 }}>
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      placeholder={t("onboarding_possessions_value_placeholder")}
+                      value={possessionValue}
+                      onChange={(e) => setPossessionValue(e.target.value)}
+                      style={{
+                        flex: 1,
+                        padding: "10px 12px",
+                        borderRadius: "var(--radius-md)",
+                        border: "0.5px solid var(--rule)",
+                        fontSize: 14,
+                        outline: "none",
+                      }}
+                    />
+                    <select
+                      value={lastCurrency}
+                      onChange={(e) => setLastCurrency(e.target.value)}
+                      style={{
+                        padding: "10px 6px",
+                        borderRadius: "var(--radius-md)",
+                        border: "0.5px solid var(--rule)",
+                        fontSize: 13,
+                        background: "var(--bg-card)",
+                      }}
+                    >
+                      {CURRENCIES.map((c) => (
+                        <option key={c.code} value={c.code}>{c.code}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <button
                   onClick={createPossession}
-                  disabled={busy || !possessionName.trim() || !possessionValue}
+                  disabled={busy || !possessionIsValid}
                   style={{
                     width: "100%",
                     padding: 14,
@@ -663,7 +729,7 @@ export default function OnboardingScreen() {
                     color: "var(--sky)",
                     fontSize: 14,
                     fontWeight: 500,
-                    opacity: busy || !possessionName.trim() || !possessionValue ? 0.6 : 1,
+                    opacity: busy || !possessionIsValid ? 0.6 : 1,
                   }}
                 >
                   {t("onboarding_possessions_add")}
@@ -695,35 +761,6 @@ export default function OnboardingScreen() {
           </>
         )}
 
-        {step === "tour" && (
-          <>
-            <div style={{ display: "flex", justifyContent: "center", gap: 6, marginBottom: 20 }}>
-              {TOUR_SLIDES.map((s, i) => (
-                <span
-                  key={s.titleKey}
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: "50%",
-                    background: i === tourSlideIndex ? "var(--tang)" : "var(--rule)",
-                  }}
-                />
-              ))}
-            </div>
-            <i
-              className={`ti ${TOUR_SLIDES[tourSlideIndex].icon}`}
-              style={{ fontSize: 48, color: "var(--tang)", marginBottom: 20, display: "block", textAlign: "center" }}
-              aria-hidden="true"
-            />
-            <h1 style={{ fontSize: 22, marginBottom: 8, textAlign: "center" }}>
-              {t(TOUR_SLIDES[tourSlideIndex].titleKey)}
-            </h1>
-            <p style={{ fontSize: 14, color: "var(--ink-3)", marginBottom: 32, textAlign: "center" }}>
-              {t(TOUR_SLIDES[tourSlideIndex].subtitleKey)}
-            </p>
-          </>
-        )}
-
         <button
           onClick={goNext}
           disabled={busy}
@@ -740,7 +777,7 @@ export default function OnboardingScreen() {
             opacity: busy ? 0.6 : 1,
           }}
         >
-          {isLastStep && (!isTourStep || isLastTourSlide) ? t("onboarding_finish") : t("onboarding_continue")}
+          {isLastStep ? t("onboarding_finish") : t("onboarding_continue")}
         </button>
         <button
           onClick={completeOnboarding}
