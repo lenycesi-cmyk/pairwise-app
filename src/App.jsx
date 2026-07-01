@@ -75,6 +75,11 @@ function AppContent() {
   const [showLanguage, setShowLanguage] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showTransactions, setShowTransactions] = useState(false);
+  // Selected month shared between Home and Reports so switching tabs doesn't
+  // silently jump back to the current month (both only ever browse by month;
+  // Reports' quarter/year/last12/custom modes stay local to that screen).
+  const now = new Date();
+  const [sharedMonth, setSharedMonth] = useState({ month: now.getMonth(), year: now.getFullYear() });
 
   if (loading) {
     return (
@@ -139,11 +144,17 @@ function AppContent() {
           onOpenBreakdown={() => setShowBreakdown(true)}
           onOpenTransactions={() => setShowTransactions(true)}
           onEditTransaction={openEdit}
+          sharedMonth={sharedMonth}
+          onSharedMonthChange={setSharedMonth}
         />
       )}
       {tab === "reports" && (
         <Suspense fallback={null}>
-          <ReportsScreen />
+          <ReportsScreen
+            onOpenBreakdown={() => setShowBreakdown(true)}
+            sharedMonth={sharedMonth}
+            onSharedMonthChange={setSharedMonth}
+          />
         </Suspense>
       )}
       {tab === "wealth" && (

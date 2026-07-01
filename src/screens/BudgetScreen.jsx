@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useFinance } from "../context/FinanceContext";
 import { useTranslation } from "../hooks/useTranslation";
+import { useCategoryName } from "../hooks/useCategoryName";
 import { useBudgetProgress } from "../hooks/useBudgetProgress";
 import { useExchangeRates } from "../hooks/useExchangeRates";
 import { CURRENCIES } from "../data/categories";
@@ -17,7 +18,8 @@ function monthsAgoRange(n) {
 
 export default function BudgetScreen() {
   const t = useTranslation();
-  const { categories, transactions, budgets, addBudget, updateBudget, removeBudget, defaultCurrency } =
+  const { catName } = useCategoryName();
+  const { categories, transactions, budgets, addBudget, updateBudget, removeBudget, defaultCurrency, members } =
     useFinance();
   const { progress } = useBudgetProgress();
   const { convert } = useExchangeRates(defaultCurrency);
@@ -30,6 +32,7 @@ export default function BudgetScreen() {
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState(defaultCurrency);
   const [alertThreshold, setAlertThreshold] = useState("80");
+  const [memberUid, setMemberUid] = useState("couple");
 
   const expenseCategories = categories.filter((c) => !EXPENSE_EXCLUDED.includes(c.id));
 
@@ -47,6 +50,7 @@ export default function BudgetScreen() {
     setAmount("");
     setCurrency(defaultCurrency);
     setAlertThreshold("80");
+    setMemberUid("couple");
   }
 
   function openNew() {
@@ -86,6 +90,7 @@ export default function BudgetScreen() {
         amount: Math.round(avgIncome * GROUP_PCT[key]),
         currency: defaultCurrency,
         alertThreshold: 80,
+        memberUid: "couple",
       });
     }
     setShowForm(false);
@@ -107,6 +112,7 @@ export default function BudgetScreen() {
     setAmount(b.amount.toString());
     setCurrency(b.currency);
     setAlertThreshold((b.alertThreshold ?? 80).toString());
+    setMemberUid(b.memberUid || "couple");
     setQuickMode("manual");
     setShowForm(true);
   }
@@ -126,6 +132,7 @@ export default function BudgetScreen() {
       amount: parseFloat(amount),
       currency,
       alertThreshold: parseInt(alertThreshold) || 80,
+      memberUid,
     };
 
     if (editingId) {
@@ -146,9 +153,17 @@ export default function BudgetScreen() {
   function categoryNames(b) {
     if (b.scope === "global") return t("budget_scope_global");
     return b.categoryIds
-      .map((id) => categories.find((c) => c.id === id)?.name)
+      .map((id) => {
+        const c = categories.find((c) => c.id === id);
+        return c ? catName(c) : null;
+      })
       .filter(Boolean)
       .join(", ");
+  }
+
+  function memberLabel(b) {
+    if (!b.memberUid || b.memberUid === "couple") return t("budget_for_couple");
+    return members.find((m) => m.uid === b.memberUid)?.name || t("budget_for_couple");
   }
 
   return (
@@ -266,7 +281,7 @@ export default function BudgetScreen() {
                 }}
               >
                 <i className={`ti ${c.icon}`} style={{ fontSize: 13 }} aria-hidden="true" />
-                {c.name}
+                {catName(c)}
               </button>
             ))}
           </div>
@@ -324,6 +339,45 @@ export default function BudgetScreen() {
             ))}
           </div>
 
+          {members.length > 0 && (
+            <>
+              <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>{t("budget_for")}</p>
+              <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
+                <button
+                  onClick={() => setMemberUid("couple")}
+                  style={{
+                    flex: 1,
+                    padding: 8,
+                    borderRadius: "var(--radius-md)",
+                    border: memberUid === "couple" ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
+                    background: memberUid === "couple" ? "var(--sky-light)" : "var(--bg)",
+                    color: memberUid === "couple" ? "var(--sky)" : "var(--ink)",
+                    fontSize: 12,
+                  }}
+                >
+                  {t("budget_for_couple")}
+                </button>
+                {members.map((m) => (
+                  <button
+                    key={m.uid}
+                    onClick={() => setMemberUid(m.uid)}
+                    style={{
+                      flex: 1,
+                      padding: 8,
+                      borderRadius: "var(--radius-md)",
+                      border: memberUid === m.uid ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
+                      background: memberUid === m.uid ? "var(--sky-light)" : "var(--bg)",
+                      color: memberUid === m.uid ? "var(--sky)" : "var(--ink)",
+                      fontSize: 12,
+                    }}
+                  >
+                    {m.name}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+
           {scope === "category" && (
             <>
               <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>
@@ -347,7 +401,7 @@ export default function BudgetScreen() {
                     }}
                   >
                     <i className={`ti ${c.icon}`} style={{ fontSize: 13 }} aria-hidden="true" />
-                    {c.name}
+                    {catName(c)}
                   </button>
                 ))}
               </div>
@@ -456,7 +510,12 @@ export default function BudgetScreen() {
           >
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: 14 }}>{categoryNames(budget)}</p>
+                <p style={{ fontSize: 14 }}>
+                  {categoryNames(budget)}
+                  {members.length > 0 && (
+                    <span style={{ fontSize: 11, color: "var(--sky)", marginLeft: 6 }}>· {memberLabel(budget)}</span>
+                  )}
+                </p>
                 <p style={{ fontSize: 11, color: "var(--ink-3)" }}>
                   {Math.round(spent).toLocaleString("fr-FR")} / {Math.round(amountInBase).toLocaleString("fr-FR")} {defaultCurrency}
                 </p>
