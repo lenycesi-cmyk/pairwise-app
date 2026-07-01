@@ -3,6 +3,9 @@ export const TRANSLATIONS = {
     // Onboarding
     onboarding_currency_title: "Quelle devise utilises-tu au quotidien ?",
     onboarding_currency_subtitle: "Tu pourras toujours en ajouter d'autres plus tard.",
+    onboarding_recurring_title: "Tes dépenses récurrentes",
+    onboarding_recurring_subtitle: "Sélectionne celles qui te concernent — tu pourras en ajouter d'autres plus tard dans Récurrent.",
+    onboarding_recurring_amount_hint: "Indique un montant mensuel pour chacune (laisse vide pour ignorer) :",
     onboarding_continue: "Continuer",
     onboarding_finish: "Terminer",
     onboarding_skip_all: "Configurer plus tard",
@@ -289,6 +292,9 @@ export const TRANSLATIONS = {
     // Onboarding
     onboarding_currency_title: "What currency do you use day-to-day?",
     onboarding_currency_subtitle: "You can always add more later.",
+    onboarding_recurring_title: "Your recurring expenses",
+    onboarding_recurring_subtitle: "Pick the ones that apply to you — you can add more later in Recurring.",
+    onboarding_recurring_amount_hint: "Enter a monthly amount for each (leave blank to skip):",
     onboarding_continue: "Continue",
     onboarding_finish: "Finish",
     onboarding_skip_all: "Set up later",
