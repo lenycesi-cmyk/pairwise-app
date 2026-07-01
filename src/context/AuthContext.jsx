@@ -21,6 +21,10 @@ export function AuthProvider({ children }) {
   // CoupleSetupScreen) — missing/undefined defaults to true so existing
   // users (who predate this field) never get routed back into onboarding.
   const [onboardingComplete, setOnboardingComplete] = useState(true);
+  // Per-user, per-tab "have they seen the first-visit hint" flags, e.g.
+  // { dashboard: true, budget: true } — used by TabHint to show a one-time
+  // contextual tip the first time each tab is opened after onboarding.
+  const [seenHints, setSeenHints] = useState({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -32,11 +36,13 @@ export function AuthProvider({ children }) {
           const data = userDoc.data();
           setCoupleId(data.coupleId || null);
           setOnboardingComplete(data.onboardingComplete !== false);
+          setSeenHints(data.seenHints || {});
         }
       } else {
         setUser(null);
         setCoupleId(null);
         setOnboardingComplete(true);
+        setSeenHints({});
       }
       setLoading(false);
     });
@@ -121,12 +127,21 @@ export function AuthProvider({ children }) {
     setOnboardingComplete(true);
   }
 
+  async function markHintSeen(key) {
+    if (!user || seenHints[key]) return;
+    const updated = { ...seenHints, [key]: true };
+    setSeenHints(updated);
+    await setDoc(doc(db, "users", user.uid), { seenHints: updated }, { merge: true });
+  }
+
   const value = {
     user,
     coupleId,
     onboardingComplete,
     setOnboardingComplete,
     completeOnboarding,
+    seenHints,
+    markHintSeen,
     loading,
     signup,
     login,

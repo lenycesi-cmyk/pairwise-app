@@ -6,6 +6,7 @@ import { useBudgetProgress } from "../hooks/useBudgetProgress";
 import { useExchangeRates } from "../hooks/useExchangeRates";
 import { CURRENCIES } from "../data/categories";
 import { BUDGET_GROUPS, BUDGET_GROUP_KEYS } from "../data/budgetGroups";
+import TabHint from "../components/TabHint";
 
 const EXPENSE_EXCLUDED = ["income", "investment", "savings"];
 const GROUP_PCT = { essential: 0.5, fun: 0.3, investment: 0.2 };
@@ -276,6 +277,8 @@ export default function BudgetScreen({ openSignal }) {
           </button>
         )}
       </div>
+
+      {!showForm && <TabHint tabKey="budget">{t("hint_budget")}</TabHint>}
 
       {showForm && quickMode === null && (
         <div

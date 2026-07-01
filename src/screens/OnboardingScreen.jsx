@@ -28,13 +28,23 @@ const COLOR_MAP = {
 
 // Ordered list of onboarding step keys. Each new step just needs an entry
 // here plus a render branch below — the progress dots and skip-all/continue
-// plumbing are shared. The feature tour lands in a follow-up PR.
+// plumbing are shared.
 // No dedicated "pick a currency" step: every place currency actually gets
 // used (recurring/income/investment/possession items here, transactions
 // elsewhere in the app) already lets you choose it per entry, defaulting to
 // whatever was last picked — forcing a single couple-wide choice upfront
 // was redundant friction.
-const STEPS = ["recurring", "income", "investment", "bank_account", "possessions"];
+const STEPS = ["recurring", "income", "investment", "bank_account", "possessions", "tour"];
+
+// Short feature carousel — not a step-by-step guided tour (low completion,
+// easily zapped) but a handful of "here's what you can do" slides. Icon +
+// title + description only, no data entry.
+const TOUR_SLIDES = [
+  { icon: "ti-home", titleKey: "onboarding_tour_home_title", subtitleKey: "onboarding_tour_home_subtitle" },
+  { icon: "ti-wallet", titleKey: "onboarding_tour_budget_title", subtitleKey: "onboarding_tour_budget_subtitle" },
+  { icon: "ti-chart-pie", titleKey: "onboarding_tour_wealth_title", subtitleKey: "onboarding_tour_wealth_subtitle" },
+  { icon: "ti-report-analytics", titleKey: "onboarding_tour_reports_title", subtitleKey: "onboarding_tour_reports_subtitle" },
+];
 
 // Local state + handlers for a chip-pick-then-fill-amount step (used for both
 // recurring expenses and income). Selection is keyed by "categoryId::sub",
@@ -96,12 +106,19 @@ export default function OnboardingScreen() {
   const [possessionValue, setPossessionValue] = useState("");
   const [possessions, setPossessions] = useState([]);
   const [showPossessionForm, setShowPossessionForm] = useState(true);
+  const [tourSlideIndex, setTourSlideIndex] = useState(0);
   const [busy, setBusy] = useState(false);
 
   const step = STEPS[stepIndex];
   const isLastStep = stepIndex === STEPS.length - 1;
+  const isTourStep = step === "tour";
+  const isLastTourSlide = tourSlideIndex === TOUR_SLIDES.length - 1;
 
   function goBack() {
+    if (isTourStep && tourSlideIndex > 0) {
+      setTourSlideIndex((i) => i - 1);
+      return;
+    }
     setStepIndex((i) => Math.max(0, i - 1));
   }
 
@@ -219,6 +236,10 @@ export default function OnboardingScreen() {
   }
 
   async function goNext() {
+    if (isTourStep && !isLastTourSlide) {
+      setTourSlideIndex((i) => i + 1);
+      return;
+    }
     setBusy(true);
     try {
       if (step === "recurring") {
@@ -674,6 +695,35 @@ export default function OnboardingScreen() {
           </>
         )}
 
+        {step === "tour" && (
+          <>
+            <div style={{ display: "flex", justifyContent: "center", gap: 6, marginBottom: 20 }}>
+              {TOUR_SLIDES.map((s, i) => (
+                <span
+                  key={s.titleKey}
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: "50%",
+                    background: i === tourSlideIndex ? "var(--tang)" : "var(--rule)",
+                  }}
+                />
+              ))}
+            </div>
+            <i
+              className={`ti ${TOUR_SLIDES[tourSlideIndex].icon}`}
+              style={{ fontSize: 48, color: "var(--tang)", marginBottom: 20, display: "block", textAlign: "center" }}
+              aria-hidden="true"
+            />
+            <h1 style={{ fontSize: 22, marginBottom: 8, textAlign: "center" }}>
+              {t(TOUR_SLIDES[tourSlideIndex].titleKey)}
+            </h1>
+            <p style={{ fontSize: 14, color: "var(--ink-3)", marginBottom: 32, textAlign: "center" }}>
+              {t(TOUR_SLIDES[tourSlideIndex].subtitleKey)}
+            </p>
+          </>
+        )}
+
         <button
           onClick={goNext}
           disabled={busy}
@@ -690,7 +740,7 @@ export default function OnboardingScreen() {
             opacity: busy ? 0.6 : 1,
           }}
         >
-          {isLastStep ? t("onboarding_finish") : t("onboarding_continue")}
+          {isLastStep && (!isTourStep || isLastTourSlide) ? t("onboarding_finish") : t("onboarding_continue")}
         </button>
         <button
           onClick={completeOnboarding}
