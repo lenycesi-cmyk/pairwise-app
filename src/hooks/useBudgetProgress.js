@@ -27,13 +27,27 @@ export function useBudgetProgress() {
     return convert(tx.amount, tx.currency, defaultCurrency);
   }
 
+  // Part d'une transaction attribuable à un membre donné, selon le champ `split`
+  // (même logique que MemberBreakdownScreen) : 50/50 → moitié chacun, split === uid
+  // → entièrement à ce membre, sinon 0 (attribué à l'autre membre).
+  function memberShare(tx, memberUid) {
+    const val = toBase(tx);
+    if (tx.split === "50/50") return val / 2;
+    if (tx.split === memberUid) return val;
+    return 0;
+  }
+
   const progress = useMemo(() => {
     return budgets
       .filter((b) => b.active)
       .map((b) => {
-        const spent = monthTx
-          .filter((tx) => b.scope === "global" || b.categoryIds?.includes(tx.categoryId))
-          .reduce((sum, tx) => sum + toBase(tx), 0);
+        const scopedTx = monthTx.filter(
+          (tx) => b.scope === "global" || b.categoryIds?.includes(tx.categoryId)
+        );
+        const spent =
+          b.memberUid && b.memberUid !== "couple"
+            ? scopedTx.reduce((sum, tx) => sum + memberShare(tx, b.memberUid), 0)
+            : scopedTx.reduce((sum, tx) => sum + toBase(tx), 0);
         const amountInBase = convert(b.amount, b.currency, defaultCurrency);
         const pct = amountInBase > 0 ? (spent / amountInBase) * 100 : 0;
         return { budget: b, spent, amountInBase, pct };

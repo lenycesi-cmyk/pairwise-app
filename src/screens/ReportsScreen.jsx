@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { useFinance } from "../context/FinanceContext";
 import { useExchangeRates } from "../hooks/useExchangeRates";
@@ -63,7 +63,7 @@ function shiftAnchor(periodType, anchor, delta) {
   return d;
 }
 
-export default function ReportsScreen() {
+export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMonthChange }) {
   const t = useTranslation();
   const { transactions, categories, members, defaultCurrency, dashboardDisplayCurrency, netWorthHistory } = useFinance();
   const displayCurrency = dashboardDisplayCurrency || defaultCurrency;
@@ -71,8 +71,32 @@ export default function ReportsScreen() {
   const memberColorMap = useMemo(() => buildMemberColorMap(members), [members]);
 
   const [periodType, setPeriodType] = useState("month");
-  const [anchor, setAnchor] = useState(new Date());
+  // Initialize from the month shared with Home so arriving here keeps whatever
+  // was last selected there. Only the "month" period type stays in sync both
+  // ways — quarter/year/last12/custom are report-specific and stay local.
+  const [anchor, setAnchorRaw] = useState(() =>
+    sharedMonth ? new Date(sharedMonth.year, sharedMonth.month, 1) : new Date()
+  );
   const [customRange, setCustomRange] = useState({ start: "", end: "" });
+
+  function setAnchor(newAnchor) {
+    setAnchorRaw(newAnchor);
+    if (periodType === "month" && onSharedMonthChange) {
+      onSharedMonthChange({ month: newAnchor.getMonth(), year: newAnchor.getFullYear() });
+    }
+  }
+
+  // Pick up month changes made on Home while this screen wasn't mounted.
+  useEffect(() => {
+    if (periodType === "month" && sharedMonth) {
+      setAnchorRaw((prev) =>
+        prev.getMonth() === sharedMonth.month && prev.getFullYear() === sharedMonth.year
+          ? prev
+          : new Date(sharedMonth.year, sharedMonth.month, 1)
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sharedMonth?.month, sharedMonth?.year]);
 
   const range = useMemo(
     () => getRange(periodType, anchor, customRange),
@@ -498,9 +522,19 @@ export default function ReportsScreen() {
 
       {members.length > 0 && (
         <>
-          <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>
-            {t("reports_member_comparison")}
-          </p>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+            <p style={{ fontSize: 13, fontWeight: 500 }}>
+              {t("reports_member_comparison")}
+            </p>
+            {onOpenBreakdown && (
+              <button
+                onClick={onOpenBreakdown}
+                style={{ background: "none", border: "none", color: "var(--sky)", fontSize: 12, display: "flex", alignItems: "center", gap: 3 }}
+              >
+                {t("dashboard_detail")} <i className="ti ti-chevron-right" style={{ fontSize: 12 }} aria-hidden="true" />
+              </button>
+            )}
+          </div>
           <div
             style={{
               display: "grid",

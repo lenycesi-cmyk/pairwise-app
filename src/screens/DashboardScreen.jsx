@@ -26,6 +26,7 @@ import Avatar from "../components/Avatar";
 import { buildMemberColorMap } from "../utils/memberColors";
 import { CURRENCIES } from "../data/categories";
 import { useTranslation } from "../hooks/useTranslation";
+import { useCategoryName } from "../hooks/useCategoryName";
 
 const MONTHS = [
   "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
@@ -98,8 +99,9 @@ function SortableWidget({ id, editMode, onLongPress, children }) {
 }
 
 // ── Main component ───────────────────────────────────────────────────────────
-export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTransactions, onEditTransaction }) {
+export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTransactions, onEditTransaction, sharedMonth, onSharedMonthChange }) {
   const t = useTranslation();
+  const { catName } = useCategoryName();
   const {
     transactions, categories, members, assets, recurringTx,
     defaultCurrency, dashboardDisplayCurrency, updateDashboardDisplayCurrency, loading,
@@ -122,16 +124,19 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
   );
 
   const now = new Date();
-  const [viewMonth, setViewMonth] = useState(now.getMonth());
-  const [viewYear, setViewYear] = useState(now.getFullYear());
+  // Controlled by the shared month state in App.jsx when provided (keeps Home
+  // in sync with Reports so switching tabs doesn't reset the selected period);
+  // falls back to local state so this component still works standalone.
+  const [localMonth, setLocalMonth] = useState({ month: now.getMonth(), year: now.getFullYear() });
+  const { month: viewMonth, year: viewYear } = sharedMonth ?? localMonth;
+  const setViewMonthYear = onSharedMonthChange ?? setLocalMonth;
 
   function changeMonth(delta) {
     let m = viewMonth + delta;
     let y = viewYear;
     if (m > 11) { m = 0; y++; }
     if (m < 0) { m = 11; y--; }
-    setViewMonth(m);
-    setViewYear(y);
+    setViewMonthYear({ month: m, year: y });
   }
 
   const monthTx = useMemo(() => {
@@ -314,11 +319,17 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                 const barColor = over ? "var(--red)" : warn ? "var(--amber)" : "var(--sky)";
                 const label = budget.scope === "global"
                   ? t("budget_scope_global")
-                  : budget.categoryIds.map((cid) => categories.find((c) => c.id === cid)?.name).filter(Boolean).join(", ");
+                  : budget.categoryIds.map((cid) => { const c = categories.find((c) => c.id === cid); return c ? catName(c) : null; }).filter(Boolean).join(", ");
+                const memberLabel = !budget.memberUid || budget.memberUid === "couple"
+                  ? null
+                  : members.find((m) => m.uid === budget.memberUid)?.name;
                 return (
                   <div key={budget.id} style={{ marginBottom: i === topBudgets.length - 1 ? 0 : 12 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                      <span style={{ fontSize: 12 }}>{label}</span>
+                      <span style={{ fontSize: 12 }}>
+                        {label}
+                        {memberLabel && <span style={{ color: "var(--sky)" }}> · {memberLabel}</span>}
+                      </span>
                       <span style={{ fontSize: 12, fontWeight: 500, color: barColor }}>{Math.round(pct)}%</span>
                     </div>
                     <div style={{ height: 6, borderRadius: 3, background: "var(--rule)", overflow: "hidden" }}>
@@ -339,7 +350,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
               <p style={{ fontSize: 13, fontWeight: 500 }}>{t("dashboard_member_summary")}</p>
               {!editMode && (
                 <button onClick={onOpenBreakdown} style={{ background: "none", border: "none", color: "var(--sky)", fontSize: 12, display: "flex", alignItems: "center", gap: 3 }}>
-                  Détail <i className="ti ti-chevron-right" style={{ fontSize: 12 }} aria-hidden="true" />
+                  {t("dashboard_detail")} <i className="ti ti-chevron-right" style={{ fontSize: 12 }} aria-hidden="true" />
                 </button>
               )}
             </div>
@@ -602,42 +613,56 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                   editMode={editMode}
                   onLongPress={enterEditMode}
                 >
-                  <div
-                    style={{
-                      marginBottom: 20,
-                      opacity: editMode && !w.visible ? 0.4 : 1,
-                      paddingLeft: editMode ? 36 : 0,
-                      transition: "opacity 0.2s, padding 0.2s",
-                    }}
-                  >
-                    {/* Toggle button overlay in edit mode */}
+                  <div style={{ marginBottom: 20, position: "relative" }}>
+                    {/* Toggle button overlay in edit mode — kept at full opacity/contrast
+                        regardless of widget visibility, so it stays obviously tappable
+                        even when the widget below it is faded out. */}
                     {editMode && (
                       <button
                         onClick={() => toggleWidget(w.id)}
-                        aria-label={w.visible ? "Masquer" : "Afficher"}
+                        aria-label={w.visible ? t("dashboard_widget_hide") : t("dashboard_widget_show")}
                         style={{
                           position: "absolute", top: 8, right: 8, zIndex: 3,
-                          width: 38, height: 22, borderRadius: 11, border: "none",
-                          background: w.visible ? "var(--sky)" : "var(--rule)",
-                          position: "absolute",
+                          display: "flex", alignItems: "center", gap: 6,
+                          padding: "3px 8px 3px 3px",
+                          borderRadius: 13,
+                          border: w.visible ? "0.5px solid var(--sky)" : "1px solid var(--ink-3)",
+                          background: w.visible ? "var(--sky)" : "var(--bg-card)",
+                          boxShadow: "0 1px 3px rgba(0,0,0,0.12)",
                         }}
                       >
                         <span
                           style={{
-                            display: "block", width: 16, height: 16, borderRadius: "50%",
-                            background: "var(--bg)", margin: "3px",
-                            marginLeft: w.visible ? "auto" : "3px",
-                            marginRight: w.visible ? "3px" : "auto",
-                            transition: "margin 0.15s",
+                            width: 16, height: 16, borderRadius: "50%",
+                            background: w.visible ? "var(--bg)" : "var(--ink-3)",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            flexShrink: 0,
                           }}
-                        />
+                        >
+                          <i
+                            className={`ti ${w.visible ? "ti-eye" : "ti-eye-off"}`}
+                            style={{ fontSize: 10, color: w.visible ? "var(--sky)" : "var(--bg-card)" }}
+                            aria-hidden="true"
+                          />
+                        </span>
+                        <span style={{ fontSize: 11, fontWeight: 500, color: w.visible ? "var(--bg)" : "var(--ink-2)" }}>
+                          {w.visible ? t("dashboard_widget_shown") : t("dashboard_widget_hidden")}
+                        </span>
                       </button>
                     )}
-                    {content || (
-                      <div style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px dashed var(--rule)", padding: "0.75rem 1.25rem" }}>
-                        <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center" }}>{WIDGET_LABELS[w.id]}</p>
-                      </div>
-                    )}
+                    <div
+                      style={{
+                        opacity: editMode && !w.visible ? 0.4 : 1,
+                        paddingLeft: editMode ? 36 : 0,
+                        transition: "opacity 0.2s, padding 0.2s",
+                      }}
+                    >
+                      {content || (
+                        <div style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px dashed var(--rule)", padding: "0.75rem 1.25rem" }}>
+                          <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center" }}>{WIDGET_LABELS[w.id]}</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </SortableWidget>
               );
