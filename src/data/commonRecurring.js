@@ -15,6 +15,11 @@ export const COMMON_RECURRING = [
   { categoryId: "subscriptions", subcategory: "Streaming musical" },
   { categoryId: "subscriptions", subcategory: "Logiciels / apps" },
   { categoryId: "sport", subcategory: "Abonnement salle" },
-  { categoryId: "banking", subcategory: "Assurance vie" },
   { categoryId: "banking", subcategory: "Crédit conso" },
 ];
+// Note: "Assurance vie" (banking category, i.e. term/death insurance premium)
+// is deliberately excluded here — in French the same phrase overwhelmingly
+// means the investment product (INVESTMENT_CATEGORY's "Versement
+// assurance-vie"), so surfacing the expense-side one as a bare chip in this
+// quick-pick list reads as mislabeling an investment as an expense. It's
+// still selectable from the full category picker in Recurring/Transactions.
