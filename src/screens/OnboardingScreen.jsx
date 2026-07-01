@@ -22,18 +22,26 @@ const COLOR_MAP = {
 // here plus a render branch below — the progress dots and skip-all/continue
 // plumbing are shared. Income, bank account, assets and the feature tour
 // land in follow-up PRs.
-const STEPS = ["currency", "recurring"];
+// No dedicated "pick a currency" step: every place currency actually gets
+// used (recurring items here, transactions elsewhere in the app) already
+// lets you choose it per entry, defaulting to whatever was last picked —
+// forcing a single couple-wide choice upfront was redundant friction.
+const STEPS = ["recurring"];
 
 export default function OnboardingScreen() {
   const t = useTranslation();
   const { subName } = useCategoryName();
   const { user, coupleId, completeOnboarding } = useAuth();
-  const { categories, recurringTx, defaultCurrency, updateDefaultCurrency } = useFinance();
+  const { categories, recurringTx, defaultCurrency } = useFinance();
   const [stepIndex, setStepIndex] = useState(0);
-  const [currency, setCurrency] = useState(defaultCurrency);
-  // Map of "categoryId::subcategory" -> amount string, for the recurring step.
-  // Presence of a key means the chip is selected; the amount can stay empty
-  // while selected (that item is just skipped at save time).
+  // Remembers the last currency picked for a recurring item, so newly
+  // selected chips default to it instead of always falling back to
+  // defaultCurrency (mirrors the app's "last used currency" behavior).
+  const [lastCurrency, setLastCurrency] = useState(defaultCurrency);
+  // Map of "categoryId::subcategory" -> { amount, currency }, for the
+  // recurring step. Presence of a key means the chip is selected; the
+  // amount can stay empty while selected (that item is just skipped at
+  // save time).
   const [recurringSelection, setRecurringSelection] = useState({});
   const [busy, setBusy] = useState(false);
 
@@ -46,18 +54,23 @@ export default function OnboardingScreen() {
         const { [key]: _removed, ...rest } = prev;
         return rest;
       }
-      return { ...prev, [key]: "" };
+      return { ...prev, [key]: { amount: "", currency: lastCurrency } };
     });
   }
 
   function setRecurringAmount(key, value) {
-    setRecurringSelection((prev) => ({ ...prev, [key]: value }));
+    setRecurringSelection((prev) => ({ ...prev, [key]: { ...prev[key], amount: value } }));
+  }
+
+  function setRecurringCurrency(key, value) {
+    setLastCurrency(value);
+    setRecurringSelection((prev) => ({ ...prev, [key]: { ...prev[key], currency: value } }));
   }
 
   async function saveRecurringSelection() {
     const items = Object.entries(recurringSelection)
-      .filter(([, amount]) => parseFloat(amount) > 0)
-      .map(([key, amount], i) => {
+      .filter(([, { amount }]) => parseFloat(amount) > 0)
+      .map(([key, { amount, currency }], i) => {
         const [categoryId, subcategory] = key.split("::");
         return {
           id: `rec_${Date.now()}_${i}`,
@@ -90,9 +103,7 @@ export default function OnboardingScreen() {
   async function goNext() {
     setBusy(true);
     try {
-      if (step === "currency") {
-        await updateDefaultCurrency(currency);
-      } else if (step === "recurring") {
+      if (step === "recurring") {
         await saveRecurringSelection();
       }
       if (isLastStep) {
@@ -108,49 +119,20 @@ export default function OnboardingScreen() {
   return (
     <div style={screenStyle}>
       <div style={{ width: "100%", maxWidth: 400 }}>
-        <div style={{ display: "flex", justifyContent: "center", gap: 6, marginBottom: 32 }}>
-          {STEPS.map((s, i) => (
-            <span
-              key={s}
-              style={{
-                width: 8,
-                height: 8,
-                borderRadius: "50%",
-                background: i <= stepIndex ? "var(--sky)" : "var(--rule)",
-              }}
-            />
-          ))}
-        </div>
-
-        {step === "currency" && (
-          <>
-            <i className="ti ti-coin" style={{ fontSize: 40, color: "var(--tang)", marginBottom: 16, display: "block", textAlign: "center" }} aria-hidden="true" />
-            <h1 style={{ fontSize: 22, marginBottom: 8, textAlign: "center" }}>
-              {t("onboarding_currency_title")}
-            </h1>
-            <p style={{ fontSize: 14, color: "var(--ink-3)", marginBottom: 28, textAlign: "center" }}>
-              {t("onboarding_currency_subtitle")}
-            </p>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center", marginBottom: 32 }}>
-              {CURRENCIES.map((c) => (
-                <button
-                  key={c.code}
-                  onClick={() => setCurrency(c.code)}
-                  style={{
-                    padding: "10px 16px",
-                    borderRadius: "var(--radius-md)",
-                    border: currency === c.code ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
-                    background: currency === c.code ? "var(--sky-light)" : "var(--bg-card)",
-                    color: currency === c.code ? "var(--sky)" : "var(--ink)",
-                    fontSize: 14,
-                    fontWeight: currency === c.code ? 500 : 400,
-                  }}
-                >
-                  {c.symbol} {c.code}
-                </button>
-              ))}
-            </div>
-          </>
+        {STEPS.length > 1 && (
+          <div style={{ display: "flex", justifyContent: "center", gap: 6, marginBottom: 32 }}>
+            {STEPS.map((s, i) => (
+              <span
+                key={s}
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  background: i <= stepIndex ? "var(--sky)" : "var(--rule)",
+                }}
+              />
+            ))}
+          </div>
         )}
 
         {step === "recurring" && (
@@ -198,10 +180,10 @@ export default function OnboardingScreen() {
                 <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 8 }}>
                   {t("onboarding_recurring_amount_hint")}
                 </p>
-                {Object.keys(recurringSelection).map((key) => {
+                {Object.entries(recurringSelection).map(([key, { amount, currency }]) => {
                   const [categoryId, subcategory] = key.split("::");
                   return (
-                    <div key={key} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                    <div key={key} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
                       <span style={{ fontSize: 13, flex: 1, minWidth: 0 }}>
                         {subName(subcategory, categoryId)}
                       </span>
@@ -209,10 +191,10 @@ export default function OnboardingScreen() {
                         type="number"
                         inputMode="decimal"
                         placeholder="0"
-                        value={recurringSelection[key]}
+                        value={amount}
                         onChange={(e) => setRecurringAmount(key, e.target.value)}
                         style={{
-                          width: 90,
+                          width: 80,
                           padding: "8px 10px",
                           borderRadius: "var(--radius-md)",
                           border: "0.5px solid var(--rule)",
@@ -220,7 +202,21 @@ export default function OnboardingScreen() {
                           outline: "none",
                         }}
                       />
-                      <span style={{ fontSize: 12, color: "var(--ink-3)", width: 40 }}>{currency}</span>
+                      <select
+                        value={currency}
+                        onChange={(e) => setRecurringCurrency(key, e.target.value)}
+                        style={{
+                          padding: "8px 6px",
+                          borderRadius: "var(--radius-md)",
+                          border: "0.5px solid var(--rule)",
+                          fontSize: 13,
+                          background: "var(--bg-card)",
+                        }}
+                      >
+                        {CURRENCIES.map((c) => (
+                          <option key={c.code} value={c.code}>{c.code}</option>
+                        ))}
+                      </select>
                     </div>
                   );
                 })}
