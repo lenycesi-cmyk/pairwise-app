@@ -10,6 +10,11 @@ import { COMMON_INCOME } from "../data/commonIncome";
 import { COMMON_INVESTMENT } from "../data/commonInvestment";
 import { useTranslation } from "../hooks/useTranslation";
 import ConnectBankButton from "../components/ConnectBankButton";
+import { ASSET_TYPES } from "../data/assetTypes";
+
+// Every asset type except "account" — that one's handled by the dedicated
+// bank_account step already.
+const POSSESSION_TYPES = ASSET_TYPES.filter((t) => t.id !== "account");
 
 const COLOR_MAP = {
   tang: { text: "var(--tang)", bg: "var(--tang-light)" },
@@ -23,14 +28,13 @@ const COLOR_MAP = {
 
 // Ordered list of onboarding step keys. Each new step just needs an entry
 // here plus a render branch below — the progress dots and skip-all/continue
-// plumbing are shared. Assets/debts/valuables and the feature tour land in
-// follow-up PRs.
+// plumbing are shared. The feature tour lands in a follow-up PR.
 // No dedicated "pick a currency" step: every place currency actually gets
-// used (recurring/income/investment items here, transactions elsewhere in
-// the app) already lets you choose it per entry, defaulting to whatever was
-// last picked — forcing a single couple-wide choice upfront was redundant
-// friction.
-const STEPS = ["recurring", "income", "investment", "bank_account"];
+// used (recurring/income/investment/possession items here, transactions
+// elsewhere in the app) already lets you choose it per entry, defaulting to
+// whatever was last picked — forcing a single couple-wide choice upfront
+// was redundant friction.
+const STEPS = ["recurring", "income", "investment", "bank_account", "possessions"];
 
 // Local state + handlers for a chip-pick-then-fill-amount step (used for both
 // recurring expenses and income). Selection is keyed by "categoryId::sub",
@@ -64,7 +68,7 @@ export default function OnboardingScreen() {
   const t = useTranslation();
   const { subName } = useCategoryName();
   const { user, coupleId, completeOnboarding } = useAuth();
-  const { categories, recurringTx, assets, defaultCurrency } = useFinance();
+  const { categories, recurringTx, assets, defaultCurrency, language } = useFinance();
   const [stepIndex, setStepIndex] = useState(0);
   // Remembers the last currency picked across every step, so newly selected
   // chips (or the bank account form) default to it instead of always
@@ -83,6 +87,15 @@ export default function OnboardingScreen() {
   // the connection back onto that specific asset id).
   const [bankAccounts, setBankAccounts] = useState([]);
   const [showAccountForm, setShowAccountForm] = useState(true);
+  // "What do you own/owe" step: one form covers every asset type (accounts,
+  // investments, real estate, debts, valuables...) except bank accounts,
+  // which already have their own step — a type picker instead of separate
+  // screens per category avoids repeating the same three fields three times.
+  const [possessionType, setPossessionType] = useState(POSSESSION_TYPES[0].id);
+  const [possessionName, setPossessionName] = useState("");
+  const [possessionValue, setPossessionValue] = useState("");
+  const [possessions, setPossessions] = useState([]);
+  const [showPossessionForm, setShowPossessionForm] = useState(true);
   const [busy, setBusy] = useState(false);
 
   const step = STEPS[stepIndex];
@@ -159,6 +172,41 @@ export default function OnboardingScreen() {
       setBankAccountName("");
       setBankAccountBalance("");
       setShowAccountForm(false);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // Same pattern as createBankAccount: writes directly (not addAsset()) so
+  // multiple possessions added in this step accumulate instead of
+  // overwriting each other, basing the write on assets + bankAccounts +
+  // possessions already added this session.
+  async function createPossession() {
+    if (!possessionName.trim() || !possessionValue) return;
+    setBusy(true);
+    try {
+      const type = ASSET_TYPES.find((t2) => t2.id === possessionType);
+      const asset = {
+        id: `asset_${Date.now()}`,
+        typeId: possessionType,
+        name: possessionName.trim(),
+        currency: lastCurrency,
+        value: Math.abs(parseFloat(possessionValue)) || 0,
+        ownership: user.uid,
+        sharePct: 100,
+        sharePctDetails: null,
+        createdAt: Date.now(),
+        lastUpdated: Date.now(),
+      };
+      await setDoc(
+        doc(db, "couples", coupleId),
+        { assets: [...assets, ...bankAccounts, ...possessions, asset] },
+        { merge: true }
+      );
+      setPossessions((prev) => [...prev, { ...asset, typeIcon: type?.icon, typeColor: type?.color }]);
+      setPossessionName("");
+      setPossessionValue("");
+      setShowPossessionForm(false);
     } finally {
       setBusy(false);
     }
@@ -456,6 +504,165 @@ export default function OnboardingScreen() {
               >
                 <i className="ti ti-plus" style={{ fontSize: 14 }} aria-hidden="true" />
                 {t("onboarding_bank_account_add_another")}
+              </button>
+            )}
+          </>
+        )}
+
+        {step === "possessions" && (
+          <>
+            <i className="ti ti-briefcase" style={{ fontSize: 40, color: "var(--tang)", marginBottom: 16, display: "block", textAlign: "center" }} aria-hidden="true" />
+            <h1 style={{ fontSize: 22, marginBottom: 8, textAlign: "center" }}>
+              {t("onboarding_possessions_title")}
+            </h1>
+            <p style={{ fontSize: 14, color: "var(--ink-3)", marginBottom: 20, textAlign: "center" }}>
+              {t("onboarding_possessions_subtitle")}
+            </p>
+
+            {possessions.length > 0 && (
+              <div style={{ marginBottom: 16 }}>
+                {possessions.map((p) => {
+                  const colors = COLOR_MAP[p.typeColor] || COLOR_MAP.tang;
+                  return (
+                    <div
+                      key={p.id}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 10,
+                        padding: "10px 12px", borderRadius: "var(--radius-md)",
+                        border: "0.5px solid var(--rule)", marginBottom: 8,
+                      }}
+                    >
+                      <div style={{ width: 30, height: 30, borderRadius: "var(--radius-md)", background: colors.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                        <i className={`ti ${p.typeIcon}`} style={{ fontSize: 14, color: colors.text }} aria-hidden="true" />
+                      </div>
+                      <span style={{ fontSize: 13, flex: 1, minWidth: 0 }}>{p.name}</span>
+                      <span style={{ fontSize: 13, fontWeight: 500 }}>
+                        {Math.round(p.value).toLocaleString("fr-FR")} {p.currency}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {showPossessionForm ? (
+              <div style={{ marginBottom: 28 }}>
+                <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>
+                  {t("onboarding_possessions_type_label")}
+                </p>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
+                  {POSSESSION_TYPES.map((type) => {
+                    const colors = COLOR_MAP[type.color] || COLOR_MAP.tang;
+                    const selected = possessionType === type.id;
+                    return (
+                      <button
+                        key={type.id}
+                        onClick={() => setPossessionType(type.id)}
+                        style={{
+                          padding: "6px 10px",
+                          borderRadius: "var(--radius-md)",
+                          border: selected ? `0.5px solid ${colors.text}` : "0.5px solid var(--rule)",
+                          background: selected ? colors.bg : "var(--bg-card)",
+                          color: selected ? colors.text : "var(--ink)",
+                          fontSize: 12,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 4,
+                        }}
+                      >
+                        <i className={`ti ${type.icon}`} style={{ fontSize: 13 }} aria-hidden="true" />
+                        {language === "en" && type.nameEn ? type.nameEn : type.name}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <input
+                  type="text"
+                  placeholder={t("onboarding_possessions_name_placeholder")}
+                  value={possessionName}
+                  onChange={(e) => setPossessionName(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "10px 12px",
+                    borderRadius: "var(--radius-md)",
+                    border: "0.5px solid var(--rule)",
+                    fontSize: 14,
+                    marginBottom: 10,
+                    outline: "none",
+                  }}
+                />
+                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 14 }}>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    placeholder={t("onboarding_possessions_value_placeholder")}
+                    value={possessionValue}
+                    onChange={(e) => setPossessionValue(e.target.value)}
+                    style={{
+                      flex: 1,
+                      padding: "10px 12px",
+                      borderRadius: "var(--radius-md)",
+                      border: "0.5px solid var(--rule)",
+                      fontSize: 14,
+                      outline: "none",
+                    }}
+                  />
+                  <select
+                    value={lastCurrency}
+                    onChange={(e) => setLastCurrency(e.target.value)}
+                    style={{
+                      padding: "10px 6px",
+                      borderRadius: "var(--radius-md)",
+                      border: "0.5px solid var(--rule)",
+                      fontSize: 13,
+                      background: "var(--bg-card)",
+                    }}
+                  >
+                    {CURRENCIES.map((c) => (
+                      <option key={c.code} value={c.code}>{c.code}</option>
+                    ))}
+                  </select>
+                </div>
+                <button
+                  onClick={createPossession}
+                  disabled={busy || !possessionName.trim() || !possessionValue}
+                  style={{
+                    width: "100%",
+                    padding: 14,
+                    borderRadius: "var(--radius-md)",
+                    border: "0.5px solid var(--sky)",
+                    background: "var(--sky-light)",
+                    color: "var(--sky)",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    opacity: busy || !possessionName.trim() || !possessionValue ? 0.6 : 1,
+                  }}
+                >
+                  {t("onboarding_possessions_add")}
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowPossessionForm(true)}
+                disabled={busy}
+                style={{
+                  width: "100%",
+                  padding: 12,
+                  marginBottom: 28,
+                  borderRadius: "var(--radius-md)",
+                  border: "0.5px dashed var(--rule)",
+                  background: "none",
+                  color: "var(--ink-2)",
+                  fontSize: 13,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 6,
+                }}
+              >
+                <i className="ti ti-plus" style={{ fontSize: 14 }} aria-hidden="true" />
+                {t("onboarding_possessions_add_another")}
               </button>
             )}
           </>
