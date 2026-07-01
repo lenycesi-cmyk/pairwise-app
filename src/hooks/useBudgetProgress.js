@@ -37,13 +37,21 @@ export function useBudgetProgress() {
     return 0;
   }
 
+  // Une transaction matche un budget "category" si sa catégorie entière est
+  // sélectionnée, OU si sa combinaison catégorie+sous-catégorie précise l'est
+  // (budgets à granularité sous-catégorie).
+  function txMatchesBudget(tx, b) {
+    if (b.scope === "global") return true;
+    if (b.categoryIds?.includes(tx.categoryId)) return true;
+    if (b.subcategoryKeys?.includes(`${tx.categoryId}::${tx.subcategory}`)) return true;
+    return false;
+  }
+
   const progress = useMemo(() => {
     return budgets
       .filter((b) => b.active)
       .map((b) => {
-        const scopedTx = monthTx.filter(
-          (tx) => b.scope === "global" || b.categoryIds?.includes(tx.categoryId)
-        );
+        const scopedTx = monthTx.filter((tx) => txMatchesBudget(tx, b));
         const spent =
           b.memberUid && b.memberUid !== "couple"
             ? scopedTx.reduce((sum, tx) => sum + memberShare(tx, b.memberUid), 0)

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useFinance } from "../context/FinanceContext";
 import { useTranslation } from "../hooks/useTranslation";
 import { useCategoryName } from "../hooks/useCategoryName";
@@ -16,9 +16,9 @@ function monthsAgoRange(n) {
   return start;
 }
 
-export default function BudgetScreen() {
+export default function BudgetScreen({ openSignal }) {
   const t = useTranslation();
-  const { catName } = useCategoryName();
+  const { catName, subName } = useCategoryName();
   const { categories, transactions, budgets, addBudget, updateBudget, removeBudget, defaultCurrency, members } =
     useFinance();
   const { progress } = useBudgetProgress();
@@ -27,8 +27,13 @@ export default function BudgetScreen() {
   const [showForm, setShowForm] = useState(false);
   const [quickMode, setQuickMode] = useState(null); // null | "5030" | "history" | "manual"
   const [editingId, setEditingId] = useState(null);
+  const [name, setName] = useState("");
   const [scope, setScope] = useState("global");
   const [categoryIds, setCategoryIds] = useState([]);
+  // Subcategory-level picks, stored as "categoryId::subcategoryName" — lets a
+  // budget target specific subcategories without pulling in the whole category.
+  const [subcategoryKeys, setSubcategoryKeys] = useState([]);
+  const [expandedCatId, setExpandedCatId] = useState(null);
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState(defaultCurrency);
   const [alertThreshold, setAlertThreshold] = useState("80");
@@ -45,8 +50,11 @@ export default function BudgetScreen() {
 
   function resetForm() {
     setEditingId(null);
+    setName("");
     setScope("global");
     setCategoryIds([]);
+    setSubcategoryKeys([]);
+    setExpandedCatId(null);
     setAmount("");
     setCurrency(defaultCurrency);
     setAlertThreshold("80");
@@ -58,6 +66,14 @@ export default function BudgetScreen() {
     setQuickMode(null);
     setShowForm(true);
   }
+
+  // Central "+" button on the Budget tab (App.jsx) bumps openSignal to open
+  // the new-budget form from anywhere, without this screen needing to know
+  // about the bottom nav.
+  useEffect(() => {
+    if (openSignal) openNew();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openSignal]);
 
   // Moyenne mensuelle des revenus sur les 3 derniers mois, pour préremplir
   // la règle 50/30/20 (50% essentiel / 30% plaisirs / 20% investissement).
@@ -107,8 +123,10 @@ export default function BudgetScreen() {
 
   function openEdit(b) {
     setEditingId(b.id);
+    setName(b.name || "");
     setScope(b.scope);
     setCategoryIds(b.categoryIds || []);
+    setSubcategoryKeys(b.subcategoryKeys || []);
     setAmount(b.amount.toString());
     setCurrency(b.currency);
     setAlertThreshold((b.alertThreshold ?? 80).toString());
@@ -118,17 +136,30 @@ export default function BudgetScreen() {
   }
 
   function toggleCategory(id) {
-    setCategoryIds((prev) =>
-      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
+    setCategoryIds((prev) => {
+      if (prev.includes(id)) return prev.filter((c) => c !== id);
+      // Selecting the whole category makes any individually-picked
+      // subcategories under it redundant.
+      setSubcategoryKeys((sk) => sk.filter((k) => !k.startsWith(`${id}::`)));
+      return [...prev, id];
+    });
+  }
+
+  function toggleSubcategory(catId, subcategoryName) {
+    const key = `${catId}::${subcategoryName}`;
+    setSubcategoryKeys((prev) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
     );
   }
 
   async function handleSave() {
-    if (!amount || (scope === "category" && categoryIds.length === 0)) return;
+    if (!amount || (scope === "category" && categoryIds.length === 0 && subcategoryKeys.length === 0)) return;
 
     const payload = {
+      name: name.trim() || null,
       scope,
       categoryIds: scope === "global" ? [] : categoryIds,
+      subcategoryKeys: scope === "global" ? [] : subcategoryKeys,
       amount: parseFloat(amount),
       currency,
       alertThreshold: parseInt(alertThreshold) || 80,
@@ -152,13 +183,21 @@ export default function BudgetScreen() {
 
   function categoryNames(b) {
     if (b.scope === "global") return t("budget_scope_global");
-    return b.categoryIds
+    const catPart = (b.categoryIds || [])
       .map((id) => {
         const c = categories.find((c) => c.id === id);
         return c ? catName(c) : null;
       })
-      .filter(Boolean)
-      .join(", ");
+      .filter(Boolean);
+    const subPart = (b.subcategoryKeys || []).map((key) => {
+      const [catId, sub] = key.split("::");
+      return subName(sub, catId);
+    });
+    return [...catPart, ...subPart].join(", ") || t("budget_scope_category");
+  }
+
+  function budgetLabel(b) {
+    return b.name || categoryNames(b);
   }
 
   function memberLabel(b) {
@@ -315,6 +354,22 @@ export default function BudgetScreen() {
             marginBottom: 16,
           }}
         >
+          <input
+            type="text"
+            placeholder={t("budget_name_placeholder")}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "10px 12px",
+              borderRadius: "var(--radius-md)",
+              border: "0.5px solid var(--rule)",
+              fontSize: 14,
+              marginBottom: 12,
+              outline: "none",
+            }}
+          />
+
           <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>{t("budget_scope")}</p>
           <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
             {[
@@ -383,7 +438,7 @@ export default function BudgetScreen() {
               <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>
                 {t("budget_choose_categories")}
               </p>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
                 {expenseCategories.map((c) => (
                   <button
                     key={c.id}
@@ -404,6 +459,77 @@ export default function BudgetScreen() {
                     {catName(c)}
                   </button>
                 ))}
+              </div>
+
+              <p style={{ fontSize: 11, color: "var(--ink-3)", marginBottom: 8 }}>
+                {t("budget_choose_subcategories_hint")}
+              </p>
+              <div style={{ marginBottom: 12 }}>
+                {expenseCategories
+                  .filter((c) => !categoryIds.includes(c.id))
+                  .map((c) => {
+                    const isExpanded = expandedCatId === c.id;
+                    const pickedCount = c.subcategories.filter((s) =>
+                      subcategoryKeys.includes(`${c.id}::${s}`)
+                    ).length;
+                    return (
+                      <div key={c.id} style={{ borderBottom: "0.5px solid var(--rule)" }}>
+                        <button
+                          onClick={() => setExpandedCatId(isExpanded ? null : c.id)}
+                          style={{
+                            width: "100%",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 8,
+                            padding: "8px 0",
+                            background: "none",
+                            border: "none",
+                            textAlign: "left",
+                          }}
+                        >
+                          <i className={`ti ${c.icon}`} style={{ fontSize: 14, color: "var(--ink-3)" }} aria-hidden="true" />
+                          <span style={{ fontSize: 13, flex: 1 }}>{catName(c)}</span>
+                          {pickedCount > 0 && (
+                            <span style={{ fontSize: 11, color: "var(--sky)" }}>{pickedCount}</span>
+                          )}
+                          <i
+                            className="ti ti-chevron-right"
+                            style={{
+                              fontSize: 13,
+                              color: "var(--ink-3)",
+                              transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
+                              transition: "transform 0.15s",
+                            }}
+                            aria-hidden="true"
+                          />
+                        </button>
+                        {isExpanded && (
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, padding: "0 0 10px 22px" }}>
+                            {c.subcategories.map((s) => {
+                              const key = `${c.id}::${s}`;
+                              const picked = subcategoryKeys.includes(key);
+                              return (
+                                <button
+                                  key={s}
+                                  onClick={() => toggleSubcategory(c.id, s)}
+                                  style={{
+                                    padding: "5px 9px",
+                                    borderRadius: "var(--radius-md)",
+                                    border: picked ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
+                                    background: picked ? "var(--sky-light)" : "var(--bg)",
+                                    color: picked ? "var(--sky)" : "var(--ink)",
+                                    fontSize: 11,
+                                  }}
+                                >
+                                  {subName(s, c.id)}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
               </div>
             </>
           )}
@@ -463,7 +589,7 @@ export default function BudgetScreen() {
 
           <button
             onClick={handleSave}
-            disabled={!amount || (scope === "category" && categoryIds.length === 0)}
+            disabled={!amount || (scope === "category" && categoryIds.length === 0 && subcategoryKeys.length === 0)}
             style={{
               width: "100%",
               background: "var(--ink)",
@@ -473,7 +599,7 @@ export default function BudgetScreen() {
               padding: 14,
               fontSize: 14,
               fontWeight: 500,
-              opacity: !amount || (scope === "category" && categoryIds.length === 0) ? 0.5 : 1,
+              opacity: !amount || (scope === "category" && categoryIds.length === 0 && subcategoryKeys.length === 0) ? 0.5 : 1,
             }}
           >
             {editingId ? t("budget_update_button") : t("budget_create_button")}
@@ -511,11 +637,14 @@ export default function BudgetScreen() {
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ fontSize: 14 }}>
-                  {categoryNames(budget)}
+                  {budgetLabel(budget)}
                   {members.length > 0 && (
                     <span style={{ fontSize: 11, color: "var(--sky)", marginLeft: 6 }}>· {memberLabel(budget)}</span>
                   )}
                 </p>
+                {budget.name && (
+                  <p style={{ fontSize: 11, color: "var(--ink-3)" }}>{categoryNames(budget)}</p>
+                )}
                 <p style={{ fontSize: 11, color: "var(--ink-3)" }}>
                   {Math.round(spent).toLocaleString("fr-FR")} / {Math.round(amountInBase).toLocaleString("fr-FR")} {defaultCurrency}
                 </p>

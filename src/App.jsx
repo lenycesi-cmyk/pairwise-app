@@ -80,6 +80,7 @@ function AppContent() {
   // Reports' quarter/year/last12/custom modes stay local to that screen).
   const now = new Date();
   const [sharedMonth, setSharedMonth] = useState({ month: now.getMonth(), year: now.getFullYear() });
+  const [budgetAddSignal, setBudgetAddSignal] = useState(0);
 
   if (loading) {
     return (
@@ -107,6 +108,8 @@ function AppContent() {
   function handleCentralAdd(currentTab) {
     if (currentTab === "wealth") {
       setShowAddAsset(true);
+    } else if (currentTab === "budget") {
+      setBudgetAddSignal((s) => s + 1);
     } else {
       setShowAdd(true);
     }
@@ -164,7 +167,7 @@ function AppContent() {
       )}
       {tab === "budget" && (
         <Suspense fallback={null}>
-          <BudgetScreen />
+          <BudgetScreen openSignal={budgetAddSignal} />
         </Suspense>
       )}
 

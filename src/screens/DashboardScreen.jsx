@@ -272,16 +272,19 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
     switch (id) {
       case "net_balance":
         return (
-          <div style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "1rem 1.25rem" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12 }}>
-              <p style={{ fontSize: 12, color: "var(--ink-3)" }}>{t("dashboard_net_balance")}</p>
-              <p style={{ fontSize: 18, fontWeight: 600, color: totals.net >= 0 ? "var(--sage)" : "var(--tang)" }}>
-                {totals.net >= 0 ? "+" : ""}{formatAmount(totals.net)} {currencySymbol}
-              </p>
+          <div>
+            <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>{t("widget_net_balance")}</p>
+            <div style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "1rem 1.25rem" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12 }}>
+                <p style={{ fontSize: 12, color: "var(--ink-3)" }}>{t("dashboard_net_balance")}</p>
+                <p style={{ fontSize: 18, fontWeight: 600, color: totals.net >= 0 ? "var(--sage)" : "var(--tang)" }}>
+                  {totals.net >= 0 ? "+" : ""}{formatAmount(totals.net)} {currencySymbol}
+                </p>
+              </div>
+              <BreakdownRow color="var(--sage)" label={t("dashboard_income")} value={`${formatAmount(totals.income)} ${currencySymbol}`} valueColor="var(--sage)" />
+              <BreakdownRow color="var(--tang)" label={t("dashboard_expenses")} value={`${formatAmount(totals.expense)} ${currencySymbol}`} valueColor="var(--tang)" />
+              <BreakdownRow color="var(--lavi)" label={t("dashboard_invested")} value={`${formatAmount(totals.invested)} ${currencySymbol}`} last />
             </div>
-            <BreakdownRow color="var(--sage)" label={t("dashboard_income")} value={`${formatAmount(totals.income)} ${currencySymbol}`} valueColor="var(--sage)" />
-            <BreakdownRow color="var(--tang)" label={t("dashboard_expenses")} value={`${formatAmount(totals.expense)} ${currencySymbol}`} valueColor="var(--tang)" />
-            <BreakdownRow color="var(--lavi)" label={t("dashboard_invested")} value={`${formatAmount(totals.invested)} ${currencySymbol}`} last />
           </div>
         );
 
@@ -317,9 +320,9 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                 const over = pct >= 100;
                 const warn = pct >= (budget.alertThreshold ?? 80);
                 const barColor = over ? "var(--red)" : warn ? "var(--amber)" : "var(--sky)";
-                const label = budget.scope === "global"
+                const label = budget.name || (budget.scope === "global"
                   ? t("budget_scope_global")
-                  : budget.categoryIds.map((cid) => { const c = categories.find((c) => c.id === cid); return c ? catName(c) : null; }).filter(Boolean).join(", ");
+                  : (budget.categoryIds || []).map((cid) => { const c = categories.find((c) => c.id === cid); return c ? catName(c) : null; }).filter(Boolean).join(", "));
                 const memberLabel = !budget.memberUid || budget.memberUid === "couple"
                   ? null
                   : members.find((m) => m.uid === budget.memberUid)?.name;
@@ -462,7 +465,12 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
 
       case "debt_tracker":
         if (!debt) return null;
-        return <DebtSummaryCard debt={debt} defaultCurrency={displayCurrency} onClick={!editMode ? onOpenDebt : undefined} />;
+        return (
+          <div>
+            <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>{t("widget_debt_tracker")}</p>
+            <DebtSummaryCard debt={debt} defaultCurrency={displayCurrency} onClick={!editMode ? onOpenDebt : undefined} />
+          </div>
+        );
 
       case "recurring": {
         const upcoming = [...recurringTx]
