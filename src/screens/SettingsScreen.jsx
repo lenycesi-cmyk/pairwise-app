@@ -19,6 +19,8 @@ export default function SettingsScreen({ onOpenRecurring, onOpenCategories, onOp
     updateMemberAvatarColor,
     members,
     transactions,
+    coupleName,
+    updateCoupleName,
   } = useFinance();
   const [showCode, setShowCode] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -26,6 +28,8 @@ export default function SettingsScreen({ onOpenRecurring, onOpenCategories, onOp
   const fileInputRef = useRef(null);
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState(user?.displayName || "");
+  const [editingCoupleName, setEditingCoupleName] = useState(false);
+  const [coupleNameInput, setCoupleNameInput] = useState(coupleName || "");
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [notificationStatus, setNotificationStatus] = useState(
     typeof Notification !== "undefined" ? Notification.permission : "denied"
@@ -89,6 +93,11 @@ export default function SettingsScreen({ onOpenRecurring, onOpenCategories, onOp
     await updateDisplayName(trimmed);
     await updateMemberName(user.uid, trimmed);
     setEditingName(false);
+  }
+
+  async function handleSaveCoupleName() {
+    await updateCoupleName(coupleNameInput.trim());
+    setEditingCoupleName(false);
   }
 
   async function handlePickColor(colorKey) {
@@ -274,6 +283,39 @@ export default function SettingsScreen({ onOpenRecurring, onOpenCategories, onOp
 
       <SectionLabel>{t("settings_couple")}</SectionLabel>
       <Card>
+        <Row label={t("settings_couple_name")}>
+          {editingCoupleName ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <input
+                type="text"
+                value={coupleNameInput}
+                onChange={(e) => setCoupleNameInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSaveCoupleName()}
+                autoFocus
+                placeholder={t("settings_couple_name_placeholder")}
+                style={{
+                  fontSize: 14,
+                  textAlign: "right",
+                  border: "none",
+                  borderBottom: "1px solid var(--rule)",
+                  outline: "none",
+                  background: "transparent",
+                  width: 140,
+                }}
+              />
+              <button onClick={handleSaveCoupleName} aria-label="Valider" style={{ background: "none", border: "none", color: "var(--sage)" }}>
+                <i className="ti ti-check" style={{ fontSize: 16 }} aria-hidden="true" />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => { setCoupleNameInput(coupleName || ""); setEditingCoupleName(true); }}
+              style={linkBtnStyle}
+            >
+              {coupleName || t("settings_couple_name_placeholder")}
+            </button>
+          )}
+        </Row>
         <Row label={t("settings_invite_partner")}>
           <button
             onClick={() => setShowCode(!showCode)}
