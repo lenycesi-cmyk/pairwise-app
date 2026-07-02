@@ -132,7 +132,7 @@ function SortableWidget({ id, editMode, onLongPress, children }) {
 }
 
 // ── Main component ───────────────────────────────────────────────────────────
-export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTransactions, onEditTransaction, sharedMonth, onSharedMonthChange, addButtonRef, settingsButtonRef }) {
+export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTransactions, onEditTransaction, sharedMonth, onSharedMonthChange, addButtonRef, settingsButtonRef, onOpenRecurring }) {
   const t = useTranslation();
   const { catName } = useCategoryName();
   const {
@@ -551,7 +551,18 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
           .slice(0, 3);
         return (
           <div>
-            <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>{t("widget_recurring_upcoming")}</p>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+              <p style={{ fontSize: 13, fontWeight: 500 }}>{t("widget_recurring_upcoming")}</p>
+              {!editMode && (
+                <button
+                  onClick={() => onOpenRecurring?.()}
+                  aria-label={t("widget_recurring_add")}
+                  style={{ background: "none", border: "none", color: "var(--sky)", fontSize: 12, display: "flex", alignItems: "center", gap: 3 }}
+                >
+                  <i className="ti ti-plus" style={{ fontSize: 14 }} aria-hidden="true" />
+                </button>
+              )}
+            </div>
             <div style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", overflow: "hidden" }}>
               {upcoming.length === 0 ? (
                 <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", padding: "1.5rem 0" }}>{t("widget_recurring_empty")}</p>
@@ -559,7 +570,11 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                 upcoming.map((r, i) => {
                   const cat = categories.find((c) => c.id === r.categoryId);
                   return (
-                    <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderBottom: i === upcoming.length - 1 ? "none" : "0.5px solid var(--rule)" }}>
+                    <div
+                      key={r.id}
+                      onClick={() => !editMode && onOpenRecurring?.(r.id)}
+                      style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderBottom: i === upcoming.length - 1 ? "none" : "0.5px solid var(--rule)", cursor: editMode ? "default" : "pointer" }}
+                    >
                       <i className={`ti ${cat?.icon || "ti-refresh"}`} style={{ fontSize: 16, color: "var(--ink-3)" }} aria-hidden="true" />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <p style={{ fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.description || cat?.name}</p>

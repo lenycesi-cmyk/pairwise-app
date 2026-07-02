@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useFinance } from "../context/FinanceContext";
 import { useAuth } from "../context/AuthContext";
 import { CURRENCIES } from "../data/categories";
@@ -13,7 +13,7 @@ function getFrequencies(t) {
   ];
 }
 
-export default function RecurringScreen({ onClose }) {
+export default function RecurringScreen({ onClose, initialEditId }) {
   const t = useTranslation();
   const { catName, subName: tSubName } = useCategoryName();
   const FREQUENCIES = getFrequencies(t);
@@ -33,6 +33,17 @@ export default function RecurringScreen({ onClose }) {
   const [dayOfMonth, setDayOfMonth] = useState("1");
   const [paidBy, setPaidBy] = useState(user?.uid);
   const [split, setSplit] = useState("50/50");
+
+  // Deep-link into edit mode when opened from a specific recurring item
+  // elsewhere (e.g. the Home "upcoming recurrences" widget) — only applied
+  // once per initialEditId so it doesn't keep resetting an in-progress edit
+  // whenever recurringTx's array reference changes from unrelated writes.
+  useEffect(() => {
+    if (!initialEditId) return;
+    const rule = recurringTx.find((r) => r.id === initialEditId);
+    if (rule) openEdit(rule);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialEditId]);
 
   const availableCategories = categories.filter((c) =>
     type === "income" ? c.id === "income" :
