@@ -98,17 +98,7 @@ export default function MemberBreakdownScreen({ onClose }) {
   }
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "var(--bg)",
-        zIndex: 100,
-        overflowY: "auto",
-        maxWidth: "var(--app-shell-width)",
-        margin: "0 auto",
-      }}
-    >
+    <div className="app-modal">
       <div style={{ padding: "1.5rem 1.25rem 6rem" }}>
         <div style={{ display: "flex", alignItems: "center", marginBottom: 16 }}>
           <button onClick={onClose} aria-label="Fermer" style={{ background: "none", border: "none" }}>

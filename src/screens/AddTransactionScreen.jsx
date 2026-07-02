@@ -226,13 +226,8 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
 
   return (
     <div
+      className="app-modal"
       style={{
-        position: "fixed",
-        inset: 0,
-        background: "var(--bg)",
-        zIndex: 100,
-        maxWidth: "var(--app-shell-width)",
-        margin: "0 auto",
         display: "flex",
         flexDirection: "column",
       }}

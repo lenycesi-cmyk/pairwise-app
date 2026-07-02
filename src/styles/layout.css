@@ -57,6 +57,40 @@
   justify-content: center;
 }
 
+/* Shared by every full-screen modal/detail screen (AddTransactionScreen,
+   RecurringScreen, AddAssetScreen, MemberBreakdownScreen,
+   InvestmentCalculatorScreen, ModalWrapper, Theme/LanguageScreen wrappers)
+   — they all share the exact same fixed/inset/maxWidth/margin base, so a
+   single class here lets the desktop override apply to all of them at
+   once instead of repeating it per file. */
+.app-modal {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  z-index: 100;
+  overflow-y: auto;
+  max-width: var(--app-shell-width);
+  margin: 0 auto;
+}
+
+@media (min-width: 1024px) {
+  .app-modal {
+    position: fixed;
+    inset: auto;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(560px, 92vw);
+    max-width: min(560px, 92vw);
+    max-height: 88vh;
+    border-radius: var(--radius-xl);
+    /* The 9999px spread is the classic "huge box-shadow" trick for a
+       dimmed backdrop without a separate overlay element (same technique
+       SpotlightHint already uses). */
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.4), var(--shadow-lg);
+  }
+}
+
 /* Desktop: the bottom tab bar becomes a left sidebar rail instead — same
    tabs, vertical instead of horizontal. Dashboard/etc. content itself
    still renders in the same narrow --app-shell-width column for now
