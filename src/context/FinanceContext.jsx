@@ -39,6 +39,7 @@ export function FinanceProvider({ children }) {
   const [dashboardDisplayCurrency, setDashboardDisplayCurrency] = useState(null);
   const [theme, setThemeState] = useState("classic");
   const [language, setLanguageState] = useState("fr");
+  const [debtSettlements, setDebtSettlements] = useState([]);
 
   useEffect(() => {
     applyTheme(theme);
@@ -87,6 +88,7 @@ export function FinanceProvider({ children }) {
         if (data.dashboardDisplayCurrency) setDashboardDisplayCurrency(data.dashboardDisplayCurrency);
         if (data.theme) setThemeState(data.theme);
         if (data.language) setLanguageState(data.language);
+        if (data.debtSettlements) setDebtSettlements(data.debtSettlements);
       }
     });
 
@@ -184,6 +186,20 @@ export function FinanceProvider({ children }) {
       { currencyMode: mode },
       { merge: true }
     );
+  }
+
+  // Records that shared expenses were settled up as of `date` — "mark as
+  // paid" in the debt tracker. Doesn't touch any transaction; the debt
+  // hook just ignores every shared expense dated before the latest
+  // settlement when computing the running "total" balance, so the debt
+  // effectively resets to 0 going forward without rewriting history.
+  async function addDebtSettlement(date, note = "") {
+    if (!coupleId) return;
+    const updated = [
+      ...debtSettlements,
+      { id: `settle_${Date.now()}`, date, note, createdAt: Date.now(), createdBy: user.uid },
+    ];
+    await setDoc(doc(db, "couples", coupleId), { debtSettlements: updated }, { merge: true });
   }
 
   async function addRecurring(rule) {
@@ -390,6 +406,8 @@ export function FinanceProvider({ children }) {
     updateTheme,
     language,
     updateLanguage,
+    debtSettlements,
+    addDebtSettlement,
   };
 
   return (

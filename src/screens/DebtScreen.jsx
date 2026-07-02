@@ -1,12 +1,57 @@
+import { useState } from "react";
 import { useFinance } from "../context/FinanceContext";
 import { useExchangeRates } from "../hooks/useExchangeRates";
 import { useDebtCalculation } from "../hooks/useDebtCalculation";
 
+const MONTHS = [
+  "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
+  "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre",
+];
+
+function isoDate(d) {
+  return d.toISOString().slice(0, 10);
+}
+
 export default function DebtScreen() {
-  const { transactions, members, defaultCurrency } = useFinance();
+  const { transactions, members, defaultCurrency, debtSettlements, addDebtSettlement } = useFinance();
   const { convert, loading } = useExchangeRates(defaultCurrency);
 
-  const debt = useDebtCalculation(transactions, members, defaultCurrency, convert);
+  const now = new Date();
+  const [filterMode, setFilterMode] = useState("total"); // "total" | "month" | "range"
+  const [viewMonth, setViewMonth] = useState(now.getMonth());
+  const [viewYear, setViewYear] = useState(now.getFullYear());
+  const [rangeStart, setRangeStart] = useState(isoDate(new Date(now.getFullYear(), now.getMonth() - 1, now.getDate())));
+  const [rangeEnd, setRangeEnd] = useState(isoDate(now));
+
+  let startDate = null;
+  let endDate = null;
+  if (filterMode === "month") {
+    startDate = new Date(viewYear, viewMonth, 1).toISOString();
+    endDate = new Date(viewYear, viewMonth + 1, 0, 23, 59, 59).toISOString();
+  } else if (filterMode === "range") {
+    startDate = rangeStart ? new Date(rangeStart).toISOString() : null;
+    endDate = rangeEnd ? new Date(`${rangeEnd}T23:59:59`).toISOString() : null;
+  }
+
+  const debt = useDebtCalculation(transactions, members, defaultCurrency, convert, {
+    startDate,
+    endDate,
+    settlements: debtSettlements,
+  });
+
+  function changeMonth(delta) {
+    let m = viewMonth + delta;
+    let y = viewYear;
+    if (m > 11) { m = 0; y++; }
+    if (m < 0) { m = 11; y--; }
+    setViewMonth(m);
+    setViewYear(y);
+  }
+
+  async function handleMarkAsPaid() {
+    if (!confirm(`Marquer la dette comme réglée aujourd'hui ? Les dépenses partagées avant aujourd'hui ne compteront plus dans le solde "Total".`)) return;
+    await addDebtSettlement(new Date().toISOString());
+  }
 
   if (loading) {
     return (
@@ -30,6 +75,61 @@ export default function DebtScreen() {
     <div style={{ padding: "1.5rem 1.25rem 6rem" }}>
       <h1 style={{ fontSize: 20, marginBottom: 16 }}>Entre vous</h1>
 
+      {/* Filtre de période */}
+      <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
+        {[
+          { key: "total", label: "Total" },
+          { key: "month", label: "Mois" },
+          { key: "range", label: "Période" },
+        ].map((f) => (
+          <button
+            key={f.key}
+            onClick={() => setFilterMode(f.key)}
+            style={{
+              flex: 1,
+              padding: 8,
+              borderRadius: "var(--radius-md)",
+              border: filterMode === f.key ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
+              background: filterMode === f.key ? "var(--sky-light)" : "var(--bg-card)",
+              color: filterMode === f.key ? "var(--sky)" : "var(--ink)",
+              fontSize: 13,
+              fontWeight: filterMode === f.key ? 500 : 400,
+            }}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      {filterMode === "month" && (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 16 }}>
+          <button onClick={() => changeMonth(-1)} aria-label="Mois précédent" style={navBtnStyle}>
+            <i className="ti ti-chevron-left" style={{ fontSize: 16 }} aria-hidden="true" />
+          </button>
+          <p style={{ fontSize: 14, fontWeight: 500 }}>{MONTHS[viewMonth]} {viewYear}</p>
+          <button onClick={() => changeMonth(1)} aria-label="Mois suivant" style={navBtnStyle}>
+            <i className="ti ti-chevron-right" style={{ fontSize: 16 }} aria-hidden="true" />
+          </button>
+        </div>
+      )}
+
+      {filterMode === "range" && (
+        <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+          <input
+            type="date"
+            value={rangeStart}
+            onChange={(e) => setRangeStart(e.target.value)}
+            style={rangeInputStyle}
+          />
+          <input
+            type="date"
+            value={rangeEnd}
+            onChange={(e) => setRangeEnd(e.target.value)}
+            style={rangeInputStyle}
+          />
+        </div>
+      )}
+
       <div
         style={{
           background: "var(--bg-card)",
@@ -44,10 +144,42 @@ export default function DebtScreen() {
           <Avatar name={debt.a.name} color="sky" offset />
           <Avatar name={debt.b.name} color="blush" />
         </div>
-        <p style={{ fontSize: 13, color: "var(--ink-2)" }}>{debt.owesText}</p>
+        {debt.owesAmount === 0 ? (
+          <p style={{ fontSize: 13, color: "var(--ink-2)" }}>Rien à régler</p>
+        ) : (
+          <p style={{ fontSize: 13, color: "var(--ink-2)" }}>{debt.owesText}</p>
+        )}
         <p style={{ fontSize: 32, fontWeight: 500, color: "var(--sky)", marginTop: 4 }}>
           {Math.round(debt.owesAmount).toLocaleString("fr-FR")} {defaultCurrency}
         </p>
+        {filterMode === "total" && debt.latestSettlement && (
+          <p style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 8 }}>
+            Depuis le règlement du {new Date(debt.latestSettlement.date).toLocaleDateString("fr-FR")}
+          </p>
+        )}
+        {filterMode === "total" && debt.owesAmount > 0 && (
+          <button
+            onClick={handleMarkAsPaid}
+            style={{
+              marginTop: 14,
+              width: "100%",
+              padding: "10px 0",
+              borderRadius: "var(--radius-md)",
+              border: "none",
+              background: "var(--sage)",
+              color: "#fff",
+              fontSize: 13,
+              fontWeight: 500,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 6,
+            }}
+          >
+            <i className="ti ti-check" style={{ fontSize: 14 }} aria-hidden="true" />
+            Marquer comme réglée
+          </button>
+        )}
       </div>
 
       <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>
@@ -121,3 +253,24 @@ function Avatar({ name, color, offset }) {
     </div>
   );
 }
+
+const navBtnStyle = {
+  width: 30,
+  height: 30,
+  borderRadius: "50%",
+  background: "var(--bg-card)",
+  border: "0.5px solid var(--rule)",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+};
+
+const rangeInputStyle = {
+  flex: 1,
+  padding: "8px 10px",
+  borderRadius: "var(--radius-md)",
+  border: "0.5px solid var(--rule)",
+  background: "var(--bg-card)",
+  fontSize: 13,
+  color: "var(--ink)",
+};
