@@ -43,7 +43,7 @@ function ModalWrapper({ onClose, children }) {
         background: "var(--bg)",
         zIndex: 100,
         overflowY: "auto",
-        maxWidth: 480,
+        maxWidth: "var(--app-shell-width)",
         margin: "0 auto",
       }}
     >
@@ -242,12 +242,12 @@ function AppContent() {
           </ModalWrapper>
         )}
         {showTheme && (
-          <div style={{ position: "fixed", inset: 0, background: "var(--bg)", zIndex: 100, overflowY: "auto", maxWidth: 480, margin: "0 auto" }}>
+          <div style={{ position: "fixed", inset: 0, background: "var(--bg)", zIndex: 100, overflowY: "auto", maxWidth: "var(--app-shell-width)", margin: "0 auto" }}>
             <ThemeScreen onClose={() => setShowTheme(false)} />
           </div>
         )}
         {showLanguage && (
-          <div style={{ position: "fixed", inset: 0, background: "var(--bg)", zIndex: 100, overflowY: "auto", maxWidth: 480, margin: "0 auto" }}>
+          <div style={{ position: "fixed", inset: 0, background: "var(--bg)", zIndex: 100, overflowY: "auto", maxWidth: "var(--app-shell-width)", margin: "0 auto" }}>
             <LanguageScreen onClose={() => setShowLanguage(false)} />
           </div>
         )}

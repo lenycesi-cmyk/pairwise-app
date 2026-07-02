@@ -231,7 +231,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
         inset: 0,
         background: "var(--bg)",
         zIndex: 100,
-        maxWidth: 480,
+        maxWidth: "var(--app-shell-width)",
         margin: "0 auto",
         display: "flex",
         flexDirection: "column",

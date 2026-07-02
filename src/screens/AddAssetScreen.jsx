@@ -117,7 +117,7 @@ export default function AddAssetScreen({ onClose, editingAsset }) {
         background: "var(--bg)",
         zIndex: 100,
         overflowY: "auto",
-        maxWidth: 480,
+        maxWidth: "var(--app-shell-width)",
         margin: "0 auto",
       }}
     >

@@ -270,6 +270,14 @@
 }
 
 :root {
+  /* Width of the app's main column. Every fixed-position full-screen
+     overlay (modals, AddTransactionScreen, etc.) re-declares its own
+     max-width + centering because `position: fixed` escapes the normal
+     document flow and #root's own constraint — they all read this one
+     variable instead of hardcoding 480px, so a future desktop breakpoint
+     only needs to override it here. */
+  --app-shell-width: 480px;
+
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 18px;
@@ -315,7 +323,7 @@ select {
 
 #root {
   width: 100%;
-  max-width: 480px;
+  max-width: var(--app-shell-width);
   margin: 0 auto;
   min-height: 100dvh;
   background: var(--bg);
