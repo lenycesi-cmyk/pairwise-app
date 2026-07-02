@@ -36,17 +36,7 @@ function BudgetAlertsRunner() {
 
 function ModalWrapper({ onClose, children }) {
   return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "var(--bg)",
-        zIndex: 100,
-        overflowY: "auto",
-        maxWidth: "var(--app-shell-width)",
-        margin: "0 auto",
-      }}
-    >
+    <div className="app-modal">
       <div style={{ padding: "1.5rem 1.25rem 0" }}>
         <button
           onClick={onClose}
@@ -229,12 +219,12 @@ function AppContent() {
           </ModalWrapper>
         )}
         {showTheme && (
-          <div style={{ position: "fixed", inset: 0, background: "var(--bg)", zIndex: 100, overflowY: "auto", maxWidth: "var(--app-shell-width)", margin: "0 auto" }}>
+          <div className="app-modal">
             <ThemeScreen onClose={() => setShowTheme(false)} />
           </div>
         )}
         {showLanguage && (
-          <div style={{ position: "fixed", inset: 0, background: "var(--bg)", zIndex: 100, overflowY: "auto", maxWidth: "var(--app-shell-width)", margin: "0 auto" }}>
+          <div className="app-modal">
             <LanguageScreen onClose={() => setShowLanguage(false)} />
           </div>
         )}
