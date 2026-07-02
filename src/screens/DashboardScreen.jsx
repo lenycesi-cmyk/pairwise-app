@@ -150,7 +150,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
   const t = useTranslation();
   const { catName } = useCategoryName();
   const {
-    transactions, categories, members, assets, recurringTx, coupleName,
+    transactions, categories, members, assets, recurringTx, coupleName, debtSettlements,
     defaultCurrency, dashboardDisplayCurrency, updateDashboardDisplayCurrency, loading,
   } = useFinance();
   const displayCurrency = dashboardDisplayCurrency || defaultCurrency;
@@ -160,6 +160,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
   const customizeButtonRef = useRef(null);
   const currencyButtonRef = useRef(null);
   const [detailBudgetId, setDetailBudgetId] = useState(null);
+  const [trendMonths, setTrendMonths] = useState(6);
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const isWide = useMediaQuery("(min-width: 1440px)");
   const summaryLabel = coupleName
@@ -170,7 +171,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
   const [localWidgets, setLocalWidgets] = useState(null);
   const activeWidgets = localWidgets ?? widgets;
 
-  const debt = useDebtCalculation(transactions, members, displayCurrency, convert);
+  const debt = useDebtCalculation(transactions, members, displayCurrency, convert, { settlements: debtSettlements });
   const memberColorMap = useMemo(() => buildMemberColorMap(members), [members]);
 
   const now = new Date();
@@ -223,13 +224,14 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
     return { income, expense, invested, net: income - expense - invested };
   }, [monthTx, displayCurrency, convert]);
 
-  // Desktop-only "reports_trend" widget: income vs expense for the 6
-  // months ending on the currently viewed month — same shape of data as
-  // Reports' own income/expense chart, just always a fixed 6-month window
-  // rather than following Reports' period picker.
-  const sixMonthTrend = useMemo(() => {
+  // Desktop-only "reports_trend" widget: income vs expense for the N
+  // months (trendMonths, switchable via the widget's own period buttons)
+  // ending on the currently viewed month — same shape of data as Reports'
+  // own income/expense chart, just always following the last N months
+  // rather than Reports' arbitrary period picker.
+  const trendData = useMemo(() => {
     const buckets = [];
-    for (let i = 5; i >= 0; i--) {
+    for (let i = trendMonths - 1; i >= 0; i--) {
       let m = viewMonth - i;
       let y = viewYear;
       while (m < 0) { m += 12; y -= 1; }
@@ -244,7 +246,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
       else if (tx.type === "expense") bucket.expense += val;
     }
     return buckets;
-  }, [transactions, viewMonth, viewYear, displayCurrency, convert]);
+  }, [transactions, viewMonth, viewYear, trendMonths, displayCurrency, convert]);
 
   const memberTotals = useMemo(() => {
     const result = {};
@@ -498,7 +500,12 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
       case "spending_by_category":
         return (
           <div>
-            <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>{t("dashboard_spending_by_category")}</p>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
+              <p style={{ fontSize: 13, fontWeight: 500 }}>{t("dashboard_spending_by_category")}</p>
+              {Object.keys(categoryTotals).length > 0 && !editMode && (
+                <p style={{ fontSize: 11, color: "var(--ink-3)" }}>{t("dashboard_tap_category")}</p>
+              )}
+            </div>
             <div style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "0.5rem 1.25rem" }}>
               {Object.keys(categoryTotals).length === 0 ? (
                 <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", padding: "1.5rem 0" }}>{t("dashboard_no_expenses")}</p>
@@ -510,9 +517,6 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                   ))
               )}
             </div>
-            {Object.keys(categoryTotals).length > 0 && !editMode && (
-              <p style={{ fontSize: 11, color: "var(--ink-3)", textAlign: "center", marginTop: 10 }}>{t("dashboard_tap_category")}</p>
-            )}
           </div>
         );
 
@@ -652,10 +656,33 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
       case "reports_trend":
         return (
           <div>
-            <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>{t("widget_reports_trend")}</p>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+              <p style={{ fontSize: 13, fontWeight: 500 }}>{t("widget_reports_trend")}</p>
+              {!editMode && (
+                <div style={{ display: "flex", gap: 4 }}>
+                  {[3, 6, 12].map((n) => (
+                    <button
+                      key={n}
+                      onClick={() => setTrendMonths(n)}
+                      style={{
+                        padding: "3px 8px",
+                        borderRadius: 99,
+                        border: trendMonths === n ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
+                        background: trendMonths === n ? "var(--sky-light)" : "var(--bg)",
+                        color: trendMonths === n ? "var(--sky)" : "var(--ink-3)",
+                        fontSize: 11,
+                        fontWeight: trendMonths === n ? 500 : 400,
+                      }}
+                    >
+                      {n}M
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             <div style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "1rem 1.25rem" }}>
               <Suspense fallback={<div className="skeleton" style={{ height: 180 }} />}>
-                <IncomeExpenseTrendChart data={sixMonthTrend} currencySymbol={currencySymbol} />
+                <IncomeExpenseTrendChart data={trendData} currencySymbol={currencySymbol} />
               </Suspense>
             </div>
           </div>

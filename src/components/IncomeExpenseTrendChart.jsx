@@ -1,5 +1,11 @@
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 
+function formatTick(v) {
+  const abs = Math.abs(v);
+  if (abs >= 1000) return `${Math.round(v / 100) / 10}k`;
+  return `${v}`;
+}
+
 export default function IncomeExpenseTrendChart({ data, currencySymbol }) {
   function CustomTooltip({ active, payload, label }) {
     if (!active || !payload?.length) return null;
@@ -28,7 +34,13 @@ export default function IncomeExpenseTrendChart({ data, currencySymbol }) {
       <ResponsiveContainer>
         <BarChart data={data}>
           <XAxis dataKey="label" tick={{ fontSize: 11, fill: "var(--ink-3)" }} axisLine={false} tickLine={false} />
-          <YAxis hide />
+          <YAxis
+            tick={{ fontSize: 11, fill: "var(--ink-3)" }}
+            axisLine={false}
+            tickLine={false}
+            tickFormatter={formatTick}
+            width={38}
+          />
           <Tooltip content={<CustomTooltip />} />
           <Bar dataKey="income" fill="var(--sage)" radius={[4, 4, 0, 0]} />
           <Bar dataKey="expense" fill="var(--tang)" radius={[4, 4, 0, 0]} />

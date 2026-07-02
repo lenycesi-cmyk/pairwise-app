@@ -1,7 +1,15 @@
 import { useMemo } from "react";
 import { getMemberKey } from "../utils/members";
 
-export function useDebtCalculation(transactions, members, defaultCurrency, convert) {
+// `options.startDate`/`options.endDate` restrict the shared-expense window
+// (used by the debt tracker's month/range filters). When no explicit
+// startDate is given but `options.settlements` is, the most recent
+// settlement's date becomes the implicit start — "mark as paid" doesn't
+// touch any transaction, it just tells this hook to stop counting
+// everything before that date, so the running balance resets to 0 without
+// rewriting history.
+export function useDebtCalculation(transactions, members, defaultCurrency, convert, options = {}) {
+  const { startDate, endDate, settlements = [] } = options;
   function toBase(tx) {
     if (tx.convertedAmount !== undefined && tx.convertedCurrency === defaultCurrency) {
       return tx.convertedAmount;
@@ -30,12 +38,19 @@ export function useDebtCalculation(transactions, members, defaultCurrency, conve
     const aKey = getMemberKey(a);
     const bKey = getMemberKey(b);
 
+    const latestSettlement = settlements.length
+      ? settlements.reduce((max, s) => (new Date(s.date) > new Date(max.date) ? s : max))
+      : null;
+    const effectiveStart = startDate ?? latestSettlement?.date ?? null;
+
     let aPaidForB = 0;
     let bPaidForA = 0;
     const sharedTx = [];
 
     for (const tx of transactions) {
       if (tx.type !== "expense") continue;
+      if (effectiveStart && new Date(tx.date) < new Date(effectiveStart)) continue;
+      if (endDate && new Date(tx.date) > new Date(endDate)) continue;
       const val = toBase(tx);
 
       if (tx.splitDetails) {
@@ -76,6 +91,7 @@ export function useDebtCalculation(transactions, members, defaultCurrency, conve
       owesText: net > 0 ? `${b.name} doit à ${a.name}` : `${a.name} doit à ${b.name}`,
       owesAmount: Math.abs(net),
       sharedTx: sharedTx.sort((x, y) => new Date(y.date) - new Date(x.date)),
+      latestSettlement,
     };
-  }, [transactions, members, defaultCurrency, convert]);
+  }, [transactions, members, defaultCurrency, convert, startDate, endDate, settlements]);
 }
