@@ -29,6 +29,7 @@ import { useTranslation } from "../hooks/useTranslation";
 import { useCategoryName } from "../hooks/useCategoryName";
 import SpotlightHint from "../components/SpotlightHint";
 import { getMemberKey } from "../utils/members";
+import { useMediaQuery } from "../hooks/useMediaQuery";
 
 const MONTHS = [
   "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
@@ -147,6 +148,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
   const customizeButtonRef = useRef(null);
   const currencyButtonRef = useRef(null);
   const [detailBudgetId, setDetailBudgetId] = useState(null);
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
   const summaryLabel = coupleName
     ? `${coupleName} ${t("widget_summary_word")}`
     : t("widget_couple_summary_default");
@@ -726,8 +728,19 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
       )}
       </div>
 
-      {/* Widgets — sortable in edit mode */}
-      <div style={{ padding: "0 1.25rem" }}>
+      {/* Widgets — sortable in edit mode. On desktop, laid out as a 2-column
+          CSS grid when not actively reordering — dnd-kit's drag math here
+          still assumes a single vertical list (verticalListSortingStrategy),
+          so edit mode temporarily falls back to one column while dragging
+          to keep reordering correct; the grid resumes right after. */}
+      <div
+        style={{
+          padding: "0 1.25rem",
+          display: isDesktop && !editMode ? "grid" : "block",
+          gridTemplateColumns: isDesktop && !editMode ? "repeat(2, minmax(0, 1fr))" : undefined,
+          columnGap: isDesktop && !editMode ? 20 : undefined,
+        }}
+      >
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={visibleIds} strategy={verticalListSortingStrategy}>
           {displayList

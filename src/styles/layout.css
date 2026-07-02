@@ -65,6 +65,11 @@
 @media (min-width: 1024px) {
   :root {
     --sidebar-width: 96px;
+    /* Wider than the mobile column so a multi-column widget grid (see
+       DashboardScreen's isDesktop grid) has room to actually be useful —
+       still capped, not full-bleed, since content itself isn't redesigned
+       for arbitrary widths yet. */
+    --app-shell-width: 720px;
   }
 
   body {
