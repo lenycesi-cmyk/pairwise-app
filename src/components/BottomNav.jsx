@@ -17,7 +17,7 @@ export default function BottomNav({ active, onChange, onAddClick, addButtonRef }
         bottom: 0,
         left: 0,
         right: 0,
-        maxWidth: 480,
+        maxWidth: "var(--app-shell-width)",
         margin: "0 auto",
         background: "var(--bg-card)",
         borderTop: "0.5px solid var(--rule)",
