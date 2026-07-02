@@ -150,20 +150,7 @@ function AppContent() {
         ref={settingsButtonRef}
         onClick={() => setShowSettings(true)}
         aria-label="Réglages"
-        style={{
-          position: "fixed",
-          top: "calc(1.25rem + env(safe-area-inset-top))",
-          left: "max(1.25rem, calc((100vw - 480px) / 2 + 1.25rem))",
-          zIndex: 60,
-          width: 34,
-          height: 34,
-          borderRadius: "50%",
-          background: "var(--bg-card)",
-          border: "0.5px solid var(--rule)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
+        className="settings-fab"
       >
         <i className="ti ti-settings" style={{ fontSize: 17 }} aria-hidden="true" />
       </button>

@@ -1,0 +1,100 @@
+/* Structural layout: the bottom tab bar and the floating settings button.
+   Styled via classes (rather than the rest of the app's usual inline
+   styles) specifically so they can respond to the desktop breakpoint
+   below — inline styles can't express media queries. */
+
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  max-width: var(--app-shell-width);
+  margin: 0 auto;
+  background: var(--bg-card);
+  border-top: 0.5px solid var(--rule);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
+  z-index: 50;
+}
+
+.bottom-nav-tab {
+  background: none;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 8px;
+}
+
+.bottom-nav-add {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--tang);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: -20px;
+  box-shadow: 0 4px 16px rgba(255, 107, 53, 0.35);
+}
+
+.settings-fab {
+  position: fixed;
+  top: calc(1.25rem + env(safe-area-inset-top));
+  left: max(1.25rem, calc((100vw - var(--app-shell-width)) / 2 + 1.25rem));
+  z-index: 60;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--bg-card);
+  border: 0.5px solid var(--rule);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Desktop: the bottom tab bar becomes a left sidebar rail instead — same
+   tabs, vertical instead of horizontal. Dashboard/etc. content itself
+   still renders in the same narrow --app-shell-width column for now
+   (just shifted next to the sidebar rather than centered); a wider
+   multi-column layout for content is a separate follow-up. */
+@media (min-width: 1024px) {
+  :root {
+    --sidebar-width: 96px;
+  }
+
+  body {
+    padding-left: var(--sidebar-width);
+  }
+
+  .bottom-nav {
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: auto;
+    width: var(--sidebar-width);
+    max-width: none;
+    margin: 0;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 28px;
+    padding: 28px 0;
+    border-top: none;
+    border-right: 0.5px solid var(--rule);
+  }
+
+  .bottom-nav-add {
+    order: -1;
+    margin-top: 0;
+    margin-bottom: 8px;
+  }
+
+  .settings-fab {
+    left: calc(var(--sidebar-width) + 1.25rem);
+    top: 1.5rem;
+  }
+}

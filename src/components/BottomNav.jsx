@@ -11,23 +11,7 @@ export default function BottomNav({ active, onChange, onAddClick, addButtonRef }
   ];
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        bottom: 0,
-        left: 0,
-        right: 0,
-        maxWidth: "var(--app-shell-width)",
-        margin: "0 auto",
-        background: "var(--bg-card)",
-        borderTop: "0.5px solid var(--rule)",
-        display: "flex",
-        justifyContent: "space-around",
-        alignItems: "center",
-        padding: "8px 0 calc(8px + env(safe-area-inset-bottom))",
-        zIndex: 50,
-      }}
-    >
+    <div className="bottom-nav">
       {tabs.map((tab) => {
         if (tab.key === "add") {
           return (
@@ -36,18 +20,7 @@ export default function BottomNav({ active, onChange, onAddClick, addButtonRef }
               ref={addButtonRef}
               onClick={() => onAddClick(active)}
               aria-label="Ajouter"
-              style={{
-                width: 48,
-                height: 48,
-                borderRadius: "50%",
-                background: "var(--tang)",
-                border: "none",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                marginTop: -20,
-                boxShadow: "0 4px 16px rgba(255,107,53,0.35)",
-              }}
+              className="bottom-nav-add"
             >
               <i className="ti ti-plus" style={{ fontSize: 22, color: "white" }} aria-hidden="true" />
             </button>
@@ -58,16 +31,8 @@ export default function BottomNav({ active, onChange, onAddClick, addButtonRef }
           <button
             key={tab.key}
             onClick={() => onChange(tab.key)}
-            style={{
-              background: "none",
-              border: "none",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: 2,
-              padding: "4px 8px",
-              color: isActive ? "var(--ink)" : "var(--ink-3)",
-            }}
+            className="bottom-nav-tab"
+            style={{ color: isActive ? "var(--ink)" : "var(--ink-3)" }}
           >
             <i className={`ti ${tab.icon}`} style={{ fontSize: 20 }} aria-hidden="true" />
             <span style={{ fontSize: 10 }}>{tab.label}</span>
