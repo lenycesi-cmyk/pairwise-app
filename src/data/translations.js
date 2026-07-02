@@ -13,6 +13,7 @@ export const TRANSLATIONS = {
     hint_next: "Suivant",
     hint_previous: "Précédent",
     widget_budget_empty: "Aucun budget pour l'instant. Crée-en un dans l'onglet Budget.",
+    member_pending: "en attente",
 
     // Onboarding
     onboarding_recurring_title: "Tes dépenses récurrentes",
@@ -346,6 +347,7 @@ export const TRANSLATIONS = {
     hint_next: "Next",
     hint_previous: "Previous",
     widget_budget_empty: "No budget yet. Create one in the Budget tab.",
+    member_pending: "pending",
 
     // Onboarding
     onboarding_recurring_title: "Your recurring expenses",

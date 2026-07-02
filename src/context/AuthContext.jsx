@@ -93,9 +93,14 @@ export function AuthProvider({ children }) {
     const uid = user.uid;
     const batch = writeBatch(db);
 
-    // Remove this member from the couple's members list
+    // Remove this member from the couple's members list. A placeholder
+    // partner (uid: null, invited but never joined) doesn't count as
+    // "someone remaining" — deleting the only real account should still
+    // clean up the whole couple rather than leave an orphaned space only a
+    // placeholder could ever claim.
     const remainingMembers = (members || []).filter((m) => m.uid !== uid);
-    if (remainingMembers.length === 0 && coupleId) {
+    const remainingRealMembers = remainingMembers.filter((m) => m.uid);
+    if (remainingRealMembers.length === 0 && coupleId) {
       // Last member — delete all couple data
       const txSnap = await getDocs(collection(db, "couples", coupleId, "transactions"));
       txSnap.forEach((d) => batch.delete(d.ref));
