@@ -13,6 +13,7 @@ import { buildMemberColorMap } from "../utils/memberColors";
 import { useTranslation } from "../hooks/useTranslation";
 import SpotlightHint from "../components/SpotlightHint";
 import { getMemberKey } from "../utils/members";
+import { useMediaQuery } from "../hooks/useMediaQuery";
 
 const COLOR_MAP = {
   tang: { text: "var(--tang)", bg: "var(--tang-light)" },
@@ -29,6 +30,7 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef }) {
   const t = useTranslation();
   const { language } = useFinance();
   const netWorthCardRef = useRef(null);
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
   const {
     assets,
     defaultCurrency,
@@ -221,6 +223,16 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef }) {
         </div>
       )}
 
+      {/* Content cards below the header/hint/currency-picker: a 2-column
+          grid on desktop, same technique as Dashboard's widget grid. */}
+      <div
+        style={{
+          display: isDesktop ? "grid" : "block",
+          gridTemplateColumns: isDesktop ? "repeat(2, minmax(0, 1fr))" : undefined,
+          columnGap: isDesktop ? 20 : undefined,
+        }}
+      >
+
       {/* Net worth total */}
       <div
         ref={netWorthCardRef}
@@ -230,6 +242,7 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef }) {
           border: "0.5px solid var(--rule)",
           padding: "1.25rem",
           marginBottom: 12,
+          gridColumn: isDesktop ? "1 / -1" : undefined,
         }}
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
@@ -469,6 +482,7 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef }) {
           {t("wealth_add_first_asset")}
         </p>
       )}
+      </div>
     </div>
   );
 }

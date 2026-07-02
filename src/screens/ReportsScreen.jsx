@@ -9,6 +9,7 @@ import { CURRENCIES } from "../data/categories";
 import { useTranslation } from "../hooks/useTranslation";
 import SpotlightHint from "../components/SpotlightHint";
 import { getMemberKey } from "../utils/members";
+import { useMediaQuery } from "../hooks/useMediaQuery";
 
 const PERIOD_TYPES = ["month", "quarter", "year", "last12", "custom"];
 
@@ -71,6 +72,7 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
   const displayCurrency = dashboardDisplayCurrency || defaultCurrency;
   const { convert, loading: ratesLoading } = useExchangeRates(displayCurrency);
   const memberColorMap = useMemo(() => buildMemberColorMap(members), [members]);
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
   const periodRowRef = useRef(null);
 
   const [periodType, setPeriodType] = useState("month");
@@ -372,6 +374,16 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
         )}
       </div>
 
+      {/* Cards below the period selector: a 2-column grid on desktop, same
+          technique as Dashboard's widget grid. */}
+      <div
+        style={{
+          display: isDesktop ? "grid" : "block",
+          gridTemplateColumns: isDesktop ? "repeat(2, minmax(0, 1fr))" : undefined,
+          columnGap: isDesktop ? 20 : undefined,
+        }}
+      >
+
       <div
         style={{
           background: "var(--bg-card)",
@@ -379,6 +391,7 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
           border: "0.5px solid var(--rule)",
           padding: "1rem 1.25rem",
           marginBottom: 20,
+          gridColumn: isDesktop ? "1 / -1" : undefined,
         }}
       >
         <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 4 }}>
@@ -604,6 +617,7 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
               />
             ))
         )}
+      </div>
       </div>
     </div>
   );

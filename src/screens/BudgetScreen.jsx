@@ -8,6 +8,7 @@ import { CURRENCIES } from "../data/categories";
 import { BUDGET_GROUPS, BUDGET_GROUP_KEYS } from "../data/budgetGroups";
 import SpotlightHint from "../components/SpotlightHint";
 import { getMemberKey } from "../utils/members";
+import { useMediaQuery } from "../hooks/useMediaQuery";
 
 const EXPENSE_EXCLUDED = ["income", "investment", "savings"];
 const GROUP_PCT = { essential: 0.5, fun: 0.3, investment: 0.2 };
@@ -45,6 +46,7 @@ export default function BudgetScreen({ openSignal }) {
   const [currency, setCurrency] = useState(defaultCurrency);
   const [alertThreshold, setAlertThreshold] = useState("80");
   const [memberUid, setMemberUid] = useState("couple");
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
 
   const expenseCategories = categories.filter((c) => !EXPENSE_EXCLUDED.includes(c.id));
 
@@ -691,7 +693,15 @@ export default function BudgetScreen({ openSignal }) {
         </p>
       )}
 
-      {!showForm && progress.map(({ budget, spent, amountInBase, pct }) => {
+      {!showForm && (
+      <div
+        style={{
+          display: isDesktop ? "grid" : "block",
+          gridTemplateColumns: isDesktop ? "repeat(2, minmax(0, 1fr))" : undefined,
+          columnGap: isDesktop ? 20 : undefined,
+        }}
+      >
+      {progress.map(({ budget, spent, amountInBase, pct }) => {
         const isInactive = budget.active === false;
         const over = pct >= 100;
         const warn = pct >= (budget.alertThreshold ?? 80);
@@ -764,6 +774,8 @@ export default function BudgetScreen({ openSignal }) {
           </div>
         );
       })}
+      </div>
+      )}
     </div>
   );
 }
