@@ -1,4 +1,5 @@
 import { getInitial } from "../utils/memberColors";
+import { getMemberKey } from "../utils/members";
 
 /**
  * Avatar standard de l'app : toujours une initiale colorée, jamais une photo.
@@ -6,7 +7,7 @@ import { getInitial } from "../utils/memberColors";
  */
 export default function Avatar({ member, colorMap, size = 16 }) {
   if (!member) return null;
-  const color = colorMap[member.uid] || { text: "var(--ink-3)", bg: "var(--rule)" };
+  const color = colorMap[getMemberKey(member)] || { text: "var(--ink-3)", bg: "var(--rule)" };
 
   return (
     <span

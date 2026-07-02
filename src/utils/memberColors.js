@@ -1,3 +1,5 @@
+import { getMemberKey } from "./members";
+
 // Palette de couleurs proposées pour personnaliser son icône
 export const AVATAR_COLOR_PALETTE = [
   { key: "sky", text: "var(--sky)", bg: "var(--sky-light)" },
@@ -25,10 +27,11 @@ export function buildMemberColorMap(members) {
   const map = {};
   let fallbackIndex = 0;
   members.forEach((m) => {
+    const key = getMemberKey(m);
     if (m.avatarColor) {
-      map[m.uid] = colorByKey(m.avatarColor) || colorByKey(DEFAULT_ORDER[0]);
+      map[key] = colorByKey(m.avatarColor) || colorByKey(DEFAULT_ORDER[0]);
     } else {
-      map[m.uid] = colorByKey(DEFAULT_ORDER[fallbackIndex % DEFAULT_ORDER.length]);
+      map[key] = colorByKey(DEFAULT_ORDER[fallbackIndex % DEFAULT_ORDER.length]);
       fallbackIndex++;
     }
   });

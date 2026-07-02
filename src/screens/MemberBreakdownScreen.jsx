@@ -4,6 +4,7 @@ import { CURRENCIES } from "../data/categories";
 import { useTranslation } from "../hooks/useTranslation";
 import { useExchangeRates } from "../hooks/useExchangeRates";
 import { useCategoryName } from "../hooks/useCategoryName";
+import { getMemberKey } from "../utils/members";
 
 const COLOR_MAP = {
   tang: { text: "var(--tang)", bg: "var(--tang-light)" },
@@ -21,7 +22,7 @@ export default function MemberBreakdownScreen({ onClose }) {
   const displayCurrency = dashboardDisplayCurrency || defaultCurrency;
   const { convert } = useExchangeRates(displayCurrency);
   const { catName, subName: tSubName } = useCategoryName();
-  const [selectedMember, setSelectedMember] = useState(members[0]?.uid || null);
+  const [selectedMember, setSelectedMember] = useState(members[0] ? getMemberKey(members[0]) : null);
   const [expandedCat, setExpandedCat] = useState(null);
 
   const now = new Date();
@@ -121,17 +122,17 @@ export default function MemberBreakdownScreen({ onClose }) {
         <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
           {members.map((m) => (
             <button
-              key={m.uid}
-              onClick={() => setSelectedMember(m.uid)}
+              key={getMemberKey(m)}
+              onClick={() => setSelectedMember(getMemberKey(m))}
               style={{
                 flex: 1,
                 padding: 10,
                 borderRadius: "var(--radius-md)",
-                border: selectedMember === m.uid ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
-                background: selectedMember === m.uid ? "var(--sky-light)" : "var(--bg-card)",
-                color: selectedMember === m.uid ? "var(--sky)" : "var(--ink)",
+                border: selectedMember === getMemberKey(m) ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
+                background: selectedMember === getMemberKey(m) ? "var(--sky-light)" : "var(--bg-card)",
+                color: selectedMember === getMemberKey(m) ? "var(--sky)" : "var(--ink)",
                 fontSize: 13,
-                fontWeight: selectedMember === m.uid ? 500 : 400,
+                fontWeight: selectedMember === getMemberKey(m) ? 500 : 400,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",

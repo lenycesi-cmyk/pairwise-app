@@ -12,6 +12,7 @@ import Avatar from "../components/Avatar";
 import { buildMemberColorMap } from "../utils/memberColors";
 import { useTranslation } from "../hooks/useTranslation";
 import SpotlightHint from "../components/SpotlightHint";
+import { getMemberKey } from "../utils/members";
 
 const COLOR_MAP = {
   tang: { text: "var(--tang)", bg: "var(--tang-light)" },
@@ -99,7 +100,7 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef }) {
     const total = getAssetValue(asset);
     if (asset.ownership === memberUid) return total;
     if (asset.ownership === "shared") {
-      const isFirstMember = members[0]?.uid === memberUid;
+      const isFirstMember = getMemberKey(members[0]) === memberUid;
       const pct = isFirstMember ? (asset.sharePct ?? 50) : 100 - (asset.sharePct ?? 50);
       return total * (pct / 100);
     }
@@ -139,12 +140,13 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef }) {
   // Patrimoine net par membre
   const netWorthByMember = useMemo(() => {
     const result = {};
-    for (const m of members) result[m.uid] = 0;
+    for (const m of members) result[getMemberKey(m)] = 0;
     for (const asset of assets) {
       const type = ASSET_TYPES.find((t) => t.id === asset.typeId);
       const sign = type?.isLiability ? -1 : 1;
       for (const m of members) {
-        result[m.uid] = (result[m.uid] || 0) + sign * Math.abs(getMemberShare(asset, m.uid));
+        const key = getMemberKey(m);
+        result[key] = (result[key] || 0) + sign * Math.abs(getMemberShare(asset, key));
       }
     }
     return result;
@@ -260,16 +262,16 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef }) {
         {members.length > 0 && (
           <div style={{ display: "flex", gap: 8, marginTop: 14, paddingTop: 14, borderTop: "0.5px solid var(--rule)" }}>
             {members.map((m) => (
-              <div key={m.uid} style={{ flex: 1 }}>
+              <div key={getMemberKey(m)} style={{ flex: 1 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
                   <Avatar member={m} colorMap={memberColorMap} size={18} />
                   <span style={{ fontSize: 11, color: "var(--ink-2)" }}>{m.name}</span>
                 </div>
                 <p style={{
                   fontSize: 15, fontWeight: 500,
-                  color: (netWorthByMember[m.uid] || 0) >= 0 ? "var(--sage)" : "var(--tang)",
+                  color: (netWorthByMember[getMemberKey(m)] || 0) >= 0 ? "var(--sage)" : "var(--tang)",
                 }}>
-                  {formatAmount(netWorthByMember[m.uid] || 0)} {currencySymbol}
+                  {formatAmount(netWorthByMember[getMemberKey(m)] || 0)} {currencySymbol}
                 </p>
               </div>
             ))}
@@ -327,10 +329,10 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef }) {
         >
           <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>{t("wealth_member_allocation")}</p>
           {members.map((m) => {
-            const share = netWorthByMember[m.uid] || 0;
+            const share = netWorthByMember[getMemberKey(m)] || 0;
             const pct = totalAssets > 0 ? (share / totalAssets) * 100 : 0;
             return (
-              <div key={m.uid} style={{ marginBottom: 8 }}>
+              <div key={getMemberKey(m)} style={{ marginBottom: 8 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
                   <span style={{ fontSize: 12, color: "var(--ink-2)" }}>{m.name}</span>
                   <span style={{ fontSize: 12, fontWeight: 500 }}>{pct.toFixed(1)}%</span>
@@ -393,7 +395,7 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef }) {
                 const ownerLabel =
                   asset.ownership === "shared"
                     ? "Partagé"
-                    : members.find((m) => m.uid === asset.ownership)?.name || "";
+                    : members.find((m) => getMemberKey(m) === asset.ownership)?.name || "";
 
                 return (
                   <div

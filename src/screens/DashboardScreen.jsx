@@ -28,6 +28,7 @@ import { CURRENCIES } from "../data/categories";
 import { useTranslation } from "../hooks/useTranslation";
 import { useCategoryName } from "../hooks/useCategoryName";
 import SpotlightHint from "../components/SpotlightHint";
+import { getMemberKey } from "../utils/members";
 
 const MONTHS = [
   "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
@@ -209,11 +210,11 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
 
   const memberTotals = useMemo(() => {
     const result = {};
-    for (const m of members) result[m.uid] = { name: m.name, income: 0, expense: 0, invested: 0 };
+    for (const m of members) result[getMemberKey(m)] = { name: m.name, income: 0, expense: 0, invested: 0 };
     for (const tx of monthTx) {
       const val = toBase(tx);
       const payers = tx.split === "50/50"
-        ? members.map((m) => ({ uid: m.uid, share: 0.5 }))
+        ? members.map((m) => ({ uid: getMemberKey(m), share: 0.5 }))
         : [{ uid: tx.paidBy, share: 1 }];
       for (const p of payers) {
         if (!result[p.uid]) continue;
@@ -369,7 +370,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                   : (budget.categoryIds || []).map((cid) => { const c = categories.find((c) => c.id === cid); return c ? catName(c) : null; }).filter(Boolean).join(", "));
                 const memberLabel = !budget.memberUid || budget.memberUid === "couple"
                   ? null
-                  : members.find((m) => m.uid === budget.memberUid)?.name;
+                  : members.find((m) => getMemberKey(m) === budget.memberUid)?.name;
                 const isOpen = detailBudgetId === budget.id;
                 return (
                   <div key={budget.id} style={{ marginBottom: i === topBudgets.length - 1 ? 0 : 12 }}>
@@ -429,9 +430,9 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8 }}>
               {members.map((m) => {
-                const mt = memberTotals[m.uid] || { income: 0, expense: 0, invested: 0 };
+                const mt = memberTotals[getMemberKey(m)] || { income: 0, expense: 0, invested: 0 };
                 return (
-                  <div key={m.uid} style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: 12 }}>
+                  <div key={getMemberKey(m)} style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: 12 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
                       <Avatar member={m} colorMap={memberColorMap} size={26} />
                       <p style={{ fontSize: 13, fontWeight: 500 }}>{m.name}</p>
@@ -517,13 +518,13 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
               {members.length > 0 && (
                 <div style={{ borderTop: "0.5px solid var(--rule)", paddingTop: 10, display: "flex", gap: 12 }}>
                   {members.map((m) => (
-                    <div key={m.uid} style={{ flex: 1 }}>
+                    <div key={getMemberKey(m)} style={{ flex: 1 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 3 }}>
                         <Avatar member={m} colorMap={memberColorMap} size={16} />
                         <span style={{ fontSize: 11, color: "var(--ink-2)" }}>{m.name}</span>
                       </div>
-                      <span style={{ fontSize: 14, fontWeight: 600, color: (netWorthByMember[m.uid] || 0) >= 0 ? "var(--sage)" : "var(--tang)" }}>
-                        {formatAmount(netWorthByMember[m.uid] || 0)} {currencySymbol}
+                      <span style={{ fontSize: 14, fontWeight: 600, color: (netWorthByMember[getMemberKey(m)] || 0) >= 0 ? "var(--sage)" : "var(--tang)" }}>
+                        {formatAmount(netWorthByMember[getMemberKey(m)] || 0)} {currencySymbol}
                       </span>
                     </div>
                   ))}

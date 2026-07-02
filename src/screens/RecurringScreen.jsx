@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { CURRENCIES } from "../data/categories";
 import { useTranslation } from "../hooks/useTranslation";
 import { useCategoryName } from "../hooks/useCategoryName";
+import { getMemberKey } from "../utils/members";
 
 function getFrequencies(t) {
   return [
@@ -357,14 +358,14 @@ export default function RecurringScreen({ onClose, initialEditId }) {
                 <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
                   {members.map((m) => (
                     <button
-                      key={m.uid}
-                      onClick={() => setPaidBy(m.uid)}
+                      key={getMemberKey(m)}
+                      onClick={() => setPaidBy(getMemberKey(m))}
                       style={{
                         flex: 1,
                         padding: 8,
                         borderRadius: "var(--radius-md)",
-                        border: paidBy === m.uid ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
-                        background: paidBy === m.uid ? "var(--sky-light)" : "var(--bg)",
+                        border: paidBy === getMemberKey(m) ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
+                        background: paidBy === getMemberKey(m) ? "var(--sky-light)" : "var(--bg)",
                         fontSize: 12,
                       }}
                     >
@@ -378,14 +379,14 @@ export default function RecurringScreen({ onClose, initialEditId }) {
                 <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
                   {members.map((m) => (
                     <button
-                      key={m.uid}
-                      onClick={() => setSplit(m.uid)}
+                      key={getMemberKey(m)}
+                      onClick={() => setSplit(getMemberKey(m))}
                       style={{
                         flex: 1,
                         padding: 8,
                         borderRadius: "var(--radius-md)",
-                        border: split === m.uid ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
-                        background: split === m.uid ? "var(--sky-light)" : "var(--bg)",
+                        border: split === getMemberKey(m) ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
+                        background: split === getMemberKey(m) ? "var(--sky-light)" : "var(--bg)",
                         fontSize: 12,
                       }}
                     >
