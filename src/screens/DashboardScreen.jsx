@@ -620,11 +620,11 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
           top: 0,
           zIndex: 40,
           background: "var(--bg)",
-          padding: "1.5rem 1.25rem 1rem",
+          padding: "1rem 1.25rem",
         }}
       >
       {/* Header */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", marginBottom: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center" }}>
         <div />
         <div style={{ display: "flex", alignItems: "center", gap: 10, justifySelf: "center" }}>
           <button onClick={() => changeMonth(-1)} aria-label="Mois précédent" style={navBtnStyle}>
@@ -694,14 +694,14 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
 
       {/* Edit mode hint */}
       {editMode && (
-        <p style={{ fontSize: 12, color: "var(--ink-3)", marginBottom: 14, textAlign: "center" }}>
+        <p style={{ fontSize: 12, color: "var(--ink-3)", marginTop: 12, marginBottom: 4, textAlign: "center" }}>
           {t("dashboard_edit_hint")}
         </p>
       )}
 
       {/* Currency picker */}
       {showCurrencyPicker && !editMode && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 16, background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "0.75rem 1rem" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 12, background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "0.75rem 1rem" }}>
           {CURRENCIES.map((c) => (
             <button
               key={c.code}
