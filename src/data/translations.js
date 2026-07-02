@@ -86,6 +86,7 @@ export const TRANSLATIONS = {
     tx_description_optional: "Optionnel",
     tx_receipt: "Reçu / ticket",
     tx_add_photo: "Ajouter une photo",
+    tx_make_recurring: "Rendre cette transaction récurrente",
     tx_paid_by: "Payé par",
     tx_received_by: "Reçu / investi par",
     tx_for: "Pour",
@@ -328,6 +329,7 @@ export const TRANSLATIONS = {
     widget_net_worth_total: "Patrimoine total",
     widget_recurring_upcoming: "Prochaines récurrences",
     widget_recurring_empty: "Aucune transaction récurrente",
+    widget_recurring_add: "Ajouter une récurrence",
   },
 
   en: {
@@ -417,6 +419,7 @@ export const TRANSLATIONS = {
     tx_description_optional: "Optional",
     tx_receipt: "Receipt",
     tx_add_photo: "Add a photo",
+    tx_make_recurring: "Make this transaction recurring",
     tx_paid_by: "Paid by",
     tx_received_by: "Received / invested by",
     tx_for: "For",
@@ -659,6 +662,7 @@ export const TRANSLATIONS = {
     widget_net_worth_total: "Total net worth",
     widget_recurring_upcoming: "Upcoming recurring",
     widget_recurring_empty: "No recurring transactions",
+    widget_recurring_add: "Add a recurring transaction",
   },
 };
 

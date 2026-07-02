@@ -31,6 +31,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
     addTransaction,
     updateTransaction,
     updateCategories,
+    addRecurring,
     defaultCurrency,
     currencyMode,
     lastUsedCurrency,
@@ -57,6 +58,9 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
   const [splitMode, setSplitMode] = useState(editingTx?.splitDetails ? "advanced" : "simple");
   const [splitDetails, setSplitDetails] = useState(editingTx?.splitDetails || null);
   const [dateTime, setDateTime] = useState(toDateTimeLocal(editingTx?.date));
+  const [makeRecurring, setMakeRecurring] = useState(false);
+  const [recurringFrequency, setRecurringFrequency] = useState("monthly");
+  const [recurringDayOfMonth, setRecurringDayOfMonth] = useState(new Date().getDate().toString());
   const [busy, setBusy] = useState(false);
   const [receiptFile, setReceiptFile] = useState(null);
   const [receiptPreview, setReceiptPreview] = useState(editingTx?.receiptURL || null);
@@ -177,6 +181,25 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
         await updateTransaction(editingTx.id, payload);
       } else {
         txId = await addTransaction(payload);
+        if (makeRecurring) {
+          await addRecurring({
+            type,
+            amount: parseFloat(amount),
+            currency,
+            categoryId,
+            subcategory,
+            description: description || selectedCategory?.name,
+            frequency: recurringFrequency,
+            dayOfMonth: parseInt(recurringDayOfMonth) || 1,
+            paidBy,
+            split: type === "expense" || needsMemberAttribution ? split : "100",
+            active: true,
+            // This transaction IS the first occurrence — mark it as already
+            // generated so the recurring generator doesn't immediately
+            // create a duplicate for the current period.
+            lastGenerated: isoDate,
+          });
+        }
       }
 
       // Upload du reçu après avoir l'ID de la transaction (nouveau fichier choisi)
@@ -560,6 +583,73 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
             }}
           />
         </div>
+
+        {/* Rendre récurrente — seulement à la création, pas en édition */}
+        {!isEditing && (
+          <div
+            style={{
+              background: "var(--bg-card)",
+              borderRadius: "var(--radius-lg)",
+              border: "0.5px solid var(--rule)",
+              padding: "1rem 1.25rem",
+              marginBottom: 12,
+            }}
+          >
+            <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
+              <input
+                type="checkbox"
+                checked={makeRecurring}
+                onChange={(e) => setMakeRecurring(e.target.checked)}
+                style={{ width: 18, height: 18 }}
+              />
+              <span style={{ fontSize: 14, flex: 1 }}>{t("tx_make_recurring")}</span>
+              <i className="ti ti-repeat" style={{ fontSize: 16, color: "var(--lavi)" }} aria-hidden="true" />
+            </label>
+
+            {makeRecurring && (
+              <div style={{ marginTop: 12 }}>
+                <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>{t("recurring_frequency")}</p>
+                <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+                  {[
+                    { key: "monthly", label: t("recurring_freq_monthly") },
+                    { key: "weekly", label: t("recurring_freq_weekly") },
+                    { key: "yearly", label: t("recurring_freq_yearly") },
+                  ].map((f) => (
+                    <button
+                      key={f.key}
+                      onClick={() => setRecurringFrequency(f.key)}
+                      style={{
+                        flex: 1, padding: 8, borderRadius: "var(--radius-md)",
+                        border: recurringFrequency === f.key ? "0.5px solid var(--lavi)" : "0.5px solid var(--rule)",
+                        background: recurringFrequency === f.key ? "var(--lavi-light)" : "var(--bg)",
+                        color: recurringFrequency === f.key ? "var(--lavi)" : "var(--ink)",
+                        fontSize: 12,
+                      }}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+                {recurringFrequency === "monthly" && (
+                  <>
+                    <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>{t("recurring_day_of_month")}</p>
+                    <input
+                      type="number"
+                      min="1"
+                      max="31"
+                      value={recurringDayOfMonth}
+                      onChange={(e) => setRecurringDayOfMonth(e.target.value)}
+                      style={{
+                        width: "100%", padding: "10px 12px", borderRadius: "var(--radius-md)",
+                        border: "0.5px solid var(--rule)", fontSize: 14, outline: "none",
+                      }}
+                    />
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Reçu / ticket */}
         <div

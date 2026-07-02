@@ -66,7 +66,9 @@ function AppContent() {
   const [tab, setTab] = useState("dashboard");
   const [showAdd, setShowAdd] = useState(false);
   const [editingTx, setEditingTx] = useState(null);
+  const [editReturnTo, setEditReturnTo] = useState(null);
   const [showRecurring, setShowRecurring] = useState(false);
+  const [recurringEditId, setRecurringEditId] = useState(null);
   const [showCategories, setShowCategories] = useState(false);
   const [showDebt, setShowDebt] = useState(false);
   const [showCalculator, setShowCalculator] = useState(false);
@@ -98,14 +100,27 @@ function AppContent() {
   if (!user) return <AuthScreen />;
   if (!coupleId) return <CoupleSetupScreen />;
 
-  function openEdit(tx) {
+  function openEdit(tx, returnTo = null) {
     setEditingTx(tx);
+    setEditReturnTo(returnTo);
     setShowAdd(true);
   }
 
   function closeAdd() {
     setShowAdd(false);
     setEditingTx(null);
+    if (editReturnTo === "transactions") setShowTransactions(true);
+    setEditReturnTo(null);
+  }
+
+  function openRecurring(id = null) {
+    setRecurringEditId(id);
+    setShowRecurring(true);
+  }
+
+  function closeRecurring() {
+    setShowRecurring(false);
+    setRecurringEditId(null);
   }
 
   function handleCentralAdd(currentTab) {
@@ -163,6 +178,7 @@ function AppContent() {
           onSharedMonthChange={setSharedMonth}
           addButtonRef={addButtonRef}
           settingsButtonRef={settingsButtonRef}
+          onOpenRecurring={openRecurring}
         />
       )}
       {tab === "reports" && (
@@ -204,7 +220,7 @@ function AppContent() {
             <TransactionsScreen
               onEdit={(tx) => {
                 setShowTransactions(false);
-                openEdit(tx);
+                openEdit(tx, "transactions");
               }}
             />
           </ModalWrapper>
@@ -212,14 +228,14 @@ function AppContent() {
         {showSettings && (
           <ModalWrapper onClose={() => setShowSettings(false)}>
             <SettingsScreen
-              onOpenRecurring={() => setShowRecurring(true)}
+              onOpenRecurring={() => openRecurring()}
               onOpenCategories={() => setShowCategories(true)}
               onOpenTheme={() => setShowTheme(true)}
               onOpenLanguage={() => setShowLanguage(true)}
             />
           </ModalWrapper>
         )}
-        {showRecurring && <RecurringScreen onClose={() => setShowRecurring(false)} />}
+        {showRecurring && <RecurringScreen onClose={closeRecurring} initialEditId={recurringEditId} />}
         {showCategories && (
           <ModalWrapper onClose={() => setShowCategories(false)}>
             <CategoriesScreen />
