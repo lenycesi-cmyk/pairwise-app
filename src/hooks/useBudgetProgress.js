@@ -73,7 +73,7 @@ export function useBudgetProgress(viewMonth, viewYear) {
             : scopedTx.reduce((sum, tx) => sum + toBase(tx), 0);
         const amountInBase = convert(b.amount, b.currency, defaultCurrency);
         const pct = amountInBase > 0 ? (spent / amountInBase) * 100 : 0;
-        return { budget: b, spent, amountInBase, pct };
+        return { budget: b, spent, amountInBase, pct, scopedTx };
       });
   }, [budgets, monthTx, yearTx, defaultCurrency, convert]);
 

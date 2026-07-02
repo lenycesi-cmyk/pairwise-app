@@ -8,7 +8,7 @@ import { useTranslation } from "../hooks/useTranslation";
 
 export default function SettingsScreen({ onOpenRecurring, onOpenCategories, onOpenTheme, onOpenLanguage }) {
   const t = useTranslation();
-  const { coupleId, logout, user, updateProfilePhoto, updateDisplayName, deleteAccount } = useAuth();
+  const { coupleId, logout, user, updateProfilePhoto, updateDisplayName, deleteAccount, resetHints } = useAuth();
   const {
     defaultCurrency,
     updateDefaultCurrency,
@@ -476,6 +476,26 @@ export default function SettingsScreen({ onOpenRecurring, onOpenCategories, onOp
           ) : (
             <span style={{ fontSize: 12, color: "var(--sky)" }}>{t("settings_notifications_enable")}</span>
           )}
+        </div>
+        <div
+          onClick={resetHints}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            padding: "12px 0 4px",
+            cursor: "pointer",
+            borderTop: "0.5px solid var(--rule)",
+            marginTop: 8,
+          }}
+        >
+          <i className="ti ti-list-details" style={{ fontSize: 18, color: "var(--sky)" }} aria-hidden="true" />
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: 14, margin: 0 }}>{t("settings_replay_tour")}</p>
+            <p style={{ fontSize: 11, color: "var(--ink-3)", margin: "2px 0 0" }}>
+              {t("settings_replay_tour_hint")}
+            </p>
+          </div>
         </div>
       </Card>
 
