@@ -134,6 +134,12 @@ export function AuthProvider({ children }) {
     await setDoc(doc(db, "users", user.uid), { seenHints: updated }, { merge: true });
   }
 
+  async function resetHints() {
+    if (!user) return;
+    setSeenHints({});
+    await setDoc(doc(db, "users", user.uid), { seenHints: {} }, { merge: true });
+  }
+
   const value = {
     user,
     coupleId,
@@ -142,6 +148,7 @@ export function AuthProvider({ children }) {
     completeOnboarding,
     seenHints,
     markHintSeen,
+    resetHints,
     loading,
     signup,
     login,

@@ -136,7 +136,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
   const t = useTranslation();
   const { catName } = useCategoryName();
   const {
-    transactions, categories, members, assets, recurringTx,
+    transactions, categories, members, assets, recurringTx, coupleName,
     defaultCurrency, dashboardDisplayCurrency, updateDashboardDisplayCurrency, loading,
   } = useFinance();
   const displayCurrency = dashboardDisplayCurrency || defaultCurrency;
@@ -145,6 +145,10 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
   const [editMode, setEditMode] = useState(false);
   const customizeButtonRef = useRef(null);
   const currencyButtonRef = useRef(null);
+  const [detailBudgetId, setDetailBudgetId] = useState(null);
+  const summaryLabel = coupleName
+    ? `${coupleName} ${t("widget_summary_word")}`
+    : t("widget_couple_summary_default");
 
   const { widgets, saveWidgets } = useDashboardPrefs();
   const [localWidgets, setLocalWidgets] = useState(null);
@@ -295,7 +299,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
 
   // ── Widget labels ──────────────────────────────────────────────────────────
   const WIDGET_LABELS = {
-    net_balance: t("widget_net_balance"),
+    net_balance: summaryLabel,
     available_savings: t("widget_available_savings"),
     budget_tracking: t("widget_budget_tracking"),
     member_breakdown: t("widget_member_breakdown"),
@@ -312,7 +316,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
       case "net_balance":
         return (
           <div>
-            <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>{t("widget_net_balance")}</p>
+            <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>{summaryLabel}</p>
             <div style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "1rem 1.25rem" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12 }}>
                 <p style={{ fontSize: 12, color: "var(--ink-3)" }}>{t("dashboard_net_balance")}</p>
@@ -356,7 +360,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
             <div style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "0.75rem 1.25rem" }}>
               {topBudgets.length === 0 ? (
                 <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", padding: "0.75rem 0" }}>{t("widget_budget_empty")}</p>
-              ) : topBudgets.map(({ budget, pct }, i) => {
+              ) : topBudgets.map(({ budget, pct, scopedTx }, i) => {
                 const over = pct >= 100;
                 const warn = pct >= (budget.alertThreshold ?? 80);
                 const barColor = over ? "var(--red)" : warn ? "var(--amber)" : "var(--sky)";
@@ -366,6 +370,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                 const memberLabel = !budget.memberUid || budget.memberUid === "couple"
                   ? null
                   : members.find((m) => m.uid === budget.memberUid)?.name;
+                const isOpen = detailBudgetId === budget.id;
                 return (
                   <div key={budget.id} style={{ marginBottom: i === topBudgets.length - 1 ? 0 : 12 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
@@ -378,6 +383,31 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                     <div style={{ height: 6, borderRadius: 3, background: "var(--rule)", overflow: "hidden" }}>
                       <div style={{ height: "100%", width: `${Math.min(pct, 100)}%`, background: barColor, borderRadius: 3 }} />
                     </div>
+                    {!editMode && (
+                      <button
+                        onClick={() => setDetailBudgetId(isOpen ? null : budget.id)}
+                        style={{ background: "none", border: "none", color: "var(--sky)", fontSize: 11, padding: "4px 0 0", display: "flex", alignItems: "center", gap: 3 }}
+                      >
+                        {isOpen ? t("dashboard_hide_details") : t("dashboard_show_details")}
+                        <i className={`ti ${isOpen ? "ti-chevron-up" : "ti-chevron-down"}`} style={{ fontSize: 11 }} aria-hidden="true" />
+                      </button>
+                    )}
+                    {isOpen && (
+                      <div style={{ marginTop: 6, borderTop: "0.5px solid var(--rule)", paddingTop: 6 }}>
+                        {scopedTx.length === 0 ? (
+                          <p style={{ fontSize: 11, color: "var(--ink-3)", textAlign: "center", padding: "6px 0" }}>{t("dashboard_no_expenses")}</p>
+                        ) : (
+                          [...scopedTx].sort((a, b) => new Date(b.date) - new Date(a.date)).map((tx) => (
+                            <div key={tx.id} style={{ display: "flex", justifyContent: "space-between", gap: 8, padding: "4px 0" }}>
+                              <span style={{ fontSize: 11, color: "var(--ink-2)", flex: 1, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                {tx.description}
+                              </span>
+                              <span style={{ fontSize: 11, fontWeight: 500 }}>{Math.round(tx.amount).toLocaleString("fr-FR")} {tx.currency}</span>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })}
