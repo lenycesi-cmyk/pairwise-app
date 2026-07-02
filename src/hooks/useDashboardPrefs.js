@@ -13,6 +13,10 @@ export const DEFAULT_WIDGETS = [
   { id: "net_worth", visible: false },
   { id: "debt_tracker", visible: false },
   { id: "recurring", visible: false },
+  // Desktop-only — DashboardScreen filters these out entirely on mobile
+  // regardless of this "visible" flag, see DESKTOP_ONLY_WIDGETS.
+  { id: "wealth_allocation", visible: true },
+  { id: "reports_trend", visible: true },
 ];
 
 export function useDashboardPrefs() {
