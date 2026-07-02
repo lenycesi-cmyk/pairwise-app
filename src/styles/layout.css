@@ -106,11 +106,11 @@
 @media (min-width: 1024px) {
   :root {
     --sidebar-width: 96px;
-    /* Fluid instead of a fixed 720px: grows with the viewport (minus the
-       sidebar and some breathing room) up to a 1200px cap, so widgets
+    /* Fluid instead of a fixed width: grows with the viewport (minus the
+       sidebar and some breathing room) up to a 1600px cap, so widgets
        actually use the available space on typical desktop monitors
        instead of leaving most of the screen empty. */
-    --app-shell-width: min(1200px, calc(100vw - var(--sidebar-width) - 4rem));
+    --app-shell-width: min(1600px, calc(100vw - var(--sidebar-width) - 4rem));
   }
 
   body {
@@ -148,5 +148,30 @@
      button is mobile-only. */
   .settings-fab {
     display: none;
+  }
+}
+
+/* Masonry-style card layout for Dashboard/Wealth/Reports/Budget on
+   desktop: CSS multi-column instead of CSS Grid. Grid aligns every row to
+   its tallest card, which leaves dead space under shorter neighbors
+   (e.g. a short "Budget tracking" card next to a tall "Spending by
+   category" one); columns pack each column independently top-to-bottom,
+   so a short card is simply followed immediately by the next card in
+   that same column instead of leaving a gap. Trade-off: reading order
+   becomes column-first rather than row-first — acceptable for a
+   dashboard of largely independent widgets. */
+.card-columns {
+  column-count: 2;
+  column-gap: 20px;
+}
+
+.card-columns > * {
+  break-inside: avoid;
+  -webkit-column-break-inside: avoid;
+}
+
+@media (min-width: 1440px) {
+  .card-columns-wide {
+    column-count: 3;
   }
 }
