@@ -729,20 +729,15 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
       )}
       </div>
 
-      {/* Widgets — sortable in edit mode. On desktop, laid out as a 2-column
-          CSS grid when not actively reordering — dnd-kit's drag math here
-          still assumes a single vertical list (verticalListSortingStrategy),
-          so edit mode temporarily falls back to one column while dragging
-          to keep reordering correct; the grid resumes right after. */}
+      {/* Widgets — sortable in edit mode. On desktop, laid out as a masonry
+          column layout when not actively reordering — dnd-kit's drag math
+          here still assumes a single vertical list
+          (verticalListSortingStrategy), so edit mode temporarily falls back
+          to one column while dragging to keep reordering correct; the
+          masonry layout resumes right after. */}
       <div
-        style={{
-          padding: "0 1.25rem",
-          display: isDesktop && !editMode ? "grid" : "block",
-          gridTemplateColumns: isDesktop && !editMode
-            ? `repeat(${isWide ? 3 : 2}, minmax(0, 1fr))`
-            : undefined,
-          columnGap: isDesktop && !editMode ? 20 : undefined,
-        }}
+        className={isDesktop && !editMode ? `card-columns${isWide ? " card-columns-wide" : ""}` : ""}
+        style={{ padding: "0 1.25rem" }}
       >
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={visibleIds} strategy={verticalListSortingStrategy}>

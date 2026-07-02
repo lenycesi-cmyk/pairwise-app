@@ -374,16 +374,8 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
         )}
       </div>
 
-      {/* Cards below the period selector: a 2-column grid on desktop, same
-          technique as Dashboard's widget grid. */}
-      <div
-        style={{
-          display: isDesktop ? "grid" : "block",
-          gridTemplateColumns: isDesktop ? "repeat(2, minmax(0, 1fr))" : undefined,
-          columnGap: isDesktop ? 20 : undefined,
-        }}
-      >
-
+      {/* Summary card — kept full-width above the masonry columns below,
+          same reasoning as WealthScreen's net worth card. */}
       <div
         style={{
           background: "var(--bg-card)",
@@ -391,7 +383,6 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
           border: "0.5px solid var(--rule)",
           padding: "1rem 1.25rem",
           marginBottom: 20,
-          gridColumn: isDesktop ? "1 / -1" : undefined,
         }}
       >
         <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 4 }}>
@@ -413,6 +404,8 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
           </p>
         )}
       </div>
+
+      <div className={isDesktop ? "card-columns" : ""}>
 
       {/* This period vs previous period comparison */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 20 }}>

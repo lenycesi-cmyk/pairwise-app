@@ -694,13 +694,7 @@ export default function BudgetScreen({ openSignal }) {
       )}
 
       {!showForm && (
-      <div
-        style={{
-          display: isDesktop ? "grid" : "block",
-          gridTemplateColumns: isDesktop ? "repeat(2, minmax(0, 1fr))" : undefined,
-          columnGap: isDesktop ? 20 : undefined,
-        }}
-      >
+      <div className={isDesktop ? "card-columns" : ""}>
       {progress.map(({ budget, spent, amountInBase, pct }) => {
         const isInactive = budget.active === false;
         const over = pct >= 100;

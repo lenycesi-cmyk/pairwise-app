@@ -223,17 +223,10 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef }) {
         </div>
       )}
 
-      {/* Content cards below the header/hint/currency-picker: a 2-column
-          grid on desktop, same technique as Dashboard's widget grid. */}
-      <div
-        style={{
-          display: isDesktop ? "grid" : "block",
-          gridTemplateColumns: isDesktop ? "repeat(2, minmax(0, 1fr))" : undefined,
-          columnGap: isDesktop ? 20 : undefined,
-        }}
-      >
-
-      {/* Net worth total */}
+      {/* Net worth total — kept full-width above the masonry columns below
+          rather than as a column item, since it's the hero metric and CSS
+          multi-column layout has no "span all columns" equivalent to
+          CSS Grid's gridColumn. */}
       <div
         ref={netWorthCardRef}
         style={{
@@ -242,7 +235,6 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef }) {
           border: "0.5px solid var(--rule)",
           padding: "1.25rem",
           marginBottom: 12,
-          gridColumn: isDesktop ? "1 / -1" : undefined,
         }}
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
@@ -291,6 +283,8 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef }) {
           </div>
         )}
       </div>
+
+      <div className={isDesktop ? "card-columns" : ""}>
 
       {/* Net worth chart */}
       {netWorthHistory.length > 1 && (
