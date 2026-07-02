@@ -1,6 +1,6 @@
 import { useTranslation } from "../hooks/useTranslation";
 
-export default function BottomNav({ active, onChange, onAddClick, addButtonRef }) {
+export default function BottomNav({ active, onChange, onAddClick, addButtonRef, onSettingsClick }) {
   const t = useTranslation();
   const tabs = [
     { key: "dashboard", icon: "ti-home", label: t("nav_home") },
@@ -39,6 +39,17 @@ export default function BottomNav({ active, onChange, onAddClick, addButtonRef }
           </button>
         );
       })}
+      {/* Desktop-only: settings sits alongside the other tabs in the
+          sidebar rail instead of the floating mobile button (.settings-fab). */}
+      <button
+        onClick={onSettingsClick}
+        aria-label={t("nav_settings")}
+        className="bottom-nav-tab bottom-nav-settings"
+        style={{ color: "var(--ink-3)" }}
+      >
+        <i className="ti ti-settings" style={{ fontSize: 20 }} aria-hidden="true" />
+        <span style={{ fontSize: 10 }}>{t("nav_settings")}</span>
+      </button>
     </div>
   );
 }
