@@ -31,7 +31,7 @@ export default function CoupleSetupScreen() {
       await setDoc(doc(db, "couples", code), {
         createdAt: Date.now(),
         members: [
-          { uid: user.uid, name: user.displayName || "Moi" },
+          { uid: user.uid, memberId: user.uid, name: user.displayName || "Moi" },
         ],
         memberUids: [user.uid],
         defaultCurrency: "EUR",
@@ -79,7 +79,7 @@ export default function CoupleSetupScreen() {
           setBusy(false);
           return;
         }
-        members.push({ uid: user.uid, name: user.displayName || "Moi" });
+        members.push({ uid: user.uid, memberId: user.uid, name: user.displayName || "Moi" });
         await setDoc(
           doc(db, "couples", code),
           { members, memberUids: members.map((m) => m.uid) },
