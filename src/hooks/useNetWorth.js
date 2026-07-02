@@ -3,6 +3,7 @@ import { ASSET_TYPES } from "../data/assetTypes";
 import { getCryptoPrice, getStockPrice } from "../utils/assetPrices";
 import { useFinance } from "../context/FinanceContext";
 import { useExchangeRates } from "./useExchangeRates";
+import { getMemberKey } from "../utils/members";
 
 /**
  * Shared hook: computes net worth totals (including live API prices for
@@ -51,7 +52,7 @@ export function useNetWorth(displayCurrency) {
     const total = getAssetValue(asset);
     if (asset.ownership === memberUid) return total;
     if (asset.ownership === "shared") {
-      const isFirst = members[0]?.uid === memberUid;
+      const isFirst = getMemberKey(members[0]) === memberUid;
       const pct = isFirst ? (asset.sharePct ?? 50) : 100 - (asset.sharePct ?? 50);
       return total * (pct / 100);
     }
@@ -70,12 +71,13 @@ export function useNetWorth(displayCurrency) {
 
   const netWorthByMember = useMemo(() => {
     const result = {};
-    for (const m of members) result[m.uid] = 0;
+    for (const m of members) result[getMemberKey(m)] = 0;
     for (const asset of assets) {
       const type = ASSET_TYPES.find((t) => t.id === asset.typeId);
       const sign = type?.isLiability ? -1 : 1;
       for (const m of members) {
-        result[m.uid] = (result[m.uid] || 0) + sign * Math.abs(getMemberShare(asset, m.uid));
+        const key = getMemberKey(m);
+        result[key] = (result[key] || 0) + sign * Math.abs(getMemberShare(asset, key));
       }
     }
     return result;

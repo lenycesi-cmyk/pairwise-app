@@ -8,6 +8,7 @@ import { buildMemberColorMap } from "../utils/memberColors";
 import { CURRENCIES } from "../data/categories";
 import { useTranslation } from "../hooks/useTranslation";
 import SpotlightHint from "../components/SpotlightHint";
+import { getMemberKey } from "../utils/members";
 
 const PERIOD_TYPES = ["month", "quarter", "year", "last12", "custom"];
 
@@ -229,11 +230,11 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
 
   const memberComparison = useMemo(() => {
     const result = {};
-    for (const m of members) result[m.uid] = { expense: 0, income: 0 };
+    for (const m of members) result[getMemberKey(m)] = { expense: 0, income: 0 };
     for (const tx of periodTx) {
       const payers =
         tx.split === "50/50"
-          ? members.map((m) => ({ uid: m.uid, share: 0.5 }))
+          ? members.map((m) => ({ uid: getMemberKey(m), share: 0.5 }))
           : [{ uid: tx.paidBy, share: 1 }];
       const val = toBase(tx);
       for (const p of payers) {
@@ -548,10 +549,10 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
             }}
           >
             {members.map((m) => {
-              const mt = memberComparison[m.uid] || { expense: 0, income: 0 };
+              const mt = memberComparison[getMemberKey(m)] || { expense: 0, income: 0 };
               return (
                 <div
-                  key={m.uid}
+                  key={getMemberKey(m)}
                   style={{
                     background: "var(--bg-card)",
                     borderRadius: "var(--radius-lg)",

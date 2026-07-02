@@ -7,6 +7,7 @@ import { useExchangeRates } from "../hooks/useExchangeRates";
 import { CURRENCIES } from "../data/categories";
 import { BUDGET_GROUPS, BUDGET_GROUP_KEYS } from "../data/budgetGroups";
 import SpotlightHint from "../components/SpotlightHint";
+import { getMemberKey } from "../utils/members";
 
 const EXPENSE_EXCLUDED = ["income", "investment", "savings"];
 const GROUP_PCT = { essential: 0.5, fun: 0.3, investment: 0.2 };
@@ -246,7 +247,7 @@ export default function BudgetScreen({ openSignal }) {
 
   function memberLabel(b) {
     if (!b.memberUid || b.memberUid === "couple") return coupleLabel;
-    return members.find((m) => m.uid === b.memberUid)?.name || coupleLabel;
+    return members.find((m) => getMemberKey(m) === b.memberUid)?.name || coupleLabel;
   }
 
   return (
@@ -484,15 +485,15 @@ export default function BudgetScreen({ openSignal }) {
                 </button>
                 {members.map((m) => (
                   <button
-                    key={m.uid}
-                    onClick={() => setMemberUid(m.uid)}
+                    key={getMemberKey(m)}
+                    onClick={() => setMemberUid(getMemberKey(m))}
                     style={{
                       flex: 1,
                       padding: 8,
                       borderRadius: "var(--radius-md)",
-                      border: memberUid === m.uid ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
-                      background: memberUid === m.uid ? "var(--sky-light)" : "var(--bg)",
-                      color: memberUid === m.uid ? "var(--sky)" : "var(--ink)",
+                      border: memberUid === getMemberKey(m) ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
+                      background: memberUid === getMemberKey(m) ? "var(--sky-light)" : "var(--bg)",
+                      color: memberUid === getMemberKey(m) ? "var(--sky)" : "var(--ink)",
                       fontSize: 12,
                     }}
                   >

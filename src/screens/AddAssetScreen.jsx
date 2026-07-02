@@ -6,6 +6,7 @@ import { searchCrypto, searchStocks } from "../utils/assetSearch";
 import { useTranslation } from "../hooks/useTranslation";
 import { useCategoryName } from "../hooks/useCategoryName";
 import AdvancedSplitSelector from "../components/AdvancedSplitSelector";
+import { getMemberKey } from "../utils/members";
 
 export default function AddAssetScreen({ onClose, editingAsset }) {
   const t = useTranslation();
@@ -31,7 +32,7 @@ export default function AddAssetScreen({ onClose, editingAsset }) {
 
   // Propriété de l'actif (qui possède quoi)
   const [ownership, setOwnership] = useState(
-    editingAsset?.ownership || (members[0] ? members[0].uid : "shared")
+    editingAsset?.ownership || (members[0] ? getMemberKey(members[0]) : "shared")
   );
   const [sharePct, setSharePct] = useState(editingAsset?.sharePct ?? 50);
   const [sharePctDetails, setSharePctDetails] = useState(editingAsset?.sharePctDetails || null);
@@ -356,13 +357,13 @@ export default function AddAssetScreen({ onClose, editingAsset }) {
             <div style={{ display: "flex", gap: 6, marginBottom: ownership === "shared" ? 14 : 0 }}>
               {members.map((m) => (
                 <button
-                  key={m.uid}
-                  onClick={() => setOwnership(m.uid)}
+                  key={getMemberKey(m)}
+                  onClick={() => setOwnership(getMemberKey(m))}
                   style={{
                     flex: 1, padding: 8, borderRadius: "var(--radius-md)",
-                    border: ownership === m.uid ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
-                    background: ownership === m.uid ? "var(--sky-light)" : "var(--bg)",
-                    color: ownership === m.uid ? "var(--sky)" : "var(--ink)",
+                    border: ownership === getMemberKey(m) ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
+                    background: ownership === getMemberKey(m) ? "var(--sky-light)" : "var(--bg)",
+                    color: ownership === getMemberKey(m) ? "var(--sky)" : "var(--ink)",
                     fontSize: 13,
                   }}
                 >

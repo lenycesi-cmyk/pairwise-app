@@ -5,6 +5,7 @@ import { CURRENCIES } from "../data/categories";
 import { uploadPhoto } from "../utils/photoUpload";
 import { AVATAR_COLOR_PALETTE, buildMemberColorMap, getInitial } from "../utils/memberColors";
 import { useTranslation } from "../hooks/useTranslation";
+import { getMemberKey } from "../utils/members";
 
 export default function SettingsScreen({ onOpenRecurring, onOpenCategories, onOpenTheme, onOpenLanguage }) {
   const t = useTranslation();
@@ -85,7 +86,7 @@ export default function SettingsScreen({ onOpenRecurring, onOpenCategories, onOp
 
   const currentMember = members.find((m) => m.uid === user?.uid);
   const memberColorMap = buildMemberColorMap(members);
-  const myColor = memberColorMap[user?.uid] || AVATAR_COLOR_PALETTE[0];
+  const myColor = memberColorMap[getMemberKey(currentMember)] || AVATAR_COLOR_PALETTE[0];
 
   async function handleSaveName() {
     const trimmed = nameInput.trim();

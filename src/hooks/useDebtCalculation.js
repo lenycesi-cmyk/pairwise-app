@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { getMemberKey } from "../utils/members";
 
 export function useDebtCalculation(transactions, members, defaultCurrency, convert) {
   function toBase(tx) {
@@ -26,6 +27,8 @@ export function useDebtCalculation(transactions, members, defaultCurrency, conve
   return useMemo(() => {
     if (members.length < 2) return null;
     const [a, b] = members;
+    const aKey = getMemberKey(a);
+    const bKey = getMemberKey(b);
 
     let aPaidForB = 0;
     let bPaidForA = 0;
@@ -40,26 +43,26 @@ export function useDebtCalculation(transactions, members, defaultCurrency, conve
         // qui a payé. Seule la part de l'AUTRE membre crée une dette envers
         // celui qui a payé.
         const { shareA, shareB } = getCustomShares(tx, val, a, b);
-        if (tx.paidBy === a.uid) {
+        if (tx.paidBy === aKey) {
           aPaidForB += shareB;
           sharedTx.push({ ...tx, share: shareB, paidByName: a.name, label: `${shareA.toFixed(0)}/${shareB.toFixed(0)}` });
-        } else if (tx.paidBy === b.uid) {
+        } else if (tx.paidBy === bKey) {
           bPaidForA += shareA;
           sharedTx.push({ ...tx, share: shareA, paidByName: b.name, label: `${shareA.toFixed(0)}/${shareB.toFixed(0)}` });
         }
       } else if (tx.split === "50/50") {
         const half = val / 2;
-        if (tx.paidBy === a.uid) {
+        if (tx.paidBy === aKey) {
           aPaidForB += half;
           sharedTx.push({ ...tx, share: half, paidByName: a.name, label: "50/50" });
-        } else if (tx.paidBy === b.uid) {
+        } else if (tx.paidBy === bKey) {
           bPaidForA += half;
           sharedTx.push({ ...tx, share: half, paidByName: b.name, label: "50/50" });
         }
-      } else if (tx.split === a.uid && tx.paidBy === b.uid) {
+      } else if (tx.split === aKey && tx.paidBy === bKey) {
         bPaidForA += val;
         sharedTx.push({ ...tx, share: val, paidByName: b.name, label: `pour ${a.name}` });
-      } else if (tx.split === b.uid && tx.paidBy === a.uid) {
+      } else if (tx.split === bKey && tx.paidBy === aKey) {
         aPaidForB += val;
         sharedTx.push({ ...tx, share: val, paidByName: a.name, label: `pour ${b.name}` });
       }

@@ -8,6 +8,7 @@ import { AVATAR_COLOR_PALETTE } from "../utils/memberColors";
 import { useTranslation } from "../hooks/useTranslation";
 import { useCategoryName } from "../hooks/useCategoryName";
 import AdvancedSplitSelector from "../components/AdvancedSplitSelector";
+import { getMemberKey } from "../utils/members";
 
 function todayISO() {
   const d = new Date();
@@ -719,14 +720,14 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
             <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
               {members.map((m) => (
                 <button
-                  key={m.uid}
-                  onClick={() => setPaidBy(m.uid)}
+                  key={getMemberKey(m)}
+                  onClick={() => setPaidBy(getMemberKey(m))}
                   style={{
                     flex: 1, padding: 8, borderRadius: "var(--radius-md)",
-                    border: paidBy === m.uid ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
-                    background: paidBy === m.uid ? "var(--sky-light)" : "var(--bg-card)",
-                    color: paidBy === m.uid ? "var(--sky)" : "var(--ink)",
-                    fontSize: 13, fontWeight: paidBy === m.uid ? 500 : 400,
+                    border: paidBy === getMemberKey(m) ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
+                    background: paidBy === getMemberKey(m) ? "var(--sky-light)" : "var(--bg-card)",
+                    color: paidBy === getMemberKey(m) ? "var(--sky)" : "var(--ink)",
+                    fontSize: 13, fontWeight: paidBy === getMemberKey(m) ? 500 : 400,
                   }}
                 >
                   {m.name}
@@ -739,13 +740,13 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
             <div style={{ display: "flex", gap: 6 }}>
               {members.map((m) => (
                 <button
-                  key={m.uid}
-                  onClick={() => { setSplit(m.uid); setSplitMode("simple"); }}
+                  key={getMemberKey(m)}
+                  onClick={() => { setSplit(getMemberKey(m)); setSplitMode("simple"); }}
                   style={{
                     flex: 1, padding: 8, borderRadius: "var(--radius-md)",
-                    border: split === m.uid && splitMode === "simple" ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
-                    background: split === m.uid && splitMode === "simple" ? "var(--sky-light)" : "var(--bg-card)",
-                    color: split === m.uid && splitMode === "simple" ? "var(--sky)" : "var(--ink)",
+                    border: split === getMemberKey(m) && splitMode === "simple" ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
+                    background: split === getMemberKey(m) && splitMode === "simple" ? "var(--sky-light)" : "var(--bg-card)",
+                    color: split === getMemberKey(m) && splitMode === "simple" ? "var(--sky)" : "var(--ink)",
                     fontSize: 13,
                   }}
                 >

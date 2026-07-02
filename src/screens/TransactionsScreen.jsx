@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { buildMemberColorMap } from "../utils/memberColors";
 import Avatar from "../components/Avatar";
 import { useTranslation } from "../hooks/useTranslation";
+import { getMemberKey } from "../utils/members";
 
 const COLOR_MAP = {
   tang: { text: "var(--tang)", bg: "var(--tang-light)" },
@@ -64,7 +65,7 @@ export default function TransactionsScreen({ onEdit }) {
   }
 
   function getMemberName(uid) {
-    return members.find((m) => m.uid === uid)?.name || "?";
+    return members.find((m) => getMemberKey(m) === uid)?.name || "?";
   }
 
   function exportCSV() {
@@ -214,9 +215,9 @@ export default function TransactionsScreen({ onEdit }) {
         </FilterChip>
         {members.map((m) => (
           <FilterChip
-            key={m.uid}
-            active={filter === m.uid}
-            onClick={() => setFilter(m.uid)}
+            key={getMemberKey(m)}
+            active={filter === getMemberKey(m)}
+            onClick={() => setFilter(getMemberKey(m))}
           >
             {m.name}
           </FilterChip>
@@ -330,14 +331,14 @@ export default function TransactionsScreen({ onEdit }) {
                       <span style={{ fontSize: 12, color: "var(--ink-3)" }}>{tx.subcategory}</span>
                       <span style={{ fontSize: 12, color: "var(--ink-3)" }}>·</span>
                       <span style={{ fontSize: 11, color: "var(--ink-3)" }}>{t("tx_paid_by")}</span>
-                      <Avatar member={members.find(m => m.uid === tx.paidBy)} colorMap={memberColorMap} />
+                      <Avatar member={members.find(m => getMemberKey(m) === tx.paidBy)} colorMap={memberColorMap} />
                       {tx.split && (
                         <>
                           <span style={{ fontSize: 11, color: "var(--ink-3)" }}>· {t("tx_for")}</span>
                           {tx.splitDetails ? (
                             <span style={{ display: "flex", gap: 3, alignItems: "center" }}>
                               {members.map((m, i) => (
-                                <span key={m.uid} style={{ display: "flex", alignItems: "center", gap: 2 }}>
+                                <span key={getMemberKey(m)} style={{ display: "flex", alignItems: "center", gap: 2 }}>
                                   <Avatar member={m} colorMap={memberColorMap} />
                                   <span style={{ fontSize: 10, color: "var(--ink-3)" }}>
                                     {tx.splitDetails.unit === "percent"
@@ -353,7 +354,7 @@ export default function TransactionsScreen({ onEdit }) {
                           ) : tx.split === "50/50" ? (
                             <span style={{ display: "flex", gap: 2 }}>
                               {members.map((m, i) => (
-                                <span key={m.uid} style={{ display: "flex", alignItems: "center" }}>
+                                <span key={getMemberKey(m)} style={{ display: "flex", alignItems: "center" }}>
                                   <Avatar member={m} colorMap={memberColorMap} />
                                   {i < members.length - 1 && (
                                     <span style={{ fontSize: 11, color: "var(--ink-3)", margin: "0 2px" }}>&</span>
@@ -362,7 +363,7 @@ export default function TransactionsScreen({ onEdit }) {
                               ))}
                             </span>
                           ) : (
-                            <Avatar member={members.find(m => m.uid === tx.split)} colorMap={memberColorMap} />
+                            <Avatar member={members.find(m => getMemberKey(m) === tx.split)} colorMap={memberColorMap} />
                           )}
                         </>
                       )}
