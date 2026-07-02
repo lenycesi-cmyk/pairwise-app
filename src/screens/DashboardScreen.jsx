@@ -436,6 +436,11 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
                       <Avatar member={m} colorMap={memberColorMap} size={26} />
                       <p style={{ fontSize: 13, fontWeight: 500 }}>{m.name}</p>
+                      {!m.uid && (
+                        <span style={{ fontSize: 10, color: "var(--ink-3)", background: "var(--bg)", border: "0.5px solid var(--rule)", borderRadius: 8, padding: "1px 6px" }}>
+                          {t("member_pending")}
+                        </span>
+                      )}
                     </div>
                     <MiniRow label={t("dashboard_income")} value={mt.income} formatAmount={formatAmount} color="var(--sage)" symbol={currencySymbol} />
                     <MiniRow label={t("dashboard_expenses")} value={mt.expense} formatAmount={formatAmount} color="var(--tang)" symbol={currencySymbol} />
