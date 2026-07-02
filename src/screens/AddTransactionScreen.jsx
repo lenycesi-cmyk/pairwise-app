@@ -363,6 +363,64 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
               color: "var(--ink)",
             }}
           />
+
+          {!isEditing && (
+            <div style={{ marginTop: 14 }}>
+              <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={makeRecurring}
+                  onChange={(e) => setMakeRecurring(e.target.checked)}
+                  style={{ width: 18, height: 18 }}
+                />
+                <span style={{ fontSize: 14, flex: 1 }}>{t("tx_make_recurring")}</span>
+                <i className="ti ti-repeat" style={{ fontSize: 16, color: "var(--lavi)" }} aria-hidden="true" />
+              </label>
+
+              {makeRecurring && (
+                <div style={{ marginTop: 12 }}>
+                  <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>{t("recurring_frequency")}</p>
+                  <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+                    {[
+                      { key: "monthly", label: t("recurring_freq_monthly") },
+                      { key: "weekly", label: t("recurring_freq_weekly") },
+                      { key: "yearly", label: t("recurring_freq_yearly") },
+                    ].map((f) => (
+                      <button
+                        key={f.key}
+                        onClick={() => setRecurringFrequency(f.key)}
+                        style={{
+                          flex: 1, padding: 8, borderRadius: "var(--radius-md)",
+                          border: recurringFrequency === f.key ? "0.5px solid var(--lavi)" : "0.5px solid var(--rule)",
+                          background: recurringFrequency === f.key ? "var(--lavi-light)" : "var(--bg)",
+                          color: recurringFrequency === f.key ? "var(--lavi)" : "var(--ink)",
+                          fontSize: 12,
+                        }}
+                      >
+                        {f.label}
+                      </button>
+                    ))}
+                  </div>
+                  {recurringFrequency === "monthly" && (
+                    <>
+                      <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>{t("recurring_day_of_month")}</p>
+                      <input
+                        type="number"
+                        min="1"
+                        max="31"
+                        value={recurringDayOfMonth}
+                        onChange={(e) => setRecurringDayOfMonth(e.target.value)}
+                        style={{
+                          width: "100%", padding: "10px 12px", borderRadius: "var(--radius-md)",
+                          border: "0.5px solid var(--rule)", fontSize: 14, outline: "none",
+                        }}
+                      />
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Catégorie / sous-catégorie / description */}
@@ -583,73 +641,6 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
             }}
           />
         </div>
-
-        {/* Rendre récurrente — seulement à la création, pas en édition */}
-        {!isEditing && (
-          <div
-            style={{
-              background: "var(--bg-card)",
-              borderRadius: "var(--radius-lg)",
-              border: "0.5px solid var(--rule)",
-              padding: "1rem 1.25rem",
-              marginBottom: 12,
-            }}
-          >
-            <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
-              <input
-                type="checkbox"
-                checked={makeRecurring}
-                onChange={(e) => setMakeRecurring(e.target.checked)}
-                style={{ width: 18, height: 18 }}
-              />
-              <span style={{ fontSize: 14, flex: 1 }}>{t("tx_make_recurring")}</span>
-              <i className="ti ti-repeat" style={{ fontSize: 16, color: "var(--lavi)" }} aria-hidden="true" />
-            </label>
-
-            {makeRecurring && (
-              <div style={{ marginTop: 12 }}>
-                <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>{t("recurring_frequency")}</p>
-                <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
-                  {[
-                    { key: "monthly", label: t("recurring_freq_monthly") },
-                    { key: "weekly", label: t("recurring_freq_weekly") },
-                    { key: "yearly", label: t("recurring_freq_yearly") },
-                  ].map((f) => (
-                    <button
-                      key={f.key}
-                      onClick={() => setRecurringFrequency(f.key)}
-                      style={{
-                        flex: 1, padding: 8, borderRadius: "var(--radius-md)",
-                        border: recurringFrequency === f.key ? "0.5px solid var(--lavi)" : "0.5px solid var(--rule)",
-                        background: recurringFrequency === f.key ? "var(--lavi-light)" : "var(--bg)",
-                        color: recurringFrequency === f.key ? "var(--lavi)" : "var(--ink)",
-                        fontSize: 12,
-                      }}
-                    >
-                      {f.label}
-                    </button>
-                  ))}
-                </div>
-                {recurringFrequency === "monthly" && (
-                  <>
-                    <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>{t("recurring_day_of_month")}</p>
-                    <input
-                      type="number"
-                      min="1"
-                      max="31"
-                      value={recurringDayOfMonth}
-                      onChange={(e) => setRecurringDayOfMonth(e.target.value)}
-                      style={{
-                        width: "100%", padding: "10px 12px", borderRadius: "var(--radius-md)",
-                        border: "0.5px solid var(--rule)", fontSize: 14, outline: "none",
-                      }}
-                    />
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-        )}
 
         {/* Reçu / ticket */}
         <div
