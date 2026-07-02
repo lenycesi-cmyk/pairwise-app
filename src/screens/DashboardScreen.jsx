@@ -610,7 +610,19 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
   const visibleIds = displayList.filter((w) => w.visible || editMode).map((w) => w.id);
 
   return (
-    <div style={{ padding: "1.5rem 1.25rem 6rem" }}>
+    <div style={{ paddingBottom: "6rem" }}>
+      {/* Sticky header — stays visible while scrolling widgets below, with an
+          opaque background matching the page so content scrolls under it
+          rather than through it. */}
+      <div
+        style={{
+          position: "sticky",
+          top: 0,
+          zIndex: 40,
+          background: "var(--bg)",
+          padding: "1.5rem 1.25rem 1rem",
+        }}
+      >
       {/* Header */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", marginBottom: 16 }}>
         <div />
@@ -706,8 +718,10 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
           ))}
         </div>
       )}
+      </div>
 
       {/* Widgets — sortable in edit mode */}
+      <div style={{ padding: "0 1.25rem" }}>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={visibleIds} strategy={verticalListSortingStrategy}>
           {displayList
@@ -778,6 +792,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
             })}
         </SortableContext>
       </DndContext>
+      </div>
     </div>
   );
 }
