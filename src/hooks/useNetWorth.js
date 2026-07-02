@@ -69,6 +69,28 @@ export function useNetWorth(displayCurrency) {
     return total;
   }, [assets, livePrices, displayCurrency]);
 
+  // Sum of asset values grouped by ASSET_TYPES id — shared between
+  // WealthScreen's own allocation section and the Dashboard's desktop-only
+  // allocation chart widget so both agree on the same numbers.
+  const totalsByType = useMemo(() => {
+    const result = {};
+    for (const type of ASSET_TYPES) result[type.id] = 0;
+    for (const asset of assets) {
+      const val = getAssetValue(asset);
+      result[asset.typeId] = (result[asset.typeId] || 0) + val;
+    }
+    return result;
+  }, [assets, livePrices, displayCurrency]);
+
+  const totalAssets = useMemo(() => {
+    let total = 0;
+    for (const type of ASSET_TYPES) {
+      if (type.isLiability) continue;
+      total += totalsByType[type.id] || 0;
+    }
+    return total;
+  }, [totalsByType]);
+
   const netWorthByMember = useMemo(() => {
     const result = {};
     for (const m of members) result[getMemberKey(m)] = 0;
@@ -83,5 +105,5 @@ export function useNetWorth(displayCurrency) {
     return result;
   }, [assets, livePrices, displayCurrency, members]);
 
-  return { netWorth, netWorthByMember, getAssetValue, livePrices };
+  return { netWorth, netWorthByMember, totalsByType, totalAssets, getAssetValue, livePrices };
 }

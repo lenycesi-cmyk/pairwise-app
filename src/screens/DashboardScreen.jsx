@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, lazy, Suspense } from "react";
 import {
   DndContext,
   closestCenter,
@@ -30,6 +30,18 @@ import { useCategoryName } from "../hooks/useCategoryName";
 import SpotlightHint from "../components/SpotlightHint";
 import { getMemberKey } from "../utils/members";
 import { useMediaQuery } from "../hooks/useMediaQuery";
+
+// Desktop-only widgets pull in recharts, which is deliberately kept out of
+// the eager bundle (Dashboard itself loads eagerly — see CLAUDE.md/
+// vite.config.js manualChunks) — lazy-loaded here so mobile users, who
+// never see these widgets, never pay for the recharts chunk either.
+const AllocationChart = lazy(() => import("../components/AllocationChart"));
+const IncomeExpenseTrendChart = lazy(() => import("../components/IncomeExpenseTrendChart"));
+
+// Widgets that only make sense with more screen room — hidden entirely on
+// mobile (not offered in the customize picker there either), shown by
+// default on desktop.
+const DESKTOP_ONLY_WIDGETS = ["wealth_allocation", "reports_trend"];
 
 const MONTHS = [
   "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
@@ -211,6 +223,29 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
     return { income, expense, invested, net: income - expense - invested };
   }, [monthTx, displayCurrency, convert]);
 
+  // Desktop-only "reports_trend" widget: income vs expense for the 6
+  // months ending on the currently viewed month — same shape of data as
+  // Reports' own income/expense chart, just always a fixed 6-month window
+  // rather than following Reports' period picker.
+  const sixMonthTrend = useMemo(() => {
+    const buckets = [];
+    for (let i = 5; i >= 0; i--) {
+      let m = viewMonth - i;
+      let y = viewYear;
+      while (m < 0) { m += 12; y -= 1; }
+      buckets.push({ month: m, year: y, label: MONTHS[m].slice(0, 3), income: 0, expense: 0 });
+    }
+    for (const tx of transactions) {
+      const d = new Date(tx.date);
+      const bucket = buckets.find((b) => b.month === d.getMonth() && b.year === d.getFullYear());
+      if (!bucket) continue;
+      const val = toBase(tx);
+      if (tx.type === "income") bucket.income += val;
+      else if (tx.type === "expense") bucket.expense += val;
+    }
+    return buckets;
+  }, [transactions, viewMonth, viewYear, displayCurrency, convert]);
+
   const memberTotals = useMemo(() => {
     const result = {};
     for (const m of members) result[getMemberKey(m)] = { name: m.name, income: 0, expense: 0, invested: 0 };
@@ -260,7 +295,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
     () => bankAccounts.reduce((sum, a) => sum + convert(a.value ?? 0, a.currency, displayCurrency), 0),
     [bankAccounts, convert, displayCurrency]
   );
-  const { netWorth, netWorthByMember } = useNetWorth(displayCurrency);
+  const { netWorth, netWorthByMember, totalsByType, totalAssets } = useNetWorth(displayCurrency);
 
   function formatAmount(n) {
     return Math.round(n).toLocaleString("fr-FR");
@@ -312,6 +347,8 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
     net_worth: t("widget_net_worth"),
     debt_tracker: t("widget_debt_tracker"),
     recurring: t("widget_recurring"),
+    wealth_allocation: t("widget_wealth_allocation"),
+    reports_trend: t("widget_reports_trend"),
   };
 
   // ── Widget renderers ───────────────────────────────────────────────────────
@@ -599,6 +636,31 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
         );
       }
 
+      case "wealth_allocation":
+        if (totalAssets <= 0) return null;
+        return (
+          <div>
+            <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>{t("widget_wealth_allocation")}</p>
+            <div style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "1rem 1.25rem" }}>
+              <Suspense fallback={<div className="skeleton" style={{ height: 110 }} />}>
+                <AllocationChart totalsByType={totalsByType} totalAssets={totalAssets} />
+              </Suspense>
+            </div>
+          </div>
+        );
+
+      case "reports_trend":
+        return (
+          <div>
+            <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>{t("widget_reports_trend")}</p>
+            <div style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "1rem 1.25rem" }}>
+              <Suspense fallback={<div className="skeleton" style={{ height: 180 }} />}>
+                <IncomeExpenseTrendChart data={sixMonthTrend} currencySymbol={currencySymbol} />
+              </Suspense>
+            </div>
+          </div>
+        );
+
       default:
         return null;
     }
@@ -615,7 +677,9 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
     );
   }
 
-  const displayList = activeWidgets;
+  const displayList = isDesktop
+    ? activeWidgets
+    : activeWidgets.filter((w) => !DESKTOP_ONLY_WIDGETS.includes(w.id));
   const visibleIds = displayList.filter((w) => w.visible || editMode).map((w) => w.id);
 
   return (
