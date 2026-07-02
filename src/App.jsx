@@ -178,7 +178,13 @@ function AppContent() {
         </Suspense>
       )}
 
-      <BottomNav active={tab} onChange={setTab} onAddClick={handleCentralAdd} addButtonRef={addButtonRef} />
+      <BottomNav
+        active={tab}
+        onChange={setTab}
+        onAddClick={handleCentralAdd}
+        addButtonRef={addButtonRef}
+        onSettingsClick={() => setShowSettings(true)}
+      />
 
       <Suspense fallback={null}>
         {showAdd && <AddTransactionScreen onClose={closeAdd} editingTx={editingTx} />}

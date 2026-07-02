@@ -149,6 +149,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
   const currencyButtonRef = useRef(null);
   const [detailBudgetId, setDetailBudgetId] = useState(null);
   const isDesktop = useMediaQuery("(min-width: 1024px)");
+  const isWide = useMediaQuery("(min-width: 1440px)");
   const summaryLabel = coupleName
     ? `${coupleName} ${t("widget_summary_word")}`
     : t("widget_couple_summary_default");
@@ -737,7 +738,9 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
         style={{
           padding: "0 1.25rem",
           display: isDesktop && !editMode ? "grid" : "block",
-          gridTemplateColumns: isDesktop && !editMode ? "repeat(2, minmax(0, 1fr))" : undefined,
+          gridTemplateColumns: isDesktop && !editMode
+            ? `repeat(${isWide ? 3 : 2}, minmax(0, 1fr))`
+            : undefined,
           columnGap: isDesktop && !editMode ? 20 : undefined,
         }}
       >
