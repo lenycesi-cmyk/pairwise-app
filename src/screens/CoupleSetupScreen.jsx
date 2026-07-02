@@ -74,6 +74,11 @@ export default function CoupleSetupScreen() {
       const data = coupleDoc.data();
       const members = data.members || [];
       if (!members.find((m) => m.uid === user.uid)) {
+        if (members.length >= 2) {
+          setError("Cet espace est déjà complet (2 membres maximum).");
+          setBusy(false);
+          return;
+        }
         members.push({ uid: user.uid, name: user.displayName || "Moi" });
         await setDoc(
           doc(db, "couples", code),
