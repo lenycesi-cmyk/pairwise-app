@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import { useFinance } from "../context/FinanceContext";
 import { useAuth } from "../context/AuthContext";
 import { useTranslation } from "../hooks/useTranslation";
@@ -7,6 +7,11 @@ import { buildMemberColorMap } from "../utils/memberColors";
 import { getMemberKey } from "../utils/members";
 
 const QUICK_EMOJIS = ["❤️", "😂", "😮", "👍", "🤔"];
+
+// Le picker Tenor n'est chargé (lazy) que si une clé API est configurée
+// ET que l'utilisateur ouvre le tiroir GIF — zéro impact bundle sinon.
+const HAS_TENOR_KEY = !!import.meta.env.VITE_TENOR_API_KEY;
+const GifPicker = lazy(() => import("./GifPicker"));
 
 // Un emoji seul (éventuellement répété) s'affiche en grand, sans bulle —
 // même convention qu'iMessage/WhatsApp.
@@ -20,6 +25,7 @@ export default function TransactionComments({ txId }) {
   const { user } = useAuth();
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
+  const [showGifPicker, setShowGifPicker] = useState(false);
   const listRef = useRef(null);
 
   // On lit la transaction "live" du contexte (pas un snapshot) : les
@@ -42,6 +48,19 @@ export default function TransactionComments({ txId }) {
     try {
       await addTransactionComment(txId, { memberId: myKey, text: content.trim() });
       setText("");
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function sendGif(gifUrl) {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await addTransactionComment(txId, { memberId: myKey, gifUrl });
+      setShowGifPicker(false);
     } catch (err) {
       console.error(err);
     } finally {
@@ -143,7 +162,38 @@ export default function TransactionComments({ txId }) {
             {e}
           </button>
         ))}
+        {HAS_TENOR_KEY && (
+          <button
+            onClick={() => setShowGifPicker(!showGifPicker)}
+            aria-label="GIF"
+            style={{
+              fontSize: 10,
+              fontWeight: 700,
+              letterSpacing: "0.05em",
+              background: showGifPicker ? "var(--sky-light)" : "var(--bg)",
+              color: showGifPicker ? "var(--sky)" : "var(--ink-2)",
+              border: showGifPicker ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
+              borderRadius: 99,
+              width: 34,
+              height: 34,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+            }}
+          >
+            GIF
+          </button>
+        )}
       </div>
+
+      {showGifPicker && (
+        <Suspense fallback={<div className="skeleton" style={{ height: 90, marginBottom: 8, borderRadius: "var(--radius-md)" }} />}>
+          <div style={{ marginBottom: 8 }}>
+            <GifPicker onSelect={sendGif} onClose={() => setShowGifPicker(false)} />
+          </div>
+        </Suspense>
+      )}
 
       <div style={{ display: "flex", gap: 8 }}>
         <input
