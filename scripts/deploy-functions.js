@@ -38,6 +38,8 @@ const FUNCTIONS_TO_DEPLOY = [
   "syncBalance",
   "disconnectBank",
   "syncAllBalances",
+  "sendPush",
+  "sendRecurringReminders",
 ];
 
 function loadServiceAccountKey() {
@@ -223,6 +225,41 @@ async function waitForOperation(token, operationName) {
   throw new Error("Operation timed out");
 }
 
+// Crée ou met à jour le job Cloud Scheduler qui appelle une fonction
+// planifiée (les fonctions onSchedule sont déployées comme de simples
+// fonctions HTTP par ce script). Non-fatal si le compte de service n'a pas
+// roles/cloudscheduler.admin : on loggue la commande manuelle équivalente.
+async function upsertSchedulerJob(token, fnName, cron, timeZone) {
+  const uri = `https://${REGION}-${PROJECT_ID}.cloudfunctions.net/${fnName}`;
+  const jobName = `projects/${PROJECT_ID}/locations/${REGION}/jobs/${fnName}`;
+  const body = {
+    name: jobName,
+    schedule: cron,
+    timeZone,
+    httpTarget: {
+      uri,
+      httpMethod: "POST",
+      oidcToken: { serviceAccountEmail: loadServiceAccountKey().client_email },
+    },
+  };
+  try {
+    await api(token, "PATCH", `https://cloudscheduler.googleapis.com/v1/${jobName}`, body);
+    console.log(`   → ${fnName} (job mis à jour) ✓`);
+  } catch (e) {
+    if (e.message.includes("404") || e.message.includes("NOT_FOUND")) {
+      try {
+        await api(token, "POST", `https://cloudscheduler.googleapis.com/v1/projects/${PROJECT_ID}/locations/${REGION}/jobs`, body);
+        console.log(`   → ${fnName} (job créé) ✓`);
+        return;
+      } catch (e2) {
+        e = e2;
+      }
+    }
+    console.warn(`   ⚠ Scheduler ${fnName}: ${e.message}`);
+    console.warn(`     Job manuel : gcloud scheduler jobs create http ${fnName} --schedule="${cron}" --time-zone="${timeZone}" --uri="${uri}" --oidc-service-account-email=<SA> --location=${REGION}`);
+  }
+}
+
 async function main() {
   console.log("=== Déploiement des Cloud Functions Pairwise ===\n");
 
@@ -237,7 +274,10 @@ async function main() {
   console.log("3. Upload du code source...");
   const storageSource = await uploadSource(token, zipPath);
 
-  const scheduled = ["syncAllBalances"];
+  // Fonctions onSchedule : déployées comme HTTP + job Cloud Scheduler
+  // upserté à l'étape 5 (le décorateur onSchedule ne suffit pas avec ce
+  // pipeline REST custom).
+  const scheduled = ["syncAllBalances", "sendRecurringReminders"];
 
   console.log("4. Déploiement des fonctions...");
   for (const name of FUNCTIONS_TO_DEPLOY) {
@@ -249,6 +289,9 @@ async function main() {
     await allowUnauthenticated(token, name);
     console.log(" ✓");
   }
+
+  console.log("5. Jobs Cloud Scheduler...");
+  await upsertSchedulerJob(token, "sendRecurringReminders", "0 8 * * *", "Europe/Paris");
 
   console.log("\n✅ Déploiement terminé !");
   console.log(`   Cloud Functions: https://console.cloud.google.com/functions/list?project=${PROJECT_ID}`);

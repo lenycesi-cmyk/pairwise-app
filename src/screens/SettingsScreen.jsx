@@ -23,6 +23,8 @@ export default function SettingsScreen({ onOpenRecurring, onOpenCategories, onOp
     transactions,
     coupleName,
     updateCoupleName,
+    pushPrefs,
+    updateMemberPushPrefs,
   } = useFinance();
   const [showCode, setShowCode] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -511,6 +513,38 @@ export default function SettingsScreen({ onOpenRecurring, onOpenCategories, onOp
             )}
           </div>
         )}
+        {push.supported && push.status === "granted" && (() => {
+          const me = members.find((m) => m.uid === user?.uid);
+          const myKey = me ? getMemberKey(me) : user?.uid;
+          const myPrefs = pushPrefs?.[myKey] || {};
+          const TYPES = [
+            { key: "newTransaction", label: t("settings_push_new_tx") },
+            { key: "editedTransaction", label: t("settings_push_edited_tx") },
+            { key: "comments", label: t("settings_push_comments") },
+            { key: "recurringReminders", label: t("settings_push_reminders") },
+          ];
+          return (
+            <div style={{ padding: "4px 0 4px 28px" }}>
+              {TYPES.map(({ key, label }) => {
+                const enabled = myPrefs[key] !== false;
+                return (
+                  <label
+                    key={key}
+                    style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 0", cursor: "pointer" }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={enabled}
+                      onChange={() => updateMemberPushPrefs(myKey, { ...myPrefs, [key]: !enabled })}
+                      style={{ width: 16, height: 16 }}
+                    />
+                    <span style={{ fontSize: 13, color: enabled ? "var(--ink)" : "var(--ink-3)" }}>{label}</span>
+                  </label>
+                );
+              })}
+            </div>
+          );
+        })()}
         <div
           onClick={resetHints}
           style={{
