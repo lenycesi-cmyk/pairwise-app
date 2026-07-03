@@ -30,6 +30,7 @@ import { useCategoryName } from "../hooks/useCategoryName";
 import SpotlightHint from "../components/SpotlightHint";
 import { getMemberKey } from "../utils/members";
 import { nextOccurrence, daysUntil } from "../utils/recurrence";
+import { useSubscriptionSuggestion } from "../hooks/useSubscriptionSuggestion";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 
 // Desktop-only widgets pull in recharts, which is deliberately kept out of
@@ -155,6 +156,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
   // real calendar month — otherwise the widget silently shows next/prev
   // month's spend while the rest of the screen is browsing a different one.
   const { progress: budgetProgress } = useBudgetProgress(viewMonth, viewYear);
+  const { suggestion: subscriptionSuggestion, accept: acceptSubscription, dismiss: dismissSubscription } = useSubscriptionSuggestion();
   const topBudgets = useMemo(
     () => [...budgetProgress].sort((a, b) => b.pct - a.pct).slice(0, 3),
     [budgetProgress]
@@ -613,6 +615,41 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                 </button>
               )}
             </div>
+            {subscriptionSuggestion && !editMode && (
+              <div
+                style={{
+                  background: "var(--lavi-light)",
+                  border: "0.5px solid var(--lavi)",
+                  borderRadius: "var(--radius-lg)",
+                  padding: "10px 14px",
+                  marginBottom: 8,
+                }}
+              >
+                <p style={{ fontSize: 12, color: "var(--ink)", marginBottom: 8, display: "flex", alignItems: "flex-start", gap: 6 }}>
+                  <i className="ti ti-sparkles" style={{ fontSize: 14, color: "var(--lavi)", flexShrink: 0, marginTop: 1 }} aria-hidden="true" />
+                  <span>
+                    {t("subscription_suggestion")
+                      .replace("{description}", subscriptionSuggestion.description)
+                      .replace("{count}", subscriptionSuggestion.count)
+                      .replace("{amount}", `${Math.round(subscriptionSuggestion.amount).toLocaleString("fr-FR")} ${subscriptionSuggestion.currency}`)}
+                  </span>
+                </p>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button
+                    onClick={acceptSubscription}
+                    style={{ flex: 1, padding: "7px 0", borderRadius: "var(--radius-md)", border: "none", background: "var(--lavi)", color: "#fff", fontSize: 12, fontWeight: 500 }}
+                  >
+                    {t("subscription_accept")}
+                  </button>
+                  <button
+                    onClick={dismissSubscription}
+                    style={{ flex: 1, padding: "7px 0", borderRadius: "var(--radius-md)", border: "0.5px solid var(--rule)", background: "var(--bg-card)", color: "var(--ink-2)", fontSize: 12 }}
+                  >
+                    {t("subscription_dismiss")}
+                  </button>
+                </div>
+              </div>
+            )}
             <div style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", overflow: "hidden" }}>
               {upcoming.length === 0 ? (
                 <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", padding: "1.5rem 0" }}>{t("widget_recurring_empty")}</p>
