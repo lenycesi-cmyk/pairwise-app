@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 import { FinanceProvider } from "./context/FinanceContext";
 import { useRecurringGenerator } from "./hooks/useRecurringGenerator";
 import { useBudgetAlerts } from "./hooks/useBudgetAlerts";
+import { useCommentNotifications } from "./hooks/useCommentNotifications";
 import AuthScreen from "./screens/AuthScreen";
 import CoupleSetupScreen from "./screens/CoupleSetupScreen";
 import OnboardingScreen from "./screens/OnboardingScreen";
@@ -31,6 +32,11 @@ function RecurringGeneratorRunner() {
 
 function BudgetAlertsRunner() {
   useBudgetAlerts();
+  return null;
+}
+
+function CommentNotifierRunner() {
+  useCommentNotifications();
   return null;
 }
 
@@ -135,6 +141,7 @@ function AppContent() {
     <FinanceProvider>
       <RecurringGeneratorRunner />
       <BudgetAlertsRunner />
+      <CommentNotifierRunner />
 
       <button
         ref={settingsButtonRef}

@@ -560,6 +560,12 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                     <div key={tx.id} onClick={() => !editMode && onEditTransaction?.(tx)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderBottom: i === recentTx.length - 1 ? "none" : "0.5px solid var(--rule)", cursor: editMode ? "default" : "pointer" }}>
                       <i className={`ti ${cat.icon}`} style={{ fontSize: 16, color: "var(--ink-3)" }} aria-hidden="true" />
                       <p style={{ flex: 1, minWidth: 0, fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{tx.description}</p>
+                      {tx.comments?.length > 0 && (
+                        <span style={{ display: "flex", alignItems: "center", gap: 2, fontSize: 11, color: "var(--sky)", flexShrink: 0 }}>
+                          <i className="ti ti-message-circle" style={{ fontSize: 13 }} aria-hidden="true" />
+                          {tx.comments.length}
+                        </span>
+                      )}
                       <p style={{ fontSize: 13, fontWeight: 500, color: isIncome ? "var(--sage)" : "var(--ink)" }}>
                         {isIncome ? "+" : "−"}{Math.round(tx.amount).toLocaleString("fr-FR")} {tx.currency}
                       </p>

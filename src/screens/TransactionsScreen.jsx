@@ -326,6 +326,11 @@ export default function TransactionsScreen({ onEdit }) {
                       }}
                     >
                       {tx.description}
+                      {tx.comments?.length > 0 && (
+                        <span style={{ marginLeft: 6, fontSize: 11, color: "var(--sky)", whiteSpace: "nowrap" }}>
+                          <i className="ti ti-message-circle" style={{ fontSize: 12 }} aria-hidden="true" /> {tx.comments.length}
+                        </span>
+                      )}
                     </p>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2, flexWrap: "wrap" }}>
                       <span style={{ fontSize: 12, color: "var(--ink-3)" }}>{tx.subcategory}</span>
