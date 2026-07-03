@@ -1,5 +1,6 @@
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
+const { onDocumentWritten } = require("firebase-functions/v2/firestore");
 const { defineSecret } = require("firebase-functions/params");
 const admin = require("firebase-admin");
 const { PlaidApi, PlaidEnvironments, Configuration } = require("plaid");
@@ -256,3 +257,92 @@ async function syncAssetBalance(coupleId, assetId) {
 
   return { success: true, balance, currency: isoCurrency };
 }
+
+// ── Push notifications ───────────────────────────────────────────────────────
+
+/**
+ * Envoie un push FCM (message data-only : le Service Worker garde la main
+ * sur l'affichage) à tous les appareils des membres ciblés, et purge les
+ * tokens invalides/expirés du doc couple.
+ */
+async function sendPushToMembers(coupleId, coupleData, targetMemberKeys, notification) {
+  const fcmTokens = coupleData.fcmTokens || {};
+  const tokens = [];
+  for (const key of targetMemberKeys) {
+    tokens.push(...Object.keys(fcmTokens[key] || {}));
+  }
+  if (tokens.length === 0) return;
+
+  const res = await admin.messaging().sendEachForMulticast({
+    tokens,
+    data: {
+      title: notification.title,
+      body: notification.body,
+      tag: notification.tag || "",
+      url: notification.url || "/",
+    },
+  });
+
+  // Purge des tokens morts (appareil désinstallé, token expiré)
+  const dead = [];
+  res.responses.forEach((r, i) => {
+    const code = r.error?.code || "";
+    if (code.includes("registration-token-not-registered") || code.includes("invalid-argument")) {
+      dead.push(tokens[i]);
+    }
+  });
+  if (dead.length > 0) {
+    const cleaned = {};
+    for (const [memberKey, byToken] of Object.entries(fcmTokens)) {
+      cleaned[memberKey] = Object.fromEntries(
+        Object.entries(byToken).filter(([token]) => !dead.includes(token))
+      );
+    }
+    // update() ciblé : remplace le champ fcmTokens entier sans toucher au
+    // reste du doc couple (set sans merge écraserait tout le document).
+    await db.collection("couples").doc(coupleId).update({ fcmTokens: cleaned });
+  }
+}
+
+// memberId d'un membre (memberId découplé du uid — voir src/utils/members.js)
+function memberKeyOf(member) {
+  return member.memberId || member.uid;
+}
+
+/**
+ * Nouveau commentaire sur une transaction → push au(x) autre(s) membre(s).
+ * Data-only pour que firebase-messaging-sw.js contrôle l'affichage.
+ */
+exports.notifyOnComment = onDocumentWritten(
+  "couples/{coupleId}/transactions/{txId}",
+  async (event) => {
+    const before = event.data?.before?.data();
+    const after = event.data?.after?.data();
+    if (!after) return; // suppression de transaction
+
+    const prevComments = before?.comments || [];
+    const comments = after.comments || [];
+    if (comments.length <= prevComments.length) return;
+
+    const newComments = comments.slice(prevComments.length);
+    const coupleId = event.params.coupleId;
+    const coupleDoc = await db.collection("couples").doc(coupleId).get();
+    if (!coupleDoc.exists) return;
+    const coupleData = coupleDoc.data();
+    const members = coupleData.members || [];
+
+    for (const comment of newComments) {
+      const author = members.find((m) => memberKeyOf(m) === comment.memberId);
+      const others = members
+        .map(memberKeyOf)
+        .filter((key) => key && key !== comment.memberId);
+      if (others.length === 0) continue;
+
+      await sendPushToMembers(coupleId, coupleData, others, {
+        title: `${author?.name || "💬"} — ${after.description || ""}`,
+        body: comment.gifUrl ? "GIF 🎬" : comment.text || "",
+        tag: `comment_${event.params.txId}`,
+      });
+    }
+  }
+);
