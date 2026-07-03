@@ -390,7 +390,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
             <div style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "0.75rem 1.25rem" }}>
               {topBudgets.length === 0 ? (
                 <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", padding: "0.75rem 0" }}>{t("widget_budget_empty")}</p>
-              ) : topBudgets.map(({ budget, pct, scopedTx }, i) => {
+              ) : topBudgets.map(({ budget, pct, scopedTx, amountInBase, projected, projectedOver }, i) => {
                 const over = pct >= 100;
                 const warn = pct >= (budget.alertThreshold ?? 80);
                 const barColor = over ? "var(--red)" : warn ? "var(--amber)" : "var(--sky)";
@@ -413,6 +413,14 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                     <div style={{ height: 6, borderRadius: 3, background: "var(--rule)", overflow: "hidden" }}>
                       <div style={{ height: "100%", width: `${Math.min(pct, 100)}%`, background: barColor, borderRadius: 3 }} />
                     </div>
+                    {projected !== null && pct < 100 && (
+                      <p style={{ fontSize: 10.5, color: projectedOver ? "var(--amber)" : "var(--ink-3)", marginTop: 4 }}>
+                        {t("budget_projection")
+                          .replace("{amount}", `${Math.round(projected).toLocaleString("fr-FR")} ${defaultCurrency}`)}
+                        {projectedOver &&
+                          ` (${t("budget_projection_over").replace("{over}", `${Math.round(projected - amountInBase).toLocaleString("fr-FR")} ${defaultCurrency}`)})`}
+                      </p>
+                    )}
                     {!editMode && (
                       <button
                         onClick={() => setDetailBudgetId(isOpen ? null : budget.id)}
