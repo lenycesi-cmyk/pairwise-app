@@ -4,6 +4,7 @@ import { FinanceProvider } from "./context/FinanceContext";
 import { useRecurringGenerator } from "./hooks/useRecurringGenerator";
 import { useBudgetAlerts } from "./hooks/useBudgetAlerts";
 import { useCommentNotifications } from "./hooks/useCommentNotifications";
+import { useRecurringReminders } from "./hooks/useRecurringReminders";
 import AuthScreen from "./screens/AuthScreen";
 import CoupleSetupScreen from "./screens/CoupleSetupScreen";
 import OnboardingScreen from "./screens/OnboardingScreen";
@@ -37,6 +38,11 @@ function BudgetAlertsRunner() {
 
 function CommentNotifierRunner() {
   useCommentNotifications();
+  return null;
+}
+
+function RecurringRemindersRunner() {
+  useRecurringReminders();
   return null;
 }
 
@@ -142,6 +148,7 @@ function AppContent() {
       <RecurringGeneratorRunner />
       <BudgetAlertsRunner />
       <CommentNotifierRunner />
+      <RecurringRemindersRunner />
 
       <button
         ref={settingsButtonRef}
