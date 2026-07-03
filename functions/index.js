@@ -310,42 +310,71 @@ function memberKeyOf(member) {
 }
 
 /**
- * Nouveau commentaire sur une transaction → push au(x) autre(s) membre(s).
- * Data-only pour que firebase-messaging-sw.js contrôle l'affichage.
+ * Préférence push d'un membre pour un type donné. Tout est activé par
+ * défaut : pushPrefs.{memberKey}.{type} === false pour désactiver.
+ * Types : "newTransaction" | "editedTransaction" | "comments" | "recurringReminders"
  */
-exports.notifyOnComment = onDocumentWritten(
-  "couples/{coupleId}/transactions/{txId}",
-  async (event) => {
-    const before = event.data?.before?.data();
-    const after = event.data?.after?.data();
-    if (!after) return; // suppression de transaction
+function prefEnabled(coupleData, memberKey, type) {
+  return coupleData.pushPrefs?.[memberKey]?.[type] !== false;
+}
 
-    const prevComments = before?.comments || [];
-    const comments = after.comments || [];
-    if (comments.length <= prevComments.length) return;
+/**
+ * Envoi de push à la demande, appelé par l'app de l'expéditeur au moment de
+ * l'action (nouvelle transaction, modification, commentaire). Choisi plutôt
+ * qu'un trigger Firestore/Eventarc car le pipeline de déploiement custom
+ * (scripts/deploy-functions.js) ne gère que des fonctions HTTP/callable.
+ * Appelé avec : { coupleId, kind, description, amount?, currency?, text?, gifUrl? }
+ */
+const PUSH_KINDS = {
+  newTransaction: "newTransaction",
+  editedTransaction: "editedTransaction",
+  comment: "comments",
+};
 
-    const newComments = comments.slice(prevComments.length);
-    const coupleId = event.params.coupleId;
-    const coupleDoc = await db.collection("couples").doc(coupleId).get();
-    if (!coupleDoc.exists) return;
-    const coupleData = coupleDoc.data();
-    const members = coupleData.members || [];
+exports.sendPush = onCall(async (request) => {
+  if (!request.auth) throw new HttpsError("unauthenticated", "Authentication required");
+  const { coupleId, kind, description = "", amount, currency, text, gifUrl } = request.data || {};
+  const prefType = PUSH_KINDS[kind];
+  if (!coupleId || !prefType) throw new HttpsError("invalid-argument", "coupleId and valid kind required");
 
-    for (const comment of newComments) {
-      const author = members.find((m) => memberKeyOf(m) === comment.memberId);
-      const others = members
-        .map(memberKeyOf)
-        .filter((key) => key && key !== comment.memberId);
-      if (others.length === 0) continue;
+  const coupleDoc = await db.collection("couples").doc(coupleId).get();
+  if (!coupleDoc.exists) throw new HttpsError("not-found", "Couple not found");
+  const coupleData = coupleDoc.data();
+  const members = coupleData.members || [];
 
-      await sendPushToMembers(coupleId, coupleData, others, {
-        title: `${author?.name || "💬"} — ${after.description || ""}`,
-        body: comment.gifUrl ? "GIF 🎬" : comment.text || "",
-        tag: `comment_${event.params.txId}`,
-      });
-    }
+  // L'appelant doit être membre du couple ; les push partent vers les autres.
+  const me = members.find((m) => m.uid === request.auth.uid);
+  if (!me) throw new HttpsError("permission-denied", "Not a member of this couple");
+  const actorKey = memberKeyOf(me);
+  const targets = members
+    .map(memberKeyOf)
+    .filter((key) => key && key !== actorKey && prefEnabled(coupleData, key, prefType));
+  if (targets.length === 0 || !coupleData.fcmTokens) return { sent: 0 };
+
+  const lang = coupleData.language === "en" ? "en" : "fr";
+  const amountLabel =
+    amount !== undefined && currency
+      ? ` — ${Math.round(amount).toLocaleString("fr-FR")} ${currency}`
+      : "";
+
+  let title, body, tag;
+  if (kind === "comment") {
+    title = `${me.name || "💬"} — ${description}`;
+    body = gifUrl ? "GIF 🎬" : text || "";
+    tag = `comment_${coupleId}`;
+  } else if (kind === "newTransaction") {
+    title = lang === "en" ? `${me.name} added a transaction` : `${me.name} a ajouté une transaction`;
+    body = `${description}${amountLabel}`;
+    tag = "tx_new";
+  } else {
+    title = lang === "en" ? `${me.name} edited a transaction` : `${me.name} a modifié une transaction`;
+    body = `${description}${amountLabel}`;
+    tag = "tx_edit";
   }
-);
+
+  await sendPushToMembers(coupleId, coupleData, targets, { title, body, tag });
+  return { sent: targets.length };
+});
 
 /**
  * Cron quotidien — rappels des récurrences à venir (J-3), envoyés en push
@@ -422,7 +451,9 @@ exports.sendRecurringReminders = onSchedule(
           ? due.length === 1 ? "Upcoming recurring transaction" : `${due.length} upcoming recurring transactions`
           : due.length === 1 ? "Récurrence à venir" : `${due.length} récurrences à venir`;
 
-      const allMembers = (data.members || []).map(memberKeyOf).filter(Boolean);
+      const allMembers = (data.members || [])
+        .map(memberKeyOf)
+        .filter((key) => key && (data.pushPrefs?.[key]?.recurringReminders !== false));
       try {
         await sendPushToMembers(coupleDoc.id, data, allMembers, {
           title,

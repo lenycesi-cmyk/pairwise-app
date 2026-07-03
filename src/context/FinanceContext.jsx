@@ -18,6 +18,7 @@ import { applyTheme } from "../data/themes";
 import { useAuth } from "./AuthContext";
 import { ALL_CATEGORIES } from "../data/categories";
 import { getExchangeRate } from "../utils/currencyConversion";
+import { sendPushNotification } from "../utils/sendPush";
 
 const FinanceContext = createContext(null);
 
@@ -41,6 +42,7 @@ export function FinanceProvider({ children }) {
   const [theme, setThemeState] = useState("classic");
   const [language, setLanguageState] = useState("fr");
   const [debtSettlements, setDebtSettlements] = useState([]);
+  const [pushPrefs, setPushPrefs] = useState({});
 
   useEffect(() => {
     applyTheme(theme);
@@ -90,6 +92,7 @@ export function FinanceProvider({ children }) {
         if (data.theme) setThemeState(data.theme);
         if (data.language) setLanguageState(data.language);
         if (data.debtSettlements) setDebtSettlements(data.debtSettlements);
+        if (data.pushPrefs) setPushPrefs(data.pushPrefs);
       }
     });
 
@@ -132,6 +135,17 @@ export function FinanceProvider({ children }) {
       }
     }
 
+    // Push au partenaire (fire-and-forget, selon ses préférences)
+    if (members.length > 1) {
+      sendPushNotification({
+        coupleId,
+        kind: "newTransaction",
+        description: tx.description || "",
+        amount: tx.amount,
+        currency: tx.currency,
+      });
+    }
+
     return docRef.id;
   }
 
@@ -154,7 +168,24 @@ export function FinanceProvider({ children }) {
       };
     }
 
-    await updateDoc(doc(db, "couples", coupleId, "transactions", id), updates);
+    await updateDoc(doc(db, "couples", coupleId, "transactions", id), {
+      ...updates,
+      updatedBy: user.uid,
+    });
+
+    // Push "transaction modifiée" seulement pour un changement de fond —
+    // pas pour l'upload d'un reçu ou une écriture système.
+    const MEANINGFUL = ["amount", "currency", "description", "categoryId", "subcategory", "date", "paidBy", "split", "splitDetails", "type"];
+    if (members.length > 1 && MEANINGFUL.some((f) => updates[f] !== undefined)) {
+      const existing = transactions.find((t) => t.id === id);
+      sendPushNotification({
+        coupleId,
+        kind: "editedTransaction",
+        description: updates.description ?? existing?.description ?? "",
+        amount: updates.amount ?? existing?.amount,
+        currency: updates.currency ?? existing?.currency,
+      });
+    }
   }
 
   // Fil de discussion sur une transaction : chaque entrée est
@@ -169,6 +200,29 @@ export function FinanceProvider({ children }) {
         ...comment,
       }),
     });
+
+    if (members.length > 1) {
+      const tx = transactions.find((t) => t.id === txId);
+      sendPushNotification({
+        coupleId,
+        kind: "comment",
+        description: tx?.description || "",
+        text: comment.text || "",
+        gifUrl: comment.gifUrl || "",
+      });
+    }
+  }
+
+  // Préférences push d'UN membre (fusionnées champ par champ) :
+  // pushPrefs.{memberKey} = { newTransaction, editedTransaction, comments,
+  // recurringReminders } — tout est considéré actif sauf false explicite.
+  async function updateMemberPushPrefs(memberKey, prefs) {
+    if (!coupleId) return;
+    await setDoc(
+      doc(db, "couples", coupleId),
+      { pushPrefs: { [memberKey]: prefs } },
+      { merge: true }
+    );
   }
 
   async function removeTransactionComment(txId, commentId) {
@@ -403,6 +457,8 @@ export function FinanceProvider({ children }) {
     deleteTransaction,
     addTransactionComment,
     removeTransactionComment,
+    pushPrefs,
+    updateMemberPushPrefs,
     updateCategories,
     updateDefaultCurrency,
     updateCurrencyMode,
