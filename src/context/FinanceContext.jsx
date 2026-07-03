@@ -11,6 +11,7 @@ import {
   getDoc,
   setDoc,
   orderBy,
+  arrayUnion,
 } from "firebase/firestore";
 import { db } from "../firebase";
 import { applyTheme } from "../data/themes";
@@ -154,6 +155,29 @@ export function FinanceProvider({ children }) {
     }
 
     await updateDoc(doc(db, "couples", coupleId, "transactions", id), updates);
+  }
+
+  // Fil de discussion sur une transaction : chaque entrée est
+  // { id, memberId, text? | gifUrl?, createdAt }. arrayUnion évite les
+  // écrasements si les deux membres commentent en même temps.
+  async function addTransactionComment(txId, comment) {
+    if (!coupleId) return;
+    await updateDoc(doc(db, "couples", coupleId, "transactions", txId), {
+      comments: arrayUnion({
+        id: `comment_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        createdAt: Date.now(),
+        ...comment,
+      }),
+    });
+  }
+
+  async function removeTransactionComment(txId, commentId) {
+    if (!coupleId) return;
+    const tx = transactions.find((t) => t.id === txId);
+    if (!tx?.comments) return;
+    await updateDoc(doc(db, "couples", coupleId, "transactions", txId), {
+      comments: tx.comments.filter((c) => c.id !== commentId),
+    });
   }
 
   async function deleteTransaction(id) {
@@ -377,6 +401,8 @@ export function FinanceProvider({ children }) {
     addTransaction,
     updateTransaction,
     deleteTransaction,
+    addTransactionComment,
+    removeTransactionComment,
     updateCategories,
     updateDefaultCurrency,
     updateCurrencyMode,

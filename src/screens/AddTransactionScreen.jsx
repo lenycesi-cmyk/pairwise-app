@@ -10,6 +10,7 @@ import { useCategoryName } from "../hooks/useCategoryName";
 import AdvancedSplitSelector from "../components/AdvancedSplitSelector";
 import { getMemberKey } from "../utils/members";
 import { buildSuggestionIndex, getSuggestions, findExactMatch } from "../utils/descriptionSuggestions";
+import TransactionComments from "../components/TransactionComments";
 
 function todayISO() {
   const d = new Date();
@@ -873,6 +874,9 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
             )}
           </div>
         )}
+
+        {/* Fil de discussion — seulement sur une transaction existante */}
+        {isEditing && <TransactionComments txId={editingTx.id} />}
       </div>
 
       <div
