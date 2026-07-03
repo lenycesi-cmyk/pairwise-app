@@ -5,6 +5,13 @@ on:
     branches:
       - main
 
+# Back-to-back merges used to race each other on the Cloud Functions
+# deploy (ABORTED "unable to queue the operation") — run one deploy at a
+# time, and skip intermediate queued ones since each run deploys full main.
+concurrency:
+  group: firebase-deploy
+  cancel-in-progress: false
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
