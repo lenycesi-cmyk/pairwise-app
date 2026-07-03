@@ -230,6 +230,24 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
   // own income/expense chart, just always following the last N months
   // rather than Reports' arbitrary period picker.
   const trendData = useMemo(() => {
+    // trendMonths === 1 → "this month": daily buckets over the viewed
+    // month (same granularity as Reports' month view) instead of a
+    // single monthly bar.
+    if (trendMonths === 1) {
+      const byDay = new Map();
+      for (const tx of transactions) {
+        if (tx.type !== "income" && tx.type !== "expense") continue;
+        const d = new Date(tx.date);
+        if (d.getMonth() !== viewMonth || d.getFullYear() !== viewYear) continue;
+        const day = d.getDate();
+        const bucket = byDay.get(day) || { label: String(day), income: 0, expense: 0 };
+        const val = toBase(tx);
+        if (tx.type === "income") bucket.income += val;
+        else bucket.expense += val;
+        byDay.set(day, bucket);
+      }
+      return [...byDay.entries()].sort((a, b) => a[0] - b[0]).map(([, b]) => b);
+    }
     const buckets = [];
     for (let i = trendMonths - 1; i >= 0; i--) {
       let m = viewMonth - i;
@@ -565,10 +583,10 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                 </span>
               </div>
               {members.length > 0 && (
-                <div style={{ borderTop: "0.5px solid var(--rule)", paddingTop: 10, display: "flex", gap: 12 }}>
+                <div style={{ borderTop: "0.5px solid var(--rule)", paddingTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
                   {members.map((m) => (
-                    <div key={getMemberKey(m)} style={{ flex: 1 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 3 }}>
+                    <div key={getMemberKey(m)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                         <Avatar member={m} colorMap={memberColorMap} size={16} />
                         <span style={{ fontSize: 11, color: "var(--ink-2)" }}>{m.name}</span>
                       </div>
@@ -606,10 +624,9 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
               {!editMode && (
                 <button
                   onClick={() => onOpenRecurring?.()}
-                  aria-label={t("widget_recurring_add")}
                   style={{ background: "none", border: "none", color: "var(--sky)", fontSize: 12, display: "flex", alignItems: "center", gap: 3 }}
                 >
-                  <i className="ti ti-plus" style={{ fontSize: 14 }} aria-hidden="true" />
+                  {t("dashboard_see_all")} <i className="ti ti-chevron-right" style={{ fontSize: 12 }} aria-hidden="true" />
                 </button>
               )}
             </div>
@@ -660,7 +677,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
               <p style={{ fontSize: 13, fontWeight: 500 }}>{t("widget_reports_trend")}</p>
               {!editMode && (
                 <div style={{ display: "flex", gap: 4 }}>
-                  {[3, 6, 12].map((n) => (
+                  {[1, 3, 6, 12].map((n) => (
                     <button
                       key={n}
                       onClick={() => setTrendMonths(n)}
@@ -674,7 +691,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                         fontWeight: trendMonths === n ? 500 : 400,
                       }}
                     >
-                      {n}M
+                      {n === 1 ? t("widget_trend_this_month") : `${n}M`}
                     </button>
                   ))}
                 </div>

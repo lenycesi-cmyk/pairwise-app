@@ -13,6 +13,14 @@ import { useMediaQuery } from "../hooks/useMediaQuery";
 
 const PERIOD_TYPES = ["month", "quarter", "year", "last12", "custom"];
 
+// Same k-notation as the dashboard's IncomeExpenseTrendChart, so the
+// mobile Reports chart and the desktop widget read identically.
+function formatAxisTick(v) {
+  const abs = Math.abs(v);
+  if (abs >= 1000) return `${Math.round(v / 100) / 10}k`;
+  return `${v}`;
+}
+
 function getRange(periodType, anchor, customRange) {
   const y = anchor.getFullYear();
   if (periodType === "month") {
@@ -517,7 +525,13 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
                   axisLine={{ stroke: "var(--rule)" }}
                   tickLine={false}
                 />
-                <YAxis hide domain={["auto", "auto"]} />
+                <YAxis
+                  tick={{ fontSize: 10, fill: "var(--ink-3)" }}
+                  axisLine={false}
+                  tickLine={false}
+                  tickFormatter={formatAxisTick}
+                  width={38}
+                />
                 <Tooltip
                   formatter={(value, name) => [`${formatAmount(value)} ${currencySymbol}`, name]}
                   labelStyle={{ color: "var(--ink)" }}
