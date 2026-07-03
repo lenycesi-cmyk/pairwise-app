@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { useFinance } from "../context/FinanceContext";
 import { useAuth } from "../context/AuthContext";
 import { CURRENCIES } from "../data/categories";
@@ -9,6 +9,7 @@ import { useTranslation } from "../hooks/useTranslation";
 import { useCategoryName } from "../hooks/useCategoryName";
 import AdvancedSplitSelector from "../components/AdvancedSplitSelector";
 import { getMemberKey } from "../utils/members";
+import { buildSuggestionIndex, getSuggestions, findExactMatch } from "../utils/descriptionSuggestions";
 
 function todayISO() {
   const d = new Date();
@@ -29,6 +30,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
   const {
     categories,
     members,
+    transactions,
     addTransaction,
     updateTransaction,
     updateCategories,
@@ -96,6 +98,46 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
   );
 
   const selectedCategory = categories.find((c) => c.id === categoryId);
+
+  // Suggestions apprises de l'historique : taper le début d'une description
+  // déjà utilisée propose de la compléter ET remplit catégorie/sous-catégorie.
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const suggestionIndex = useMemo(
+    () => buildSuggestionIndex(transactions || [], type),
+    [transactions, type]
+  );
+  const suggestions = useMemo(
+    () => (showSuggestions ? getSuggestions(suggestionIndex, description) : []),
+    [suggestionIndex, description, showSuggestions]
+  );
+
+  function applyCategoryFromSuggestion(s) {
+    const cat = availableCategories.find((c) => c.id === s.categoryId);
+    if (!cat) return;
+    setCategoryId(cat.id);
+    setSubcategory(
+      s.subcategory && cat.subcategories.includes(s.subcategory)
+        ? s.subcategory
+        : cat.subcategories[0] || null
+    );
+  }
+
+  function handleDescriptionChange(value) {
+    setDescription(value);
+    setShowSuggestions(true);
+    // Description connue tapée en entier → catégorie remplie silencieusement
+    // (seulement si l'utilisateur n'en a pas déjà choisi une).
+    if (!categoryId) {
+      const exact = findExactMatch(suggestionIndex, value);
+      if (exact) applyCategoryFromSuggestion(exact);
+    }
+  }
+
+  function pickSuggestion(s) {
+    setDescription(s.description);
+    applyCategoryFromSuggestion(s);
+    setShowSuggestions(false);
+  }
 
   // Pour Income/Investment : on a quand même besoin de savoir QUI (paidBy)
   // et éventuellement POUR QUI (split) si la dépense d'investissement est partagée
@@ -329,6 +371,64 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
                   {c.code}
                 </button>
               ))}
+            </div>
+          )}
+        </div>
+
+        {/* Description — placée juste après le montant : la saisir en premier
+            permet de remplir automatiquement catégorie/sous-catégorie via les
+            suggestions apprises de l'historique. */}
+        <div
+          style={{
+            background: "var(--bg-card)",
+            borderRadius: "var(--radius-lg)",
+            border: "0.5px solid var(--rule)",
+            padding: "1rem 1.25rem",
+            marginBottom: 12,
+          }}
+        >
+          <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>{t("tx_description")}</p>
+          <input
+            type="text"
+            value={description}
+            onChange={(e) => handleDescriptionChange(e.target.value)}
+            onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+            placeholder={t("tx_description_optional")}
+            style={{
+              width: "100%", padding: "8px 0", border: "none",
+              borderBottom: "0.5px solid var(--rule)", background: "transparent",
+              fontSize: 14, outline: "none",
+            }}
+          />
+          {suggestions.length > 0 && (
+            <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 2 }}>
+              {suggestions.map((s) => {
+                const cat = categories.find((c) => c.id === s.categoryId);
+                return (
+                  <button
+                    key={s.description}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => pickSuggestion(s)}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 8,
+                      padding: "8px 6px", borderRadius: "var(--radius-sm)",
+                      border: "none", background: "var(--bg)",
+                      textAlign: "left", cursor: "pointer",
+                    }}
+                  >
+                    <i className="ti ti-history" style={{ fontSize: 14, color: "var(--ink-3)", flexShrink: 0 }} aria-hidden="true" />
+                    <span style={{ fontSize: 13, flex: 1, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {s.description}
+                    </span>
+                    {cat && (
+                      <span style={{ fontSize: 11, color: "var(--ink-3)", display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+                        <i className={`ti ${cat.icon}`} style={{ fontSize: 13 }} aria-hidden="true" />
+                        {catName(cat)}{s.subcategory ? ` · ${tSubName(s.subcategory, cat.id)}` : ""}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
@@ -624,18 +724,6 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
             </>
           )}
 
-          <p style={{ fontSize: 12, color: "var(--ink-2)", margin: "12px 0 6px" }}>{t("tx_description")}</p>
-          <input
-            type="text"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder={t("tx_description_optional")}
-            style={{
-              width: "100%", padding: "8px 0", border: "none",
-              borderBottom: "0.5px solid var(--rule)", background: "transparent",
-              fontSize: 14, outline: "none",
-            }}
-          />
         </div>
 
         {/* Reçu / ticket */}
