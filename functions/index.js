@@ -346,3 +346,102 @@ exports.notifyOnComment = onDocumentWritten(
     }
   }
 );
+
+/**
+ * Cron quotidien — rappels des récurrences à venir (J-3), envoyés en push
+ * aux deux membres. Reprend la logique de dérivation de src/utils/
+ * recurrence.js (les règles ne stockent pas de date d'échéance explicite).
+ * Dédup par règle+échéance via le champ recurringRemindersSent du doc
+ * couple, purgé des entrées passées à chaque passage.
+ */
+const REMINDER_DAYS_AHEAD = 3;
+
+function nextOccurrenceOf(rule, now) {
+  if (rule.frequency === "monthly") {
+    const day = rule.dayOfMonth || 1;
+    let year = now.getFullYear();
+    let month = now.getMonth();
+    if (now.getDate() > day) { month += 1; if (month > 11) { month = 0; year += 1; } }
+    const clampedDay = Math.min(day, new Date(year, month + 1, 0).getDate());
+    return new Date(year, month, clampedDay);
+  }
+  if (rule.frequency === "weekly") {
+    if (rule.lastGenerated) {
+      const d = new Date(rule.lastGenerated);
+      d.setDate(d.getDate() + 7);
+      return d;
+    }
+    return now;
+  }
+  if (rule.frequency === "yearly") {
+    if (rule.lastGenerated) {
+      const d = new Date(rule.lastGenerated);
+      d.setFullYear(d.getFullYear() + 1);
+      return d;
+    }
+    return null;
+  }
+  return null;
+}
+
+exports.sendRecurringReminders = onSchedule(
+  { schedule: "every day 08:00", timeZone: "Europe/Paris" },
+  async () => {
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const couplesSnap = await db.collection("couples").get();
+
+    for (const coupleDoc of couplesSnap.docs) {
+      const data = coupleDoc.data();
+      const rules = (data.recurringTx || []).filter((r) => r.active !== false);
+      if (rules.length === 0 || !data.fcmTokens) continue;
+
+      const sent = data.recurringRemindersSent || {};
+      const due = [];
+      for (const rule of rules) {
+        const next = nextOccurrenceOf(rule, now);
+        if (!next) continue;
+        const days = Math.round((new Date(next.getFullYear(), next.getMonth(), next.getDate()) - startOfToday) / 86400000);
+        if (days < 0 || days > REMINDER_DAYS_AHEAD) continue;
+        const dedupeKey = `${rule.id}_${next.toISOString().slice(0, 10)}`;
+        if (sent[dedupeKey]) continue;
+        due.push({ rule, days, dedupeKey });
+      }
+      if (due.length === 0) continue;
+
+      const lang = data.language === "en" ? "en" : "fr";
+      const whenLabel = (days) =>
+        lang === "en"
+          ? days === 0 ? "today" : days === 1 ? "tomorrow" : `in ${days} days`
+          : days === 0 ? "aujourd'hui" : days === 1 ? "demain" : `dans ${days} jours`;
+      const lines = due.map(({ rule, days }) =>
+        `${rule.description} — ${Math.round(rule.amount).toLocaleString("fr-FR")} ${rule.currency} (${whenLabel(days)})`
+      );
+      const title =
+        lang === "en"
+          ? due.length === 1 ? "Upcoming recurring transaction" : `${due.length} upcoming recurring transactions`
+          : due.length === 1 ? "Récurrence à venir" : `${due.length} récurrences à venir`;
+
+      const allMembers = (data.members || []).map(memberKeyOf).filter(Boolean);
+      try {
+        await sendPushToMembers(coupleDoc.id, data, allMembers, {
+          title,
+          body: lines.join("\n"),
+          tag: "recurring_reminders",
+        });
+      } catch (err) {
+        console.error(`Reminder push failed for ${coupleDoc.id}:`, err.message);
+        continue;
+      }
+
+      // Marque comme envoyés et purge les entrées dont l'échéance est passée
+      const updatedSent = { ...sent };
+      for (const { dedupeKey } of due) updatedSent[dedupeKey] = Date.now();
+      for (const key of Object.keys(updatedSent)) {
+        const dateStr = key.slice(key.lastIndexOf("_") + 1);
+        if (new Date(dateStr) < startOfToday) delete updatedSent[key];
+      }
+      await coupleDoc.ref.update({ recurringRemindersSent: updatedSent });
+    }
+  }
+);
