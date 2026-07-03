@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - main
+  # Permet de relancer un déploiement à la main depuis l'onglet Actions
+  # (ex. après l'ajout d'un secret, sans merge à faire).
+  workflow_dispatch:
 
 # Back-to-back merges used to race each other on the Cloud Functions
 # deploy (ABORTED "unable to queue the operation") — run one deploy at a
