@@ -8,9 +8,9 @@ import { getMemberKey } from "../utils/members";
 
 const QUICK_EMOJIS = ["❤️", "😂", "😮", "👍", "🤔"];
 
-// Le picker Tenor n'est chargé (lazy) que si une clé API est configurée
+// Le picker GIPHY n'est chargé (lazy) que si une clé API est configurée
 // ET que l'utilisateur ouvre le tiroir GIF — zéro impact bundle sinon.
-const HAS_TENOR_KEY = !!import.meta.env.VITE_TENOR_API_KEY;
+const HAS_GIF_KEY = !!import.meta.env.VITE_GIPHY_API_KEY;
 const GifPicker = lazy(() => import("./GifPicker"));
 
 // Un emoji seul (éventuellement répété) s'affiche en grand, sans bulle —
@@ -162,7 +162,7 @@ export default function TransactionComments({ txId }) {
             {e}
           </button>
         ))}
-        {HAS_TENOR_KEY && (
+        {HAS_GIF_KEY && (
           <button
             onClick={() => setShowGifPicker(!showGifPicker)}
             aria-label="GIF"
