@@ -1,24 +1,24 @@
 import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "../hooks/useTranslation";
 
-// Picker Tenor : on ne stocke jamais le fichier, seulement l'URL du GIF
-// (tinygif ≈ 220px, léger). Nécessite VITE_TENOR_API_KEY (clé Google
-// gratuite : https://developers.google.com/tenor) — sans clé, le bouton
-// GIF n'apparaît pas du tout (voir TransactionComments).
-const TENOR_KEY = import.meta.env.VITE_TENOR_API_KEY;
+// Picker GIPHY : on ne stocke jamais le fichier, seulement l'URL du GIF
+// (fixed_height_small ≈ 100px de haut, léger). Nécessite VITE_GIPHY_API_KEY
+// (clé gratuite : https://developers.giphy.com) — sans clé, le bouton GIF
+// n'apparaît pas du tout (voir TransactionComments).
+const GIPHY_KEY = import.meta.env.VITE_GIPHY_API_KEY;
 
-async function searchTenor(query, signal) {
+async function searchGiphy(query, signal) {
   const endpoint = query
-    ? `https://tenor.googleapis.com/v2/search?q=${encodeURIComponent(query)}`
-    : "https://tenor.googleapis.com/v2/featured?";
+    ? `https://api.giphy.com/v1/gifs/search?q=${encodeURIComponent(query)}&`
+    : "https://api.giphy.com/v1/gifs/trending?";
   const res = await fetch(
-    `${endpoint}&key=${TENOR_KEY}&limit=12&media_filter=tinygif&contentfilter=medium`,
+    `${endpoint}api_key=${GIPHY_KEY}&limit=12&rating=pg-13`,
     { signal }
   );
-  if (!res.ok) throw new Error(`Tenor ${res.status}`);
+  if (!res.ok) throw new Error(`GIPHY ${res.status}`);
   const data = await res.json();
-  return (data.results || [])
-    .map((r) => r.media_formats?.tinygif?.url)
+  return (data.data || [])
+    .map((g) => g.images?.fixed_height_small?.url)
     .filter(Boolean);
 }
 
@@ -37,7 +37,7 @@ export default function GifPicker({ onSelect, onClose }) {
       setLoading(true);
       setError(false);
       try {
-        setGifs(await searchTenor(query, controller.signal));
+        setGifs(await searchGiphy(query, controller.signal));
       } catch (err) {
         if (err.name !== "AbortError") setError(true);
       } finally {
@@ -130,8 +130,9 @@ export default function GifPicker({ onSelect, onClose }) {
           ))}
         </div>
       )}
+      {/* Attribution requise par les conditions d'utilisation de GIPHY */}
       <p style={{ fontSize: 9, color: "var(--ink-3)", textAlign: "right", marginTop: 6 }}>
-        Via Tenor
+        Powered by GIPHY
       </p>
     </div>
   );

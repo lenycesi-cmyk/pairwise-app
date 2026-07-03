@@ -28,10 +28,10 @@ jobs:
 
       - name: Build frontend
         env:
-          # Clé Tenor pour le picker GIF des commentaires. Vite fige les
+          # Clé GIPHY pour le picker GIF des commentaires. Vite fige les
           # variables VITE_* dans le bundle au build : si le secret est
           # absent, le bouton GIF est simplement masqué dans l'app.
-          VITE_TENOR_API_KEY: ${{ secrets.TENOR_API_KEY }}
+          VITE_GIPHY_API_KEY: ${{ secrets.GIPHY_API_KEY }}
         run: npm run build
 
       - name: Deploy hosting
