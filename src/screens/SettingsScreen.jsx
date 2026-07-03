@@ -6,6 +6,7 @@ import { uploadPhoto } from "../utils/photoUpload";
 import { AVATAR_COLOR_PALETTE, buildMemberColorMap, getInitial } from "../utils/memberColors";
 import { useTranslation } from "../hooks/useTranslation";
 import { getMemberKey } from "../utils/members";
+import { usePushNotifications } from "../hooks/usePushNotifications";
 
 export default function SettingsScreen({ onOpenRecurring, onOpenCategories, onOpenTheme, onOpenLanguage }) {
   const t = useTranslation();
@@ -35,6 +36,7 @@ export default function SettingsScreen({ onOpenRecurring, onOpenCategories, onOp
   const [notificationStatus, setNotificationStatus] = useState(
     typeof Notification !== "undefined" ? Notification.permission : "denied"
   );
+  const push = usePushNotifications();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletePassword, setDeletePassword] = useState("");
   const [deleteError, setDeleteError] = useState("");
@@ -478,6 +480,37 @@ export default function SettingsScreen({ onOpenRecurring, onOpenCategories, onOp
             <span style={{ fontSize: 12, color: "var(--sky)" }}>{t("settings_notifications_enable")}</span>
           )}
         </div>
+        {push.supported && (
+          <div
+            onClick={push.status === "granted" ? undefined : push.enable}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              padding: "12px 0 4px",
+              cursor: push.status === "granted" ? "default" : "pointer",
+              borderTop: "0.5px solid var(--rule)",
+              marginTop: 8,
+            }}
+          >
+            <i className="ti ti-device-mobile-message" style={{ fontSize: 18, color: "var(--lavi)" }} aria-hidden="true" />
+            <div style={{ flex: 1 }}>
+              <p style={{ fontSize: 14, margin: 0 }}>{t("settings_push")}</p>
+              <p style={{ fontSize: 11, color: "var(--ink-3)", margin: "2px 0 0" }}>
+                {t("settings_push_hint")}
+              </p>
+            </div>
+            {push.busy ? (
+              <span style={{ fontSize: 11, color: "var(--ink-3)" }}>…</span>
+            ) : push.status === "granted" ? (
+              <i className="ti ti-check" style={{ fontSize: 16, color: "var(--sage)" }} aria-hidden="true" />
+            ) : push.status === "denied" ? (
+              <span style={{ fontSize: 11, color: "var(--ink-3)" }}>{t("settings_notifications_denied")}</span>
+            ) : (
+              <span style={{ fontSize: 12, color: "var(--sky)" }}>{t("settings_notifications_enable")}</span>
+            )}
+          </div>
+        )}
         <div
           onClick={resetHints}
           style={{
