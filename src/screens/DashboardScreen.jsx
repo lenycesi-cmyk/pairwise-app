@@ -29,6 +29,7 @@ import { useTranslation } from "../hooks/useTranslation";
 import { useCategoryName } from "../hooks/useCategoryName";
 import SpotlightHint from "../components/SpotlightHint";
 import { getMemberKey } from "../utils/members";
+import { nextOccurrence, daysUntil } from "../utils/recurrence";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 
 // Desktop-only widgets pull in recharts, which is deliberately kept out of
@@ -49,38 +50,6 @@ const MONTHS = [
 ];
 
 const LONG_PRESS_DELAY = 500;
-
-// Recurring rules don't store an explicit "next date" field — only
-// frequency/dayOfMonth/lastGenerated (see useRecurringGenerator's
-// shouldGenerate) — so we derive one for display purposes, mirroring that
-// same logic as closely as the stored fields allow.
-function nextOccurrence(rule, now) {
-  if (rule.frequency === "monthly") {
-    const day = rule.dayOfMonth || 1;
-    let year = now.getFullYear();
-    let month = now.getMonth();
-    if (now.getDate() > day) { month += 1; if (month > 11) { month = 0; year += 1; } }
-    const clampedDay = Math.min(day, new Date(year, month + 1, 0).getDate());
-    return new Date(year, month, clampedDay);
-  }
-  if (rule.frequency === "weekly") {
-    if (rule.lastGenerated) {
-      const d = new Date(rule.lastGenerated);
-      d.setDate(d.getDate() + 7);
-      return d;
-    }
-    return now;
-  }
-  if (rule.frequency === "yearly") {
-    if (rule.lastGenerated) {
-      const d = new Date(rule.lastGenerated);
-      d.setFullYear(d.getFullYear() + 1);
-      return d;
-    }
-    return null;
-  }
-  return null;
-}
 
 // ── Sortable widget wrapper ──────────────────────────────────────────────────
 function SortableWidget({ id, editMode, onLongPress, children }) {
@@ -651,7 +620,20 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                       <i className={`ti ${cat?.icon || "ti-refresh"}`} style={{ fontSize: 16, color: "var(--ink-3)" }} aria-hidden="true" />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <p style={{ fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.description || cat?.name}</p>
-                        {r.nextDate && <p style={{ fontSize: 11, color: "var(--ink-3)" }}>{r.nextDate.toLocaleDateString("fr-FR")}</p>}
+                        {r.nextDate && (() => {
+                          const days = daysUntil(r.nextDate, now);
+                          const soon = days >= 0 && days <= 3;
+                          return (
+                            <p style={{ fontSize: 11, color: soon ? "var(--tang)" : "var(--ink-3)", display: "flex", alignItems: "center", gap: 5 }}>
+                              {r.nextDate.toLocaleDateString("fr-FR")}
+                              {soon && (
+                                <span style={{ fontSize: 9, fontWeight: 600, color: "var(--tang)", background: "var(--tang-light)", borderRadius: 8, padding: "1px 6px", textTransform: "uppercase", letterSpacing: "0.03em" }}>
+                                  {days === 0 ? t("recurring_badge_today") : t("recurring_badge_soon")}
+                                </span>
+                              )}
+                            </p>
+                          );
+                        })()}
                       </div>
                       <p style={{ fontSize: 13, fontWeight: 500 }}>{Math.round(r.amount).toLocaleString("fr-FR")} {r.currency}</p>
                     </div>
