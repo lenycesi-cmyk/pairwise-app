@@ -695,7 +695,7 @@ export default function BudgetScreen({ openSignal }) {
 
       {!showForm && (
       <div className={isDesktop ? "card-columns" : ""}>
-      {progress.map(({ budget, spent, amountInBase, pct }) => {
+      {progress.map(({ budget, spent, amountInBase, pct, projected, projectedOver }) => {
         const isInactive = budget.active === false;
         const over = pct >= 100;
         const warn = pct >= (budget.alertThreshold ?? 80);
@@ -765,6 +765,13 @@ export default function BudgetScreen({ openSignal }) {
                 }}
               />
             </div>
+            {!isInactive && projected !== null && pct < 100 && (
+              <p style={{ fontSize: 11, color: projectedOver ? "var(--amber)" : "var(--ink-3)", marginTop: 6 }}>
+                {t("budget_projection").replace("{amount}", `${Math.round(projected).toLocaleString("fr-FR")} ${defaultCurrency}`)}
+                {projectedOver &&
+                  ` (${t("budget_projection_over").replace("{over}", `${Math.round(projected - amountInBase).toLocaleString("fr-FR")} ${defaultCurrency}`)})`}
+              </p>
+            )}
           </div>
         );
       })}

@@ -73,9 +73,29 @@ export function useBudgetProgress(viewMonth, viewYear) {
             : scopedTx.reduce((sum, tx) => sum + toBase(tx), 0);
         const amountInBase = convert(b.amount, b.currency, defaultCurrency);
         const pct = amountInBase > 0 ? (spent / amountInBase) * 100 : 0;
-        return { budget: b, spent, amountInBase, pct, scopedTx };
+
+        // Projection fin de période "à ce rythme" — uniquement pour la
+        // période en cours (projeter un mois passé n'a pas de sens) et
+        // après quelques jours (sinon le 1er du mois multiplie n'importe
+        // quelle dépense par 30).
+        let projected = null;
+        const today = new Date();
+        const isCurrentMonth = month === today.getMonth() && year === today.getFullYear();
+        if (b.period === "yearly") {
+          const dayOfYear = Math.ceil((today - new Date(year, 0, 1)) / 86400000);
+          const daysInYear = (new Date(year, 11, 31) - new Date(year, 0, 0)) / 86400000;
+          if (year === today.getFullYear() && dayOfYear >= 14) {
+            projected = (spent / dayOfYear) * daysInYear;
+          }
+        } else if (isCurrentMonth && today.getDate() >= 5) {
+          const daysInMonth = new Date(year, month + 1, 0).getDate();
+          projected = (spent / today.getDate()) * daysInMonth;
+        }
+        const projectedOver = projected !== null && amountInBase > 0 && projected > amountInBase;
+
+        return { budget: b, spent, amountInBase, pct, scopedTx, projected, projectedOver };
       });
-  }, [budgets, monthTx, yearTx, defaultCurrency, convert]);
+  }, [budgets, monthTx, yearTx, defaultCurrency, convert, month, year]);
 
   return { progress, loading: ratesLoading };
 }
