@@ -39,6 +39,7 @@ export default function SettingsScreen({ onOpenRecurring, onOpenCategories, onOp
     typeof Notification !== "undefined" ? Notification.permission : "denied"
   );
   const push = usePushNotifications();
+  const [showPushPrefs, setShowPushPrefs] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletePassword, setDeletePassword] = useState("");
   const [deleteError, setDeleteError] = useState("");
@@ -484,13 +485,13 @@ export default function SettingsScreen({ onOpenRecurring, onOpenCategories, onOp
         </div>
         {push.supported && (
           <div
-            onClick={push.status === "granted" ? undefined : push.enable}
+            onClick={push.status === "granted" ? () => setShowPushPrefs(!showPushPrefs) : push.enable}
             style={{
               display: "flex",
               alignItems: "center",
               gap: 10,
               padding: "12px 0 4px",
-              cursor: push.status === "granted" ? "default" : "pointer",
+              cursor: "pointer",
               borderTop: "0.5px solid var(--rule)",
               marginTop: 8,
             }}
@@ -505,7 +506,14 @@ export default function SettingsScreen({ onOpenRecurring, onOpenCategories, onOp
             {push.busy ? (
               <span style={{ fontSize: 11, color: "var(--ink-3)" }}>…</span>
             ) : push.status === "granted" ? (
-              <i className="ti ti-check" style={{ fontSize: 16, color: "var(--sage)" }} aria-hidden="true" />
+              <>
+                <i className="ti ti-check" style={{ fontSize: 16, color: "var(--sage)" }} aria-hidden="true" />
+                <i
+                  className={`ti ${showPushPrefs ? "ti-chevron-up" : "ti-chevron-down"}`}
+                  style={{ fontSize: 16, color: "var(--ink-3)" }}
+                  aria-hidden="true"
+                />
+              </>
             ) : push.status === "denied" ? (
               <span style={{ fontSize: 11, color: "var(--ink-3)" }}>{t("settings_notifications_denied")}</span>
             ) : (
@@ -513,7 +521,7 @@ export default function SettingsScreen({ onOpenRecurring, onOpenCategories, onOp
             )}
           </div>
         )}
-        {push.supported && push.status === "granted" && (() => {
+        {push.supported && push.status === "granted" && showPushPrefs && (() => {
           const me = members.find((m) => m.uid === user?.uid);
           const myKey = me ? getMemberKey(me) : user?.uid;
           const myPrefs = pushPrefs?.[myKey] || {};
@@ -533,18 +541,46 @@ export default function SettingsScreen({ onOpenRecurring, onOpenCategories, onOp
               {TYPES.map(({ key, label }) => {
                 const enabled = myPrefs[key] !== false;
                 return (
-                  <label
+                  <div
                     key={key}
+                    onClick={() => updateMemberPushPrefs(myKey, { ...myPrefs, [key]: !enabled })}
                     style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 0", cursor: "pointer" }}
                   >
-                    <input
-                      type="checkbox"
-                      checked={enabled}
-                      onChange={() => updateMemberPushPrefs(myKey, { ...myPrefs, [key]: !enabled })}
-                      style={{ width: 16, height: 16 }}
-                    />
-                    <span style={{ fontSize: 13, color: enabled ? "var(--ink)" : "var(--ink-3)" }}>{label}</span>
-                  </label>
+                    <span style={{ fontSize: 13, flex: 1, color: enabled ? "var(--ink)" : "var(--ink-3)" }}>{label}</span>
+                    {/* Même activateur que la personnalisation des widgets (Accueil) */}
+                    <span
+                      role="switch"
+                      aria-checked={enabled}
+                      aria-label={label}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 6,
+                        padding: "3px 8px 3px 3px",
+                        borderRadius: 13,
+                        border: enabled ? "0.5px solid var(--sky)" : "1px solid var(--ink-3)",
+                        background: enabled ? "var(--sky)" : "var(--bg-card)",
+                        boxShadow: "0 1px 3px rgba(0,0,0,0.12)",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: 16, height: 16, borderRadius: "50%",
+                          background: enabled ? "var(--bg)" : "var(--ink-3)",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          flexShrink: 0,
+                        }}
+                      >
+                        <i
+                          className={`ti ${enabled ? "ti-bell" : "ti-bell-off"}`}
+                          style={{ fontSize: 10, color: enabled ? "var(--sky)" : "var(--bg-card)" }}
+                          aria-hidden="true"
+                        />
+                      </span>
+                      <span style={{ fontSize: 11, fontWeight: 500, color: enabled ? "var(--bg)" : "var(--ink-2)" }}>
+                        {enabled ? t("settings_push_on") : t("settings_push_off")}
+                      </span>
+                    </span>
+                  </div>
                 );
               })}
             </div>
