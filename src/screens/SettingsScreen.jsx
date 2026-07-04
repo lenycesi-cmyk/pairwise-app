@@ -451,21 +451,25 @@ export default function SettingsScreen({ onOpenRecurring, onOpenCategories, onOp
             gap: 10,
             padding: "12px 0 4px",
             cursor: "pointer",
-            borderBottom: "0.5px solid var(--rule)",
           }}
         >
           <i className="ti ti-repeat" style={{ fontSize: 18, color: "var(--lavi)" }} aria-hidden="true" />
           <span style={{ fontSize: 14, flex: 1 }}>{t("settings_recurring")}</span>
           <i className="ti ti-chevron-right" style={{ fontSize: 14, color: "var(--ink-3)" }} aria-hidden="true" />
         </div>
+      </Card>
+
+      <SectionLabel>{t("settings_notifications_section")}</SectionLabel>
+      <Card>
         <div
           onClick={requestNotificationPermission}
           style={{
             display: "flex",
             alignItems: "center",
             gap: 10,
-            padding: "12px 0 4px",
+            padding: "4px 0 12px",
             cursor: notificationStatus === "granted" ? "default" : "pointer",
+            borderBottom: "0.5px solid var(--rule)",
           }}
         >
           <i className="ti ti-bell" style={{ fontSize: 18, color: "var(--sage)" }} aria-hidden="true" />
@@ -485,15 +489,13 @@ export default function SettingsScreen({ onOpenRecurring, onOpenCategories, onOp
         </div>
         {push.supported && (
           <div
-            onClick={push.status === "granted" ? () => setShowPushPrefs(!showPushPrefs) : push.enable}
+            onClick={() => setShowPushPrefs(!showPushPrefs)}
             style={{
               display: "flex",
               alignItems: "center",
               gap: 10,
               padding: "12px 0 4px",
               cursor: "pointer",
-              borderTop: "0.5px solid var(--rule)",
-              marginTop: 8,
             }}
           >
             <i className="ti ti-device-mobile-message" style={{ fontSize: 18, color: "var(--lavi)" }} aria-hidden="true" />
@@ -506,22 +508,20 @@ export default function SettingsScreen({ onOpenRecurring, onOpenCategories, onOp
             {push.busy ? (
               <span style={{ fontSize: 11, color: "var(--ink-3)" }}>…</span>
             ) : push.status === "granted" ? (
-              <>
-                <i className="ti ti-check" style={{ fontSize: 16, color: "var(--sage)" }} aria-hidden="true" />
-                <i
-                  className={`ti ${showPushPrefs ? "ti-chevron-up" : "ti-chevron-down"}`}
-                  style={{ fontSize: 16, color: "var(--ink-3)" }}
-                  aria-hidden="true"
-                />
-              </>
+              <i className="ti ti-check" style={{ fontSize: 16, color: "var(--sage)" }} aria-hidden="true" />
             ) : push.status === "denied" ? (
               <span style={{ fontSize: 11, color: "var(--ink-3)" }}>{t("settings_notifications_denied")}</span>
             ) : (
               <span style={{ fontSize: 12, color: "var(--sky)" }}>{t("settings_notifications_enable")}</span>
             )}
+            <i
+              className={`ti ${showPushPrefs ? "ti-chevron-down" : "ti-chevron-right"}`}
+              style={{ fontSize: 14, color: "var(--ink-3)" }}
+              aria-hidden="true"
+            />
           </div>
         )}
-        {push.supported && push.status === "granted" && showPushPrefs && (() => {
+        {push.supported && showPushPrefs && (() => {
           const me = members.find((m) => m.uid === user?.uid);
           const myKey = me ? getMemberKey(me) : user?.uid;
           const myPrefs = pushPrefs?.[myKey] || {};
@@ -538,6 +538,26 @@ export default function SettingsScreen({ onOpenRecurring, onOpenCategories, onOp
           ];
           return (
             <div style={{ padding: "4px 0 4px 28px" }}>
+              {/* Les préférences sont partagées entre tous vos appareils —
+                  modifiables même si CE navigateur n'a pas la permission. */}
+              {push.status === "default" && (
+                <button
+                  onClick={push.enable}
+                  style={{
+                    display: "block", width: "100%", padding: "9px 0",
+                    marginBottom: 6, borderRadius: "var(--radius-md)",
+                    border: "0.5px solid var(--sky)", background: "var(--sky-light)",
+                    color: "var(--sky)", fontSize: 12, fontWeight: 500,
+                  }}
+                >
+                  {t("settings_push_enable_device")}
+                </button>
+              )}
+              {push.status === "denied" && (
+                <p style={{ fontSize: 11, color: "var(--ink-3)", marginBottom: 6 }}>
+                  {t("settings_push_blocked_hint")}
+                </p>
+              )}
               {TYPES.map(({ key, label }) => {
                 const enabled = myPrefs[key] !== false;
                 return (
@@ -586,16 +606,18 @@ export default function SettingsScreen({ onOpenRecurring, onOpenCategories, onOp
             </div>
           );
         })()}
+      </Card>
+
+      <SectionLabel>{t("settings_help_section")}</SectionLabel>
+      <Card>
         <div
           onClick={resetHints}
           style={{
             display: "flex",
             alignItems: "center",
             gap: 10,
-            padding: "12px 0 4px",
+            padding: "4px 0",
             cursor: "pointer",
-            borderTop: "0.5px solid var(--rule)",
-            marginTop: 8,
           }}
         >
           <i className="ti ti-list-details" style={{ fontSize: 18, color: "var(--sky)" }} aria-hidden="true" />
