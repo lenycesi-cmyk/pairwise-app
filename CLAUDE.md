@@ -32,6 +32,30 @@ npm run build && node scripts/deploy.js
 (`pairwise-deploy@pairwise-12df2.iam.gserviceaccount.com`) has `Firebase Hosting Admin` and
 `Firebase Rules Admin` — Firestore/Storage rules deploys could be scripted the same way but aren't yet automated.
 
+### Push notifications (FCM)
+
+Push notifications go through Firebase Cloud Messaging. The pieces:
+
+- **Service Worker** [public/firebase-messaging-sw.js](public/firebase-messaging-sw.js) receives data-only
+  messages and renders the system notification when the app is closed.
+- **Device registration** [src/hooks/usePushNotifications.js](src/hooks/usePushNotifications.js): permission →
+  FCM token (needs `VITE_FIREBASE_VAPID_KEY`, injected at build from the `FIREBASE_VAPID_KEY` repo secret) →
+  stored on the couple doc as `fcmTokens.{memberKey}.{token} = timestamp`.
+- **Sending** is a callable Cloud Function `sendPush` (in [functions/index.js](functions/index.js)), invoked
+  fire-and-forget by the sender's app via [src/utils/sendPush.js](src/utils/sendPush.js). Scheduled pushes
+  (`sendRecurringReminders`, `monthlySummary`) are `onSchedule` functions whose Cloud Scheduler jobs are
+  upserted by `scripts/deploy-functions.js`.
+- **Per-member preferences** live in `pushPrefs.{memberKey}` on the couple doc (everything on unless
+  explicitly `false`); edited in `SettingsScreen`.
+
+**IMPORTANT — required IAM role:** the deploy service account
+(`pairwise-deploy@pairwise-12df2.iam.gserviceaccount.com`) must have the **`Firebase Cloud Messaging API Admin`**
+role (`roles/firebasemessaging.admin`) or every send fails with a 403 `cloudmessaging.messages.create denied`.
+Do NOT confuse it with the similarly named `Firebase Cloud Messaging Admin` (`roles/firebasecloudmessaging.admin`),
+which does NOT grant send. Before wiring up or debugging any FCM/GCP feature, verify the service account's IAM
+roles first — the `debug-push` GitHub workflow (`scripts/debug-push.js`) checks the whole chain (send permission,
+stored tokens, recent logs) without sending anything.
+
 ## Architecture
 
 React 19 + Vite 8 + Firebase (Auth + Firestore + Storage), no router — navigation is plain `useState` tab/modal
