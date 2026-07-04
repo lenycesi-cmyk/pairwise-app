@@ -50,7 +50,10 @@ export default function DebtScreen() {
 
   async function handleMarkAsPaid() {
     if (!confirm(`Marquer la dette comme réglée aujourd'hui ? Les dépenses partagées avant aujourd'hui ne compteront plus dans le solde "Total".`)) return;
-    await addDebtSettlement(new Date().toISOString());
+    await addDebtSettlement(new Date().toISOString(), "", {
+      amount: debt.owesAmount,
+      currency: defaultCurrency,
+    });
   }
 
   if (loading) {
