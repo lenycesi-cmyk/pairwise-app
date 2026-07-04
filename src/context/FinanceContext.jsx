@@ -271,13 +271,26 @@ export function FinanceProvider({ children }) {
   // hook just ignores every shared expense dated before the latest
   // settlement when computing the running "total" balance, so the debt
   // effectively resets to 0 going forward without rewriting history.
-  async function addDebtSettlement(date, note = "") {
+  // settledInfo ({ amount, currency }) sert uniquement au push "dette
+  // réglée" envoyé au partenaire — le montant n'est pas stocké (le solde se
+  // recalcule toujours depuis les transactions).
+  async function addDebtSettlement(date, note = "", settledInfo = null) {
     if (!coupleId) return;
     const updated = [
       ...debtSettlements,
       { id: `settle_${Date.now()}`, date, note, createdAt: Date.now(), createdBy: user.uid },
     ];
     await setDoc(doc(db, "couples", coupleId), { debtSettlements: updated }, { merge: true });
+
+    if (members.length > 1) {
+      sendPushNotification({
+        coupleId,
+        kind: "debtSettled",
+        description: note || "",
+        amount: settledInfo?.amount,
+        currency: settledInfo?.currency,
+      });
+    }
   }
 
   async function addRecurring(rule) {

@@ -332,6 +332,7 @@ const PUSH_KINDS = {
   budgetAlert: "budgetAlerts",
   newBudget: "newBudget",
   newAsset: "newAsset",
+  debtSettled: "debtSettled",
 };
 
 exports.sendPush = onCall(async (request) => {
@@ -389,10 +390,16 @@ exports.sendPush = onCall(async (request) => {
     title = lang === "en" ? `${me.name} created a budget` : `${me.name} a créé un budget`;
     body = `${description}${amountLabel}`;
     tag = "budget_new";
-  } else {
+  } else if (kind === "newAsset") {
     title = lang === "en" ? `${me.name} added an asset` : `${me.name} a ajouté un actif`;
     body = `${description}${amountLabel}`;
     tag = "asset_new";
+  } else {
+    title = lang === "en" ? `${me.name} settled up 💸` : `${me.name} a soldé vos comptes 💸`;
+    body = amountLabel
+      ? (lang === "en" ? `Settled balance:${amountLabel.replace(" — ", " ")}` : `Solde réglé :${amountLabel.replace(" — ", " ")}`)
+      : description;
+    tag = "debt_settled";
   }
 
   await sendPushToMembers(coupleId, coupleData, targets, { title, body, tag });
@@ -496,6 +503,84 @@ exports.sendRecurringReminders = onSchedule(
         if (new Date(dateStr) < startOfToday) delete updatedSent[key];
       }
       await coupleDoc.ref.update({ recurringRemindersSent: updatedSent });
+    }
+  }
+);
+
+/**
+ * Cron mensuel — résumé du mois écoulé, poussé à chaque membre le 1er du
+ * mois à 8h (Europe/Paris) : total dépensé, revenus, évolution vs le mois
+ * précédent. Les montants utilisent convertedAmount (figé à la création)
+ * quand il est dans la devise par défaut du couple, sinon le montant brut
+ * (approximation acceptable pour un résumé).
+ */
+exports.monthlySummary = onSchedule(
+  { schedule: "0 8 1 * *", timeZone: "Europe/Paris" },
+  async () => {
+    const now = new Date();
+    const monthStart = (offset) => new Date(now.getFullYear(), now.getMonth() + offset, 1);
+    const lastStart = monthStart(-1);
+    const lastEnd = monthStart(0);
+    const prevStart = monthStart(-2);
+
+    const couplesSnap = await db.collection("couples").get();
+    for (const coupleDoc of couplesSnap.docs) {
+      const data = coupleDoc.data();
+      if (!data.fcmTokens) continue;
+
+      try {
+        const txSnap = await coupleDoc.ref
+          .collection("transactions")
+          .where("date", ">=", prevStart.toISOString())
+          .where("date", "<", lastEnd.toISOString())
+          .get();
+
+        const sums = { last: { expense: 0, income: 0 }, prev: { expense: 0 } };
+        for (const d of txSnap.docs) {
+          const tx = d.data();
+          const val =
+            tx.convertedAmount !== undefined && tx.convertedCurrency === data.defaultCurrency
+              ? tx.convertedAmount
+              : tx.amount;
+          const inLast = tx.date >= lastStart.toISOString();
+          if (tx.type === "expense") {
+            if (inLast) sums.last.expense += val;
+            else sums.prev.expense += val;
+          } else if (tx.type === "income" && inLast) {
+            sums.last.income += val;
+          }
+        }
+        if (sums.last.expense === 0 && sums.last.income === 0) continue;
+
+        const lang = data.language === "en" ? "en" : "fr";
+        const cur = data.defaultCurrency || "EUR";
+        const monthName = lastStart.toLocaleDateString(lang === "en" ? "en-US" : "fr-FR", { month: "long" });
+        const fmt = (v) => Math.round(v).toLocaleString("fr-FR");
+        const deltaPct = sums.prev.expense > 0
+          ? Math.round(((sums.last.expense - sums.prev.expense) / sums.prev.expense) * 100)
+          : null;
+        const deltaLabel = deltaPct === null ? "" : ` (${deltaPct >= 0 ? "+" : ""}${deltaPct}% ${lang === "en" ? "vs previous month" : "vs mois précédent"})`;
+
+        const title = lang === "en"
+          ? `Your ${monthName} summary 📊`
+          : `Votre résumé de ${monthName} 📊`;
+        const body = lang === "en"
+          ? `Spent: ${fmt(sums.last.expense)} ${cur}${deltaLabel}\nIncome: ${fmt(sums.last.income)} ${cur}`
+          : `Dépenses : ${fmt(sums.last.expense)} ${cur}${deltaLabel}\nRevenus : ${fmt(sums.last.income)} ${cur}`;
+
+        const targets = (data.members || [])
+          .map(memberKeyOf)
+          .filter((key) => key && prefEnabled(data, key, "monthlySummary"));
+        if (targets.length === 0) continue;
+
+        await sendPushToMembers(coupleDoc.id, data, targets, {
+          title,
+          body,
+          tag: "monthly_summary",
+        });
+      } catch (err) {
+        console.error(`Monthly summary failed for ${coupleDoc.id}:`, err.message);
+      }
     }
   }
 );

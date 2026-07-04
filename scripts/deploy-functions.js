@@ -40,6 +40,7 @@ const FUNCTIONS_TO_DEPLOY = [
   "syncAllBalances",
   "sendPush",
   "sendRecurringReminders",
+  "monthlySummary",
 ];
 
 function loadServiceAccountKey() {
@@ -277,7 +278,7 @@ async function main() {
   // Fonctions onSchedule : déployées comme HTTP + job Cloud Scheduler
   // upserté à l'étape 5 (le décorateur onSchedule ne suffit pas avec ce
   // pipeline REST custom).
-  const scheduled = ["syncAllBalances", "sendRecurringReminders"];
+  const scheduled = ["syncAllBalances", "sendRecurringReminders", "monthlySummary"];
 
   console.log("4. Déploiement des fonctions...");
   for (const name of FUNCTIONS_TO_DEPLOY) {
@@ -292,6 +293,7 @@ async function main() {
 
   console.log("5. Jobs Cloud Scheduler...");
   await upsertSchedulerJob(token, "sendRecurringReminders", "0 8 * * *", "Europe/Paris");
+  await upsertSchedulerJob(token, "monthlySummary", "0 8 1 * *", "Europe/Paris");
 
   console.log("\n✅ Déploiement terminé !");
   console.log(`   Cloud Functions: https://console.cloud.google.com/functions/list?project=${PROJECT_ID}`);
