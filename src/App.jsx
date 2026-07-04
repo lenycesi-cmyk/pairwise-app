@@ -5,6 +5,7 @@ import { useRecurringGenerator } from "./hooks/useRecurringGenerator";
 import { useBudgetAlerts } from "./hooks/useBudgetAlerts";
 import { useCommentNotifications } from "./hooks/useCommentNotifications";
 import { useRecurringReminders } from "./hooks/useRecurringReminders";
+import { useTranslation } from "./hooks/useTranslation";
 import AuthScreen from "./screens/AuthScreen";
 import CoupleSetupScreen from "./screens/CoupleSetupScreen";
 import OnboardingScreen from "./screens/OnboardingScreen";
@@ -46,17 +47,39 @@ function RecurringRemindersRunner() {
   return null;
 }
 
-function ModalWrapper({ onClose, children }) {
+// Rend une clé de traduction — utilisable comme `title` de ModalWrapper
+// (doit être rendu sous FinanceProvider, ce qui est le cas des modals).
+function TranslatedTitle({ k }) {
+  const t = useTranslation();
+  return t(k);
+}
+
+function ModalWrapper({ onClose, title, children }) {
   return (
     <div className="app-modal">
-      <div style={{ padding: "1.5rem 1.25rem 0" }}>
+      {/* Sticky : le bouton fermer (et le titre éventuel) restent visibles
+          pendant le défilement du contenu du modal. */}
+      <div
+        style={{
+          position: "sticky",
+          top: 0,
+          zIndex: 10,
+          background: "var(--bg)",
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          padding: "1rem 1.25rem",
+          borderBottom: "0.5px solid var(--rule)",
+        }}
+      >
         <button
           onClick={onClose}
           aria-label="Fermer"
-          style={{ background: "none", border: "none", marginBottom: 8 }}
+          style={{ background: "none", border: "none", display: "flex" }}
         >
           <i className="ti ti-x" style={{ fontSize: 20 }} aria-hidden="true" />
         </button>
+        {title && <h1 style={{ fontSize: 17, margin: 0 }}>{title}</h1>}
       </div>
       {children}
     </div>
@@ -223,7 +246,7 @@ function AppContent() {
           </ModalWrapper>
         )}
         {showSettings && (
-          <ModalWrapper onClose={() => setShowSettings(false)}>
+          <ModalWrapper onClose={() => setShowSettings(false)} title={<TranslatedTitle k="settings_title" />}>
             <SettingsScreen
               onOpenRecurring={() => openRecurring()}
               onOpenCategories={() => setShowCategories(true)}

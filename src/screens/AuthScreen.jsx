@@ -36,6 +36,11 @@ export default function AuthScreen() {
         flexDirection: "column",
         justifyContent: "center",
         padding: "2rem 1.5rem",
+        // Standard des formulaires d'authentification : colonne étroite
+        // centrée (~400px) plutôt que des champs étirés sur tout l'écran.
+        width: "100%",
+        maxWidth: 400,
+        margin: "0 auto",
       }}
     >
       <div style={{ marginBottom: "2.5rem", textAlign: "center" }}>
