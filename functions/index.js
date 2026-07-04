@@ -366,38 +366,49 @@ exports.sendPush = onCall(async (request) => {
       ? ` — ${Math.round(amount).toLocaleString("fr-FR")} ${currency}`
       : "";
 
+  // Titres courts (prénom + action) pour rester lisibles sur l'écran de
+  // verrouillage où le titre est vite tronqué ; le contexte (description,
+  // montant) va dans le corps, qui a plus de place.
+  const amountOnly =
+    amount !== undefined && currency
+      ? `${Math.round(amount).toLocaleString("fr-FR")} ${currency}`
+      : "";
+  const withAmount = (s) => (amountOnly ? `${s} — ${amountOnly}` : s);
+
   let title, body, tag;
   if (kind === "comment") {
-    title = `${me.name || "💬"} — ${description}`;
-    body = gifUrl ? "GIF 🎬" : text || "";
+    title = lang === "en" ? `💬 ${me.name}` : `💬 ${me.name}`;
+    body = description
+      ? `${description}\n${gifUrl ? "GIF 🎬" : text || ""}`
+      : (gifUrl ? "GIF 🎬" : text || "");
     tag = `comment_${coupleId}`;
   } else if (kind === "newTransaction") {
-    title = lang === "en" ? `${me.name} added a transaction` : `${me.name} a ajouté une transaction`;
-    body = `${description}${amountLabel}`;
+    title = lang === "en" ? `${me.name} · new transaction` : `${me.name} · nouvelle transaction`;
+    body = withAmount(description || "");
     tag = "tx_new";
   } else if (kind === "editedTransaction") {
-    title = lang === "en" ? `${me.name} edited a transaction` : `${me.name} a modifié une transaction`;
-    body = `${description}${amountLabel}`;
+    title = lang === "en" ? `${me.name} · edited transaction` : `${me.name} · transaction modifiée`;
+    body = withAmount(description || "");
     tag = "tx_edit";
   } else if (kind === "budgetAlert") {
     const { pct } = request.data;
-    title = lang === "en" ? "Budget alert" : "Alerte budget";
+    title = lang === "en" ? "⚠️ Budget alert" : "⚠️ Alerte budget";
     body = lang === "en"
       ? `${description}: ${Math.round(pct)}% of budget reached`
       : `${description} : ${Math.round(pct)}% du budget atteint`;
     tag = `budget_alert_${description}`;
   } else if (kind === "newBudget") {
-    title = lang === "en" ? `${me.name} created a budget` : `${me.name} a créé un budget`;
-    body = `${description}${amountLabel}`;
+    title = lang === "en" ? `${me.name} · new budget` : `${me.name} · nouveau budget`;
+    body = withAmount(description || "");
     tag = "budget_new";
   } else if (kind === "newAsset") {
-    title = lang === "en" ? `${me.name} added an asset` : `${me.name} a ajouté un actif`;
-    body = `${description}${amountLabel}`;
+    title = lang === "en" ? `${me.name} · new asset` : `${me.name} · nouvel actif`;
+    body = withAmount(description || "");
     tag = "asset_new";
   } else {
-    title = lang === "en" ? `${me.name} settled up 💸` : `${me.name} a soldé vos comptes 💸`;
-    body = amountLabel
-      ? (lang === "en" ? `Settled balance:${amountLabel.replace(" — ", " ")}` : `Solde réglé :${amountLabel.replace(" — ", " ")}`)
+    title = lang === "en" ? `${me.name} · settled up 💸` : `${me.name} · comptes soldés 💸`;
+    body = amountOnly
+      ? (lang === "en" ? `Settled balance: ${amountOnly}` : `Solde réglé : ${amountOnly}`)
       : description;
     tag = "debt_settled";
   }
