@@ -308,6 +308,25 @@ export function FinanceProvider({ children }) {
     };
     const updated = [...budgets, newBudget];
     await setDoc(doc(db, "couples", coupleId), { budgets: updated }, { merge: true });
+
+    if (members.length > 1) {
+      sendPushNotification({
+        coupleId,
+        kind: "newBudget",
+        description: newBudget.name || t_budgetLabel(newBudget),
+        amount: newBudget.amount,
+        currency: newBudget.currency,
+      });
+    }
+  }
+
+  // Libellé lisible d'un budget sans nom : global, ou noms des catégories.
+  function t_budgetLabel(budget) {
+    if (budget.scope === "global") return "Budget global";
+    return (budget.categoryIds || [])
+      .map((cid) => categories.find((c) => c.id === cid)?.name)
+      .filter(Boolean)
+      .join(", ") || "Budget";
   }
 
   async function updateBudget(id, updates) {
@@ -337,6 +356,16 @@ export function FinanceProvider({ children }) {
     };
     const updated = [...assets, newAsset];
     await setDoc(doc(db, "couples", coupleId), { assets: updated }, { merge: true });
+
+    if (members.length > 1) {
+      sendPushNotification({
+        coupleId,
+        kind: "newAsset",
+        description: newAsset.name || "",
+        amount: newAsset.value,
+        currency: newAsset.currency,
+      });
+    }
   }
 
   async function updateAsset(id, updates) {

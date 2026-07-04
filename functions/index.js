@@ -329,6 +329,9 @@ const PUSH_KINDS = {
   newTransaction: "newTransaction",
   editedTransaction: "editedTransaction",
   comment: "comments",
+  budgetAlert: "budgetAlerts",
+  newBudget: "newBudget",
+  newAsset: "newAsset",
 };
 
 exports.sendPush = onCall(async (request) => {
@@ -346,9 +349,14 @@ exports.sendPush = onCall(async (request) => {
   const me = members.find((m) => m.uid === request.auth.uid);
   if (!me) throw new HttpsError("permission-denied", "Not a member of this couple");
   const actorKey = memberKeyOf(me);
+  // Cible par défaut : tous les autres membres. Pour les alertes budget,
+  // le client restreint aux membres concernés par le budget (targetKeys) —
+  // un budget personnel ne notifie jamais le/la partenaire.
+  const { targetKeys } = request.data || {};
   const targets = members
     .map(memberKeyOf)
-    .filter((key) => key && key !== actorKey && prefEnabled(coupleData, key, prefType));
+    .filter((key) => key && key !== actorKey && prefEnabled(coupleData, key, prefType))
+    .filter((key) => !Array.isArray(targetKeys) || targetKeys.includes(key));
   if (targets.length === 0 || !coupleData.fcmTokens) return { sent: 0 };
 
   const lang = coupleData.language === "en" ? "en" : "fr";
@@ -366,10 +374,25 @@ exports.sendPush = onCall(async (request) => {
     title = lang === "en" ? `${me.name} added a transaction` : `${me.name} a ajouté une transaction`;
     body = `${description}${amountLabel}`;
     tag = "tx_new";
-  } else {
+  } else if (kind === "editedTransaction") {
     title = lang === "en" ? `${me.name} edited a transaction` : `${me.name} a modifié une transaction`;
     body = `${description}${amountLabel}`;
     tag = "tx_edit";
+  } else if (kind === "budgetAlert") {
+    const { pct } = request.data;
+    title = lang === "en" ? "Budget alert" : "Alerte budget";
+    body = lang === "en"
+      ? `${description}: ${Math.round(pct)}% of budget reached`
+      : `${description} : ${Math.round(pct)}% du budget atteint`;
+    tag = `budget_alert_${description}`;
+  } else if (kind === "newBudget") {
+    title = lang === "en" ? `${me.name} created a budget` : `${me.name} a créé un budget`;
+    body = `${description}${amountLabel}`;
+    tag = "budget_new";
+  } else {
+    title = lang === "en" ? `${me.name} added an asset` : `${me.name} a ajouté un actif`;
+    body = `${description}${amountLabel}`;
+    tag = "asset_new";
   }
 
   await sendPushToMembers(coupleId, coupleData, targets, { title, body, tag });
