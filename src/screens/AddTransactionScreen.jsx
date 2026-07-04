@@ -275,17 +275,28 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
         flexDirection: "column",
       }}
     >
-      <div style={{ flex: 1, overflowY: "auto", padding: "1.5rem 1.25rem 1rem" }}>
-        <div style={{ display: "flex", alignItems: "center", marginBottom: 16 }}>
-          <button onClick={onClose} aria-label="Fermer" style={{ background: "none", border: "none" }}>
-            <i className="ti ti-x" style={{ fontSize: 20 }} aria-hidden="true" />
-          </button>
-          <h1 style={{ fontSize: 18, flex: 1, textAlign: "center" }}>
-            {isEditing ? t("tx_edit") : t("tx_new")}
-          </h1>
-          <div style={{ width: 20 }} />
-        </div>
+      {/* En-tête sticky : fermer sans remonter tout en haut */}
+      <div
+        style={{
+          flexShrink: 0,
+          display: "flex",
+          alignItems: "center",
+          padding: "1rem 1.25rem",
+          background: "var(--bg)",
+          borderBottom: "0.5px solid var(--rule)",
+          zIndex: 10,
+        }}
+      >
+        <button onClick={onClose} aria-label="Fermer" style={{ background: "none", border: "none", display: "flex" }}>
+          <i className="ti ti-x" style={{ fontSize: 20 }} aria-hidden="true" />
+        </button>
+        <h1 style={{ fontSize: 17, flex: 1, textAlign: "center", margin: 0 }}>
+          {isEditing ? t("tx_edit") : t("tx_new")}
+        </h1>
+        <div style={{ width: 20 }} />
+      </div>
 
+      <div style={{ flex: 1, overflowY: "auto", padding: "1rem 1.25rem" }}>
         <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
           {[
             { key: "expense", label: t("tx_expense") },
