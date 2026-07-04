@@ -52,7 +52,8 @@ async function call(token, method, url, body) {
     body: body ? JSON.stringify(body) : undefined,
   });
   const text = await res.text();
-  return { status: res.status, body: text.slice(0, 800) };
+  // body complet pour JSON.parse ; preview tronquée pour l'affichage
+  return { status: res.status, body: text, preview: text.slice(0, 600) };
 }
 
 async function main() {
@@ -65,14 +66,14 @@ async function main() {
   const fcm = await call(token, "POST",
     `https://fcm.googleapis.com/v1/projects/${PROJECT_ID}/messages:send`,
     { validate_only: true, message: { topic: "debug-validate", data: { ping: "1" } } });
-  console.log(`   HTTP ${fcm.status} ${fcm.status === 200 ? "✓ le SA peut envoyer du FCM" : "✗ PROBLÈME → " + fcm.body}\n`);
+  console.log(`   HTTP ${fcm.status} ${fcm.status === 200 ? "✓ le SA peut envoyer du FCM" : "✗ PROBLÈME → " + fcm.preview}\n`);
 
   // ── 2. Lecture Firestore + présence de tokens ────────────────────────────
   console.log("2) Firestore read + fcmTokens…");
   const fs = await call(token, "GET",
     `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/couples?pageSize=10&mask.fieldPaths=fcmTokens&mask.fieldPaths=pushPrefs&mask.fieldPaths=members`);
   if (fs.status !== 200) {
-    console.log(`   HTTP ${fs.status} ✗ lecture impossible → ${fs.body}\n`);
+    console.log(`   HTTP ${fs.status} ✗ lecture impossible → ${fs.preview}\n`);
   } else {
     const docs = JSON.parse(fs.body).documents || [];
     console.log(`   HTTP 200 ✓ — ${docs.length} couple(s)`);
@@ -100,7 +101,7 @@ async function main() {
       pageSize: 30,
     });
   if (logs.status !== 200) {
-    console.log(`   HTTP ${logs.status} ✗ logs illisibles → ${logs.body}`);
+    console.log(`   HTTP ${logs.status} ✗ logs illisibles → ${logs.preview}`);
   } else {
     const entries = JSON.parse(logs.body).entries || [];
     if (entries.length === 0) console.log("   Aucune entrée → la fonction n'a jamais été invoquée ✗ (ou logs vides)");
