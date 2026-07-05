@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import Logo from "../components/Logo";
 
 export default function AuthScreen() {
   const { login, signup } = useAuth();
@@ -43,18 +44,9 @@ export default function AuthScreen() {
         margin: "0 auto",
       }}
     >
-      <div style={{ marginBottom: "2.5rem", textAlign: "center" }}>
-        <h1
-          style={{
-            fontFamily: "var(--font-display)",
-            fontSize: 40,
-            color: "var(--ink)",
-            marginBottom: 4,
-          }}
-        >
-          Pairwise
-        </h1>
-        <p style={{ fontSize: 14, color: "var(--ink-3)" }}>
+      <div style={{ marginBottom: "2.5rem", display: "flex", flexDirection: "column", alignItems: "center" }}>
+        <Logo size={84} stacked />
+        <p style={{ fontSize: 14, color: "var(--ink-3)", marginTop: 12 }}>
           Vos finances, à deux
         </p>
       </div>

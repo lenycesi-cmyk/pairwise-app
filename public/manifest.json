@@ -1,22 +1,24 @@
 {
-  "name": "Pairwise",
-  "short_name": "Pairwise",
+  "name": "PairWise",
+  "short_name": "PairWise",
   "description": "Vos finances, à deux",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f5f3ee",
-  "theme_color": "#1a1a18",
+  "background_color": "#fdf4ec",
+  "theme_color": "#fdf4ec",
   "orientation": "portrait",
   "icons": [
     {
       "src": "/icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }
