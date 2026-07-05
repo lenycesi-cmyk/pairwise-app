@@ -39,7 +39,7 @@ export function FinanceProvider({ children }) {
   const [netWorthHistory, setNetWorthHistory] = useState([]);
   const [wealthDisplayCurrency, setWealthDisplayCurrency] = useState(null);
   const [dashboardDisplayCurrency, setDashboardDisplayCurrency] = useState(null);
-  const [theme, setThemeState] = useState("classic");
+  const [theme, setThemeState] = useState("pairwise");
   const [language, setLanguageState] = useState("fr");
   const [debtSettlements, setDebtSettlements] = useState([]);
   const [pushPrefs, setPushPrefs] = useState({});
