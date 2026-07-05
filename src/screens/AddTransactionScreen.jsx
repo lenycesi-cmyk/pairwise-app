@@ -329,32 +329,45 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
         {!isEditing && (
           <QuickAddBar language={language} onApply={applyNaturalLanguage} />
         )}
+        {/* Type : pastilles colorées (dépense=coral, revenu=vert, invest=bleu).
+            Sélectionné = fond plein + texte clair ; non sélectionné = fond
+            teinté + texte de la couleur, comme les icônes du menu de gauche. */}
         <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
           {[
-            { key: "expense", label: t("tx_expense") },
-            { key: "income", label: t("tx_income") },
-            { key: "investment", label: t("tx_investment") },
-          ].map((t) => (
-            <button
-              key={t.key}
-              onClick={() => handleTypeChange(t.key)}
-              style={{
-                flex: 1,
-                padding: 10,
-                borderRadius: "var(--radius-md)",
-                border: "0.5px solid var(--rule)",
-                background: type === t.key ? "var(--tang-light)" : "var(--bg-card)",
-                color: type === t.key ? "var(--tang)" : "var(--ink)",
-                fontSize: 13,
-                fontWeight: type === t.key ? 500 : 400,
-              }}
-            >
-              {t.label}
-            </button>
-          ))}
+            { key: "expense", label: t("tx_expense"), color: "tang", icon: "ti-arrow-down-right" },
+            { key: "income", label: t("tx_income"), color: "sage", icon: "ti-arrow-up-right" },
+            { key: "investment", label: t("tx_investment"), color: "lavi", icon: "ti-trending-up" },
+          ].map((opt) => {
+            const sel = type === opt.key;
+            return (
+              <button
+                key={opt.key}
+                onClick={() => handleTypeChange(opt.key)}
+                style={{
+                  flex: 1,
+                  padding: 10,
+                  borderRadius: "var(--radius-md)",
+                  border: `0.5px solid ${sel ? `var(--${opt.color})` : "var(--rule)"}`,
+                  background: sel ? `var(--${opt.color})` : `var(--${opt.color}-light)`,
+                  color: sel ? `var(--${opt.color}-light)` : `var(--${opt.color})`,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 6,
+                  transition: "background-color .18s ease, color .18s ease, border-color .18s ease",
+                }}
+              >
+                <i className={`ti ${opt.icon}`} style={{ fontSize: 15 }} aria-hidden="true" />
+                {opt.label}
+              </button>
+            );
+          })}
         </div>
 
-        {/* Montant + devise */}
+        {/* Montant + devise, avec le reçu (optionnel) à droite dans la même
+            carte — essai de compacité pour libérer de la place plus bas. */}
         <div
           style={{
             background: "var(--bg-card)",
@@ -362,39 +375,79 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
             border: "0.5px solid var(--rule)",
             padding: "1.25rem",
             marginBottom: 12,
-            textAlign: "center",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-            <input
-              type="number"
-              inputMode="decimal"
-              placeholder="0"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              style={{
-                fontSize: 32,
-                fontWeight: 500,
-                border: "none",
-                outline: "none",
-                background: "transparent",
-                width: 160,
-                textAlign: "right",
-              }}
-            />
-            <button
-              onClick={() => setShowCurrencyPicker(!showCurrencyPicker)}
-              style={{
-                padding: "4px 10px",
-                borderRadius: "var(--radius-md)",
-                border: "0.5px solid var(--rule)",
-                background: "var(--bg)",
-                fontSize: 13,
-                fontWeight: 500,
-              }}
-            >
-              {currency} <i className="ti ti-chevron-down" style={{ fontSize: 12 }} aria-hidden="true" />
-            </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 8 }}>
+              <input
+                type="number"
+                inputMode="decimal"
+                placeholder="0"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                style={{
+                  fontSize: 30,
+                  fontWeight: 500,
+                  border: "none",
+                  outline: "none",
+                  background: "transparent",
+                  flex: 1,
+                  minWidth: 0,
+                  width: "100%",
+                }}
+              />
+              <button
+                onClick={() => setShowCurrencyPicker(!showCurrencyPicker)}
+                style={{
+                  padding: "4px 10px",
+                  borderRadius: "var(--radius-md)",
+                  border: "0.5px solid var(--rule)",
+                  background: "var(--bg)",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  flexShrink: 0,
+                }}
+              >
+                {currency} <i className="ti ti-chevron-down" style={{ fontSize: 12 }} aria-hidden="true" />
+              </button>
+            </div>
+
+            {/* Reçu (optionnel) */}
+            <div style={{ flexShrink: 0, textAlign: "center" }}>
+              {receiptPreview ? (
+                <div style={{ position: "relative", display: "inline-block" }}>
+                  <img
+                    src={receiptPreview}
+                    alt="Reçu"
+                    style={{ width: 60, height: 60, objectFit: "cover", borderRadius: "var(--radius-md)", border: "0.5px solid var(--rule)", display: "block" }}
+                  />
+                  <button
+                    onClick={removeReceipt}
+                    aria-label="Retirer le reçu"
+                    style={{ position: "absolute", top: -6, right: -6, width: 20, height: 20, borderRadius: "50%", background: "var(--ink)", border: "2px solid var(--bg-card)", display: "flex", alignItems: "center", justifyContent: "center" }}
+                  >
+                    <i className="ti ti-x" style={{ fontSize: 10, color: "var(--bg)" }} aria-hidden="true" />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => receiptInputRef.current?.click()}
+                  aria-label={t("tx_add_photo")}
+                  style={{ width: 60, height: 60, borderRadius: "var(--radius-md)", border: "0.5px dashed var(--rule)", background: "var(--bg)", color: "var(--ink-3)", display: "flex", alignItems: "center", justifyContent: "center" }}
+                >
+                  <i className="ti ti-camera-plus" style={{ fontSize: 18 }} aria-hidden="true" />
+                </button>
+              )}
+              <p style={{ fontSize: 9.5, color: "var(--ink-3)", marginTop: 3, whiteSpace: "nowrap" }}>{t("tx_receipt_optional")}</p>
+              <input
+                ref={receiptInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handleReceiptSelect}
+                style={{ display: "none" }}
+              />
+            </div>
           </div>
 
           {showCurrencyPicker && (
@@ -475,20 +528,6 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
               })}
             </div>
           )}
-        </div>
-
-        {/* Tags — étiquettes libres transversales aux catégories (#inutile, #yolo...) */}
-        <div
-          style={{
-            background: "var(--bg-card)",
-            borderRadius: "var(--radius-lg)",
-            border: "0.5px solid var(--rule)",
-            padding: "1rem 1.25rem",
-            marginBottom: 12,
-          }}
-        >
-          <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>{t("tx_tags")}</p>
-          <TagInput value={tags} onChange={setTags} />
         </div>
 
         {/* Date */}
@@ -784,66 +823,6 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
 
         </div>
 
-        {/* Reçu / ticket */}
-        <div
-          style={{
-            background: "var(--bg-card)",
-            borderRadius: "var(--radius-lg)",
-            border: "0.5px solid var(--rule)",
-            padding: "1rem 1.25rem",
-            marginBottom: 12,
-          }}
-        >
-          <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 8 }}>{t("tx_receipt")}</p>
-
-          {receiptPreview ? (
-            <div style={{ position: "relative", display: "inline-block" }}>
-              <img
-                src={receiptPreview}
-                alt="Reçu"
-                style={{
-                  width: 100, height: 100, objectFit: "cover",
-                  borderRadius: "var(--radius-md)", border: "0.5px solid var(--rule)",
-                }}
-              />
-              <button
-                onClick={removeReceipt}
-                aria-label="Retirer le reçu"
-                style={{
-                  position: "absolute", top: -6, right: -6,
-                  width: 22, height: 22, borderRadius: "50%",
-                  background: "var(--ink)", border: "2px solid var(--bg-card)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                }}
-              >
-                <i className="ti ti-x" style={{ fontSize: 11, color: "var(--bg)" }} aria-hidden="true" />
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => receiptInputRef.current?.click()}
-              style={{
-                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                width: "100%", padding: "14px", borderRadius: "var(--radius-md)",
-                border: "0.5px dashed var(--rule)", background: "var(--bg)",
-                color: "var(--ink-3)", fontSize: 13,
-              }}
-            >
-              <i className="ti ti-camera-plus" style={{ fontSize: 16 }} aria-hidden="true" />
-              {t("tx_add_photo")}
-            </button>
-          )}
-
-          <input
-            ref={receiptInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            onChange={handleReceiptSelect}
-            style={{ display: "none" }}
-          />
-        </div>
-
         {/* Attribution membre — pour Expense (Payé par / Pour) ET Income/Investment (juste Payé par/Pour aussi) */}
         {members.length > 0 && (
           <div
@@ -931,6 +910,22 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
             )}
           </div>
         )}
+
+        {/* Tags — optionnels, placés tout en bas (transversaux aux catégories) */}
+        <div
+          style={{
+            background: "var(--bg-card)",
+            borderRadius: "var(--radius-lg)",
+            border: "0.5px solid var(--rule)",
+            padding: "1rem 1.25rem",
+            marginBottom: 12,
+          }}
+        >
+          <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>
+            {t("tx_tags")} <span style={{ color: "var(--ink-3)", fontWeight: 400 }}>· {t("tx_optional")}</span>
+          </p>
+          <TagInput value={tags} onChange={setTags} />
+        </div>
 
         {/* Fil de discussion — seulement sur une transaction existante */}
         {isEditing && <TransactionComments txId={editingTx.id} />}
