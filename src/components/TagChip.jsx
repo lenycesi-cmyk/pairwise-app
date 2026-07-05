@@ -1,13 +1,18 @@
 import { tagColor } from "../utils/tags";
 import { suggestedTagMeta } from "../data/suggestedTags";
+import { useTranslation } from "../hooks/useTranslation";
 
 // Petite pastille d'affichage d'un tag, couleur stable dérivée du tag lui-même.
 // `onRemove` ajoute une croix (mode édition) ; `onClick` rend la pastille
 // cliquable (filtre). `size` = "sm" pour les listes denses.
 export default function TagChip({ tag, onRemove, onClick, active = false, size = "md" }) {
+  const t = useTranslation();
   const color = tagColor(tag);
   const meta = suggestedTagMeta(tag);
   const small = size === "sm";
+  // Libellé traduit pour les tags préréglés (ex. "inutile" ↔ "unnecessary") ;
+  // sinon on affiche le tag brut saisi par l'utilisateur.
+  const label = meta ? t(meta.labelKey) : tag;
   return (
     <span
       onClick={onClick}
@@ -27,7 +32,7 @@ export default function TagChip({ tag, onRemove, onClick, active = false, size =
       }}
     >
       {meta ? `${meta.emoji} ` : "#"}
-      {tag}
+      {label}
       {onRemove && (
         <i
           className="ti ti-x"

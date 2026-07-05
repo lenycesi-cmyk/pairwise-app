@@ -385,13 +385,13 @@ export default function SettingsScreen({ onOpenRecurring, onOpenCategories, onOp
         </div>
         <p style={{ fontSize: 11, color: "var(--ink-3)", paddingBottom: 10 }}>
           {currencyMode === "fixed"
-            ? "La devise ci-dessous sera toujours proposée par défaut."
-            : "La devise de votre dernière transaction sera proposée par défaut."}
+            ? t("settings_currency_fixed_hint")
+            : t("settings_currency_last_hint")}
         </p>
 
         {currencyMode === "fixed" && (
           <>
-            <Row label="Devise affichée (résumés)">
+            <Row label={t("settings_display_currency")}>
               <div />
             </Row>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, padding: "8px 0" }}>
@@ -420,7 +420,7 @@ export default function SettingsScreen({ onOpenRecurring, onOpenCategories, onOp
         )}
         {currencyMode === "last" && (
           <p style={{ fontSize: 11, color: "var(--ink-3)", paddingBottom: 6 }}>
-            Devise utilisée pour les résumés : {defaultCurrency}
+            {t("settings_summary_currency").replace("{currency}", defaultCurrency)}
           </p>
         )}
       </Card>

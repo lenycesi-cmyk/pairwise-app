@@ -71,8 +71,10 @@ export default function AddAssetScreen({ onClose, editingAsset }) {
     setSearchQuery("");
   }
 
+  const typeName = language === "en" && selectedType?.nameEn ? selectedType.nameEn : selectedType?.name;
+
   async function handleSave() {
-    if (!name.trim()) return;
+    // Nom optionnel : si vide, on retombe sur le nom du type (ex. "Autres actifs").
     if (!usesApi && !value) return;
     if (usesApi && !quantity) return;
 
@@ -80,7 +82,7 @@ export default function AddAssetScreen({ onClose, editingAsset }) {
     try {
       const payload = {
         typeId,
-        name: name.trim(),
+        name: name.trim() || typeName || "Actif",
         currency,
         ownership,
         sharePct: ownership === "shared" ? sharePct : 100,
@@ -170,12 +172,14 @@ export default function AddAssetScreen({ onClose, editingAsset }) {
             marginBottom: 12,
           }}
         >
-          <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>{t("asset_name_label")}</p>
+          <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>
+            {t("asset_name_label")} <span style={{ color: "var(--ink-3)", fontWeight: 400 }}>· {t("tx_optional")}</span>
+          </p>
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder={t("asset_name_placeholder")}
+            placeholder={typeName || t("asset_name_placeholder")}
             style={{
               width: "100%", padding: "8px 0", border: "none",
               borderBottom: "0.5px solid var(--rule)", background: "transparent",
@@ -404,7 +408,7 @@ export default function AddAssetScreen({ onClose, editingAsset }) {
 
         <button
           onClick={handleSave}
-          disabled={busy || !name.trim() || (!usesApi && !value) || (usesApi && (!quantity || !apiId))}
+          disabled={busy || (!usesApi && !value) || (usesApi && (!quantity || !apiId))}
           style={{
             width: "100%",
             background: "var(--ink)",
