@@ -13,6 +13,8 @@ import { buildSuggestionIndex, getSuggestions, findExactMatch } from "../utils/d
 import TransactionComments from "../components/TransactionComments";
 import TagInput from "../components/TagInput";
 import { dedupeTags, extractTagsFromText } from "../utils/tags";
+import { parseNaturalTransaction } from "../utils/parseNaturalTransaction";
+import QuickAddBar from "../components/QuickAddBar";
 
 function todayISO() {
   const d = new Date();
@@ -41,6 +43,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
     defaultCurrency,
     currencyMode,
     lastUsedCurrency,
+    language,
   } = useFinance();
   const { user } = useAuth();
 
@@ -204,6 +207,27 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
     return name?.[0]?.toUpperCase() || "?";
   }
 
+  // Applique une saisie en langage naturel : pré-remplit le formulaire à
+  // partir du texte (montant, devise, date, type, catégorie, description).
+  function applyNaturalLanguage(text) {
+    const parsed = parseNaturalTransaction(text, {
+      categories,
+      transactions,
+      defaultCurrency: currencyMode === "last" ? lastUsedCurrency : defaultCurrency,
+    });
+    if (!parsed) return;
+    setType(parsed.type);
+    if (parsed.amount != null) setAmount(String(parsed.amount));
+    if (parsed.currency) setCurrency(parsed.currency);
+    if (parsed.date) setDateTime(toDateTimeLocal(parsed.date));
+    if (parsed.categoryId) setCategoryId(parsed.categoryId);
+    if (parsed.subcategory) setSubcategory(parsed.subcategory);
+    if (parsed.description) {
+      setDescription(parsed.description);
+      setTags(extractTagsFromText(text));
+    }
+  }
+
   async function handleSave() {
     if (!amount || !categoryId) return;
     setBusy(true);
@@ -302,6 +326,9 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
       </div>
 
       <div style={{ flex: 1, overflowY: "auto", padding: "1rem 1.25rem" }}>
+        {!isEditing && (
+          <QuickAddBar language={language} onApply={applyNaturalLanguage} />
+        )}
         <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
           {[
             { key: "expense", label: t("tx_expense") },
