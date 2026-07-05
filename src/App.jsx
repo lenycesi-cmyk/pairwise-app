@@ -5,6 +5,7 @@ import { useRecurringGenerator } from "./hooks/useRecurringGenerator";
 import { useBudgetAlerts } from "./hooks/useBudgetAlerts";
 import { useCommentNotifications } from "./hooks/useCommentNotifications";
 import { useRecurringReminders } from "./hooks/useRecurringReminders";
+import { useBackGuard } from "./hooks/useBackGuard";
 import { useTranslation } from "./hooks/useTranslation";
 import AuthScreen from "./screens/AuthScreen";
 import CoupleSetupScreen from "./screens/CoupleSetupScreen";
@@ -111,6 +112,23 @@ function AppContent() {
   const [budgetAddSignal, setBudgetAddSignal] = useState(0);
   const addButtonRef = useRef(null);
   const settingsButtonRef = useRef(null);
+
+  // Bouton "retour" du téléphone : referme l'overlay courant (ou revient à
+  // l'accueil depuis un autre onglet) au lieu de quitter l'app. Appelés
+  // inconditionnellement, avant tout return anticipé, pour garder un ordre de
+  // hooks stable. closeAdd/closeRecurring sont hoistés (déclarations function).
+  useBackGuard(tab !== "dashboard", () => setTab("dashboard"));
+  useBackGuard(showAdd, () => closeAdd());
+  useBackGuard(showAddAsset, () => setShowAddAsset(false));
+  useBackGuard(showBreakdown, () => setShowBreakdown(false));
+  useBackGuard(showCalculator, () => setShowCalculator(false));
+  useBackGuard(showDebt, () => setShowDebt(false));
+  useBackGuard(showTransactions, () => setShowTransactions(false));
+  useBackGuard(showSettings, () => setShowSettings(false));
+  useBackGuard(showRecurring, () => closeRecurring());
+  useBackGuard(showCategories, () => setShowCategories(false));
+  useBackGuard(showTheme, () => setShowTheme(false));
+  useBackGuard(showLanguage, () => setShowLanguage(false));
 
   if (loading) {
     return (
