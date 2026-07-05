@@ -27,6 +27,7 @@ export default function TransactionsScreen({ onEdit }) {
   const [categoryFilter, setCategoryFilter] = useState(null);
   const [showCategoryFilter, setShowCategoryFilter] = useState(false);
   const [tagFilter, setTagFilter] = useState(null);
+  const [periodFilter, setPeriodFilter] = useState("all");
   const [viewingReceipt, setViewingReceipt] = useState(null);
 
   const memberColorMap = useMemo(() => buildMemberColorMap(members), [members]);
@@ -43,6 +44,29 @@ export default function TransactionsScreen({ onEdit }) {
     if (tagFilter) {
       result = result.filter((tx) => (tx.tags || []).includes(tagFilter));
     }
+    if (periodFilter !== "all") {
+      const now = new Date();
+      result = result.filter((tx) => {
+        const d = new Date(tx.date);
+        if (periodFilter === "week") {
+          const c = new Date(now);
+          c.setDate(now.getDate() - 7);
+          return d >= c;
+        }
+        if (periodFilter === "month") {
+          return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+        }
+        if (periodFilter === "3m") {
+          const c = new Date(now);
+          c.setMonth(now.getMonth() - 3);
+          return d >= c;
+        }
+        if (periodFilter === "year") {
+          return d.getFullYear() === now.getFullYear();
+        }
+        return true;
+      });
+    }
     if (searchText.trim()) {
       // "#tag" cible les tags ; sinon on cherche dans description/sous-catégorie/tags.
       const raw = searchText.trim().toLowerCase();
@@ -54,7 +78,7 @@ export default function TransactionsScreen({ onEdit }) {
       );
     }
     return result;
-  }, [transactions, filter, categoryFilter, tagFilter, searchText]);
+  }, [transactions, filter, categoryFilter, tagFilter, periodFilter, searchText]);
 
   const grouped = useMemo(() => {
     const groups = {};
@@ -230,6 +254,21 @@ export default function TransactionsScreen({ onEdit }) {
             onClick={() => setFilter(getMemberKey(m))}
           >
             {m.name}
+          </FilterChip>
+        ))}
+      </div>
+
+      {/* Filtre temporel */}
+      <div style={{ display: "flex", gap: 6, marginBottom: 16, overflowX: "auto" }}>
+        {[
+          { key: "all", label: t("tx_period_all") },
+          { key: "week", label: t("tx_period_week") },
+          { key: "month", label: t("tx_period_month") },
+          { key: "3m", label: t("tx_period_3m") },
+          { key: "year", label: t("tx_period_year") },
+        ].map((p) => (
+          <FilterChip key={p.key} active={periodFilter === p.key} onClick={() => setPeriodFilter(p.key)}>
+            {p.label}
           </FilterChip>
         ))}
       </div>

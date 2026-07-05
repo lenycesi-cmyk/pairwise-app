@@ -183,6 +183,11 @@ export const TRANSLATIONS = {
     tx_search_placeholder: "Rechercher une transaction...",
     tx_filter_all_categories: "Toutes catégories",
     tx_filter_all: "Tout",
+    tx_period_all: "Tout",
+    tx_period_week: "7 jours",
+    tx_period_month: "Ce mois",
+    tx_period_3m: "3 mois",
+    tx_period_year: "Cette année",
     tx_no_transactions: "Aucune transaction pour le moment",
     tx_export: "Exporter",
 
@@ -609,6 +614,11 @@ export const TRANSLATIONS = {
     tx_search_placeholder: "Search a transaction...",
     tx_filter_all_categories: "All categories",
     tx_filter_all: "All",
+    tx_period_all: "All",
+    tx_period_week: "7 days",
+    tx_period_month: "This month",
+    tx_period_3m: "3 months",
+    tx_period_year: "This year",
     tx_no_transactions: "No transactions yet",
     tx_export: "Export",
 
