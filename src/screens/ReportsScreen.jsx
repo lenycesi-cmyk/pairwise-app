@@ -327,7 +327,7 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
 
       <SpotlightHint tabKey="reports" targetRef={periodRowRef} text={t("hint_reports")} />
 
-      <div ref={periodRowRef} style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
+      <div ref={periodRowRef} style={{ position: "sticky", top: 0, zIndex: 30, background: "var(--bg)", marginLeft: "-1.25rem", marginRight: "-1.25rem", padding: "0.5rem 1.25rem", marginBottom: 12, display: "flex", gap: 6, flexWrap: "wrap" }}>
         {PERIOD_TYPES.map((p) => (
           <button
             key={p}
