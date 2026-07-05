@@ -381,7 +381,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                 <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center" }}>{t("widget_no_bank_accounts")}</p>
               </div>
             ) : (
-              <div style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "0.75rem 1.25rem" }}>
+              <div className="pw-card" data-accent="mint" style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "0.75rem 1.25rem" }}>
                 {bankAccounts.map((a, i) => (
                   <BreakdownRow key={a.id} color="var(--sage)" label={a.name} value={`${formatAmount(convert(a.value, a.currency, displayCurrency))} ${currencySymbol}`} last={i === bankAccounts.length - 1} />
                 ))}
@@ -537,7 +537,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                 </button>
               )}
             </div>
-            <div style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", overflow: "hidden" }}>
+            <div className="pw-card" data-accent="sky" style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", overflow: "hidden" }}>
               {recentTx.length === 0 ? (
                 <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", padding: "1.5rem 0" }}>{t("tx_no_transactions")}</p>
               ) : (
@@ -659,7 +659,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                 </div>
               </div>
             )}
-            <div style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", overflow: "hidden" }}>
+            <div className="pw-card" data-accent="pink" style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", overflow: "hidden" }}>
               {upcoming.length === 0 ? (
                 <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", padding: "1.5rem 0" }}>{t("widget_recurring_empty")}</p>
               ) : (

@@ -321,6 +321,8 @@ export default function TransactionsScreen({ onEdit }) {
                       height: 36,
                       borderRadius: "var(--radius-md)",
                       background: colors.bg,
+                      // Couleur pleine du chip au survol (voir .pw-chip-host)
+                      "--pw-chip": colors.text,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",

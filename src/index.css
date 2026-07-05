@@ -205,20 +205,28 @@ button[style*="background: var(--ink)"] {
 .pw-card[data-accent="amber"]::before { background: var(--amber); }
 .pw-card[data-accent="mint"]::before { background: var(--sage); }
 .pw-card[data-accent="pink"]::before { background: var(--blush); }
-.pw-card.pw-interactive {
-  cursor: pointer;
-}
-.pw-card.pw-interactive:active {
+.pw-card:active {
   transform: translateY(-1px);
 }
+/* Survol (desktop) : la carte monte, l'ombre grandit, la bordure prend la
+   couleur d'accent. !important pour battre le `border` défini en style inline. */
 @media (hover: hover) {
-  .pw-card.pw-interactive:hover {
+  .pw-card:hover {
     transform: translateY(-4px);
     box-shadow: var(--shadow-lg);
   }
+  .pw-card[data-accent="coral"]:hover { border-color: var(--tang) !important; }
+  .pw-card[data-accent="ocean"]:hover { border-color: var(--lavi) !important; }
+  .pw-card[data-accent="sky"]:hover { border-color: var(--sky) !important; }
+  .pw-card[data-accent="amber"]:hover { border-color: var(--amber) !important; }
+  .pw-card[data-accent="mint"]:hover { border-color: var(--sage) !important; }
+  .pw-card[data-accent="pink"]:hover { border-color: var(--blush) !important; }
 }
 
-/* Chip d'icône : petit carré teinté ; se remplit au survol de sa carte hôte. */
+/* Chip d'icône : petit carré/rond teinté qui se REMPLIT au survol de sa carte
+   hôte (fond plein + icône claire), comme le brand kit. La couleur pleine est
+   passée par la variable inline --pw-chip ; !important pour battre le style
+   inline (fond teinté / couleur d'icône) porté par le chip. */
 .pw-chip {
   display: inline-flex;
   align-items: center;
@@ -227,7 +235,11 @@ button[style*="background: var(--ink)"] {
 }
 @media (hover: hover) {
   .pw-chip-host:hover .pw-chip {
-    transform: scale(1.08);
+    transform: scale(1.06);
+    background: var(--pw-chip, var(--tang)) !important;
+  }
+  .pw-chip-host:hover .pw-chip i {
+    color: var(--bg) !important;
   }
 }
 
