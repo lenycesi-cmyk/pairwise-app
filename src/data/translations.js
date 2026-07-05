@@ -344,6 +344,7 @@ export const TRANSLATIONS = {
 
     // Reports
     reports_title: "Rapports",
+    reports_period_week: "Semaine",
     reports_period_month: "Mois",
     reports_period_quarter: "Trimestre",
     reports_period_year: "Année",
@@ -411,6 +412,7 @@ export const TRANSLATIONS = {
     widget_wealth_allocation: "Répartition du patrimoine",
     widget_reports_trend: "Revenus vs dépenses",
     widget_trend_this_month: "Ce mois",
+    widget_trend_this_week: "Cette sem.",
     widget_available_savings_label: "Liquidités en banque",
     widget_no_bank_accounts: "Aucun compte bancaire dans le Patrimoine",
     widget_net_worth_total: "Patrimoine total",
@@ -764,6 +766,7 @@ export const TRANSLATIONS = {
 
     // Reports
     reports_title: "Reports",
+    reports_period_week: "Week",
     reports_period_month: "Month",
     reports_period_quarter: "Quarter",
     reports_period_year: "Year",
@@ -831,6 +834,7 @@ export const TRANSLATIONS = {
     widget_wealth_allocation: "Wealth Allocation",
     widget_reports_trend: "Income vs Expenses",
     widget_trend_this_month: "This month",
+    widget_trend_this_week: "This week",
     widget_available_savings_label: "Cash in bank accounts",
     widget_no_bank_accounts: "No bank accounts in Wealth",
     widget_net_worth_total: "Total net worth",

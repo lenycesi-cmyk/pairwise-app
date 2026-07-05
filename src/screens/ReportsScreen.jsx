@@ -13,7 +13,7 @@ import { useMediaQuery } from "../hooks/useMediaQuery";
 import { tagColor } from "../utils/tags";
 import TagChip from "../components/TagChip";
 
-const PERIOD_TYPES = ["month", "quarter", "year", "last12", "custom"];
+const PERIOD_TYPES = ["week", "month", "quarter", "year", "last12", "custom"];
 
 // Same k-notation as the dashboard's IncomeExpenseTrendChart, so the
 // mobile Reports chart and the desktop widget read identically.
@@ -25,6 +25,16 @@ function formatAxisTick(v) {
 
 function getRange(periodType, anchor, customRange) {
   const y = anchor.getFullYear();
+  if (periodType === "week") {
+    // Fenêtre de 7 jours se terminant sur l'ancre (incluse).
+    const start = new Date(y, anchor.getMonth(), anchor.getDate() - 6);
+    const end = new Date(y, anchor.getMonth(), anchor.getDate() + 1);
+    return {
+      start,
+      end,
+      label: `${start.toLocaleDateString("fr-FR", { day: "numeric", month: "short" })} – ${anchor.toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}`,
+    };
+  }
   if (periodType === "month") {
     const m = anchor.getMonth();
     return {
@@ -70,7 +80,8 @@ function getRange(periodType, anchor, customRange) {
 
 function shiftAnchor(periodType, anchor, delta) {
   const d = new Date(anchor);
-  if (periodType === "month") d.setMonth(d.getMonth() + delta);
+  if (periodType === "week") d.setDate(d.getDate() + delta * 7);
+  else if (periodType === "month") d.setMonth(d.getMonth() + delta);
   else if (periodType === "quarter") d.setMonth(d.getMonth() + delta * 3);
   else d.setFullYear(d.getFullYear() + delta);
   return d;
@@ -218,7 +229,7 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
   const evolutionData = useMemo(() => {
     const buckets = new Map();
     let bucketKey, bucketLabel;
-    if (periodType === "month") {
+    if (periodType === "month" || periodType === "week") {
       bucketKey = (d) => d.getDate();
       bucketLabel = (d) => d.getDate().toString();
     } else {
@@ -239,7 +250,7 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
   const incomeExpenseData = useMemo(() => {
     const buckets = new Map();
     let bucketKey, bucketLabel;
-    if (periodType === "month") {
+    if (periodType === "month" || periodType === "week") {
       bucketKey = (d) => d.getDate();
       bucketLabel = (d) => d.getDate().toString();
     } else {
@@ -320,7 +331,7 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
         {PERIOD_TYPES.map((p) => (
           <button
             key={p}
-            onClick={() => setPeriodType(p)}
+            onClick={() => { setPeriodType(p); if (p === "week") setAnchorRaw(new Date()); }}
             style={{
               padding: "6px 12px",
               borderRadius: 99,
