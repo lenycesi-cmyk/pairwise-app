@@ -131,7 +131,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
   const customizeButtonRef = useRef(null);
   const currencyButtonRef = useRef(null);
   const [detailBudgetId, setDetailBudgetId] = useState(null);
-  const [trendMonths, setTrendMonths] = useState(6);
+  const [trendPeriod, setTrendPeriod] = useState(6);
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const isWide = useMediaQuery("(min-width: 1440px)");
   const summaryLabel = coupleName
@@ -202,26 +202,30 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
   // own income/expense chart, just always following the last N months
   // rather than Reports' arbitrary period picker.
   const trendData = useMemo(() => {
-    // trendMonths === 1 → "this month": daily buckets over the viewed
-    // month (same granularity as Reports' month view) instead of a
-    // single monthly bar.
-    if (trendMonths === 1) {
-      const byDay = new Map();
+    // "week" → buckets journaliers sur les 7 derniers jours (vue granulaire
+    // pour les profils dont revenus/dépenses sont étalés). Sinon buckets
+    // MENSUELS — jamais par jour sur un mois, car dominé par le jour de
+    // salaire/loyer (barres géantes) qui écrase tout le reste.
+    if (trendPeriod === "week") {
+      const today = new Date();
+      const buckets = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(today);
+        d.setDate(today.getDate() - i);
+        buckets.push({ key: d.toDateString(), label: d.toLocaleDateString("fr-FR", { weekday: "short" }), income: 0, expense: 0 });
+      }
       for (const tx of transactions) {
         if (tx.type !== "income" && tx.type !== "expense") continue;
-        const d = new Date(tx.date);
-        if (d.getMonth() !== viewMonth || d.getFullYear() !== viewYear) continue;
-        const day = d.getDate();
-        const bucket = byDay.get(day) || { label: String(day), income: 0, expense: 0 };
+        const bucket = buckets.find((b) => b.key === new Date(tx.date).toDateString());
+        if (!bucket) continue;
         const val = toBase(tx);
         if (tx.type === "income") bucket.income += val;
         else bucket.expense += val;
-        byDay.set(day, bucket);
       }
-      return [...byDay.entries()].sort((a, b) => a[0] - b[0]).map(([, b]) => b);
+      return buckets;
     }
     const buckets = [];
-    for (let i = trendMonths - 1; i >= 0; i--) {
+    for (let i = trendPeriod - 1; i >= 0; i--) {
       let m = viewMonth - i;
       let y = viewYear;
       while (m < 0) { m += 12; y -= 1; }
@@ -236,7 +240,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
       else if (tx.type === "expense") bucket.expense += val;
     }
     return buckets;
-  }, [transactions, viewMonth, viewYear, trendMonths, displayCurrency, convert]);
+  }, [transactions, viewMonth, viewYear, trendPeriod, displayCurrency, convert]);
 
   const memberTotals = useMemo(() => {
     const result = {};
@@ -719,21 +723,21 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
               <p style={{ fontSize: 13, fontWeight: 500 }}>{t("widget_reports_trend")}</p>
               {!editMode && (
                 <div style={{ display: "flex", gap: 4 }}>
-                  {[1, 3, 6, 12].map((n) => (
+                  {[{ k: "week", l: t("widget_trend_this_week") }, { k: 3, l: "3M" }, { k: 6, l: "6M" }, { k: 12, l: "12M" }].map((opt) => (
                     <button
-                      key={n}
-                      onClick={() => setTrendMonths(n)}
+                      key={opt.k}
+                      onClick={() => setTrendPeriod(opt.k)}
                       style={{
                         padding: "3px 8px",
                         borderRadius: 99,
-                        border: trendMonths === n ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
-                        background: trendMonths === n ? "var(--sky-light)" : "var(--bg)",
-                        color: trendMonths === n ? "var(--sky)" : "var(--ink-3)",
+                        border: trendPeriod === opt.k ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
+                        background: trendPeriod === opt.k ? "var(--sky-light)" : "var(--bg)",
+                        color: trendPeriod === opt.k ? "var(--sky)" : "var(--ink-3)",
                         fontSize: 11,
-                        fontWeight: trendMonths === n ? 500 : 400,
+                        fontWeight: trendPeriod === opt.k ? 500 : 400,
                       }}
                     >
-                      {n === 1 ? t("widget_trend_this_month") : `${n}M`}
+                      {opt.l}
                     </button>
                   ))}
                 </div>
