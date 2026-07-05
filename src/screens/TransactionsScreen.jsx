@@ -5,6 +5,8 @@ import { buildMemberColorMap } from "../utils/memberColors";
 import Avatar from "../components/Avatar";
 import { useTranslation } from "../hooks/useTranslation";
 import { getMemberKey } from "../utils/members";
+import { usedTags } from "../utils/tags";
+import TagChip from "../components/TagChip";
 
 const COLOR_MAP = {
   tang: { text: "var(--tang)", bg: "var(--tang-light)" },
@@ -24,9 +26,11 @@ export default function TransactionsScreen({ onEdit }) {
   const [searchText, setSearchText] = useState("");
   const [categoryFilter, setCategoryFilter] = useState(null);
   const [showCategoryFilter, setShowCategoryFilter] = useState(false);
+  const [tagFilter, setTagFilter] = useState(null);
   const [viewingReceipt, setViewingReceipt] = useState(null);
 
   const memberColorMap = useMemo(() => buildMemberColorMap(members), [members]);
+  const allTags = useMemo(() => usedTags(transactions), [transactions]);
 
   const filtered = useMemo(() => {
     let result = transactions;
@@ -36,15 +40,21 @@ export default function TransactionsScreen({ onEdit }) {
     if (categoryFilter) {
       result = result.filter((tx) => tx.categoryId === categoryFilter);
     }
+    if (tagFilter) {
+      result = result.filter((tx) => (tx.tags || []).includes(tagFilter));
+    }
     if (searchText.trim()) {
-      const q = searchText.trim().toLowerCase();
+      // "#tag" cible les tags ; sinon on cherche dans description/sous-catégorie/tags.
+      const raw = searchText.trim().toLowerCase();
+      const q = raw.replace(/^#/, "");
       result = result.filter((tx) =>
         (tx.description || "").toLowerCase().includes(q) ||
-        (tx.subcategory || "").toLowerCase().includes(q)
+        (tx.subcategory || "").toLowerCase().includes(q) ||
+        (tx.tags || []).some((tag) => tag.includes(q))
       );
     }
     return result;
-  }, [transactions, filter, categoryFilter, searchText]);
+  }, [transactions, filter, categoryFilter, tagFilter, searchText]);
 
   const grouped = useMemo(() => {
     const groups = {};
@@ -224,6 +234,33 @@ export default function TransactionsScreen({ onEdit }) {
         ))}
       </div>
 
+      {/* Filtre par tag — n'apparaît que si des tags existent dans l'historique */}
+      {allTags.length > 0 && (
+        <div style={{ display: "flex", gap: 6, marginBottom: 16, overflowX: "auto", paddingBottom: 2 }}>
+          {tagFilter && (
+            <button
+              onClick={() => setTagFilter(null)}
+              style={{
+                display: "flex", alignItems: "center", gap: 3, padding: "3px 9px",
+                borderRadius: 99, border: "0.5px solid var(--rule)", background: "var(--bg-card)",
+                color: "var(--ink-3)", fontSize: 12, whiteSpace: "nowrap", flexShrink: 0,
+              }}
+            >
+              <i className="ti ti-x" style={{ fontSize: 12 }} aria-hidden="true" />
+              {t("tx_filter_all")}
+            </button>
+          )}
+          {allTags.map((tag) => (
+            <TagChip
+              key={tag}
+              tag={tag}
+              active={tagFilter === tag}
+              onClick={() => setTagFilter(tagFilter === tag ? null : tag)}
+            />
+          ))}
+        </div>
+      )}
+
       {Object.keys(grouped).length === 0 && (
         <p style={{ fontSize: 14, color: "var(--ink-3)", textAlign: "center", padding: "3rem 0" }}>
           {t("tx_no_transactions")}
@@ -373,6 +410,22 @@ export default function TransactionsScreen({ onEdit }) {
                         </>
                       )}
                     </div>
+                    {tx.tags?.length > 0 && (
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 4 }}>
+                        {tx.tags.map((tag) => (
+                          <TagChip
+                            key={tag}
+                            tag={tag}
+                            size="sm"
+                            active={tagFilter === tag}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setTagFilter(tagFilter === tag ? null : tag);
+                            }}
+                          />
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <div style={{ textAlign: "right", flexShrink: 0 }}>
                     <p

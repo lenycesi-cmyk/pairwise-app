@@ -11,6 +11,8 @@ import AdvancedSplitSelector from "../components/AdvancedSplitSelector";
 import { getMemberKey } from "../utils/members";
 import { buildSuggestionIndex, getSuggestions, findExactMatch } from "../utils/descriptionSuggestions";
 import TransactionComments from "../components/TransactionComments";
+import TagInput from "../components/TagInput";
+import { dedupeTags, extractTagsFromText } from "../utils/tags";
 
 function todayISO() {
   const d = new Date();
@@ -57,6 +59,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
   const [subcategory, setSubcategory] = useState(editingTx?.subcategory || null);
   const [showCatPicker, setShowCatPicker] = useState(false);
   const [description, setDescription] = useState(editingTx?.description || "");
+  const [tags, setTags] = useState(editingTx?.tags || []);
   const [paidBy, setPaidBy] = useState(editingTx?.paidBy || user?.uid);
   const [split, setSplit] = useState(editingTx?.split || "50/50");
   const [splitMode, setSplitMode] = useState(editingTx?.splitDetails ? "advanced" : "simple");
@@ -213,6 +216,8 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
         categoryId,
         subcategory,
         description: description || selectedCategory?.name,
+        // Tags explicites (chips) + #hashtags éventuellement tapés dans la description
+        tags: dedupeTags([...tags, ...extractTagsFromText(description)]),
         paidBy,
         split: type === "expense" || needsMemberAttribution ? split : "100",
         splitDetails: splitMode === "advanced" ? splitDetails : null,
@@ -443,6 +448,20 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
               })}
             </div>
           )}
+        </div>
+
+        {/* Tags — étiquettes libres transversales aux catégories (#inutile, #yolo...) */}
+        <div
+          style={{
+            background: "var(--bg-card)",
+            borderRadius: "var(--radius-lg)",
+            border: "0.5px solid var(--rule)",
+            padding: "1rem 1.25rem",
+            marginBottom: 12,
+          }}
+        >
+          <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>{t("tx_tags")}</p>
+          <TagInput value={tags} onChange={setTags} />
         </div>
 
         {/* Date */}
