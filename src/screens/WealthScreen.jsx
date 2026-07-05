@@ -229,6 +229,8 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef }) {
           CSS Grid's gridColumn. */}
       <div
         ref={netWorthCardRef}
+        className="pw-card"
+        data-accent="ocean"
         style={{
           background: "var(--bg-card)",
           borderRadius: "var(--radius-lg)",
