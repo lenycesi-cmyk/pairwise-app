@@ -1,0 +1,162 @@
+import { useState } from "react";
+import { useHealthScore } from "../hooks/useHealthScore";
+import { useTranslation } from "../hooks/useTranslation";
+
+const BAND_COLOR = {
+  great: "var(--sage)",
+  good: "var(--sky)",
+  watch: "var(--amber)",
+  fragile: "var(--red)",
+};
+
+const PILLAR_EMOJI = {
+  savings: "💰",
+  budgets: "🎯",
+  balance: "⚖️",
+  emergency: "🛟",
+  recurring: "🔁",
+};
+
+// Point sur un demi-arc (0 = gauche, 100 = droite), y vers le bas en SVG.
+function pointOnArc(cx, cy, r, value) {
+  const theta = Math.PI - (value / 100) * Math.PI;
+  return { x: cx + r * Math.cos(theta), y: cy - r * Math.sin(theta) };
+}
+
+function arcPath(cx, cy, r, from, to) {
+  const a = pointOnArc(cx, cy, r, from);
+  const b = pointOnArc(cx, cy, r, to);
+  const largeArc = to - from > 50 ? 1 : 0;
+  return `M ${a.x} ${a.y} A ${r} ${r} 0 ${largeArc} 1 ${b.x} ${b.y}`;
+}
+
+export default function HealthScoreWidget({ displayCurrency }) {
+  const t = useTranslation();
+  const { score, band, pillars, hasData } = useHealthScore(displayCurrency);
+  const [open, setOpen] = useState(false);
+
+  const label = <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>{t("health_title")}</p>;
+
+  if (!hasData) {
+    return (
+      <div>
+        {label}
+        <div style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "1.25rem" }}>
+          <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center" }}>{t("health_empty")}</p>
+        </div>
+      </div>
+    );
+  }
+
+  const color = BAND_COLOR[band];
+  const W = 220, H = 124, cx = W / 2, cy = 112, r = 92;
+  const needle = pointOnArc(cx, cy, r - 14, score);
+
+  return (
+    <div>
+      {label}
+      <div style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "1rem 1.25rem" }}>
+        {/* Jauge demi-arc */}
+        <div style={{ display: "flex", justifyContent: "center" }}>
+          <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`${score}/100`}>
+            <path d={arcPath(cx, cy, r, 0, 100)} fill="none" stroke="var(--rule)" strokeWidth={12} strokeLinecap="round" />
+            <path d={arcPath(cx, cy, r, 0, Math.max(score, 0.5))} fill="none" stroke={color} strokeWidth={12} strokeLinecap="round" />
+            <line x1={cx} y1={cy} x2={needle.x} y2={needle.y} stroke={color} strokeWidth={3} strokeLinecap="round" />
+            <circle cx={cx} cy={cy} r={5} fill={color} />
+            <text x={cx} y={cy - 30} textAnchor="middle" fontSize={34} fontWeight="700" fill={color}>{score}</text>
+            <text x={cx} y={cy - 12} textAnchor="middle" fontSize={11} fill="var(--ink-3)">/ 100</text>
+          </svg>
+        </div>
+        <p style={{ textAlign: "center", fontSize: 14, fontWeight: 600, color, marginTop: -4 }}>
+          {t(`health_band_${band}`)}
+        </p>
+
+        {/* Mini-pastilles par pilier */}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "center", marginTop: 12 }}>
+          {pillars.map((p) => (
+            <span
+              key={p.key}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 4,
+                padding: "3px 9px", borderRadius: 99, fontSize: 11.5,
+                background: "var(--bg)", border: `0.5px solid ${BAND_COLOR[p.band]}`,
+                color: BAND_COLOR[p.band],
+              }}
+            >
+              {PILLAR_EMOJI[p.key]} {Math.round(p.score)}
+            </span>
+          ))}
+        </div>
+
+        <button
+          onClick={() => setOpen((v) => !v)}
+          style={{ display: "flex", alignItems: "center", gap: 4, margin: "12px auto 0", background: "none", border: "none", color: "var(--sky)", fontSize: 12 }}
+        >
+          {open ? t("health_hide") : t("health_why")}
+          <i className={`ti ${open ? "ti-chevron-up" : "ti-chevron-down"}`} style={{ fontSize: 12 }} aria-hidden="true" />
+        </button>
+
+        {open && (
+          <div style={{ marginTop: 10, borderTop: "0.5px solid var(--rule)", paddingTop: 10, display: "flex", flexDirection: "column", gap: 12 }}>
+            {pillars.map((p) => (
+              <PillarRow key={p.key} pillar={p} t={t} />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function pct(x) {
+  return `${Math.round(x * 100)}%`;
+}
+
+function PillarRow({ pillar, t }) {
+  const { key, score, band, detail, effectiveWeight } = pillar;
+  const color = BAND_COLOR[band];
+
+  let explain = "";
+  let action = "";
+  if (key === "savings") {
+    explain = t("health_savings_explain").replace("{rate}", pct(detail.savingsRate));
+    if (score < 70) action = t("health_savings_action");
+  } else if (key === "budgets") {
+    explain = detail.overCount === 0
+      ? t("health_budgets_explain_ok")
+      : t("health_budgets_explain").replace("{over}", detail.overCount).replace("{count}", detail.count);
+    if (score < 70) action = t("health_budgets_action");
+  } else if (key === "balance") {
+    explain = t("health_balance_explain")
+      .replace("{essential}", pct(detail.shares.essential))
+      .replace("{fun}", pct(detail.shares.fun))
+      .replace("{investment}", pct(detail.shares.investment));
+    if (score < 70) action = t("health_balance_action");
+  } else if (key === "emergency") {
+    const months = t("health_months").replace("{n}", detail.months.toFixed(1));
+    explain = t("health_emergency_explain").replace("{months}", months);
+    if (score < 70) action = t("health_emergency_action");
+  } else if (key === "recurring") {
+    explain = t("health_recurring_explain").replace("{ratio}", pct(detail.ratio));
+    if (score < 70) action = t("health_recurring_action");
+  }
+
+  return (
+    <div style={{ display: "flex", gap: 10 }}>
+      <span style={{ fontSize: 18, flexShrink: 0, lineHeight: "20px" }}>{PILLAR_EMOJI[key]}</span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
+          <span style={{ fontSize: 13, fontWeight: 500 }}>{t(`health_pillar_${key}`)}</span>
+          <span style={{ fontSize: 12, fontWeight: 600, color }}>{Math.round(score)}<span style={{ color: "var(--ink-3)", fontWeight: 400 }}> · {effectiveWeight}%</span></span>
+        </div>
+        <p style={{ fontSize: 12, color: "var(--ink-2)", marginTop: 2 }}>{explain}</p>
+        {action && (
+          <p style={{ fontSize: 11.5, color: "var(--sky)", marginTop: 3, display: "flex", alignItems: "flex-start", gap: 4 }}>
+            <i className="ti ti-bulb" style={{ fontSize: 13, flexShrink: 0, marginTop: 1 }} aria-hidden="true" />
+            {action}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
