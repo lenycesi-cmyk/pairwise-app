@@ -119,10 +119,6 @@ select {
     display: flex;
     justify-content: center;
   }
-  #root {
-    border-left: 1px solid var(--rule);
-    border-right: 1px solid var(--rule);
-  }
 }
 
 ::-webkit-scrollbar {
