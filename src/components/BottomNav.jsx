@@ -32,6 +32,7 @@ export default function BottomNav({ active, onChange, onAddClick, addButtonRef, 
             key={tab.key}
             onClick={() => onChange(tab.key)}
             className="bottom-nav-tab"
+            data-active={isActive ? "true" : "false"}
             style={{ color: isActive ? "var(--ink)" : "var(--ink-3)" }}
           >
             <i className={`ti ${tab.icon}`} style={{ fontSize: 20 }} aria-hidden="true" />
