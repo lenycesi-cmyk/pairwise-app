@@ -254,7 +254,7 @@ export default function BudgetScreen({ openSignal }) {
 
   return (
     <div style={{ padding: "1.5rem 1.25rem 6rem" }}>
-      <div style={{ display: "flex", alignItems: "center", marginBottom: 16 }}>
+      <div style={{ position: "sticky", top: 0, zIndex: 30, background: "var(--bg)", marginLeft: "-1.25rem", marginRight: "-1.25rem", padding: "0.4rem 1.25rem", marginBottom: 8, display: "flex", alignItems: "center" }}>
         <h1 style={{ fontSize: 20, marginLeft: 44, flex: 1 }}>
           {showForm
             ? editingId

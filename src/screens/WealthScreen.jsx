@@ -175,7 +175,7 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef }) {
 
   return (
     <div style={{ padding: "1.5rem 1.25rem 6rem" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+      <div style={{ position: "sticky", top: 0, zIndex: 30, background: "var(--bg)", marginLeft: "-1.25rem", marginRight: "-1.25rem", padding: "0.4rem 1.25rem", marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h1 style={{ fontSize: 20, marginLeft: 44 }}>{t("wealth_title")}</h1>
         <button
           onClick={() => setShowCurrencyPicker(!showCurrencyPicker)}
@@ -223,10 +223,10 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef }) {
         </div>
       )}
 
-      {/* Net worth total — kept full-width above the masonry columns below
-          rather than as a column item, since it's the hero metric and CSS
-          multi-column layout has no "span all columns" equivalent to
-          CSS Grid's gridColumn. */}
+      <div className={isDesktop ? "card-columns" : ""}>
+
+      {/* Net worth total — column item so its width matches the other cards
+          on desktop (was previously full-width above the masonry). */}
       <div
         ref={netWorthCardRef}
         className="pw-card"
@@ -285,8 +285,6 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef }) {
           </div>
         )}
       </div>
-
-      <div className={isDesktop ? "card-columns" : ""}>
 
       {/* Net worth chart */}
       {netWorthHistory.length > 1 && (
