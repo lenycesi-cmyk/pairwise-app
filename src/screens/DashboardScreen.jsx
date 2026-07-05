@@ -39,6 +39,7 @@ import { useMediaQuery } from "../hooks/useMediaQuery";
 // never see these widgets, never pay for the recharts chunk either.
 const AllocationChart = lazy(() => import("../components/AllocationChart"));
 const IncomeExpenseTrendChart = lazy(() => import("../components/IncomeExpenseTrendChart"));
+const HealthScoreWidget = lazy(() => import("../components/HealthScoreWidget"));
 
 // Widgets that only make sense with more screen room — hidden entirely on
 // mobile (not offered in the customize picker there either), shown by
@@ -330,6 +331,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
   // ── Widget labels ──────────────────────────────────────────────────────────
   const WIDGET_LABELS = {
     net_balance: summaryLabel,
+    health_score: t("health_title"),
     available_savings: t("widget_available_savings"),
     budget_tracking: t("widget_budget_tracking"),
     member_breakdown: t("widget_member_breakdown"),
@@ -361,6 +363,13 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
               <BreakdownRow color="var(--lavi)" label={t("dashboard_invested")} value={`${formatAmount(totals.invested)} ${currencySymbol}`} last />
             </div>
           </div>
+        );
+
+      case "health_score":
+        return (
+          <Suspense fallback={<div className="skeleton" style={{ height: 220 }} />}>
+            <HealthScoreWidget displayCurrency={displayCurrency} />
+          </Suspense>
         );
 
       case "available_savings":

@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext";
 
 export const DEFAULT_WIDGETS = [
   { id: "net_balance", visible: true },
+  { id: "health_score", visible: true },
   { id: "available_savings", visible: true },
   { id: "budget_tracking", visible: true },
   { id: "member_breakdown", visible: true },
