@@ -55,7 +55,7 @@ export default function HealthScoreWidget({ displayCurrency }) {
   return (
     <div>
       {label}
-      <div style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "1rem 1.25rem" }}>
+      <div className="pw-card" data-accent="coral" style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "1rem 1.25rem" }}>
         {/* Jauge demi-arc */}
         <div style={{ display: "flex", justifyContent: "center" }}>
           <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`${score}/100`}>

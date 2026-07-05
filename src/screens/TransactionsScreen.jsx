@@ -297,6 +297,7 @@ export default function TransactionsScreen({ onEdit }) {
               return (
                 <div
                   key={tx.id}
+                  className="pw-chip-host"
                   onClick={() => onEdit(tx)}
                   style={{
                     display: "flex",
@@ -308,6 +309,7 @@ export default function TransactionsScreen({ onEdit }) {
                   }}
                 >
                   <div
+                    className="pw-chip"
                     onClick={(e) => {
                       if (tx.receiptURL) {
                         e.stopPropagation();

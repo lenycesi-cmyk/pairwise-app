@@ -351,7 +351,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
         return (
           <div>
             <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>{summaryLabel}</p>
-            <div style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "1rem 1.25rem" }}>
+            <div className="pw-card" data-accent="mint" style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "1rem 1.25rem" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12 }}>
                 <p style={{ fontSize: 12, color: "var(--ink-3)" }}>{t("dashboard_net_balance")}</p>
                 <p style={{ fontSize: 18, fontWeight: 600, color: totals.net >= 0 ? "var(--sage)" : "var(--tang)" }}>
@@ -398,7 +398,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
         return (
           <div>
             <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>{t("dashboard_budget_progress")}</p>
-            <div style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "0.75rem 1.25rem" }}>
+            <div className="pw-card" data-accent="amber" style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "0.75rem 1.25rem" }}>
               {topBudgets.length === 0 ? (
                 <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", padding: "0.75rem 0" }}>{t("widget_budget_empty")}</p>
               ) : topBudgets.map(({ budget, pct, scopedTx, amountInBase, projected, projectedOver }, i) => {
@@ -512,7 +512,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                 <p style={{ fontSize: 11, color: "var(--ink-3)" }}>{t("dashboard_tap_category")}</p>
               )}
             </div>
-            <div style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "0.5rem 1.25rem" }}>
+            <div className="pw-card" data-accent="coral" style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "0.5rem 1.25rem" }}>
               {Object.keys(categoryTotals).length === 0 ? (
                 <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", padding: "1.5rem 0" }}>{t("dashboard_no_expenses")}</p>
               ) : (
@@ -569,7 +569,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
         return (
           <div>
             <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>{t("widget_net_worth_total")}</p>
-            <div style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "1rem 1.25rem" }}>
+            <div className="pw-card" data-accent="ocean" style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "1rem 1.25rem" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: members.length > 0 ? 12 : 0 }}>
                 <span style={{ fontSize: 12, color: "var(--ink-3)" }}>{t("wealth_net_worth")}</span>
                 <span style={{ fontSize: 18, fontWeight: 700, color: netWorth >= 0 ? "var(--sage)" : "var(--tang)" }}>

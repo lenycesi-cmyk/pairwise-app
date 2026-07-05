@@ -62,10 +62,10 @@
      only needs to override it here. */
   --app-shell-width: 480px;
 
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 18px;
-  --radius-xl: 24px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
 
   --shadow: 0 2px 24px rgba(26, 26, 24, 0.06);
   --shadow-lg: 0 8px 40px rgba(26, 26, 24, 0.14);
@@ -144,6 +144,96 @@ select {
   100% {
     background-position: 0 50%;
   }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   PairWise design system (porté du brand kit v0)
+   Cartes aérées à ombre douce + barre d'accent colorée, chips d'icône,
+   boutons pilule avec press tactile, et micro-animations au survol/tap.
+   ───────────────────────────────────────────────────────────────────────── */
+
+/* Feedback tactile universel : chaque bouton réagit au survol et au tap. */
+button {
+  transition: transform 0.14s ease, filter 0.15s ease, box-shadow 0.2s ease,
+    background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+button:active {
+  transform: scale(0.97);
+}
+@media (hover: hover) {
+  button:hover {
+    filter: brightness(1.02);
+  }
+}
+
+/* Ombre douce + transition sur toutes les cartes existantes (motif inline
+   background:var(--bg-card) + border:var(--rule)) — sans refactor global. */
+[style*="--bg-card"][style*="--rule"] {
+  box-shadow: var(--shadow);
+  transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+}
+
+/* Carte "brandée" : coins ronds, ombre, barre d'accent colorée optionnelle. */
+.pw-card {
+  position: relative;
+  overflow: hidden;
+  background: var(--bg-card);
+  border: 0.5px solid var(--rule);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.pw-card[data-accent]::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 5px;
+}
+.pw-card[data-accent="coral"]::before { background: var(--tang); }
+.pw-card[data-accent="ocean"]::before { background: var(--lavi); }
+.pw-card[data-accent="sky"]::before { background: var(--sky); }
+.pw-card[data-accent="amber"]::before { background: var(--amber); }
+.pw-card[data-accent="mint"]::before { background: var(--sage); }
+.pw-card[data-accent="pink"]::before { background: var(--blush); }
+.pw-card.pw-interactive {
+  cursor: pointer;
+}
+.pw-card.pw-interactive:active {
+  transform: translateY(-1px);
+}
+@media (hover: hover) {
+  .pw-card.pw-interactive:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+  }
+}
+
+/* Chip d'icône : petit carré teinté ; se remplit au survol de sa carte hôte. */
+.pw-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+}
+@media (hover: hover) {
+  .pw-chip-host:hover .pw-chip {
+    transform: scale(1.08);
+  }
+}
+
+/* Badge / pilule brandé. */
+.pw-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 999px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  line-height: 1;
+  padding: 4px 10px;
+  font-size: 12px;
 }
 
 @media (prefers-reduced-motion: reduce) {
