@@ -10,6 +10,8 @@ import { useTranslation } from "../hooks/useTranslation";
 import SpotlightHint from "../components/SpotlightHint";
 import { getMemberKey } from "../utils/members";
 import { useMediaQuery } from "../hooks/useMediaQuery";
+import { tagColor } from "../utils/tags";
+import TagChip from "../components/TagChip";
 
 const PERIOD_TYPES = ["month", "quarter", "year", "last12", "custom"];
 
@@ -194,6 +196,24 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
   }, [periodTx, categories, displayCurrency, convert]);
 
   const maxCatTotal = Math.max(1, ...Object.values(categoryTotals).map((c) => c.total));
+
+  // Dépenses par tag sur la période — une transaction peut porter plusieurs
+  // tags, son montant est compté pour chacun (les totaux par tag peuvent donc
+  // dépasser le total des dépenses, c'est attendu).
+  const tagTotals = useMemo(() => {
+    const totals = new Map();
+    for (const tx of periodTx) {
+      if (tx.type !== "expense") continue;
+      for (const tag of tx.tags || []) {
+        totals.set(tag, (totals.get(tag) || 0) + toBase(tx));
+      }
+    }
+    return [...totals.entries()]
+      .map(([tag, total]) => ({ tag, total }))
+      .sort((a, b) => b.total - a.total);
+  }, [periodTx, displayCurrency, convert]);
+
+  const maxTagTotal = Math.max(1, ...tagTotals.map((t) => t.total));
 
   const evolutionData = useMemo(() => {
     const buckets = new Map();
@@ -588,6 +608,36 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
                   <p style={{ fontSize: 14, fontWeight: 500, color: "var(--tang)" }}>
                     {formatAmount(mt.expense)} {currencySymbol}
                   </p>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {tagTotals.length > 0 && (
+        <>
+          <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>{t("reports_by_tag")}</p>
+          <div
+            style={{
+              background: "var(--bg-card)",
+              borderRadius: "var(--radius-lg)",
+              border: "0.5px solid var(--rule)",
+              padding: "0.75rem 1.25rem",
+              marginBottom: 20,
+            }}
+          >
+            {tagTotals.map(({ tag, total }, i) => {
+              const color = tagColor(tag);
+              return (
+                <div key={tag} style={{ marginBottom: i === tagTotals.length - 1 ? 0 : 12 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                    <TagChip tag={tag} size="sm" />
+                    <span style={{ fontSize: 13, fontWeight: 500 }}>{formatAmount(total)} {currencySymbol}</span>
+                  </div>
+                  <div style={{ height: 6, borderRadius: 3, background: "var(--rule)", overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: `${(total / maxTagTotal) * 100}%`, background: `var(--${color})`, borderRadius: 3 }} />
+                  </div>
                 </div>
               );
             })}
