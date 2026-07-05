@@ -239,6 +239,7 @@ function AppContent() {
         onAddClick={handleCentralAdd}
         addButtonRef={addButtonRef}
         onSettingsClick={() => setShowSettings(true)}
+        settingsOpen={showSettings}
       />
 
       <Suspense fallback={null}>

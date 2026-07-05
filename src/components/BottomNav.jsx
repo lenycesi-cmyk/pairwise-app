@@ -1,6 +1,6 @@
 import { useTranslation } from "../hooks/useTranslation";
 
-export default function BottomNav({ active, onChange, onAddClick, addButtonRef, onSettingsClick }) {
+export default function BottomNav({ active, onChange, onAddClick, addButtonRef, onSettingsClick, settingsOpen }) {
   const t = useTranslation();
   const tabs = [
     { key: "dashboard", icon: "ti-home", label: t("nav_home") },
@@ -15,18 +15,22 @@ export default function BottomNav({ active, onChange, onAddClick, addButtonRef, 
       {tabs.map((tab) => {
         if (tab.key === "add") {
           return (
-            <button
-              key={tab.key}
-              ref={addButtonRef}
-              onClick={() => onAddClick(active)}
-              aria-label="Ajouter"
-              className="bottom-nav-add"
-            >
-              <i className="ti ti-plus" style={{ fontSize: 22, color: "white" }} aria-hidden="true" />
-            </button>
+            <div key={tab.key} className="bottom-nav-addcol">
+              <button
+                ref={addButtonRef}
+                onClick={() => onAddClick(active)}
+                aria-label={t("nav_add")}
+                className="bottom-nav-add"
+              >
+                <i className="ti ti-plus" style={{ fontSize: 22, color: "white" }} aria-hidden="true" />
+              </button>
+              <span className="bottom-nav-addlabel">{t("nav_add")}</span>
+            </div>
           );
         }
-        const isActive = active === tab.key;
+        // Quand Settings est ouvert, aucun onglet de page n'est actif (c'est
+        // Settings qui l'est) ; on réactive l'onglet courant à la fermeture.
+        const isActive = active === tab.key && !settingsOpen;
         return (
           <button
             key={tab.key}
@@ -46,7 +50,8 @@ export default function BottomNav({ active, onChange, onAddClick, addButtonRef, 
         onClick={onSettingsClick}
         aria-label={t("nav_settings")}
         className="bottom-nav-tab bottom-nav-settings"
-        style={{ color: "var(--ink-3)" }}
+        data-active={settingsOpen ? "true" : "false"}
+        style={{ color: settingsOpen ? "var(--ink)" : "var(--ink-3)" }}
       >
         <i className="ti ti-settings" style={{ fontSize: 20 }} aria-hidden="true" />
         <span style={{ fontSize: 10 }}>{t("nav_settings")}</span>
