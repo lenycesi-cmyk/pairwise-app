@@ -89,7 +89,32 @@ async function main() {
     token,
     "POST",
     `https://firebasehosting.googleapis.com/v1beta1/sites/${SITE_ID}/versions`,
-    { config: { rewrites: [{ glob: "**", path: "/index.html" }] } }
+    {
+      config: {
+        rewrites: [{ glob: "**", path: "/index.html" }],
+        // Cache : index.html / SW / manifest jamais mis en cache (pour que
+        // chaque déploiement soit visible immédiatement), assets hashés par
+        // Vite mis en cache un an (immuables, le hash change à chaque build).
+        headers: [
+          {
+            glob: "/index.html",
+            headers: { "Cache-Control": "no-cache, no-store, must-revalidate" },
+          },
+          {
+            glob: "/firebase-messaging-sw.js",
+            headers: { "Cache-Control": "no-cache, no-store, must-revalidate" },
+          },
+          {
+            glob: "/manifest.json",
+            headers: { "Cache-Control": "no-cache" },
+          },
+          {
+            glob: "/assets/**",
+            headers: { "Cache-Control": "public, max-age=31536000, immutable" },
+          },
+        ],
+      },
+    }
   );
   const versionName = version.name;
   console.log("Version:", versionName);
