@@ -49,6 +49,7 @@ export const TRANSLATIONS = {
 
     // Navigation
     nav_home: "Accueil",
+    nav_add: "Ajouter",
     nav_history: "Historique",
     nav_wealth: "Patrimoine",
     nav_settings: "Réglages",
@@ -466,6 +467,7 @@ export const TRANSLATIONS = {
 
     // Navigation
     nav_home: "Home",
+    nav_add: "Add",
     nav_history: "History",
     nav_wealth: "Wealth",
     nav_settings: "Settings",
