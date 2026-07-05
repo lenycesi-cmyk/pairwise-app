@@ -135,6 +135,8 @@ export default function MemberBreakdownScreen({ onClose }) {
         </div>
 
         <div
+          className="pw-card"
+          data-accent="ocean"
           style={{
             background: "var(--bg-card)",
             borderRadius: "var(--radius-lg)",

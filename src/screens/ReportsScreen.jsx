@@ -405,6 +405,8 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
       {/* Summary card — kept full-width above the masonry columns below,
           same reasoning as WealthScreen's net worth card. */}
       <div
+        className="pw-card"
+        data-accent="coral"
         style={{
           background: "var(--bg-card)",
           borderRadius: "var(--radius-lg)",

@@ -286,6 +286,8 @@ export default function BudgetScreen({ openSignal }) {
 
       {showForm && quickMode === null && (
         <div
+          className="pw-card"
+          data-accent="amber"
           style={{
             background: "var(--bg-card)",
             borderRadius: "var(--radius-lg)",

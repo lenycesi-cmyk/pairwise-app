@@ -125,6 +125,8 @@ export default function InvestmentCalculatorScreen({ onClose }) {
 
         {/* Période */}
         <div
+          className="pw-card"
+          data-accent="mint"
           style={{
             background: "var(--bg-card)",
             borderRadius: "var(--radius-lg)",

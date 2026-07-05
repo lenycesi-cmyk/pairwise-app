@@ -158,7 +158,15 @@ button {
     background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 button:active {
-  transform: scale(0.97);
+  transform: scale(0.96);
+}
+
+/* CTA principaux : coral façon brand kit (au lieu du sombre --ink). Ne cible
+   que les boutons à fond --ink ; sans effet — donc sans risque — si un bouton
+   n'utilise pas ce fond. Les infobulles/badges (des <div>) ne sont pas touchés. */
+button[style*="background: var(--ink)"] {
+  background: var(--tang) !important;
+  color: var(--bg) !important;
 }
 @media (hover: hover) {
   button:hover {

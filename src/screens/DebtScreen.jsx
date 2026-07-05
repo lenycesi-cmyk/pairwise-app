@@ -134,6 +134,8 @@ export default function DebtScreen() {
       )}
 
       <div
+        className="pw-card"
+        data-accent="pink"
         style={{
           background: "var(--bg-card)",
           borderRadius: "var(--radius-lg)",
