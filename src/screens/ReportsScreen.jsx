@@ -323,11 +323,10 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
 
   return (
     <div style={{ padding: "1.5rem 1.25rem 6rem" }}>
-      <h1 style={{ fontSize: 20, marginBottom: 16, marginLeft: 44 }}>{t("reports_title")}</h1>
-
-      <SpotlightHint tabKey="reports" targetRef={periodRowRef} text={t("hint_reports")} />
-
-      <div ref={periodRowRef} style={{ position: "sticky", top: 0, zIndex: 30, background: "var(--bg)", marginLeft: "-1.25rem", marginRight: "-1.25rem", padding: "0.5rem 1.25rem", marginBottom: 12, display: "flex", gap: 6, flexWrap: "wrap" }}>
+      {/* En-tête collant : titre + filtres temporels, alignés à gauche. */}
+      <div style={{ position: "sticky", top: 0, zIndex: 30, background: "var(--bg)", marginLeft: "-1.25rem", marginRight: "-1.25rem", padding: "0.5rem 1.25rem 0.6rem", marginBottom: 12 }}>
+        <h1 style={{ fontSize: 20, marginBottom: 10, marginLeft: isDesktop ? 0 : 44 }}>{t("reports_title")}</h1>
+        <div ref={periodRowRef} style={{ display: "flex", gap: 6, flexWrap: "wrap", marginLeft: isDesktop ? 0 : 44 }}>
         {PERIOD_TYPES.map((p) => (
           <button
             key={p}
@@ -345,7 +344,10 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
             {t(`reports_period_${p}`)}
           </button>
         ))}
+        </div>
       </div>
+
+      <SpotlightHint tabKey="reports" targetRef={periodRowRef} text={t("hint_reports")} />
 
       {periodType === "custom" && (
         <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
@@ -380,15 +382,9 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
         </div>
       )}
 
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: 16,
-        }}
-      >
-        {periodType !== "last12" && periodType !== "custom" ? (
+      {/* Navigation de période compacte (flèches rapprochées, centrées). */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 16 }}>
+        {periodType !== "last12" && periodType !== "custom" && (
           <button
             onClick={() => setAnchor(shiftAnchor(periodType, anchor, -1))}
             aria-label="Période précédente"
@@ -396,11 +392,9 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
           >
             <i className="ti ti-chevron-left" style={{ fontSize: 16 }} aria-hidden="true" />
           </button>
-        ) : (
-          <div style={{ width: 30 }} />
         )}
-        <p style={{ fontSize: 15, fontWeight: 500, textTransform: "capitalize" }}>{range.label}</p>
-        {periodType !== "last12" && periodType !== "custom" ? (
+        <p style={{ fontSize: 15, fontWeight: 500, textTransform: "capitalize", textAlign: "center", minWidth: 120 }}>{range.label}</p>
+        {periodType !== "last12" && periodType !== "custom" && (
           <button
             onClick={() => setAnchor(shiftAnchor(periodType, anchor, 1))}
             aria-label="Période suivante"
@@ -408,67 +402,35 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
           >
             <i className="ti ti-chevron-right" style={{ fontSize: 16 }} aria-hidden="true" />
           </button>
-        ) : (
-          <div style={{ width: 30 }} />
-        )}
-      </div>
-
-      {/* Summary card — kept full-width above the masonry columns below,
-          same reasoning as WealthScreen's net worth card. */}
-      <div
-        className="pw-card"
-        data-accent="coral"
-        style={{
-          background: "var(--bg-card)",
-          borderRadius: "var(--radius-lg)",
-          border: "0.5px solid var(--rule)",
-          padding: "1rem 1.25rem",
-          marginBottom: 20,
-        }}
-      >
-        <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 4 }}>
-          {t("dashboard_expenses")}
-        </p>
-        <p style={{ fontSize: 26, fontWeight: 500, color: "var(--tang)" }}>
-          {formatAmount(totalExpense)} {currencySymbol}
-        </p>
-        {expenseDiffPct !== null && (
-          <p
-            style={{
-              fontSize: 12,
-              marginTop: 4,
-              color: expenseDiffPct <= 0 ? "var(--sage)" : "var(--tang)",
-            }}
-          >
-            {expenseDiffPct >= 0 ? "+" : ""}
-            {expenseDiffPct.toFixed(1)}% <span style={{ color: "var(--ink-3)" }}>{t("reports_vs_previous")}</span>
-          </p>
         )}
       </div>
 
       <div className={isDesktop ? "card-columns" : ""}>
 
-      {/* This period vs previous period comparison */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 20 }}>
-        {[
-          { label: t("dashboard_income"), current: totalIncome, prev: prevTotalIncome, diff: incomeDiffPct, color: "var(--sage)" },
-          { label: t("dashboard_expenses"), current: totalExpense, prev: prevTotalExpense, diff: expenseDiffPct, color: "var(--tang)", invert: true },
-        ].map(({ label, current, prev, diff, color, invert }) => (
-          <div key={label} style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "12px 14px" }}>
-            <p style={{ fontSize: 11, color: "var(--ink-3)", marginBottom: 4 }}>{label}</p>
-            <p style={{ fontSize: 16, fontWeight: 500, color }}>{formatAmount(current)} {currencySymbol}</p>
-            {diff !== null && (
-              <p style={{ fontSize: 11, marginTop: 3, color: (invert ? diff <= 0 : diff >= 0) ? "var(--sage)" : "var(--tang)" }}>
-                {diff >= 0 ? "+" : ""}{diff.toFixed(1)}% <span style={{ color: "var(--ink-3)" }}>{t("reports_vs_previous")}</span>
-              </p>
-            )}
-            {prev > 0 && (
-              <p style={{ fontSize: 10, color: "var(--ink-3)", marginTop: 2 }}>
-                {t("reports_previous")}: {formatAmount(prev)} {currencySymbol}
-              </p>
-            )}
-          </div>
-        ))}
+      {/* Total revenus & dépenses sur la période — même largeur que les autres
+          cartes (dans la grille). Remplace les anciennes cartes redondantes. */}
+      <div className="pw-card" data-accent="coral" style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "1rem 1.25rem", marginBottom: 20 }}>
+        <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 12 }}>{t("reports_totals_title")}</p>
+
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+          <span style={{ fontSize: 12, color: "var(--ink-2)" }}>{t("dashboard_income")}</span>
+          <span style={{ fontSize: 18, fontWeight: 600, color: "var(--sage)" }}>{formatAmount(totalIncome)} {currencySymbol}</span>
+        </div>
+        {incomeDiffPct !== null && (
+          <p style={{ fontSize: 11, marginTop: 2, textAlign: "right", color: incomeDiffPct >= 0 ? "var(--sage)" : "var(--tang)" }}>
+            {incomeDiffPct >= 0 ? "+" : ""}{incomeDiffPct.toFixed(1)}% <span style={{ color: "var(--ink-3)" }}>{t("reports_vs_previous")}</span>
+          </p>
+        )}
+
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginTop: 12, paddingTop: 12, borderTop: "0.5px solid var(--rule)" }}>
+          <span style={{ fontSize: 12, color: "var(--ink-2)" }}>{t("dashboard_expenses")}</span>
+          <span style={{ fontSize: 18, fontWeight: 600, color: "var(--tang)" }}>{formatAmount(totalExpense)} {currencySymbol}</span>
+        </div>
+        {expenseDiffPct !== null && (
+          <p style={{ fontSize: 11, marginTop: 2, textAlign: "right", color: expenseDiffPct <= 0 ? "var(--sage)" : "var(--tang)" }}>
+            {expenseDiffPct >= 0 ? "+" : ""}{expenseDiffPct.toFixed(1)}% <span style={{ color: "var(--ink-3)" }}>{t("reports_vs_previous")}</span>
+          </p>
+        )}
       </div>
 
       {/* Net worth evolution */}
