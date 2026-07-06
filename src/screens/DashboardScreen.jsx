@@ -534,7 +534,9 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
         return (
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-              <p style={{ fontSize: 13, fontWeight: 500 }}>{t("dashboard_recent_transactions")}</p>
+              <p style={{ fontSize: 13, fontWeight: 500 }}>
+                {t("dashboard_transactions")} <span style={{ color: "var(--ink-3)", fontWeight: 400 }}>· {monthTx.length}</span>
+              </p>
               {!editMode && (
                 <button onClick={onOpenTransactions} style={{ background: "none", border: "none", color: "var(--sky)", fontSize: 12, display: "flex", alignItems: "center", gap: 3 }}>
                   {t("dashboard_see_all")} <i className="ti ti-chevron-right" style={{ fontSize: 12 }} aria-hidden="true" />
