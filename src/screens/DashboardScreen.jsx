@@ -133,7 +133,6 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
   const [detailBudgetId, setDetailBudgetId] = useState(null);
   const [trendPeriod, setTrendPeriod] = useState(6);
   const isDesktop = useMediaQuery("(min-width: 1024px)");
-  const isWide = useMediaQuery("(min-width: 1440px)");
   const summaryLabel = coupleName
     ? `${coupleName} ${t("widget_summary_word")}`
     : t("widget_couple_summary_default");
@@ -922,7 +921,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
           to one column while dragging to keep reordering correct; the
           masonry layout resumes right after. */}
       <div
-        className={isDesktop && !editMode ? `card-columns${isWide ? " card-columns-wide" : ""}` : ""}
+        className={isDesktop && !editMode ? "card-columns" : ""}
         style={{ padding: "0 1.25rem" }}
       >
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
