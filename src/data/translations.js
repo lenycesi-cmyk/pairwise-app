@@ -59,6 +59,7 @@ export const TRANSLATIONS = {
     // Dashboard
     dashboard_net_balance: "Solde net",
     dashboard_recent_transactions: "Transactions récentes",
+    dashboard_transactions: "Transactions",
     dashboard_see_all: "Tout voir",
     dashboard_income: "Revenus",
     dashboard_expenses: "Dépenses",
@@ -491,6 +492,7 @@ export const TRANSLATIONS = {
     // Dashboard
     dashboard_net_balance: "Net balance",
     dashboard_recent_transactions: "Recent transactions",
+    dashboard_transactions: "Transactions",
     dashboard_see_all: "See all",
     dashboard_income: "Income",
     dashboard_expenses: "Expenses",
