@@ -124,7 +124,9 @@
        sidebar and some breathing room) up to a 1600px cap, so widgets
        actually use the available space on typical desktop monitors
        instead of leaving most of the screen empty. */
-    --app-shell-width: min(1600px, calc(100vw - var(--sidebar-width) - 4rem));
+    /* Capped at 1240px : en 2 colonnes, des cartes plus larges deviennent
+       illisibles (lignes trop longues) — mieux vaut centrer avec de l'air. */
+    --app-shell-width: min(1240px, calc(100vw - var(--sidebar-width) - 4rem));
   }
 
   body {
@@ -223,7 +225,7 @@
    dashboard of largely independent widgets. */
 .card-columns {
   column-count: 2;
-  column-gap: 20px;
+  column-gap: 36px;
 }
 
 .card-columns > * {
@@ -231,8 +233,3 @@
   -webkit-column-break-inside: avoid;
 }
 
-@media (min-width: 1440px) {
-  .card-columns-wide {
-    column-count: 3;
-  }
-}
