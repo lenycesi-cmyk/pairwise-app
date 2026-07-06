@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, lazy, Suspense } from "react";
+import { useState, useMemo, useRef, lazy, Suspense, Fragment } from "react";
 import {
   DndContext,
   closestCenter,
@@ -480,29 +480,59 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                 </button>
               )}
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8 }}>
-              {members.map((m) => {
-                const mt = memberTotals[getMemberKey(m)] || { income: 0, expense: 0, invested: 0 };
+            {/* Carte unique : tableau comparatif (une colonne par membre,
+                séparateur vertical, montants au code couleur sémantique). */}
+            <div className="pw-card" data-accent="ocean" style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "1rem 1.25rem" }}>
+              {(() => {
+                const mts = members.map((m) => ({
+                  m,
+                  mt: memberTotals[getMemberKey(m)] || { income: 0, expense: 0, invested: 0 },
+                }));
+                // Colonnes des valeurs : libellé fluide + une colonne par membre.
+                const gridCols = `1fr ${members.map(() => "minmax(84px, auto)").join(" ")}`;
+                // La colonne de chaque membre après la première porte le
+                // séparateur vertical + l'espacement inter-membres.
+                const colStyle = (i) =>
+                  i === 0
+                    ? { textAlign: "right" }
+                    : { textAlign: "right", borderLeft: "0.5px solid var(--rule)", paddingLeft: 18, marginLeft: 6 };
+                const rows = [
+                  { label: t("dashboard_income"), color: "var(--sage)", get: (mt) => mt.income },
+                  { label: t("dashboard_expenses"), color: "var(--tang)", get: (mt) => mt.expense },
+                  { label: t("dashboard_invested"), color: "var(--lavi)", get: (mt) => mt.invested },
+                ];
                 return (
-                  <div key={getMemberKey(m)} style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: 12 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                      <Avatar member={m} colorMap={memberColorMap} size={26} />
-                      <p style={{ fontSize: 13, fontWeight: 500 }}>{m.name}</p>
-                      {!m.uid && (
-                        <span style={{ fontSize: 10, color: "var(--ink-3)", background: "var(--bg)", border: "0.5px solid var(--rule)", borderRadius: 8, padding: "1px 6px" }}>
-                          {t("member_pending")}
+                  <div style={{ display: "grid", gridTemplateColumns: gridCols, rowGap: 10, alignItems: "center" }}>
+                    <span />
+                    {mts.map(({ m }, i) => (
+                      <div key={getMemberKey(m)} style={{ ...colStyle(i), display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 6 }}>
+                        <Avatar member={m} colorMap={memberColorMap} size={22} />
+                        <span style={{ fontSize: 13, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{m.name}</span>
+                      </div>
+                    ))}
+                    {rows.map((row) => (
+                      <Fragment key={row.label}>
+                        <span style={{ fontSize: 12, color: "var(--ink-3)" }}>{row.label}</span>
+                        {mts.map(({ m, mt }, i) => (
+                          <span key={getMemberKey(m)} style={{ ...colStyle(i), fontSize: 13, fontWeight: 500, color: row.color }}>
+                            {formatAmount(row.get(mt))} {currencySymbol}
+                          </span>
+                        ))}
+                      </Fragment>
+                    ))}
+                    <div style={{ gridColumn: "1 / -1", height: 0.5, background: "var(--rule)", margin: "2px 0" }} />
+                    <span style={{ fontSize: 12, fontWeight: 700 }}>{t("dashboard_balance")}</span>
+                    {mts.map(({ m, mt }, i) => {
+                      const bal = mt.income - mt.expense - mt.invested;
+                      return (
+                        <span key={getMemberKey(m)} style={{ ...colStyle(i), fontSize: 14, fontWeight: 700, color: bal >= 0 ? "var(--sage)" : "var(--red)" }}>
+                          {formatAmount(bal)} {currencySymbol}
                         </span>
-                      )}
-                    </div>
-                    <MiniRow label={t("dashboard_income")} value={mt.income} formatAmount={formatAmount} color="var(--sage)" symbol={currencySymbol} />
-                    <MiniRow label={t("dashboard_expenses")} value={mt.expense} formatAmount={formatAmount} color="var(--tang)" symbol={currencySymbol} />
-                    <MiniRow label={t("dashboard_invested")} value={mt.invested} formatAmount={formatAmount} symbol={currencySymbol} />
-                    <div style={{ borderTop: "0.5px solid var(--rule)", marginTop: 6, paddingTop: 6 }}>
-                      <MiniRow label={t("dashboard_balance")} value={mt.income - mt.expense - mt.invested} formatAmount={formatAmount} color={(mt.income - mt.expense - mt.invested) >= 0 ? "var(--sage)" : "var(--tang)"} symbol={currencySymbol} bold />
-                    </div>
+                      );
+                    })}
                   </div>
                 );
-              })}
+              })()}
             </div>
           </div>
         );
@@ -976,15 +1006,6 @@ function BreakdownRow({ color, label, value, valueColor = "var(--ink)", last = f
       <span style={{ width: 9, height: 9, borderRadius: "50%", background: color, flexShrink: 0 }} />
       <span style={{ fontSize: 13, color: "var(--ink-2)", flex: 1 }}>{label}</span>
       <span style={{ fontSize: 13, fontWeight: 600, color: valueColor }}>{value}</span>
-    </div>
-  );
-}
-
-function MiniRow({ label, value, formatAmount, color = "var(--ink)", symbol = "", bold = false }) {
-  return (
-    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-      <span style={{ fontSize: bold ? 12 : 11, color: bold ? "var(--ink)" : "var(--ink-2)", fontWeight: bold ? 500 : 400 }}>{label}</span>
-      <span style={{ fontSize: bold ? 13 : 12, fontWeight: bold ? 700 : 500, color }}>{formatAmount(value)} {symbol}</span>
     </div>
   );
 }
