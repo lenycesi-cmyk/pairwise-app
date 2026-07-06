@@ -5,6 +5,7 @@ import { ASSET_TYPES } from "../data/assetTypes";
 import { getCryptoPrice, getStockPrice } from "../utils/assetPrices";
 import { CURRENCIES } from "../data/categories";
 import AddAssetScreen from "./AddAssetScreen";
+import WidgetCard from "../components/WidgetCard";
 import ConnectBankButton from "../components/ConnectBankButton";
 import NetWorthChart from "../components/NetWorthChart";
 import AllocationChart from "../components/AllocationChart";
@@ -288,53 +289,27 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef }) {
 
       {/* Net worth chart */}
       {netWorthHistory.length > 1 && (
-        <div
-          style={{
-            background: "var(--bg-card)",
-            borderRadius: "var(--radius-lg)",
-            border: "0.5px solid var(--rule)",
-            padding: "1rem 1.25rem",
-            marginBottom: 12,
-          }}
-        >
-          <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 8 }}>{t("wealth_evolution")}</p>
+        <WidgetCard icon="ti-chart-line" accent="mint" title={t("wealth_evolution")} style={{ marginBottom: 12 }}>
           <NetWorthChart
             history={netWorthHistory}
             currencySymbol={currencySymbol}
             displayCurrency={displayCurrency}
             convert={convert}
           />
-        </div>
+        </WidgetCard>
       )}
 
       {/* Allocation chart */}
       {assets.length > 0 && (
-        <div
-          style={{
-            background: "var(--bg-card)",
-            borderRadius: "var(--radius-lg)",
-            border: "0.5px solid var(--rule)",
-            padding: "1rem 1.25rem",
-            marginBottom: 12,
-          }}
-        >
-          <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 8 }}>{t("wealth_allocation")}</p>
+        <WidgetCard icon="ti-chart-donut" accent="amber" title={t("wealth_allocation")} style={{ marginBottom: 12 }}>
           <AllocationChart totalsByType={totalsByType} totalAssets={totalAssets} />
-        </div>
+        </WidgetCard>
       )}
 
       {/* Répartition par membre */}
       {members.length > 1 && totalAssets > 0 && (
-        <div
-          style={{
-            background: "var(--bg-card)",
-            borderRadius: "var(--radius-lg)",
-            border: "0.5px solid var(--rule)",
-            padding: "1rem 1.25rem",
-            marginBottom: 12,
-          }}
-        >
-          <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>{t("wealth_member_allocation")}</p>
+        <WidgetCard icon="ti-users" accent="ocean" title={t("wealth_member_allocation")} style={{ marginBottom: 12 }}>
+          <div>
           {members.map((m) => {
             const share = netWorthByMember[getMemberKey(m)] || 0;
             const pct = totalAssets > 0 ? (share / totalAssets) * 100 : 0;
@@ -350,7 +325,8 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef }) {
               </div>
             );
           })}
-        </div>
+          </div>
+        </WidgetCard>
       )}
 
       {/* Calculateur shortcut */}
@@ -382,18 +358,15 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef }) {
         const colors = COLOR_MAP[type.color] || COLOR_MAP.sky;
 
         return (
-          <div key={type.id} style={{ marginBottom: 16 }}>
-            <p style={{ fontSize: 12, color: "var(--ink-3)", marginBottom: 8, fontWeight: 500 }}>
-              {(language === "en" && type.nameEn ? type.nameEn : type.name).toUpperCase()}
-            </p>
-            <div
-              style={{
-                background: "var(--bg-card)",
-                borderRadius: "var(--radius-lg)",
-                border: "0.5px solid var(--rule)",
-                overflow: "hidden",
-              }}
-            >
+          <WidgetCard
+            key={type.id}
+            icon={type.icon}
+            accent={type.isLiability ? "pink" : "mint"}
+            title={language === "en" && type.nameEn ? type.nameEn : type.name}
+            flush
+            style={{ marginBottom: 16 }}
+          >
+            <div>
               {typeAssets.map((asset, i) => {
                 const val = getAssetValue(asset);
                 // API-priced asset with no live price and no stored value: price couldn't be fetched
@@ -465,7 +438,7 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef }) {
                 );
             })}
             </div>
-          </div>
+          </WidgetCard>
         );
       })}
 

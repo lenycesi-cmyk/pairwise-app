@@ -21,6 +21,7 @@ import { useBudgetProgress } from "../hooks/useBudgetProgress";
 import { useDashboardPrefs } from "../hooks/useDashboardPrefs";
 import { useNetWorth } from "../hooks/useNetWorth";
 import CategoryRow from "../components/CategoryRow";
+import WidgetCard from "../components/WidgetCard";
 import Avatar from "../components/Avatar";
 import { buildMemberColorMap } from "../utils/memberColors";
 import { CURRENCIES } from "../data/categories";
@@ -377,13 +378,14 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
               <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", padding: "0.5rem 0" }}>{t("widget_no_bank_accounts")}</p>
             ) : (
               <>
+                {/* Hero : le total en gros chiffre en tête, détail des comptes dessous. */}
+                <p style={{ fontSize: 11.5, color: "var(--ink-3)", marginBottom: 2 }}>Total</p>
+                <p className="pw-num" style={{ fontSize: 32, marginBottom: 12, color: "var(--sage)" }}>
+                  {formatAmount(availableSavings)} {currencySymbol}
+                </p>
                 {bankAccounts.map((a, i) => (
                   <BreakdownRow key={a.id} color="var(--sage)" label={a.name} value={`${formatAmount(convert(a.value, a.currency, displayCurrency))} ${currencySymbol}`} last={i === bankAccounts.length - 1} />
                 ))}
-                <div style={{ borderTop: "0.5px solid var(--rule)", marginTop: 6, paddingTop: 8, display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ fontSize: 12, fontWeight: 600 }}>Total</span>
-                  <span className="pw-num" style={{ fontSize: 14, color: "var(--sage)" }}>{formatAmount(availableSavings)} {currencySymbol}</span>
-                </div>
               </>
             )}
           </WidgetCard>
@@ -1003,41 +1005,6 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
         </SortableContext>
       </DndContext>
       </div>
-    </div>
-  );
-}
-
-// Carte de widget façon brand kit : le titre vit DANS la carte, précédé d'une
-// pastille d'icône teintée (qui se remplit au survol via .pw-chip-host), avec
-// une action optionnelle à droite ("Voir tout", pills de période...).
-// `flush` retire le padding horizontal du contenu (listes bord à bord).
-const WIDGET_ACCENTS = {
-  coral: ["var(--tang)", "var(--tang-light)"],
-  ocean: ["var(--lavi)", "var(--lavi-light)"],
-  sky: ["var(--sky)", "var(--sky-light)"],
-  amber: ["var(--amber)", "var(--amber-light)"],
-  mint: ["var(--sage)", "var(--sage-light)"],
-  pink: ["var(--blush)", "var(--blush-light)"],
-};
-
-function WidgetCard({ icon, accent = "coral", title, action, flush = false, children }) {
-  const [color, light] = WIDGET_ACCENTS[accent] || WIDGET_ACCENTS.coral;
-  return (
-    <div
-      className="pw-card pw-chip-host"
-      data-accent={accent}
-      style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", overflow: "hidden" }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "16px 18px 0" }}>
-        <span className="pw-chip" style={{ width: 32, height: 32, borderRadius: 10, background: light, "--pw-chip": color, flexShrink: 0 }}>
-          <i className={`ti ${icon}`} style={{ fontSize: 16, color }} aria-hidden="true" />
-        </span>
-        <span style={{ fontSize: 13.5, fontWeight: 600, fontFamily: "var(--font-display)", flex: 1, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-          {title}
-        </span>
-        {action}
-      </div>
-      <div style={{ padding: flush ? "10px 0 6px" : "12px 18px 16px" }}>{children}</div>
     </div>
   );
 }

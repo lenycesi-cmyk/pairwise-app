@@ -3,6 +3,7 @@ import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, Responsi
 import { useFinance } from "../context/FinanceContext";
 import { useExchangeRates } from "../hooks/useExchangeRates";
 import CategoryRow from "../components/CategoryRow";
+import WidgetCard from "../components/WidgetCard";
 import Avatar from "../components/Avatar";
 import { buildMemberColorMap } from "../utils/memberColors";
 import { CURRENCIES } from "../data/categories";
@@ -409,12 +410,11 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
 
       {/* Total revenus & dépenses sur la période — même largeur que les autres
           cartes (dans la grille). Remplace les anciennes cartes redondantes. */}
-      <div className="pw-card" data-accent="coral" style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "1rem 1.25rem", marginBottom: 20 }}>
-        <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 12 }}>{t("reports_totals_title")}</p>
+      <WidgetCard icon="ti-scale" accent="coral" title={t("reports_totals_title")} style={{ marginBottom: 20 }}>
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
           <span style={{ fontSize: 12, color: "var(--ink-2)" }}>{t("dashboard_income")}</span>
-          <span style={{ fontSize: 18, fontWeight: 600, color: "var(--sage)" }}>{formatAmount(totalIncome)} {currencySymbol}</span>
+          <span className="pw-num" style={{ fontSize: 19, color: "var(--sage)" }}>{formatAmount(totalIncome)} {currencySymbol}</span>
         </div>
         {incomeDiffPct !== null && (
           <p style={{ fontSize: 11, marginTop: 2, textAlign: "right", color: incomeDiffPct >= 0 ? "var(--sage)" : "var(--tang)" }}>
@@ -424,20 +424,19 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginTop: 12, paddingTop: 12, borderTop: "0.5px solid var(--rule)" }}>
           <span style={{ fontSize: 12, color: "var(--ink-2)" }}>{t("dashboard_expenses")}</span>
-          <span style={{ fontSize: 18, fontWeight: 600, color: "var(--tang)" }}>{formatAmount(totalExpense)} {currencySymbol}</span>
+          <span className="pw-num" style={{ fontSize: 19, color: "var(--tang)" }}>{formatAmount(totalExpense)} {currencySymbol}</span>
         </div>
         {expenseDiffPct !== null && (
           <p style={{ fontSize: 11, marginTop: 2, textAlign: "right", color: expenseDiffPct <= 0 ? "var(--sage)" : "var(--tang)" }}>
             {expenseDiffPct >= 0 ? "+" : ""}{expenseDiffPct.toFixed(1)}% <span style={{ color: "var(--ink-3)" }}>{t("reports_vs_previous")}</span>
           </p>
         )}
-      </div>
+      </WidgetCard>
 
       {/* Net worth evolution */}
       {netWorthChartData.length >= 2 && (
         <>
-          <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>{t("reports_net_worth_evolution")}</p>
-          <div style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "1rem 1.25rem", marginBottom: 20 }}>
+          <WidgetCard icon="ti-diamond" accent="ocean" title={t("reports_net_worth_evolution")} style={{ marginBottom: 20 }}>
             <div style={{ width: "100%", height: 140 }}>
               <ResponsiveContainer>
                 <BarChart data={netWorthChartData} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
@@ -452,20 +451,11 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
                 </BarChart>
               </ResponsiveContainer>
             </div>
-          </div>
+          </WidgetCard>
         </>
       )}
 
-      <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>{t("reports_evolution")}</p>
-      <div
-        style={{
-          background: "var(--bg-card)",
-          borderRadius: "var(--radius-lg)",
-          border: "0.5px solid var(--rule)",
-          padding: "1rem 1.25rem",
-          marginBottom: 20,
-        }}
-      >
+      <WidgetCard icon="ti-trending-down" accent="coral" title={t("reports_evolution")} style={{ marginBottom: 20 }}>
         {evolutionData.length === 0 ? (
           <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", padding: "1rem 0" }}>
             {t("reports_no_expenses")}
@@ -494,18 +484,9 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
             </ResponsiveContainer>
           </div>
         )}
-      </div>
+      </WidgetCard>
 
-      <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>{t("reports_income_vs_expense")}</p>
-      <div
-        style={{
-          background: "var(--bg-card)",
-          borderRadius: "var(--radius-lg)",
-          border: "0.5px solid var(--rule)",
-          padding: "1rem 1.25rem",
-          marginBottom: 20,
-        }}
-      >
+      <WidgetCard icon="ti-chart-bar" accent="ocean" title={t("reports_income_vs_expense")} style={{ marginBottom: 20 }}>
         {incomeExpenseData.length === 0 ? (
           <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", padding: "1rem 0" }}>
             {t("reports_no_expenses")}
@@ -538,70 +519,46 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
             </ResponsiveContainer>
           </div>
         )}
-      </div>
+      </WidgetCard>
 
       {members.length > 0 && (
-        <>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-            <p style={{ fontSize: 13, fontWeight: 500 }}>
-              {t("reports_member_comparison")}
-            </p>
-            {onOpenBreakdown && (
-              <button
-                onClick={onOpenBreakdown}
-                style={{ background: "none", border: "none", color: "var(--sky)", fontSize: 12, display: "flex", alignItems: "center", gap: 3 }}
-              >
-                {t("dashboard_detail")} <i className="ti ti-chevron-right" style={{ fontSize: 12 }} aria-hidden="true" />
-              </button>
-            )}
-          </div>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-              gap: 8,
-              marginBottom: 20,
-            }}
-          >
+        <WidgetCard
+          icon="ti-users"
+          accent="ocean"
+          title={t("reports_member_comparison")}
+          style={{ marginBottom: 20 }}
+          action={onOpenBreakdown && (
+            <button
+              onClick={onOpenBreakdown}
+              style={{ background: "none", border: "none", color: "var(--sky)", fontSize: 12, display: "flex", alignItems: "center", gap: 3, flexShrink: 0 }}
+            >
+              {t("dashboard_detail")} <i className="ti ti-chevron-right" style={{ fontSize: 12 }} aria-hidden="true" />
+            </button>
+          )}
+        >
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 16 }}>
             {members.map((m) => {
               const mt = memberComparison[getMemberKey(m)] || { expense: 0, income: 0 };
               return (
-                <div
-                  key={getMemberKey(m)}
-                  style={{
-                    background: "var(--bg-card)",
-                    borderRadius: "var(--radius-lg)",
-                    border: "0.5px solid var(--rule)",
-                    padding: 12,
-                  }}
-                >
+                <div key={getMemberKey(m)}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
                     <Avatar member={m} colorMap={memberColorMap} size={24} />
                     <p style={{ fontSize: 13, fontWeight: 500 }}>{m.name}</p>
                   </div>
                   <p style={{ fontSize: 11, color: "var(--ink-3)" }}>{t("dashboard_expenses")}</p>
-                  <p style={{ fontSize: 14, fontWeight: 500, color: "var(--tang)" }}>
+                  <p className="pw-num" style={{ fontSize: 15, color: "var(--tang)" }}>
                     {formatAmount(mt.expense)} {currencySymbol}
                   </p>
                 </div>
               );
             })}
           </div>
-        </>
+        </WidgetCard>
       )}
 
       {tagTotals.length > 0 && (
-        <>
-          <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>{t("reports_by_tag")}</p>
-          <div
-            style={{
-              background: "var(--bg-card)",
-              borderRadius: "var(--radius-lg)",
-              border: "0.5px solid var(--rule)",
-              padding: "0.75rem 1.25rem",
-              marginBottom: 20,
-            }}
-          >
+        <WidgetCard icon="ti-tags" accent="pink" title={t("reports_by_tag")} style={{ marginBottom: 20 }}>
+          <div>
             {tagTotals.map(({ tag, total }, i) => {
               const color = tagColor(tag);
               return (
@@ -617,18 +574,10 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
               );
             })}
           </div>
-        </>
+        </WidgetCard>
       )}
 
-      <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>{t("reports_by_category")}</p>
-      <div
-        style={{
-          background: "var(--bg-card)",
-          borderRadius: "var(--radius-lg)",
-          border: "0.5px solid var(--rule)",
-          padding: "0.5rem 1.25rem",
-        }}
-      >
+      <WidgetCard icon="ti-chart-pie" accent="coral" title={t("reports_by_category")}>
         {Object.keys(categoryTotals).length === 0 ? (
           <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", padding: "1.5rem 0" }}>
             {t("reports_no_expenses")}
@@ -649,7 +598,7 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
               />
             ))
         )}
-      </div>
+      </WidgetCard>
       </div>
     </div>
   );
