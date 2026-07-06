@@ -365,6 +365,7 @@ export const TRANSLATIONS = {
     reports_no_expenses: "Aucune dépense sur cette période",
     reports_member_comparison: "Comparaison entre membres",
     reports_vs_previous: "vs période précédente",
+    reports_totals_title: "Total revenus & dépenses",
     reports_previous: "Période précédente",
     reports_net_worth_evolution: "Évolution du patrimoine net",
 
@@ -796,6 +797,7 @@ export const TRANSLATIONS = {
     reports_no_expenses: "No expenses for this period",
     reports_member_comparison: "Member comparison",
     reports_vs_previous: "vs previous period",
+    reports_totals_title: "Total incomes & expenses",
     reports_previous: "Previous period",
     reports_net_worth_evolution: "Net Worth Evolution",
 
