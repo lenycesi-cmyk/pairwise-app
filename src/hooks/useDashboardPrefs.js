@@ -6,7 +6,9 @@ import { useAuth } from "../context/AuthContext";
 export const DEFAULT_WIDGETS = [
   { id: "net_balance", visible: true },
   { id: "health_score", visible: true },
-  { id: "available_savings", visible: true },
+  // Masqué par défaut (activable via le crayon) : l'écran d'accueil initial
+  // reste épuré — même logique que net_worth/debt_tracker/recurring.
+  { id: "available_savings", visible: false },
   { id: "budget_tracking", visible: true },
   { id: "member_breakdown", visible: true },
   { id: "spending_by_category", visible: true },
