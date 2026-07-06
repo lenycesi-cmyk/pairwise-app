@@ -239,6 +239,14 @@ button[style*="background: var(--ink)"] {
   }
 }
 
+/* Montant "chiffre-clé" : typographie unifiée (display + semi-bold) pour tous
+   les montants importants des widgets/cartes. */
+.pw-num {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
 /* Badge / pilule brandé. */
 .pw-badge {
   display: inline-flex;

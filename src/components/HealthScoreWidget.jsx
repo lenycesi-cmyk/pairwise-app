@@ -35,15 +35,22 @@ export default function HealthScoreWidget({ displayCurrency }) {
   const { score, band, pillars, hasData } = useHealthScore(displayCurrency);
   const [open, setOpen] = useState(false);
 
-  const label = <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>{t("health_title")}</p>;
+  // Titre DANS la carte, précédé d'une pastille d'icône teintée (même motif
+  // que les WidgetCard du Dashboard).
+  const header = (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+      <span className="pw-chip" style={{ width: 32, height: 32, borderRadius: 10, background: "var(--tang-light)", "--pw-chip": "var(--tang)", flexShrink: 0 }}>
+        <i className="ti ti-activity-heartbeat" style={{ fontSize: 16, color: "var(--tang)" }} aria-hidden="true" />
+      </span>
+      <span style={{ fontSize: 13.5, fontWeight: 600, fontFamily: "var(--font-display)" }}>{t("health_title")}</span>
+    </div>
+  );
 
   if (!hasData) {
     return (
-      <div>
-        {label}
-        <div style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "1.25rem" }}>
-          <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center" }}>{t("health_empty")}</p>
-        </div>
+      <div className="pw-card pw-chip-host" data-accent="coral" style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "1rem 1.25rem" }}>
+        {header}
+        <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", padding: "0.5rem 0" }}>{t("health_empty")}</p>
       </div>
     );
   }
@@ -53,9 +60,9 @@ export default function HealthScoreWidget({ displayCurrency }) {
   const needle = pointOnArc(cx, cy, r - 14, score);
 
   return (
-    <div>
-      {label}
-      <div className="pw-card" data-accent="coral" style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "1rem 1.25rem" }}>
+    <div className="pw-card pw-chip-host" data-accent="coral" style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "1rem 1.25rem" }}>
+      {header}
+      <div>
         {/* Jauge demi-arc */}
         <div style={{ display: "flex", justifyContent: "center" }}>
           <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`${score}/100`}>

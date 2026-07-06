@@ -21,7 +21,6 @@ import { useBudgetProgress } from "../hooks/useBudgetProgress";
 import { useDashboardPrefs } from "../hooks/useDashboardPrefs";
 import { useNetWorth } from "../hooks/useNetWorth";
 import CategoryRow from "../components/CategoryRow";
-import DebtSummaryCard from "../components/DebtSummaryCard";
 import Avatar from "../components/Avatar";
 import { buildMemberColorMap } from "../utils/memberColors";
 import { CURRENCIES } from "../data/categories";
@@ -352,20 +351,16 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
     switch (id) {
       case "net_balance":
         return (
-          <div>
-            <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>{summaryLabel}</p>
-            <div className="pw-card" data-accent="mint" style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "1rem 1.25rem" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12 }}>
-                <p style={{ fontSize: 12, color: "var(--ink-3)" }}>{t("dashboard_net_balance")}</p>
-                <p style={{ fontSize: 18, fontWeight: 600, color: totals.net >= 0 ? "var(--sage)" : "var(--tang)" }}>
-                  {totals.net >= 0 ? "+" : ""}{formatAmount(totals.net)} {currencySymbol}
-                </p>
-              </div>
-              <BreakdownRow color="var(--sage)" label={t("dashboard_income")} value={`${formatAmount(totals.income)} ${currencySymbol}`} valueColor="var(--sage)" />
-              <BreakdownRow color="var(--tang)" label={t("dashboard_expenses")} value={`${formatAmount(totals.expense)} ${currencySymbol}`} valueColor="var(--tang)" />
-              <BreakdownRow color="var(--lavi)" label={t("dashboard_invested")} value={`${formatAmount(totals.invested)} ${currencySymbol}`} last />
-            </div>
-          </div>
+          <WidgetCard icon="ti-wallet" accent="mint" title={summaryLabel}>
+            {/* Hero : le solde net est LE chiffre de l'écran — gros, en display. */}
+            <p style={{ fontSize: 11.5, color: "var(--ink-3)", marginBottom: 2 }}>{t("dashboard_net_balance")}</p>
+            <p className="pw-num" style={{ fontSize: 32, marginBottom: 12, color: totals.net >= 0 ? "var(--sage)" : "var(--tang)" }}>
+              {totals.net >= 0 ? "+" : ""}{formatAmount(totals.net)} {currencySymbol}
+            </p>
+            <BreakdownRow color="var(--sage)" label={t("dashboard_income")} value={`${formatAmount(totals.income)} ${currencySymbol}`} valueColor="var(--sage)" />
+            <BreakdownRow color="var(--tang)" label={t("dashboard_expenses")} value={`${formatAmount(totals.expense)} ${currencySymbol}`} valueColor="var(--tang)" />
+            <BreakdownRow color="var(--lavi)" label={t("dashboard_invested")} value={`${formatAmount(totals.invested)} ${currencySymbol}`} last />
+          </WidgetCard>
         );
 
       case "health_score":
@@ -377,31 +372,27 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
 
       case "available_savings":
         return (
-          <div>
-            <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>{t("widget_available_savings_label")}</p>
+          <WidgetCard icon="ti-building-bank" accent="mint" title={t("widget_available_savings_label")}>
             {bankAccounts.length === 0 ? (
-              <div style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "1rem 1.25rem" }}>
-                <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center" }}>{t("widget_no_bank_accounts")}</p>
-              </div>
+              <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", padding: "0.5rem 0" }}>{t("widget_no_bank_accounts")}</p>
             ) : (
-              <div className="pw-card" data-accent="mint" style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "0.75rem 1.25rem" }}>
+              <>
                 {bankAccounts.map((a, i) => (
                   <BreakdownRow key={a.id} color="var(--sage)" label={a.name} value={`${formatAmount(convert(a.value, a.currency, displayCurrency))} ${currencySymbol}`} last={i === bankAccounts.length - 1} />
                 ))}
                 <div style={{ borderTop: "0.5px solid var(--rule)", marginTop: 6, paddingTop: 8, display: "flex", justifyContent: "space-between" }}>
                   <span style={{ fontSize: 12, fontWeight: 600 }}>Total</span>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: "var(--sage)" }}>{formatAmount(availableSavings)} {currencySymbol}</span>
+                  <span className="pw-num" style={{ fontSize: 14, color: "var(--sage)" }}>{formatAmount(availableSavings)} {currencySymbol}</span>
                 </div>
-              </div>
+              </>
             )}
-          </div>
+          </WidgetCard>
         );
 
       case "budget_tracking":
         return (
-          <div>
-            <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>{t("dashboard_budget_progress")}</p>
-            <div className="pw-card" data-accent="amber" style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "0.75rem 1.25rem" }}>
+          <WidgetCard icon="ti-target" accent="amber" title={t("dashboard_budget_progress")}>
+            <div>
               {topBudgets.length === 0 ? (
                 <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", padding: "0.75rem 0" }}>{t("widget_budget_empty")}</p>
               ) : topBudgets.map(({ budget, pct, scopedTx, amountInBase, projected, projectedOver }, i) => {
@@ -464,24 +455,25 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                 );
               })}
             </div>
-          </div>
+          </WidgetCard>
         );
 
       case "member_breakdown":
         if (members.length === 0) return null;
         return (
-          <div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-              <p style={{ fontSize: 13, fontWeight: 500 }}>{t("dashboard_member_summary")}</p>
-              {!editMode && (
-                <button onClick={onOpenBreakdown} style={{ background: "none", border: "none", color: "var(--sky)", fontSize: 12, display: "flex", alignItems: "center", gap: 3 }}>
-                  {t("dashboard_detail")} <i className="ti ti-chevron-right" style={{ fontSize: 12 }} aria-hidden="true" />
-                </button>
-              )}
-            </div>
-            {/* Carte unique : tableau comparatif (une colonne par membre,
-                séparateur vertical, montants au code couleur sémantique). */}
-            <div className="pw-card" data-accent="ocean" style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "1rem 1.25rem" }}>
+          <WidgetCard
+            icon="ti-users"
+            accent="ocean"
+            title={t("dashboard_member_summary")}
+            action={!editMode && (
+              <button onClick={onOpenBreakdown} style={{ background: "none", border: "none", color: "var(--sky)", fontSize: 12, display: "flex", alignItems: "center", gap: 3, flexShrink: 0 }}>
+                {t("dashboard_detail")} <i className="ti ti-chevron-right" style={{ fontSize: 12 }} aria-hidden="true" />
+              </button>
+            )}
+          >
+            {/* Tableau comparatif : une colonne par membre, séparateur
+                vertical, montants au code couleur sémantique. */}
+            <div>
               {(() => {
                 const mts = members.map((m) => ({
                   m,
@@ -533,46 +525,45 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                 );
               })()}
             </div>
-          </div>
+          </WidgetCard>
         );
 
       case "spending_by_category":
         return (
-          <div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
-              <p style={{ fontSize: 13, fontWeight: 500 }}>{t("dashboard_spending_by_category")}</p>
-              {Object.keys(categoryTotals).length > 0 && !editMode && (
-                <p style={{ fontSize: 11, color: "var(--ink-3)" }}>{t("dashboard_tap_category")}</p>
-              )}
-            </div>
-            <div className="pw-card" data-accent="coral" style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "0.5rem 1.25rem" }}>
-              {Object.keys(categoryTotals).length === 0 ? (
-                <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", padding: "1.5rem 0" }}>{t("dashboard_no_expenses")}</p>
-              ) : (
-                Object.values(categoryTotals)
-                  .sort((a, b) => b.total - a.total)
-                  .map(({ category, total, subtotals }) => (
-                    <CategoryRow key={category.id} category={category} total={total} maxTotal={maxCatTotal} subtotals={subtotals} formatAmount={formatAmount} totalExpenses={totals.expense} currencySymbol={currencySymbol} />
-                  ))
-              )}
-            </div>
-          </div>
+          <WidgetCard
+            icon="ti-chart-pie"
+            accent="coral"
+            title={t("dashboard_spending_by_category")}
+            action={Object.keys(categoryTotals).length > 0 && !editMode && (
+              <p style={{ fontSize: 11, color: "var(--ink-3)", flexShrink: 0 }}>{t("dashboard_tap_category")}</p>
+            )}
+          >
+            {Object.keys(categoryTotals).length === 0 ? (
+              <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", padding: "1rem 0" }}>{t("dashboard_no_expenses")}</p>
+            ) : (
+              Object.values(categoryTotals)
+                .sort((a, b) => b.total - a.total)
+                .map(({ category, total, subtotals }) => (
+                  <CategoryRow key={category.id} category={category} total={total} maxTotal={maxCatTotal} subtotals={subtotals} formatAmount={formatAmount} totalExpenses={totals.expense} currencySymbol={currencySymbol} />
+                ))
+            )}
+          </WidgetCard>
         );
 
       case "transaction_history":
         return (
-          <div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-              <p style={{ fontSize: 13, fontWeight: 500 }}>
-                {t("dashboard_transactions")} <span style={{ color: "var(--ink-3)", fontWeight: 400 }}>· {monthTx.length}</span>
-              </p>
-              {!editMode && (
-                <button onClick={onOpenTransactions} style={{ background: "none", border: "none", color: "var(--sky)", fontSize: 12, display: "flex", alignItems: "center", gap: 3 }}>
-                  {t("dashboard_see_all")} <i className="ti ti-chevron-right" style={{ fontSize: 12 }} aria-hidden="true" />
-                </button>
-              )}
-            </div>
-            <div className="pw-card" data-accent="sky" style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", overflow: "hidden" }}>
+          <WidgetCard
+            icon="ti-receipt-2"
+            accent="sky"
+            title={<>{t("dashboard_transactions")} <span style={{ color: "var(--ink-3)", fontWeight: 400 }}>· {monthTx.length}</span></>}
+            flush
+            action={!editMode && (
+              <button onClick={onOpenTransactions} style={{ background: "none", border: "none", color: "var(--sky)", fontSize: 12, display: "flex", alignItems: "center", gap: 3, flexShrink: 0 }}>
+                {t("dashboard_see_all")} <i className="ti ti-chevron-right" style={{ fontSize: 12 }} aria-hidden="true" />
+              </button>
+            )}
+          >
+            <div>
               {recentTx.length === 0 ? (
                 <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", padding: "1.5rem 0" }}>{t("tx_no_transactions")}</p>
               ) : (
@@ -597,17 +588,16 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                 })
               )}
             </div>
-          </div>
+          </WidgetCard>
         );
 
       case "net_worth":
         return (
-          <div>
-            <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>{t("widget_net_worth_total")}</p>
-            <div className="pw-card" data-accent="ocean" style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "1rem 1.25rem" }}>
+          <WidgetCard icon="ti-diamond" accent="ocean" title={t("widget_net_worth_total")}>
+            <div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: members.length > 0 ? 12 : 0 }}>
                 <span style={{ fontSize: 12, color: "var(--ink-3)" }}>{t("wealth_net_worth")}</span>
-                <span style={{ fontSize: 18, fontWeight: 700, color: netWorth >= 0 ? "var(--sage)" : "var(--tang)" }}>
+                <span className="pw-num" style={{ fontSize: 19, color: netWorth >= 0 ? "var(--sage)" : "var(--tang)" }}>
                   {netWorth >= 0 ? "+" : ""}{formatAmount(netWorth)} {currencySymbol}
                 </span>
               </div>
@@ -627,16 +617,36 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                 </div>
               )}
             </div>
-          </div>
+          </WidgetCard>
         );
 
       case "debt_tracker":
         if (!debt) return null;
         return (
-          <div>
-            <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>{t("widget_debt_tracker")}</p>
-            <DebtSummaryCard debt={debt} defaultCurrency={displayCurrency} onClick={!editMode ? onOpenDebt : undefined} />
-          </div>
+          <WidgetCard icon="ti-arrows-exchange" accent="pink" title={t("widget_debt_tracker")}>
+            {/* Contenu inline (DebtSummaryCard embarque son propre cadre — on
+                évite la carte dans la carte). */}
+            <div
+              onClick={!editMode ? onOpenDebt : undefined}
+              style={{ display: "flex", alignItems: "center", gap: 12, cursor: editMode ? "default" : "pointer" }}
+            >
+              <div style={{ display: "flex" }}>
+                <div style={{ marginRight: -8, border: "2px solid var(--bg-card)", borderRadius: "50%" }}>
+                  <Avatar member={debt.a} colorMap={memberColorMap} size={32} />
+                </div>
+                <div style={{ border: "2px solid var(--bg-card)", borderRadius: "50%" }}>
+                  <Avatar member={debt.b} colorMap={memberColorMap} size={32} />
+                </div>
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontSize: 12, color: "var(--ink-2)" }}>{debt.owesText}</p>
+                <p className="pw-num" style={{ fontSize: 18, color: "var(--sky)" }}>
+                  {Math.round(debt.owesAmount).toLocaleString("fr-FR")} {displayCurrency}
+                </p>
+              </div>
+              {!editMode && <i className="ti ti-chevron-right" style={{ fontSize: 16, color: "var(--ink-3)" }} aria-hidden="true" />}
+            </div>
+          </WidgetCard>
         );
 
       case "recurring": {
@@ -647,26 +657,28 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
           .sort((a, b) => (a.nextDate?.getTime() ?? Infinity) - (b.nextDate?.getTime() ?? Infinity))
           .slice(0, 3);
         return (
-          <div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-              <p style={{ fontSize: 13, fontWeight: 500 }}>{t("widget_recurring_upcoming")}</p>
-              {!editMode && (
-                <button
-                  onClick={() => onOpenRecurring?.()}
-                  style={{ background: "none", border: "none", color: "var(--sky)", fontSize: 12, display: "flex", alignItems: "center", gap: 3 }}
-                >
-                  {t("dashboard_see_all")} <i className="ti ti-chevron-right" style={{ fontSize: 12 }} aria-hidden="true" />
-                </button>
-              )}
-            </div>
+          <WidgetCard
+            icon="ti-repeat"
+            accent="pink"
+            title={t("widget_recurring_upcoming")}
+            flush
+            action={!editMode && (
+              <button
+                onClick={() => onOpenRecurring?.()}
+                style={{ background: "none", border: "none", color: "var(--sky)", fontSize: 12, display: "flex", alignItems: "center", gap: 3, flexShrink: 0 }}
+              >
+                {t("dashboard_see_all")} <i className="ti ti-chevron-right" style={{ fontSize: 12 }} aria-hidden="true" />
+              </button>
+            )}
+          >
             {subscriptionSuggestion && !editMode && (
               <div
                 style={{
                   background: "var(--lavi-light)",
                   border: "0.5px solid var(--lavi)",
-                  borderRadius: "var(--radius-lg)",
+                  borderRadius: "var(--radius-md)",
                   padding: "10px 14px",
-                  marginBottom: 8,
+                  margin: "0 14px 8px",
                 }}
               >
                 <p style={{ fontSize: 12, color: "var(--ink)", marginBottom: 8, display: "flex", alignItems: "flex-start", gap: 6 }}>
@@ -694,7 +706,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                 </div>
               </div>
             )}
-            <div className="pw-card" data-accent="pink" style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", overflow: "hidden" }}>
+            <div>
               {upcoming.length === 0 ? (
                 <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", padding: "1.5rem 0" }}>{t("widget_recurring_empty")}</p>
               ) : (
@@ -730,30 +742,28 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                 })
               )}
             </div>
-          </div>
+          </WidgetCard>
         );
       }
 
       case "wealth_allocation":
         if (totalAssets <= 0) return null;
         return (
-          <div>
-            <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>{t("widget_wealth_allocation")}</p>
-            <div style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "1rem 1.25rem" }}>
-              <Suspense fallback={<div className="skeleton" style={{ height: 110 }} />}>
-                <AllocationChart totalsByType={totalsByType} totalAssets={totalAssets} />
-              </Suspense>
-            </div>
-          </div>
+          <WidgetCard icon="ti-chart-donut" accent="amber" title={t("widget_wealth_allocation")}>
+            <Suspense fallback={<div className="skeleton" style={{ height: 110 }} />}>
+              <AllocationChart totalsByType={totalsByType} totalAssets={totalAssets} />
+            </Suspense>
+          </WidgetCard>
         );
 
       case "reports_trend":
         return (
-          <div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-              <p style={{ fontSize: 13, fontWeight: 500 }}>{t("widget_reports_trend")}</p>
-              {!editMode && (
-                <div style={{ display: "flex", gap: 4 }}>
+          <WidgetCard
+            icon="ti-chart-bar"
+            accent="ocean"
+            title={t("widget_reports_trend")}
+            action={!editMode && (
+                <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
                   {[{ k: "week", l: t("widget_trend_this_week") }, { k: 3, l: "3M" }, { k: 6, l: "6M" }, { k: 12, l: "12M" }].map((opt) => (
                     <button
                       key={opt.k}
@@ -772,14 +782,12 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                     </button>
                   ))}
                 </div>
-              )}
-            </div>
-            <div style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "1rem 1.25rem" }}>
-              <Suspense fallback={<div className="skeleton" style={{ height: 180 }} />}>
-                <IncomeExpenseTrendChart data={trendData} currencySymbol={currencySymbol} />
-              </Suspense>
-            </div>
-          </div>
+            )}
+          >
+            <Suspense fallback={<div className="skeleton" style={{ height: 180 }} />}>
+              <IncomeExpenseTrendChart data={trendData} currencySymbol={currencySymbol} />
+            </Suspense>
+          </WidgetCard>
         );
 
       default:
@@ -938,7 +946,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                   editMode={editMode}
                   onLongPress={enterEditMode}
                 >
-                  <div style={{ marginBottom: 20, position: "relative" }}>
+                  <div style={{ marginBottom: 28, position: "relative" }}>
                     {/* Toggle button overlay in edit mode — kept at full opacity/contrast
                         regardless of widget visibility, so it stays obviously tappable
                         even when the widget below it is faded out. */}
@@ -995,6 +1003,41 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
         </SortableContext>
       </DndContext>
       </div>
+    </div>
+  );
+}
+
+// Carte de widget façon brand kit : le titre vit DANS la carte, précédé d'une
+// pastille d'icône teintée (qui se remplit au survol via .pw-chip-host), avec
+// une action optionnelle à droite ("Voir tout", pills de période...).
+// `flush` retire le padding horizontal du contenu (listes bord à bord).
+const WIDGET_ACCENTS = {
+  coral: ["var(--tang)", "var(--tang-light)"],
+  ocean: ["var(--lavi)", "var(--lavi-light)"],
+  sky: ["var(--sky)", "var(--sky-light)"],
+  amber: ["var(--amber)", "var(--amber-light)"],
+  mint: ["var(--sage)", "var(--sage-light)"],
+  pink: ["var(--blush)", "var(--blush-light)"],
+};
+
+function WidgetCard({ icon, accent = "coral", title, action, flush = false, children }) {
+  const [color, light] = WIDGET_ACCENTS[accent] || WIDGET_ACCENTS.coral;
+  return (
+    <div
+      className="pw-card pw-chip-host"
+      data-accent={accent}
+      style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", overflow: "hidden" }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "16px 18px 0" }}>
+        <span className="pw-chip" style={{ width: 32, height: 32, borderRadius: 10, background: light, "--pw-chip": color, flexShrink: 0 }}>
+          <i className={`ti ${icon}`} style={{ fontSize: 16, color }} aria-hidden="true" />
+        </span>
+        <span style={{ fontSize: 13.5, fontWeight: 600, fontFamily: "var(--font-display)", flex: 1, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          {title}
+        </span>
+        {action}
+      </div>
+      <div style={{ padding: flush ? "10px 0 6px" : "12px 18px 16px" }}>{children}</div>
     </div>
   );
 }
