@@ -19,6 +19,18 @@ const PILLAR_EMOJI = {
   recurring: "🔁",
 };
 
+// Couleurs de la jauge dérivées du score : une seule teinte (rouge → vert par
+// la teinte HSL), du plus clair au plus soutenu. Un score élevé donne donc un
+// dégradé de verts (aucun rouge visible), un score moyen un dégradé d'oranges.
+function gaugeColors(score) {
+  const s = Math.max(0, Math.min(100, score));
+  const hue = (s / 100) * 125; // 0 = rouge, 125 = vert
+  return {
+    main: `hsl(${hue}, 68%, 44%)`,
+    light: `hsl(${hue}, 72%, 60%)`,
+  };
+}
+
 // Point sur un demi-arc (0 = gauche, 100 = droite), y vers le bas en SVG.
 function pointOnArc(cx, cy, r, value) {
   const theta = Math.PI - (value / 100) * Math.PI;
@@ -82,40 +94,44 @@ export default function HealthScoreWidget({ displayCurrency }) {
     );
   }
 
-  const color = BAND_COLOR[band];
+  const { main: gaugeColor, light: gaugeLight } = gaugeColors(score);
   const W = 220, H = 124, cx = W / 2, cy = 112, r = 92;
+  // Id de gradient unique par périmètre (couple/membre) : deux gauges rendues
+  // côte à côte ne partagent alors pas la même définition de teinte.
+  const gid = `hg-${scopeUid ?? "couple"}`;
 
   return (
     <div className="pw-card pw-chip-host" data-accent="coral" style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "1rem 1.25rem" }}>
       {header}
       {scopePicker}
       <div>
-        {/* Jauge demi-arc : l'arc se remplit avec un gradient rouge → vert
-            proportionnel au score ; le chiffre seul reste au centre (plus
-            d'aiguille ni de repères parasites). */}
+        {/* Jauge demi-arc : l'arc se remplit d'un dégradé d'une seule teinte,
+            déterminée par le score (clair → soutenu), sans aiguille ni repère.
+            Le gradient est en coordonnées SPATIALES fixes (userSpaceOnUse) pour
+            ne pas se déformer selon la longueur de l'arc rempli. */}
         <div style={{ display: "flex", justifyContent: "center" }}>
           <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`${score}/100`}>
             <defs>
-              {/* Gradient fixé sur toute la largeur de l'arc : la pointe de
-                  l'arc rempli prend donc la couleur correspondant au score. */}
-              <linearGradient id="healthGaugeGradient" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stopColor="var(--red)" />
-                <stop offset="50%" stopColor="var(--amber)" />
-                <stop offset="100%" stopColor="var(--sage)" />
+              <linearGradient id={gid} gradientUnits="userSpaceOnUse" x1={cx - r} y1={cy} x2={cx + r} y2={cy}>
+                <stop offset="0%" stopColor={gaugeLight} />
+                <stop offset="100%" stopColor={gaugeColor} />
               </linearGradient>
             </defs>
             <path d={arcPath(cx, cy, r, 0, 100)} fill="none" stroke="var(--rule)" strokeWidth={12} strokeLinecap="round" />
-            <path
-              d={arcPath(cx, cy, r, 0, Math.max(score, 2))}
-              fill="none"
-              stroke="url(#healthGaugeGradient)"
-              strokeWidth={12}
-              strokeLinecap="round"
-            />
-            <text x={cx} y={cy - 28} textAnchor="middle" fontSize={38} fontWeight="700" fill={color} fontFamily="var(--font-display)">{score}</text>
+            {score > 0 && (
+              <path
+                d={arcPath(cx, cy, r, 0, Math.min(Math.max(score, 1.5), 100))}
+                fill="none"
+                stroke={`url(#${gid})`}
+                strokeWidth={12}
+                strokeLinecap="round"
+              />
+            )}
+            <text x={cx} y={cy - 30} textAnchor="middle" fontSize={36} fontWeight="700" fill={gaugeColor} fontFamily="var(--font-display)">{score}</text>
+            <text x={cx} y={cy - 12} textAnchor="middle" fontSize={12} fill="var(--ink-3)">/ 100</text>
           </svg>
         </div>
-        <p style={{ textAlign: "center", fontSize: 14, fontWeight: 600, color, marginTop: -4 }}>
+        <p style={{ textAlign: "center", fontSize: 14, fontWeight: 600, color: gaugeColor, marginTop: -4 }}>
           {t(`health_band_${band}`)}
         </p>
 
