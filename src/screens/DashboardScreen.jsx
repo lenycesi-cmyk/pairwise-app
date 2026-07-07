@@ -46,11 +46,6 @@ const HealthScoreWidget = lazy(() => import("../components/HealthScoreWidget"));
 // default on desktop.
 const DESKTOP_ONLY_WIDGETS = ["wealth_allocation", "reports_trend"];
 
-const MONTHS = [
-  "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
-  "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre",
-];
-
 const LONG_PRESS_DELAY = 500;
 
 // ── Sortable widget wrapper ──────────────────────────────────────────────────
@@ -122,8 +117,15 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
   const { catName } = useCategoryName();
   const {
     transactions, categories, members, assets, recurringTx, coupleName, debtSettlements,
-    defaultCurrency, dashboardDisplayCurrency, updateDashboardDisplayCurrency, loading,
+    defaultCurrency, dashboardDisplayCurrency, updateDashboardDisplayCurrency, loading, language,
   } = useFinance();
+  // Noms de mois localisés selon la langue des réglages (l'ancien tableau
+  // MONTHS était figé en français).
+  const locale = language === "en" ? "en-US" : "fr-FR";
+  const monthName = (m) => {
+    const s = new Date(2000, m, 1).toLocaleDateString(locale, { month: "long" });
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  };
   const displayCurrency = dashboardDisplayCurrency || defaultCurrency;
   const { convert, loading: ratesLoading, error: ratesError } = useExchangeRates(displayCurrency);
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
@@ -228,7 +230,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
       let m = viewMonth - i;
       let y = viewYear;
       while (m < 0) { m += 12; y -= 1; }
-      buckets.push({ month: m, year: y, label: MONTHS[m].slice(0, 3), income: 0, expense: 0 });
+      buckets.push({ month: m, year: y, label: monthName(m).slice(0, 3), income: 0, expense: 0 });
     }
     for (const tx of transactions) {
       const d = new Date(tx.date);
@@ -641,7 +643,9 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                 </div>
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: 12, color: "var(--ink-2)" }}>{debt.owesText}</p>
+                <p style={{ fontSize: 12, color: "var(--ink-2)" }}>
+                  {t("debt_owes").replace("{from}", debt.owesFromName).replace("{to}", debt.owesToName)}
+                </p>
                 <p className="pw-num" style={{ fontSize: 18, color: "var(--sky)" }}>
                   {Math.round(debt.owesAmount).toLocaleString("fr-FR")} {displayCurrency}
                 </p>
@@ -838,7 +842,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
             <i className="ti ti-chevron-left" style={{ fontSize: 16 }} aria-hidden="true" />
           </button>
           <p style={{ fontSize: 15, fontWeight: 500 }}>
-            {MONTHS[viewMonth]} {viewYear}
+            {monthName(viewMonth)} {viewYear}
             {ratesError === "using_fallback_rates" && (
               <i className="ti ti-alert-triangle" title="Taux de change approximatifs" style={{ fontSize: 12, color: "var(--amber)", marginLeft: 6 }} aria-hidden="true" />
             )}
