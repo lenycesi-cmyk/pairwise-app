@@ -260,6 +260,12 @@ async function syncAssetBalance(coupleId, assetId) {
 
 // ── Push notifications ───────────────────────────────────────────────────────
 
+// Un token FCM dont le timestamp (mis à jour à chaque ouverture de l'app par
+// registerDevice) date de plus de 270 jours est considéré périmé : FCM lui-même
+// invalide les tokens inactifs autour de ce seuil. On les purge en amont plutôt
+// que d'attendre un échec d'envoi.
+const STALE_TOKEN_MS = 270 * 86400000;
+
 /**
  * Envoie un push FCM (message data-only : le Service Worker garde la main
  * sur l'affichage) à tous les appareils des membres ciblés, et purge les
@@ -267,11 +273,22 @@ async function syncAssetBalance(coupleId, assetId) {
  */
 async function sendPushToMembers(coupleId, coupleData, targetMemberKeys, notification) {
   const fcmTokens = coupleData.fcmTokens || {};
+  const now = Date.now();
   const tokens = [];
+  const stale = [];
   for (const key of targetMemberKeys) {
-    tokens.push(...Object.keys(fcmTokens[key] || {}));
+    for (const [token, ts] of Object.entries(fcmTokens[key] || {})) {
+      // ts = timestamp de dernière inscription (Date.now()) ; peut être absent
+      // sur d'anciens enregistrements → on ne le considère pas périmé.
+      if (typeof ts === "number" && now - ts > STALE_TOKEN_MS) stale.push(token);
+      else tokens.push(token);
+    }
   }
-  if (tokens.length === 0) return;
+  if (tokens.length === 0) {
+    console.log(`[sendPush] couple=${coupleId} targets=[${targetMemberKeys.join(",")}] aucun token frais (périmés=${stale.length}) → rien envoyé`);
+    if (stale.length > 0) await purgeTokens(coupleId, fcmTokens, stale);
+    return;
+  }
 
   const res = await admin.messaging().sendEachForMulticast({
     tokens,
@@ -282,26 +299,31 @@ async function sendPushToMembers(coupleId, coupleData, targetMemberKeys, notific
       url: notification.url || "/",
     },
   });
+  console.log(`[sendPush] couple=${coupleId} tag=${notification.tag || "-"} targets=[${targetMemberKeys.join(",")}] tokens=${tokens.length} ok=${res.successCount} ko=${res.failureCount} périmés=${stale.length}`);
 
-  // Purge des tokens morts (appareil désinstallé, token expiré)
-  const dead = [];
+  // Purge des tokens morts (appareil désinstallé, token expiré) + périmés
+  const dead = [...stale];
   res.responses.forEach((r, i) => {
     const code = r.error?.code || "";
     if (code.includes("registration-token-not-registered") || code.includes("invalid-argument")) {
       dead.push(tokens[i]);
     }
   });
-  if (dead.length > 0) {
-    const cleaned = {};
-    for (const [memberKey, byToken] of Object.entries(fcmTokens)) {
-      cleaned[memberKey] = Object.fromEntries(
-        Object.entries(byToken).filter(([token]) => !dead.includes(token))
-      );
-    }
-    // update() ciblé : remplace le champ fcmTokens entier sans toucher au
-    // reste du doc couple (set sans merge écraserait tout le document).
-    await db.collection("couples").doc(coupleId).update({ fcmTokens: cleaned });
+  if (dead.length > 0) await purgeTokens(coupleId, fcmTokens, dead);
+}
+
+// Retire une liste de tokens du champ fcmTokens du doc couple, sans toucher au
+// reste du document (update ciblé ; un set sans merge écraserait tout).
+async function purgeTokens(coupleId, fcmTokens, tokensToRemove) {
+  const remove = new Set(tokensToRemove);
+  const cleaned = {};
+  for (const [memberKey, byToken] of Object.entries(fcmTokens)) {
+    cleaned[memberKey] = Object.fromEntries(
+      Object.entries(byToken).filter(([token]) => !remove.has(token))
+    );
   }
+  console.log(`[sendPush] couple=${coupleId} purge de ${remove.size} token(s) morts/périmés`);
+  await db.collection("couples").doc(coupleId).update({ fcmTokens: cleaned });
 }
 
 // memberId d'un membre (memberId découplé du uid — voir src/utils/members.js)
