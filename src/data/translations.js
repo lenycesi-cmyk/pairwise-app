@@ -372,6 +372,10 @@ export const TRANSLATIONS = {
 
     // Budget
     budget_title: "Budget",
+    budget_widget_overview: "Vue d'ensemble",
+    budget_widget_list: "Suivi des budgets",
+    budget_overview_over: "{n} budget(s) dépassé(s)",
+    budget_overview_ok: "{n} budget(s) suivi(s), tout est sous contrôle",
     budget_new_title: "Nouveau budget",
     budget_edit_title: "Modifier le budget",
     budget_scope: "Type de budget",
@@ -400,6 +404,7 @@ export const TRANSLATIONS = {
     budget_quick_history_next: "Suivant",
 
     // Dashboard customization
+    home_title: "Accueil",
     dashboard_customize: "Personnaliser",
     dashboard_edit_hint: "Glissez pour réorganiser · appuyez pour afficher/masquer",
     dashboard_done: "Terminer",
@@ -805,6 +810,10 @@ export const TRANSLATIONS = {
 
     // Budget
     budget_title: "Budget",
+    budget_widget_overview: "Overview",
+    budget_widget_list: "Budget tracking",
+    budget_overview_over: "{n} budget(s) over limit",
+    budget_overview_ok: "{n} budget(s) tracked, everything under control",
     budget_new_title: "New budget",
     budget_edit_title: "Edit budget",
     budget_scope: "Budget type",
@@ -833,6 +842,7 @@ export const TRANSLATIONS = {
     budget_quick_history_next: "Next",
 
     // Dashboard customization
+    home_title: "Home",
     dashboard_customize: "Customize",
     dashboard_edit_hint: "Drag to reorder · tap to show/hide",
     dashboard_done: "Done",

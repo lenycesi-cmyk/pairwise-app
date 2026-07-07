@@ -9,6 +9,15 @@ import { BUDGET_GROUPS, BUDGET_GROUP_KEYS } from "../data/budgetGroups";
 import SpotlightHint from "../components/SpotlightHint";
 import { getMemberKey } from "../utils/members";
 import { useMediaQuery } from "../hooks/useMediaQuery";
+import { useScreenWidgets } from "../hooks/useScreenWidgets";
+import CustomizePanel, { CustomizeButton } from "../components/CustomizePanel";
+import WidgetCard from "../components/WidgetCard";
+
+// Widgets proposés dans le panneau "personnaliser" de cet onglet.
+const BUDGET_WIDGETS = [
+  { id: "overview", labelKey: "budget_widget_overview" },
+  { id: "list", labelKey: "budget_widget_list" },
+];
 
 const EXPENSE_EXCLUDED = ["income", "investment", "savings"];
 const GROUP_PCT = { essential: 0.5, fun: 0.3, investment: 0.2 };
@@ -46,6 +55,8 @@ export default function BudgetScreen({ openSignal }) {
   const [currency, setCurrency] = useState(defaultCurrency);
   const [alertThreshold, setAlertThreshold] = useState("80");
   const [memberUid, setMemberUid] = useState("couple");
+  const [showCustomize, setShowCustomize] = useState(false);
+  const { isVisible, toggle } = useScreenWidgets("budgetWidgets");
   const isDesktop = useMediaQuery("(min-width: 1024px)");
 
   const expenseCategories = categories.filter((c) => !EXPENSE_EXCLUDED.includes(c.id));
@@ -255,7 +266,7 @@ export default function BudgetScreen({ openSignal }) {
   return (
     <div style={{ padding: "1.5rem 1.25rem 6rem" }}>
       <div style={{ position: "sticky", top: 0, zIndex: 30, background: "var(--bg)", marginLeft: "-1.25rem", marginRight: "-1.25rem", padding: "0.4rem 1.25rem", marginBottom: 8, display: "flex", alignItems: "center" }}>
-        <h1 style={{ fontSize: 20, marginLeft: 44, flex: 1 }}>
+        <h1 style={{ fontSize: 20, marginLeft: isDesktop ? 0 : 44, flex: 1 }}>
           {showForm
             ? editingId
               ? t("budget_edit_title")
@@ -267,9 +278,12 @@ export default function BudgetScreen({ openSignal }) {
             : t("budget_title")}
         </h1>
         {!showForm && (
-          <button ref={addButtonRef} onClick={openNew} aria-label={t("common_add")} style={{ background: "none", border: "none" }}>
-            <i className="ti ti-plus" style={{ fontSize: 20 }} aria-hidden="true" />
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <CustomizeButton onClick={() => setShowCustomize(!showCustomize)} label={t("dashboard_customize")} />
+            <button ref={addButtonRef} onClick={openNew} aria-label={t("common_add")} style={{ background: "none", border: "none" }}>
+              <i className="ti ti-plus" style={{ fontSize: 20 }} aria-hidden="true" />
+            </button>
+          </div>
         )}
         {showForm && (
           <button
@@ -283,6 +297,10 @@ export default function BudgetScreen({ openSignal }) {
       </div>
 
       {!showForm && <SpotlightHint tabKey="budget" targetRef={addButtonRef} text={t("hint_budget")} />}
+
+      {!showForm && showCustomize && (
+        <CustomizePanel widgets={BUDGET_WIDGETS} isVisible={isVisible} toggle={toggle} />
+      )}
 
       {showForm && quickMode === null && (
         <div
@@ -697,7 +715,36 @@ export default function BudgetScreen({ openSignal }) {
 
       {!showForm && (
       <div className={isDesktop ? "card-columns" : ""}>
-      {progress.map(({ budget, spent, amountInBase, pct, projected, projectedOver }) => {
+      {/* Vue d'ensemble : total dépensé vs total budgété, tous budgets actifs
+          confondus (converti en devise par défaut par useBudgetProgress). */}
+      {isVisible("overview") && progress.length > 0 && (() => {
+        const active = progress.filter(({ budget }) => budget.active !== false);
+        const totalBudget = active.reduce((s, p) => s + p.amountInBase, 0);
+        const totalSpent = active.reduce((s, p) => s + p.spent, 0);
+        const overCount = active.filter((p) => p.pct >= 100).length;
+        const pct = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
+        const barColor = pct >= 100 ? "var(--red)" : pct >= 80 ? "var(--amber)" : "var(--sky)";
+        return (
+          <WidgetCard icon="ti-gauge" accent="amber" title={t("budget_widget_overview")} style={{ marginBottom: 12 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
+              <span className="pw-num" style={{ fontSize: 22 }}>
+                {Math.round(totalSpent).toLocaleString("fr-FR")}
+                <span style={{ fontSize: 13, color: "var(--ink-3)", fontWeight: 400 }}> / {Math.round(totalBudget).toLocaleString("fr-FR")} {defaultCurrency}</span>
+              </span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: barColor }}>{Math.round(pct)}%</span>
+            </div>
+            <div style={{ height: 6, borderRadius: 3, background: "var(--rule)", overflow: "hidden" }}>
+              <div style={{ height: "100%", width: `${Math.min(pct, 100)}%`, background: barColor, borderRadius: 3 }} />
+            </div>
+            <p style={{ fontSize: 11, color: overCount > 0 ? "var(--red)" : "var(--ink-3)", marginTop: 6 }}>
+              {overCount > 0
+                ? t("budget_overview_over").replace("{n}", overCount)
+                : t("budget_overview_ok").replace("{n}", active.length)}
+            </p>
+          </WidgetCard>
+        );
+      })()}
+      {isVisible("list") && progress.map(({ budget, spent, amountInBase, pct, projected, projectedOver }) => {
         const isInactive = budget.active === false;
         const over = pct >= 100;
         const warn = pct >= (budget.alertThreshold ?? 80);
