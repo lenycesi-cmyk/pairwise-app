@@ -70,6 +70,7 @@ async function main() {
 
   // ── 2. Lecture Firestore + présence de tokens ────────────────────────────
   console.log("2) Firestore read + fcmTokens…");
+  const allTokens = []; // { couple, member, token } pour l'étape 4
   const fs = await call(token, "GET",
     `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/couples?pageSize=10&mask.fieldPaths=fcmTokens&mask.fieldPaths=pushPrefs&mask.fieldPaths=members`);
   if (fs.status !== 200) {
@@ -81,8 +82,9 @@ async function main() {
       const id = d.name.split("/").pop();
       const tokenField = d.fields?.fcmTokens?.mapValue?.fields || {};
       const summary = Object.entries(tokenField).map(([member, v]) => {
-        const n = Object.keys(v.mapValue?.fields || {}).length;
-        return `${member.slice(0, 12)}…: ${n} token(s)`;
+        const tokens = Object.keys(v.mapValue?.fields || {});
+        for (const tk of tokens) allTokens.push({ couple: id, member, token: tk });
+        return `${member.slice(0, 12)}…: ${tokens.length} token(s)`;
       });
       console.log(`   couple ${id}: fcmTokens { ${summary.join(", ") || "VIDE ✗"} }`);
     }
@@ -109,6 +111,45 @@ async function main() {
       const msg = e.textPayload || JSON.stringify(e.jsonPayload || e.httpRequest || {}).slice(0, 200);
       console.log(`   [${e.severity || "?"}] ${e.timestamp} ${msg}`);
     }
+  }
+
+  // ── 4. Envoi RÉEL, token par token (uniquement si SEND_TEST=1) ────────────
+  // Chaque token reçoit une vraie notif de test ; on rapporte vivant/mort avec
+  // le code d'erreur FCM exact. C'est le seul moyen fiable de distinguer
+  // « tokens morts » d'un problème de rendu/livraison. Data-only pour que le
+  // Service Worker affiche la notif comme en production.
+  if (process.env.SEND_TEST === "1") {
+    console.log("\n4) Envoi RÉEL de test, token par token…");
+    if (allTokens.length === 0) {
+      console.log("   Aucun token stocké → rien à tester (les appareils doivent se réenregistrer) ✗");
+    }
+    let alive = 0, dead = 0;
+    for (const { couple, member, token: tk } of allTokens) {
+      const r = await call(token, "POST",
+        `https://fcm.googleapis.com/v1/projects/${PROJECT_ID}/messages:send`,
+        { message: { token: tk, data: {
+          title: "Pairwise — test",
+          body: "Notification de diagnostic. Tu peux l'ignorer.",
+          tag: "debug_test",
+          url: "/",
+        } } });
+      const label = `${couple}/${member.slice(0, 8)}… ${tk.slice(0, 12)}…`;
+      if (r.status === 200) {
+        alive++;
+        console.log(`   ✓ VIVANT  ${label}`);
+      } else {
+        dead++;
+        let err = r.preview;
+        try {
+          const j = JSON.parse(r.body);
+          err = j.error?.details?.[0]?.errorCode || j.error?.status || j.error?.message || err;
+        } catch { /* garde le preview brut */ }
+        console.log(`   ✗ MORT    ${label} → HTTP ${r.status} ${err}`);
+      }
+    }
+    console.log(`\n   Bilan : ${alive} vivant(s), ${dead} mort(s) sur ${allTokens.length} token(s).`);
+  } else {
+    console.log("\n4) Envoi réel désactivé (SEND_TEST≠1) — aucun push envoyé.");
   }
 }
 
