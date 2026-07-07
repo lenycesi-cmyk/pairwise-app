@@ -829,7 +829,10 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
       >
       {/* Header */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center" }}>
-        <div />
+        {/* Titre d'onglet, aligné avec la colonne gauche — cohérent avec
+            Rapports / Patrimoine / Budget. Sur mobile, laisse la place au
+            bouton de menu en haut à gauche (même retrait de 44px). */}
+        <h1 style={{ fontSize: 20, marginLeft: isDesktop ? 0 : 44, whiteSpace: "nowrap" }}>{t("home_title")}</h1>
         <div style={{ display: "flex", alignItems: "center", gap: 10, justifySelf: "center" }}>
           <button onClick={() => changeMonth(-1)} aria-label="Mois précédent" style={navBtnStyle}>
             <i className="ti ti-chevron-left" style={{ fontSize: 16 }} aria-hidden="true" />

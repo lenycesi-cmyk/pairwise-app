@@ -13,8 +13,22 @@ import { getMemberKey } from "../utils/members";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 import { tagColor } from "../utils/tags";
 import TagChip from "../components/TagChip";
+import { useScreenWidgets } from "../hooks/useScreenWidgets";
+import CustomizePanel, { CustomizeButton } from "../components/CustomizePanel";
 
 const PERIOD_TYPES = ["week", "month", "quarter", "year", "last12", "custom"];
+
+// Widgets proposés dans le panneau "personnaliser" — uniquement les sections
+// de cet onglet, pas ceux du Dashboard.
+const REPORT_WIDGETS = [
+  { id: "totals", labelKey: "reports_totals_title" },
+  { id: "net_worth", labelKey: "reports_net_worth_evolution" },
+  { id: "spending_evolution", labelKey: "reports_evolution" },
+  { id: "income_vs_expense", labelKey: "reports_income_vs_expense" },
+  { id: "member_comparison", labelKey: "reports_member_comparison" },
+  { id: "by_tag", labelKey: "reports_by_tag" },
+  { id: "by_category", labelKey: "reports_by_category" },
+];
 
 // Same k-notation as the dashboard's IncomeExpenseTrendChart, so the
 // mobile Reports chart and the desktop widget read identically.
@@ -90,7 +104,7 @@ function shiftAnchor(periodType, anchor, delta) {
 
 export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMonthChange }) {
   const t = useTranslation();
-  const { transactions, categories, members, defaultCurrency, dashboardDisplayCurrency, netWorthHistory } = useFinance();
+  const { transactions, categories, members, defaultCurrency, dashboardDisplayCurrency, updateDashboardDisplayCurrency, netWorthHistory } = useFinance();
   const displayCurrency = dashboardDisplayCurrency || defaultCurrency;
   const { convert, loading: ratesLoading } = useExchangeRates(displayCurrency);
   const memberColorMap = useMemo(() => buildMemberColorMap(members), [members]);
@@ -105,6 +119,9 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
     sharedMonth ? new Date(sharedMonth.year, sharedMonth.month, 1) : new Date()
   );
   const [customRange, setCustomRange] = useState({ start: "", end: "" });
+  const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
+  const [showCustomize, setShowCustomize] = useState(false);
+  const { isVisible, toggle } = useScreenWidgets("reportsWidgets");
 
   function setAnchor(newAnchor) {
     setAnchorRaw(newAnchor);
@@ -326,7 +343,22 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
     <div style={{ padding: "1.5rem 1.25rem 6rem" }}>
       {/* En-tête collant : titre + filtres temporels, alignés à gauche. */}
       <div style={{ position: "sticky", top: 0, zIndex: 30, background: "var(--bg)", marginLeft: "-1.25rem", marginRight: "-1.25rem", padding: "0.5rem 1.25rem 0.6rem", marginBottom: 12 }}>
-        <h1 style={{ fontSize: 20, marginBottom: 10, marginLeft: isDesktop ? 0 : 44 }}>{t("reports_title")}</h1>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+          <h1 style={{ fontSize: 20, marginLeft: isDesktop ? 0 : 44 }}>{t("reports_title")}</h1>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <button
+              onClick={() => { setShowCurrencyPicker(!showCurrencyPicker); setShowCustomize(false); }}
+              style={{
+                padding: "4px 10px", borderRadius: "var(--radius-md)", border: "0.5px solid var(--rule)",
+                background: "var(--bg-card)", fontSize: 12, fontWeight: 500,
+                display: "flex", alignItems: "center", gap: 4,
+              }}
+            >
+              {displayCurrency} <i className="ti ti-chevron-down" style={{ fontSize: 11 }} aria-hidden="true" />
+            </button>
+            <CustomizeButton onClick={() => { setShowCustomize(!showCustomize); setShowCurrencyPicker(false); }} label={t("dashboard_customize")} />
+          </div>
+        </div>
         <div ref={periodRowRef} style={{ display: "flex", gap: 6, flexWrap: "wrap", marginLeft: isDesktop ? 0 : 44 }}>
         {PERIOD_TYPES.map((p) => (
           <button
@@ -349,6 +381,29 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
       </div>
 
       <SpotlightHint tabKey="reports" targetRef={periodRowRef} text={t("hint_reports")} />
+
+      {showCurrencyPicker && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 16, background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "0.75rem 1rem" }}>
+          {CURRENCIES.map((c) => (
+            <button
+              key={c.code}
+              onClick={() => { updateDashboardDisplayCurrency(c.code); setShowCurrencyPicker(false); }}
+              style={{
+                padding: "6px 10px", borderRadius: "var(--radius-md)",
+                border: displayCurrency === c.code ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
+                background: displayCurrency === c.code ? "var(--sky-light)" : "var(--bg)",
+                color: displayCurrency === c.code ? "var(--sky)" : "var(--ink)", fontSize: 12,
+              }}
+            >
+              {c.symbol} {c.code}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {showCustomize && (
+        <CustomizePanel widgets={REPORT_WIDGETS} isVisible={isVisible} toggle={toggle} />
+      )}
 
       {periodType === "custom" && (
         <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
@@ -410,6 +465,7 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
 
       {/* Total revenus & dépenses sur la période — même largeur que les autres
           cartes (dans la grille). Remplace les anciennes cartes redondantes. */}
+      {isVisible("totals") && (
       <WidgetCard icon="ti-scale" accent="coral" title={t("reports_totals_title")} style={{ marginBottom: 20 }}>
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
@@ -432,9 +488,10 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
           </p>
         )}
       </WidgetCard>
+      )}
 
       {/* Net worth evolution */}
-      {netWorthChartData.length >= 2 && (
+      {isVisible("net_worth") && netWorthChartData.length >= 2 && (
         <>
           <WidgetCard icon="ti-diamond" accent="ocean" title={t("reports_net_worth_evolution")} style={{ marginBottom: 20 }}>
             <div style={{ width: "100%", height: 140 }}>
@@ -455,6 +512,7 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
         </>
       )}
 
+      {isVisible("spending_evolution") && (
       <WidgetCard icon="ti-trending-down" accent="coral" title={t("reports_evolution")} style={{ marginBottom: 20 }}>
         {evolutionData.length === 0 ? (
           <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", padding: "1rem 0" }}>
@@ -485,7 +543,9 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
           </div>
         )}
       </WidgetCard>
+      )}
 
+      {isVisible("income_vs_expense") && (
       <WidgetCard icon="ti-chart-bar" accent="ocean" title={t("reports_income_vs_expense")} style={{ marginBottom: 20 }}>
         {incomeExpenseData.length === 0 ? (
           <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", padding: "1rem 0" }}>
@@ -520,8 +580,9 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
           </div>
         )}
       </WidgetCard>
+      )}
 
-      {members.length > 0 && (
+      {isVisible("member_comparison") && members.length > 0 && (
         <WidgetCard
           icon="ti-users"
           accent="ocean"
@@ -556,7 +617,7 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
         </WidgetCard>
       )}
 
-      {tagTotals.length > 0 && (
+      {isVisible("by_tag") && tagTotals.length > 0 && (
         <WidgetCard icon="ti-tags" accent="pink" title={t("reports_by_tag")} style={{ marginBottom: 20 }}>
           <div>
             {tagTotals.map(({ tag, total }, i) => {
@@ -577,6 +638,7 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
         </WidgetCard>
       )}
 
+      {isVisible("by_category") && (
       <WidgetCard icon="ti-chart-pie" accent="coral" title={t("reports_by_category")}>
         {Object.keys(categoryTotals).length === 0 ? (
           <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", padding: "1.5rem 0" }}>
@@ -599,6 +661,7 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
             ))
         )}
       </WidgetCard>
+      )}
       </div>
     </div>
   );

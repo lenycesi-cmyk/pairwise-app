@@ -15,6 +15,18 @@ import { useTranslation } from "../hooks/useTranslation";
 import SpotlightHint from "../components/SpotlightHint";
 import { getMemberKey } from "../utils/members";
 import { useMediaQuery } from "../hooks/useMediaQuery";
+import { useScreenWidgets } from "../hooks/useScreenWidgets";
+import CustomizePanel, { CustomizeButton } from "../components/CustomizePanel";
+
+// Widgets proposés dans le panneau "personnaliser" de cet onglet. La liste
+// des actifs par type n'y figure pas : c'est le contenu principal de l'écran.
+const WEALTH_WIDGETS = [
+  { id: "net_worth", labelKey: "wealth_net_worth" },
+  { id: "evolution", labelKey: "wealth_evolution" },
+  { id: "allocation", labelKey: "wealth_allocation" },
+  { id: "member_allocation", labelKey: "wealth_member_allocation" },
+  { id: "calculator", labelKey: "wealth_calculator_cta" },
+];
 
 const COLOR_MAP = {
   tang: { text: "var(--tang)", bg: "var(--tang-light)" },
@@ -52,6 +64,8 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef }) {
   const [liveChanges, setLiveChanges] = useState({});
   const [refreshing, setRefreshing] = useState(false);
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
+  const [showCustomize, setShowCustomize] = useState(false);
+  const { isVisible, toggle } = useScreenWidgets("wealthWidgets");
 
   const currencySymbol = CURRENCIES.find((c) => c.code === displayCurrency)?.symbol || displayCurrency;
 
@@ -177,17 +191,20 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef }) {
   return (
     <div style={{ padding: "1.5rem 1.25rem 6rem" }}>
       <div style={{ position: "sticky", top: 0, zIndex: 30, background: "var(--bg)", marginLeft: "-1.25rem", marginRight: "-1.25rem", padding: "0.4rem 1.25rem", marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h1 style={{ fontSize: 20, marginLeft: 44 }}>{t("wealth_title")}</h1>
-        <button
-          onClick={() => setShowCurrencyPicker(!showCurrencyPicker)}
-          style={{
-            padding: "4px 10px", borderRadius: "var(--radius-md)",
-            border: "0.5px solid var(--rule)", background: "var(--bg-card)",
-            fontSize: 12, fontWeight: 500, display: "flex", alignItems: "center", gap: 4,
-          }}
-        >
-          {displayCurrency} <i className="ti ti-chevron-down" style={{ fontSize: 11 }} aria-hidden="true" />
-        </button>
+        <h1 style={{ fontSize: 20, marginLeft: isDesktop ? 0 : 44 }}>{t("wealth_title")}</h1>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <button
+            onClick={() => { setShowCurrencyPicker(!showCurrencyPicker); setShowCustomize(false); }}
+            style={{
+              padding: "4px 10px", borderRadius: "var(--radius-md)",
+              border: "0.5px solid var(--rule)", background: "var(--bg-card)",
+              fontSize: 12, fontWeight: 500, display: "flex", alignItems: "center", gap: 4,
+            }}
+          >
+            {displayCurrency} <i className="ti ti-chevron-down" style={{ fontSize: 11 }} aria-hidden="true" />
+          </button>
+          <CustomizeButton onClick={() => { setShowCustomize(!showCustomize); setShowCurrencyPicker(false); }} label={t("dashboard_customize")} />
+        </div>
       </div>
 
       <SpotlightHint
@@ -224,8 +241,14 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef }) {
         </div>
       )}
 
+      {showCustomize && (
+        <CustomizePanel widgets={WEALTH_WIDGETS} isVisible={isVisible} toggle={toggle} />
+      )}
+
       <div className={isDesktop ? "card-columns" : ""}>
 
+      {isVisible("net_worth") && (
+      <>
       {/* Net worth total — column item so its width matches the other cards
           on desktop (was previously full-width above the masonry). */}
       <div
@@ -286,9 +309,11 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef }) {
           </div>
         )}
       </div>
+      </>
+      )}
 
       {/* Net worth chart */}
-      {netWorthHistory.length > 1 && (
+      {isVisible("evolution") && netWorthHistory.length > 1 && (
         <WidgetCard icon="ti-chart-line" accent="mint" title={t("wealth_evolution")} style={{ marginBottom: 12 }}>
           <NetWorthChart
             history={netWorthHistory}
@@ -300,14 +325,14 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef }) {
       )}
 
       {/* Allocation chart */}
-      {assets.length > 0 && (
+      {isVisible("allocation") && assets.length > 0 && (
         <WidgetCard icon="ti-chart-donut" accent="amber" title={t("wealth_allocation")} style={{ marginBottom: 12 }}>
           <AllocationChart totalsByType={totalsByType} totalAssets={totalAssets} />
         </WidgetCard>
       )}
 
       {/* Répartition par membre */}
-      {members.length > 1 && totalAssets > 0 && (
+      {isVisible("member_allocation") && members.length > 1 && totalAssets > 0 && (
         <WidgetCard icon="ti-users" accent="ocean" title={t("wealth_member_allocation")} style={{ marginBottom: 12 }}>
           <div>
           {members.map((m) => {
@@ -330,6 +355,7 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef }) {
       )}
 
       {/* Calculateur shortcut */}
+      {isVisible("calculator") && (
       <button
         onClick={onOpenCalculator}
         style={{
@@ -350,6 +376,7 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef }) {
         </span>
         <i className="ti ti-chevron-right" style={{ fontSize: 14, color: "var(--lavi)" }} aria-hidden="true" />
       </button>
+      )}
 
       {/* Liste des actifs par type */}
       {ASSET_TYPES.map((type) => {
