@@ -5,6 +5,38 @@ import { useAuth } from "../context/AuthContext";
 import { useFinance } from "../context/FinanceContext";
 import { getMemberKey } from "../utils/members";
 
+// Affiche les push reçus PENDANT que l'app est au premier plan. Le Service
+// Worker (`onBackgroundMessage`) ne se déclenche QUE si l'app est en
+// arrière-plan/fermée ; sans handler `onMessage`, un message data-only reçu
+// onglet ouvert était silencieusement perdu. On le rend via le même
+// showNotification que le SW pour un affichage identique. À monter une seule
+// fois globalement (PushRunner dans App.jsx) pour éviter les notifs en double.
+export function useForegroundPush() {
+  const { user, coupleId } = useAuth();
+  useEffect(() => {
+    if (!pushSupported() || Notification.permission !== "granted" || !user || !coupleId) return;
+    let cancelled = false;
+    let unsub = () => {};
+    (async () => {
+      const { getMessaging, onMessage } = await import("firebase/messaging");
+      const reg = await navigator.serviceWorker.ready;
+      if (cancelled) return;
+      unsub = onMessage(getMessaging(), (payload) => {
+        const d = payload.data || {};
+        reg.showNotification(d.title || "Pairwise", {
+          body: d.body || "",
+          icon: "/icon-192.png",
+          badge: "/icon-192.png",
+          tag: d.tag || undefined,
+          data: { url: d.url || "/" },
+        });
+      });
+    })().catch((err) => console.warn("Foreground push handler failed", err));
+    return () => { cancelled = true; unsub(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.uid, coupleId]);
+}
+
 // Clé VAPID (Web Push certificate, console Firebase → Cloud Messaging).
 // Publique par nature — injectée au build comme les autres VITE_*.
 const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY;
