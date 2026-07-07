@@ -87,6 +87,18 @@ async function main() {
         return `${member.slice(0, 12)}…: ${tokens.length} token(s)`;
       });
       console.log(`   couple ${id}: fcmTokens { ${summary.join(", ") || "VIDE ✗"} }`);
+      // pushPrefs par membre : tout est activé par défaut ; on n'affiche que
+      // les types explicitement désactivés (=== false), seuls capables de
+      // bloquer un envoi.
+      const prefsField = d.fields?.pushPrefs?.mapValue?.fields || {};
+      const prefLines = Object.entries(prefsField).map(([member, v]) => {
+        const types = v.mapValue?.fields || {};
+        const off = Object.entries(types)
+          .filter(([, val]) => val.booleanValue === false)
+          .map(([type]) => type);
+        return `${member.slice(0, 12)}…: ${off.length ? "OFF → " + off.join(", ") : "tout ON"}`;
+      });
+      console.log(`   couple ${id}: pushPrefs { ${prefLines.join(" | ") || "aucune (=tout ON)"} }`);
     }
     console.log("");
   }
@@ -167,6 +179,33 @@ async function main() {
     console.log("   → Regarde ton appareil : quelle(s) variante(s) s'affiche(nt), A et/ou B ?");
   } else {
     console.log("\n4) Envoi réel désactivé (SEND_TEST≠1) — aucun push envoyé.");
+  }
+
+  // ── 5. État de déploiement de la fonction Cloud `sendPush` ────────────────
+  // Le test A/B court-circuite la fonction (envoi FCM direct). Ici on vérifie
+  // que la fonction existe, est ACTIVE, et depuis quand — plus son droit
+  // d'invocation Cloud Run (allUsers), dont la perte fait échouer l'appel
+  // callable côté client (avalé par le catch fire-and-forget).
+  console.log("\n5) Fonction Cloud sendPush (europe-west1)…");
+  const fn = await call(token, "GET",
+    "https://cloudfunctions.googleapis.com/v2/projects/pairwise-12df2/locations/europe-west1/functions/sendPush");
+  if (fn.status !== 200) {
+    console.log(`   HTTP ${fn.status} ✗ introuvable/illisible → ${fn.preview}`);
+  } else {
+    const j = JSON.parse(fn.body);
+    console.log(`   état: ${j.state} · maj: ${j.updateTime} · révision: ${j.serviceConfig?.revision || "?"}`);
+    if (j.state !== "ACTIVE") console.log("   ✗ la fonction n'est PAS ACTIVE → les appels échouent");
+    // Droit d'invocation Cloud Run (gen2 = service Cloud Run "sendpush")
+    const iam = await call(token, "POST",
+      "https://run.googleapis.com/v2/projects/pairwise-12df2/locations/europe-west1/services/sendpush:getIamPolicy");
+    if (iam.status === 200) {
+      const pol = JSON.parse(iam.body);
+      const invokers = (pol.bindings || []).filter((b) => b.role === "roles/run.invoker").flatMap((b) => b.members || []);
+      const open = invokers.includes("allUsers");
+      console.log(`   invoker run.invoker: ${invokers.join(", ") || "AUCUN"} ${open ? "✓" : "✗ (allUsers manquant → callable 403)"}`);
+    } else {
+      console.log(`   IAM invoker illisible → HTTP ${iam.status} ${iam.preview}`);
+    }
   }
 }
 
