@@ -2,19 +2,23 @@ import { useState } from "react";
 import { useFinance } from "../context/FinanceContext";
 import { useExchangeRates } from "../hooks/useExchangeRates";
 import { useDebtCalculation } from "../hooks/useDebtCalculation";
-
-const MONTHS = [
-  "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
-  "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre",
-];
+import { useTranslation } from "../hooks/useTranslation";
+import { CURRENCIES } from "../data/categories";
 
 function isoDate(d) {
   return d.toISOString().slice(0, 10);
 }
 
 export default function DebtScreen() {
-  const { transactions, members, defaultCurrency, debtSettlements, addDebtSettlement } = useFinance();
-  const { convert, loading } = useExchangeRates(defaultCurrency);
+  const t = useTranslation();
+  const { transactions, members, defaultCurrency, dashboardDisplayCurrency, debtSettlements, addDebtSettlement, language } = useFinance();
+  const locale = language === "en" ? "en-US" : "fr-FR";
+
+  // Devise d'affichage locale à cet écran (initialisée sur celle du Dashboard
+  // pour rester cohérent avec le widget d'accueil).
+  const [displayCurrency, setDisplayCurrency] = useState(dashboardDisplayCurrency || defaultCurrency);
+  const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
+  const { convert, loading } = useExchangeRates(displayCurrency);
 
   const now = new Date();
   const [filterMode, setFilterMode] = useState("total"); // "total" | "month" | "range"
@@ -33,7 +37,7 @@ export default function DebtScreen() {
     endDate = rangeEnd ? new Date(`${rangeEnd}T23:59:59`).toISOString() : null;
   }
 
-  const debt = useDebtCalculation(transactions, members, defaultCurrency, convert, {
+  const debt = useDebtCalculation(transactions, members, displayCurrency, convert, {
     startDate,
     endDate,
     settlements: debtSettlements,
@@ -48,11 +52,13 @@ export default function DebtScreen() {
     setViewYear(y);
   }
 
+  const monthLabel = new Date(viewYear, viewMonth, 1).toLocaleDateString(locale, { month: "long", year: "numeric" });
+
   async function handleMarkAsPaid() {
-    if (!confirm(`Marquer la dette comme réglée aujourd'hui ? Les dépenses partagées avant aujourd'hui ne compteront plus dans le solde "Total".`)) return;
+    if (!confirm(t("debt_mark_paid_confirm"))) return;
     await addDebtSettlement(new Date().toISOString(), "", {
       amount: debt.owesAmount,
-      currency: defaultCurrency,
+      currency: displayCurrency,
     });
   }
 
@@ -68,7 +74,7 @@ export default function DebtScreen() {
     return (
       <div style={{ padding: "2rem 1.5rem", textAlign: "center" }}>
         <p style={{ fontSize: 14, color: "var(--ink-3)" }}>
-          Invitez votre partenaire pour activer le suivi de dette
+          {t("debt_invite_partner")}
         </p>
       </div>
     );
@@ -76,14 +82,45 @@ export default function DebtScreen() {
 
   return (
     <div style={{ padding: "1.5rem 1.25rem 6rem" }}>
-      <h1 style={{ fontSize: 20, marginBottom: 16 }}>Entre vous</h1>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+        <h1 style={{ fontSize: 20 }}>{t("debt_title")}</h1>
+        <button
+          onClick={() => setShowCurrencyPicker(!showCurrencyPicker)}
+          style={{
+            padding: "4px 10px", borderRadius: "var(--radius-md)",
+            border: "0.5px solid var(--rule)", background: "var(--bg-card)",
+            fontSize: 12, fontWeight: 500, display: "flex", alignItems: "center", gap: 4,
+          }}
+        >
+          {displayCurrency} <i className="ti ti-chevron-down" style={{ fontSize: 11 }} aria-hidden="true" />
+        </button>
+      </div>
+
+      {showCurrencyPicker && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12, background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "0.75rem 1rem" }}>
+          {CURRENCIES.map((c) => (
+            <button
+              key={c.code}
+              onClick={() => { setDisplayCurrency(c.code); setShowCurrencyPicker(false); }}
+              style={{
+                padding: "6px 10px", borderRadius: "var(--radius-md)",
+                border: displayCurrency === c.code ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
+                background: displayCurrency === c.code ? "var(--sky-light)" : "var(--bg)",
+                color: displayCurrency === c.code ? "var(--sky)" : "var(--ink)", fontSize: 12,
+              }}
+            >
+              {c.symbol} {c.code}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Filtre de période */}
       <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
         {[
-          { key: "total", label: "Total" },
-          { key: "month", label: "Mois" },
-          { key: "range", label: "Période" },
+          { key: "total", label: t("debt_filter_total") },
+          { key: "month", label: t("debt_filter_month") },
+          { key: "range", label: t("debt_filter_range") },
         ].map((f) => (
           <button
             key={f.key}
@@ -106,11 +143,11 @@ export default function DebtScreen() {
 
       {filterMode === "month" && (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 16 }}>
-          <button onClick={() => changeMonth(-1)} aria-label="Mois précédent" style={navBtnStyle}>
+          <button onClick={() => changeMonth(-1)} aria-label={t("debt_filter_month")} style={navBtnStyle}>
             <i className="ti ti-chevron-left" style={{ fontSize: 16 }} aria-hidden="true" />
           </button>
-          <p style={{ fontSize: 14, fontWeight: 500 }}>{MONTHS[viewMonth]} {viewYear}</p>
-          <button onClick={() => changeMonth(1)} aria-label="Mois suivant" style={navBtnStyle}>
+          <p style={{ fontSize: 14, fontWeight: 500, textTransform: "capitalize" }}>{monthLabel}</p>
+          <button onClick={() => changeMonth(1)} aria-label={t("debt_filter_month")} style={navBtnStyle}>
             <i className="ti ti-chevron-right" style={{ fontSize: 16 }} aria-hidden="true" />
           </button>
         </div>
@@ -150,16 +187,18 @@ export default function DebtScreen() {
           <Avatar name={debt.b.name} color="blush" />
         </div>
         {debt.owesAmount === 0 ? (
-          <p style={{ fontSize: 13, color: "var(--ink-2)" }}>Rien à régler</p>
+          <p style={{ fontSize: 13, color: "var(--ink-2)" }}>{t("debt_nothing")}</p>
         ) : (
-          <p style={{ fontSize: 13, color: "var(--ink-2)" }}>{debt.owesText}</p>
+          <p style={{ fontSize: 13, color: "var(--ink-2)" }}>
+            {t("debt_owes").replace("{from}", debt.owesFromName).replace("{to}", debt.owesToName)}
+          </p>
         )}
         <p style={{ fontSize: 32, fontWeight: 500, color: "var(--sky)", marginTop: 4 }}>
-          {Math.round(debt.owesAmount).toLocaleString("fr-FR")} {defaultCurrency}
+          {Math.round(debt.owesAmount).toLocaleString(locale)} {displayCurrency}
         </p>
         {filterMode === "total" && debt.latestSettlement && (
           <p style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 8 }}>
-            Depuis le règlement du {new Date(debt.latestSettlement.date).toLocaleDateString("fr-FR")}
+            {t("debt_since_settlement").replace("{date}", new Date(debt.latestSettlement.date).toLocaleDateString(locale))}
           </p>
         )}
         {filterMode === "total" && debt.owesAmount > 0 && (
@@ -182,13 +221,13 @@ export default function DebtScreen() {
             }}
           >
             <i className="ti ti-check" style={{ fontSize: 14 }} aria-hidden="true" />
-            Marquer comme réglée
+            {t("debt_mark_paid")}
           </button>
         )}
       </div>
 
       <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>
-        Détail des dépenses partagées
+        {t("debt_shared_detail")}
       </p>
       <div
         style={{
@@ -200,7 +239,7 @@ export default function DebtScreen() {
       >
         {debt.sharedTx.length === 0 ? (
           <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", padding: "1.5rem 0" }}>
-            Aucune dépense partagée
+            {t("debt_no_shared")}
           </p>
         ) : (
           debt.sharedTx.map((tx, i) => (
@@ -217,11 +256,11 @@ export default function DebtScreen() {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ fontSize: 13 }}>{tx.description}</p>
                 <p style={{ fontSize: 11, color: "var(--ink-3)" }}>
-                  Payé par {tx.paidByName} · {tx.label}
+                  {t("debt_paid_by").replace("{name}", tx.paidByName)} · {tx.label ?? t("debt_for").replace("{name}", tx.forName)}
                 </p>
               </div>
               <p style={{ fontSize: 13, fontWeight: 500, color: "var(--sky)" }}>
-                +{Math.round(tx.share).toLocaleString("fr-FR")}
+                +{Math.round(tx.share).toLocaleString(locale)}
               </p>
             </div>
           ))

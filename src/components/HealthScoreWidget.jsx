@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useHealthScore } from "../hooks/useHealthScore";
 import { useTranslation } from "../hooks/useTranslation";
+import { useFinance } from "../context/FinanceContext";
+import { getMemberKey } from "../utils/members";
 
 const BAND_COLOR = {
   great: "var(--sage)",
@@ -32,7 +34,10 @@ function arcPath(cx, cy, r, from, to) {
 
 export default function HealthScoreWidget({ displayCurrency }) {
   const t = useTranslation();
-  const { score, band, pillars, hasData } = useHealthScore(displayCurrency);
+  const { members } = useFinance();
+  // null = vue couple ; sinon uid du membre sélectionné.
+  const [scopeUid, setScopeUid] = useState(null);
+  const { score, band, pillars, hasData } = useHealthScore(displayCurrency, scopeUid);
   const [open, setOpen] = useState(false);
 
   // Titre DANS la carte, précédé d'une pastille d'icône teintée (même motif
@@ -42,7 +47,28 @@ export default function HealthScoreWidget({ displayCurrency }) {
       <span className="pw-chip" style={{ width: 32, height: 32, borderRadius: 10, background: "var(--tang-light)", "--pw-chip": "var(--tang)", flexShrink: 0 }}>
         <i className="ti ti-activity-heartbeat" style={{ fontSize: 16, color: "var(--tang)" }} aria-hidden="true" />
       </span>
-      <span style={{ fontSize: 13.5, fontWeight: 600, fontFamily: "var(--font-display)" }}>{t("health_title")}</span>
+      <span style={{ fontSize: 13.5, fontWeight: 600, fontFamily: "var(--font-display)", flex: 1 }}>{t("health_title")}</span>
+    </div>
+  );
+
+  // Sélecteur couple / membre — visible dès qu'il y a au moins 2 membres.
+  const scopePicker = members.length > 1 && (
+    <div style={{ display: "flex", gap: 6, justifyContent: "center", marginTop: 6 }}>
+      {[{ uid: null, label: t("health_scope_couple") }, ...members.map((m) => ({ uid: getMemberKey(m), label: m.name }))].map((s) => (
+        <button
+          key={s.uid ?? "couple"}
+          onClick={() => setScopeUid(s.uid)}
+          style={{
+            padding: "4px 12px", borderRadius: 99, fontSize: 11.5,
+            border: scopeUid === s.uid ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
+            background: scopeUid === s.uid ? "var(--sky-light)" : "var(--bg)",
+            color: scopeUid === s.uid ? "var(--sky)" : "var(--ink-2)",
+            fontWeight: scopeUid === s.uid ? 500 : 400,
+          }}
+        >
+          {s.label}
+        </button>
+      ))}
     </div>
   );
 
@@ -50,6 +76,7 @@ export default function HealthScoreWidget({ displayCurrency }) {
     return (
       <div className="pw-card pw-chip-host" data-accent="coral" style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "1rem 1.25rem" }}>
         {header}
+        {scopePicker}
         <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", padding: "0.5rem 0" }}>{t("health_empty")}</p>
       </div>
     );
@@ -57,21 +84,35 @@ export default function HealthScoreWidget({ displayCurrency }) {
 
   const color = BAND_COLOR[band];
   const W = 220, H = 124, cx = W / 2, cy = 112, r = 92;
-  const needle = pointOnArc(cx, cy, r - 14, score);
 
   return (
     <div className="pw-card pw-chip-host" data-accent="coral" style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "1rem 1.25rem" }}>
       {header}
+      {scopePicker}
       <div>
-        {/* Jauge demi-arc */}
+        {/* Jauge demi-arc : l'arc se remplit avec un gradient rouge → vert
+            proportionnel au score ; le chiffre seul reste au centre (plus
+            d'aiguille ni de repères parasites). */}
         <div style={{ display: "flex", justifyContent: "center" }}>
           <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`${score}/100`}>
+            <defs>
+              {/* Gradient fixé sur toute la largeur de l'arc : la pointe de
+                  l'arc rempli prend donc la couleur correspondant au score. */}
+              <linearGradient id="healthGaugeGradient" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stopColor="var(--red)" />
+                <stop offset="50%" stopColor="var(--amber)" />
+                <stop offset="100%" stopColor="var(--sage)" />
+              </linearGradient>
+            </defs>
             <path d={arcPath(cx, cy, r, 0, 100)} fill="none" stroke="var(--rule)" strokeWidth={12} strokeLinecap="round" />
-            <path d={arcPath(cx, cy, r, 0, Math.max(score, 0.5))} fill="none" stroke={color} strokeWidth={12} strokeLinecap="round" />
-            <line x1={cx} y1={cy} x2={needle.x} y2={needle.y} stroke={color} strokeWidth={3} strokeLinecap="round" />
-            <circle cx={cx} cy={cy} r={5} fill={color} />
-            <text x={cx} y={cy - 30} textAnchor="middle" fontSize={34} fontWeight="700" fill={color}>{score}</text>
-            <text x={cx} y={cy - 12} textAnchor="middle" fontSize={11} fill="var(--ink-3)">/ 100</text>
+            <path
+              d={arcPath(cx, cy, r, 0, Math.max(score, 2))}
+              fill="none"
+              stroke="url(#healthGaugeGradient)"
+              strokeWidth={12}
+              strokeLinecap="round"
+            />
+            <text x={cx} y={cy - 28} textAnchor="middle" fontSize={38} fontWeight="700" fill={color} fontFamily="var(--font-display)">{score}</text>
           </svg>
         </div>
         <p style={{ textAlign: "center", fontSize: 14, fontWeight: 600, color, marginTop: -4 }}>

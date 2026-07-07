@@ -19,7 +19,7 @@ export function useDebtCalculation(transactions, members, defaultCurrency, conve
 
   // Calcule la part de chaque membre (a, b) à partir de splitDetails, en
   // respectant l'unité (pourcentage ou montant figé en devise d'origine).
-  function getCustomShares(tx, val, a, b) {
+  function getCustomShares(tx, val) {
     const d = tx.splitDetails;
     if (d.unit === "percent") {
       return { shareA: (val * d.a) / 100, shareB: (val * d.b) / 100 };
@@ -57,7 +57,7 @@ export function useDebtCalculation(transactions, members, defaultCurrency, conve
         // Partage avancé : chaque membre doit sa propre part, peu importe
         // qui a payé. Seule la part de l'AUTRE membre crée une dette envers
         // celui qui a payé.
-        const { shareA, shareB } = getCustomShares(tx, val, a, b);
+        const { shareA, shareB } = getCustomShares(tx, val);
         if (tx.paidBy === aKey) {
           aPaidForB += shareB;
           sharedTx.push({ ...tx, share: shareB, paidByName: a.name, label: `${shareA.toFixed(0)}/${shareB.toFixed(0)}` });
@@ -76,10 +76,11 @@ export function useDebtCalculation(transactions, members, defaultCurrency, conve
         }
       } else if (tx.split === aKey && tx.paidBy === bKey) {
         bPaidForA += val;
-        sharedTx.push({ ...tx, share: val, paidByName: b.name, label: `pour ${a.name}` });
+        // label null + forName : l'écran traduit "pour {name}" lui-même.
+        sharedTx.push({ ...tx, share: val, paidByName: b.name, label: null, forName: a.name });
       } else if (tx.split === bKey && tx.paidBy === aKey) {
         aPaidForB += val;
-        sharedTx.push({ ...tx, share: val, paidByName: a.name, label: `pour ${b.name}` });
+        sharedTx.push({ ...tx, share: val, paidByName: a.name, label: null, forName: b.name });
       }
     }
 
@@ -88,7 +89,10 @@ export function useDebtCalculation(transactions, members, defaultCurrency, conve
       a, b,
       aPaidForB, bPaidForA,
       net,
-      owesText: net > 0 ? `${b.name} doit à ${a.name}` : `${a.name} doit à ${b.name}`,
+      // Noms structurés : les écrans composent la phrase via i18n ("{from}
+      // doit à {to}" / "{from} owes {to}").
+      owesFromName: net > 0 ? b.name : a.name,
+      owesToName: net > 0 ? a.name : b.name,
       owesAmount: Math.abs(net),
       sharedTx: sharedTx.sort((x, y) => new Date(y.date) - new Date(x.date)),
       latestSettlement,
