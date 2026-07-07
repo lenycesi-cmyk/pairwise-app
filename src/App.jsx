@@ -5,6 +5,7 @@ import { useRecurringGenerator } from "./hooks/useRecurringGenerator";
 import { useBudgetAlerts } from "./hooks/useBudgetAlerts";
 import { useCommentNotifications } from "./hooks/useCommentNotifications";
 import { useRecurringReminders } from "./hooks/useRecurringReminders";
+import { usePushNotifications, useForegroundPush } from "./hooks/usePushNotifications";
 import { useBackGuard } from "./hooks/useBackGuard";
 import { useTranslation } from "./hooks/useTranslation";
 import AuthScreen from "./screens/AuthScreen";
@@ -45,6 +46,14 @@ function CommentNotifierRunner() {
 
 function RecurringRemindersRunner() {
   useRecurringReminders();
+  return null;
+}
+
+// Rafraîchit le token FCM à chaque lancement (pas seulement à l'ouverture des
+// Réglages) et affiche les push reçus app au premier plan.
+function PushRunner() {
+  usePushNotifications();
+  useForegroundPush();
   return null;
 }
 
@@ -190,6 +199,7 @@ function AppContent() {
       <BudgetAlertsRunner />
       <CommentNotifierRunner />
       <RecurringRemindersRunner />
+      <PushRunner />
 
       <button
         ref={settingsButtonRef}
