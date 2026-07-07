@@ -40,7 +40,11 @@ function pointOnArc(cx, cy, r, value) {
 function arcPath(cx, cy, r, from, to) {
   const a = pointOnArc(cx, cy, r, from);
   const b = pointOnArc(cx, cy, r, to);
-  const largeArc = to - from > 50 ? 1 : 0;
+  // Sur un demi-cercle (0→100 = 180°), l'arc entre deux valeurs ne dépasse
+  // jamais 180°, donc on prend toujours le PETIT arc (largeArc = 0). Un seuil
+  // basé sur (to - from) faisait basculer sur le grand arc dès score > 50, ce
+  // qui faisait « déborder » le remplissage par l'extérieur.
+  const largeArc = to - from > 100 ? 1 : 0;
   return `M ${a.x} ${a.y} A ${r} ${r} 0 ${largeArc} 1 ${b.x} ${b.y}`;
 }
 
