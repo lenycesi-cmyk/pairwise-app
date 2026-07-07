@@ -114,40 +114,57 @@ async function main() {
   }
 
   // ── 4. Envoi RÉEL, token par token (uniquement si SEND_TEST=1) ────────────
-  // Chaque token reçoit une vraie notif de test ; on rapporte vivant/mort avec
-  // le code d'erreur FCM exact. C'est le seul moyen fiable de distinguer
-  // « tokens morts » d'un problème de rendu/livraison. Data-only pour que le
-  // Service Worker affiche la notif comme en production.
+  // On envoie DEUX variantes par token pour isoler le point de rupture :
+  //   A) data-only — exactement ce que la prod envoie ; c'est le Service
+  //      Worker (onBackgroundMessage) qui doit AFFICHER la notif.
+  //   B) notification + webpush — FCM/le navigateur affichent la notif tout
+  //      seuls, sans dépendre du Service Worker.
+  // Si B arrive mais pas A → le SW ne rend pas les messages data-only (fix
+  // côté functions). Si ni A ni B → blocage OS/navigateur (permission système,
+  // Ne pas déranger, optimisation batterie).
   if (process.env.SEND_TEST === "1") {
-    console.log("\n4) Envoi RÉEL de test, token par token…");
+    console.log("\n4) Envoi RÉEL de test (2 variantes/token)…");
     if (allTokens.length === 0) {
       console.log("   Aucun token stocké → rien à tester (les appareils doivent se réenregistrer) ✗");
     }
-    let alive = 0, dead = 0;
+    const send = (tk, message) => call(token, "POST",
+      `https://fcm.googleapis.com/v1/projects/${PROJECT_ID}/messages:send`,
+      { message: { token: tk, ...message } });
+    const errOf = (r) => {
+      try {
+        const j = JSON.parse(r.body);
+        return j.error?.details?.[0]?.errorCode || j.error?.status || j.error?.message || r.preview;
+      } catch { return r.preview; }
+    };
+    let aliveA = 0, aliveB = 0, dead = 0;
     for (const { couple, member, token: tk } of allTokens) {
-      const r = await call(token, "POST",
-        `https://fcm.googleapis.com/v1/projects/${PROJECT_ID}/messages:send`,
-        { message: { token: tk, data: {
-          title: "Pairwise — test",
-          body: "Notification de diagnostic. Tu peux l'ignorer.",
-          tag: "debug_test",
-          url: "/",
-        } } });
       const label = `${couple}/${member.slice(0, 8)}… ${tk.slice(0, 12)}…`;
-      if (r.status === 200) {
-        alive++;
-        console.log(`   ✓ VIVANT  ${label}`);
-      } else {
+      // A — data-only (comportement prod actuel)
+      const a = await send(tk, { data: {
+        title: "Pairwise — test A (data-only)",
+        body: "Variante A. Ignore-la.",
+        tag: "debug_test_a",
+        url: "/",
+      } });
+      // B — notification + webpush (affichage garanti par FCM)
+      const b = await send(tk, {
+        notification: { title: "Pairwise — test B (notification)", body: "Variante B. Ignore-la." },
+        webpush: {
+          notification: { title: "Pairwise — test B (notification)", body: "Variante B. Ignore-la.", icon: "/icon-192.png", tag: "debug_test_b" },
+          fcmOptions: { link: "/" },
+        },
+      });
+      if (a.status !== 200 && b.status !== 200) {
         dead++;
-        let err = r.preview;
-        try {
-          const j = JSON.parse(r.body);
-          err = j.error?.details?.[0]?.errorCode || j.error?.status || j.error?.message || err;
-        } catch { /* garde le preview brut */ }
-        console.log(`   ✗ MORT    ${label} → HTTP ${r.status} ${err}`);
+        console.log(`   ✗ MORT    ${label} → A: HTTP ${a.status} ${errOf(a)} | B: HTTP ${b.status} ${errOf(b)}`);
+        continue;
       }
+      if (a.status === 200) aliveA++; else console.log(`   ⚠ A KO    ${label} → HTTP ${a.status} ${errOf(a)}`);
+      if (b.status === 200) aliveB++; else console.log(`   ⚠ B KO    ${label} → HTTP ${b.status} ${errOf(b)}`);
+      console.log(`   ✓ ACCEPTÉ ${label} (A:${a.status === 200 ? "ok" : "ko"} B:${b.status === 200 ? "ok" : "ko"})`);
     }
-    console.log(`\n   Bilan : ${alive} vivant(s), ${dead} mort(s) sur ${allTokens.length} token(s).`);
+    console.log(`\n   Bilan : A acceptés ${aliveA}, B acceptés ${aliveB}, morts ${dead} sur ${allTokens.length} token(s).`);
+    console.log("   → Regarde ton appareil : quelle(s) variante(s) s'affiche(nt), A et/ou B ?");
   } else {
     console.log("\n4) Envoi réel désactivé (SEND_TEST≠1) — aucun push envoyé.");
   }
