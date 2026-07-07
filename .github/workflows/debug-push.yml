@@ -2,6 +2,11 @@ name: Debug push notifications
 
 on:
   workflow_dispatch:
+    inputs:
+      send_test:
+        description: "Envoyer un vrai push de test aux tokens stockés (1 = oui)"
+        required: false
+        default: "0"
 
 jobs:
   debug:
@@ -14,3 +19,4 @@ jobs:
       - run: node scripts/debug-push.js
         env:
           GOOGLE_APPLICATION_CREDENTIALS_JSON: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+          SEND_TEST: ${{ github.event.inputs.send_test }}
