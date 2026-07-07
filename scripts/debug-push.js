@@ -195,8 +195,9 @@ async function main() {
     const j = JSON.parse(fn.body);
     console.log(`   état: ${j.state} · maj: ${j.updateTime} · révision: ${j.serviceConfig?.revision || "?"}`);
     if (j.state !== "ACTIVE") console.log("   ✗ la fonction n'est PAS ACTIVE → les appels échouent");
-    // Droit d'invocation Cloud Run (gen2 = service Cloud Run "sendpush")
-    const iam = await call(token, "POST",
+    // Droit d'invocation Cloud Run (gen2 = service Cloud Run "sendpush").
+    // getIamPolicy est un GET en v2.
+    const iam = await call(token, "GET",
       "https://run.googleapis.com/v2/projects/pairwise-12df2/locations/europe-west1/services/sendpush:getIamPolicy");
     if (iam.status === 200) {
       const pol = JSON.parse(iam.body);
@@ -206,6 +207,26 @@ async function main() {
     } else {
       console.log(`   IAM invoker illisible → HTTP ${iam.status} ${iam.preview}`);
     }
+  }
+
+  // ── 6. Sonde non authentifiée de l'endpoint callable ─────────────────────
+  // Décisif : on POST sur l'endpoint sendPush SANS jeton Firebase Auth.
+  //   • 403 (Cloud Run) → le droit allUsers a sauté = la requête n'atteint
+  //     jamais la fonction (cause probable du silence total des push).
+  //   • 401/400 UNAUTHENTICATED (JSON du SDK) → la requête ATTEINT la fonction
+  //     (invoker OK, App Check ne bloque pas) → chercher ailleurs.
+  console.log("\n6) Sonde non authentifiée de l'endpoint callable…");
+  const probe = await fetch("https://europe-west1-pairwise-12df2.cloudfunctions.net/sendPush", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ data: {} }),
+  });
+  const probeBody = (await probe.text()).slice(0, 300);
+  console.log(`   HTTP ${probe.status} → ${probeBody}`);
+  if (probe.status === 403) {
+    console.log("   ⇒ Droit d'invocation manquant (allUsers) : la requête n'atteint PAS la fonction. C'est la cause.");
+  } else if (probe.status === 401 || probe.status === 400) {
+    console.log("   ⇒ La requête atteint la fonction (rejetée faute d'auth, normal) : invoker OK, App Check ne bloque pas.");
   }
 }
 
