@@ -1,18 +1,25 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { usePlaid } from "../hooks/usePlaid";
 import { useAuth } from "../context/AuthContext";
 import { useFinance } from "../context/FinanceContext";
+import { useTranslation } from "../hooks/useTranslation";
 
 /**
  * Button that initiates the Plaid Link flow for a given asset.
  * On success, exchanges the token and syncs the balance server-side.
+ *
+ * `compact` renders a small inline chip (icon + short label) meant to sit in
+ * the asset row between the name and the balance — used only before a bank is
+ * connected. Once connected, the full management block (sync/disconnect) is
+ * rendered below the row regardless of `compact`.
  */
-export default function ConnectBankButton({ asset, onSuccess }) {
+export default function ConnectBankButton({ asset, onSuccess, compact = false }) {
   const { coupleId } = useAuth();
+  const { language } = useFinance();
+  const t = useTranslation();
   const { syncBalance, disconnectBank } = usePlaid();
   const [status, setStatus] = useState("idle"); // idle | loading | syncing | error
   const [plaidReady, setPlaidReady] = useState(false);
-  const [linkToken, setLinkToken] = useState(null);
 
   // Load Plaid Link script once
   useEffect(() => {
@@ -27,7 +34,8 @@ export default function ConnectBankButton({ asset, onSuccess }) {
     document.head.appendChild(script);
   }, []);
 
-  async function openPlaidLink() {
+  async function openPlaidLink(e) {
+    e?.stopPropagation();
     setStatus("loading");
     try {
       // Fetch link token from our Cloud Function
@@ -35,7 +43,7 @@ export default function ConnectBankButton({ asset, onSuccess }) {
         (await import("firebase/functions")).getFunctions(undefined, "europe-west1"),
         "createLinkToken"
       );
-      const res = await fn({ coupleId, assetId: asset.id, language: "fr" });
+      const res = await fn({ coupleId, assetId: asset.id, language });
       const token = res.data.linkToken;
 
       // Open Plaid Link
@@ -72,7 +80,8 @@ export default function ConnectBankButton({ asset, onSuccess }) {
     }
   }
 
-  async function handleSync() {
+  async function handleSync(e) {
+    e?.stopPropagation();
     setStatus("syncing");
     try {
       await syncBalance(coupleId, asset.id);
@@ -83,8 +92,9 @@ export default function ConnectBankButton({ asset, onSuccess }) {
     }
   }
 
-  async function handleDisconnect() {
-    if (!confirm("Déconnecter ce compte bancaire ?")) return;
+  async function handleDisconnect(e) {
+    e?.stopPropagation();
+    if (!confirm(t("bank_disconnect_confirm"))) return;
     setStatus("loading");
     try {
       await disconnectBank(coupleId, asset.id);
@@ -97,7 +107,7 @@ export default function ConnectBankButton({ asset, onSuccess }) {
 
   const isConnected = asset.bankConnected;
   const lastSync = asset.lastBankSync
-    ? new Date(asset.lastBankSync).toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })
+    ? new Date(asset.lastBankSync).toLocaleString(language === "en" ? "en-US" : "fr-FR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })
     : null;
 
   if (isConnected) {
@@ -106,13 +116,13 @@ export default function ConnectBankButton({ asset, onSuccess }) {
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
           <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--sage)", flexShrink: 0 }} />
           <span style={{ fontSize: 12, color: "var(--sage)", fontWeight: 500 }}>
-            {asset.bankInstitution || "Banque connectée"}
+            {asset.bankInstitution || t("bank_connected")}
             {asset.bankMask && ` ••${asset.bankMask}`}
           </span>
         </div>
         {lastSync && (
           <p style={{ fontSize: 11, color: "var(--ink-3)", marginBottom: 8 }}>
-            Sync : {lastSync}
+            {t("bank_last_sync")} : {lastSync}
           </p>
         )}
         <div style={{ display: "flex", gap: 6 }}>
@@ -127,7 +137,7 @@ export default function ConnectBankButton({ asset, onSuccess }) {
             }}
           >
             <i className={`ti ${status === "syncing" ? "ti-loader-2" : "ti-refresh"}`} style={{ fontSize: 13 }} aria-hidden="true" />
-            {status === "syncing" ? "Sync..." : "Actualiser"}
+            {status === "syncing" ? t("bank_syncing") : t("bank_refresh")}
           </button>
           <button
             onClick={handleDisconnect}
@@ -138,10 +148,38 @@ export default function ConnectBankButton({ asset, onSuccess }) {
               borderRadius: "var(--radius-md)", color: "var(--red)",
             }}
           >
-            Déconnecter
+            {t("bank_disconnect")}
           </button>
         </div>
       </div>
+    );
+  }
+
+  // Compact inline chip (icon + short label) — sits in the row between the
+  // account name and the balance.
+  if (compact) {
+    return (
+      <button
+        onClick={openPlaidLink}
+        disabled={status === "loading" || !plaidReady}
+        style={{
+          padding: "5px 10px",
+          fontSize: 12,
+          fontWeight: 500,
+          background: "var(--sky-light)",
+          border: "0.5px solid var(--sky)",
+          borderRadius: 99,
+          color: "var(--sky)",
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 5,
+          whiteSpace: "nowrap",
+          flexShrink: 0,
+        }}
+      >
+        <i className={`ti ${status === "loading" ? "ti-loader-2" : "ti-building-bank"}`} style={{ fontSize: 14 }} aria-hidden="true" />
+        {status === "loading" ? t("bank_connecting") : t("bank_connect")}
+      </button>
     );
   }
 
@@ -166,7 +204,7 @@ export default function ConnectBankButton({ asset, onSuccess }) {
       }}
     >
       <i className={`ti ${status === "loading" ? "ti-loader-2" : "ti-building-bank"}`} style={{ fontSize: 15 }} aria-hidden="true" />
-      {status === "loading" ? "Connexion..." : "Connecter ma banque"}
+      {status === "loading" ? t("bank_connecting") : t("bank_connect")}
     </button>
   );
 }
