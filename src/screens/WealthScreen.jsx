@@ -65,6 +65,9 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef }) {
   const [refreshing, setRefreshing] = useState(false);
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
   const [showCustomize, setShowCustomize] = useState(false);
+  // Périmètre du total « comptes bancaires » : null = famille (tous), sinon la
+  // clé d'un membre (comptes de ce membre + sa part des comptes partagés).
+  const [bankScope, setBankScope] = useState(null);
   const { isVisible, toggle } = useScreenWidgets("wealthWidgets");
 
   const currencySymbol = CURRENCIES.find((c) => c.code === displayCurrency)?.symbol || displayCurrency;
@@ -394,6 +397,43 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef }) {
             style={{ marginBottom: 16 }}
           >
             <div>
+              {/* Total disponible sur les comptes bancaires, filtrable par
+                  famille (tous) ou par membre. Uniquement sur la carte
+                  "Compte en banque". */}
+              {type.id === "account" && (() => {
+                const bankTotal = typeAssets.reduce(
+                  (s, a) => s + (bankScope === null ? getAssetValue(a) : getMemberShare(a, bankScope)),
+                  0
+                );
+                const scopes = [{ key: null, label: t("bank_scope_family") }, ...members.map((m) => ({ key: getMemberKey(m), label: m.name }))];
+                return (
+                  <div style={{ padding: "12px 14px", borderBottom: "0.5px solid var(--rule)" }}>
+                    <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10 }}>
+                      <span style={{ fontSize: 12.5, color: "var(--ink-3)", fontWeight: 500 }}>{t("bank_total_available")}</span>
+                      <span style={{ fontSize: 16, fontWeight: 600 }}>{formatAmount(bankTotal)} {currencySymbol}</span>
+                    </div>
+                    {members.length > 1 && (
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
+                        {scopes.map((s) => (
+                          <button
+                            key={s.key ?? "family"}
+                            onClick={() => setBankScope(s.key)}
+                            style={{
+                              padding: "3px 11px", borderRadius: 99, fontSize: 11.5,
+                              border: bankScope === s.key ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
+                              background: bankScope === s.key ? "var(--sky-light)" : "var(--bg)",
+                              color: bankScope === s.key ? "var(--sky)" : "var(--ink-2)",
+                              fontWeight: bankScope === s.key ? 500 : 400,
+                            }}
+                          >
+                            {s.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
               {typeAssets.map((asset, i) => {
                 const val = getAssetValue(asset);
                 // API-priced asset with no live price and no stored value: price couldn't be fetched
@@ -436,6 +476,11 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef }) {
                           {asset.ownership === "shared" && ` (${asset.sharePct ?? 50}/${100 - (asset.sharePct ?? 50)})`}
                         </p>
                       </div>
+                      {/* Bouton compact "Connecter" entre le nom et le solde
+                          (seulement tant que la banque n'est pas connectée). */}
+                      {type.id === "account" && !asset.bankConnected && (
+                        <ConnectBankButton asset={asset} compact onSuccess={() => setEditingAsset(null)} />
+                      )}
                       <div style={{ textAlign: "right" }}>
                         {priceUnavailable ? (
                           <p style={{ fontSize: 13, fontWeight: 500, color: "var(--ink-3)" }} title={t("wealth_price_unavailable")}>
@@ -453,7 +498,7 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef }) {
                         )}
                       </div>
                     </div>
-                    {type.id === "account" && (
+                    {type.id === "account" && asset.bankConnected && (
                       <div style={{ paddingLeft: 46, paddingRight: 14, paddingBottom: 10 }}>
                         <ConnectBankButton
                           asset={asset}

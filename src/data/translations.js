@@ -258,6 +258,17 @@ export const TRANSLATIONS = {
     wealth_period_over: "sur",
     wealth_price_unavailable: "Prix indisponible — l'API de cotation n'a pas répondu pour cet actif. Ajoutez votre propre clé API pour fiabiliser les cours boursiers.",
     wealth_price_unavailable_short: "Prix indispo.",
+    // Comptes bancaires (Plaid)
+    bank_connect: "Connecter",
+    bank_connecting: "Connexion…",
+    bank_connected: "Banque connectée",
+    bank_last_sync: "Sync",
+    bank_refresh: "Actualiser",
+    bank_syncing: "Sync…",
+    bank_disconnect: "Déconnecter",
+    bank_disconnect_confirm: "Déconnecter ce compte bancaire ?",
+    bank_total_available: "Total disponible",
+    bank_scope_family: "Famille",
 
     // Advanced split
     split_amount_unit: "Montant",
@@ -713,6 +724,17 @@ export const TRANSLATIONS = {
     wealth_period_over: "over",
     wealth_price_unavailable: "Price unavailable — the quote API did not return a price for this asset. Add your own API key for reliable stock quotes.",
     wealth_price_unavailable_short: "Price N/A",
+    // Bank accounts (Plaid)
+    bank_connect: "Connect",
+    bank_connecting: "Connecting…",
+    bank_connected: "Bank connected",
+    bank_last_sync: "Sync",
+    bank_refresh: "Refresh",
+    bank_syncing: "Syncing…",
+    bank_disconnect: "Disconnect",
+    bank_disconnect_confirm: "Disconnect this bank account?",
+    bank_total_available: "Total available",
+    bank_scope_family: "Family",
 
     // Advanced split
     split_amount_unit: "Amount",
