@@ -22,27 +22,44 @@ export const DEFAULT_WIDGETS = [
   { id: "reports_trend", visible: true },
 ];
 
-export function useDashboardPrefs() {
+// Ordre + visibilité par défaut des cartes de l'onglet Rapports (toutes
+// visibles). Même forme que DEFAULT_WIDGETS pour réutiliser le même moteur
+// d'édition (réorganisation + afficher/cacher par carte).
+export const DEFAULT_REPORT_WIDGETS = [
+  { id: "totals", visible: true },
+  { id: "net_worth", visible: true },
+  { id: "spending_evolution", visible: true },
+  { id: "income_vs_expense", visible: true },
+  { id: "member_comparison", visible: true },
+  { id: "by_tag", visible: true },
+  { id: "by_category", visible: true },
+];
+
+// Préférences de widgets par utilisateur et par écran (ordre + visibilité),
+// stockées comme un tableau sur users/{uid}.{field}. Les widgets par défaut
+// absents des prefs enregistrées sont ajoutés à la fin (ils restent visibles).
+function useWidgetPrefs(field, defaults) {
   const { user } = useAuth();
-  const [widgets, setWidgets] = useState(DEFAULT_WIDGETS);
+  const [widgets, setWidgets] = useState(defaults);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     if (!user) return;
     getDoc(doc(db, "users", user.uid)).then((snap) => {
-      if (snap.exists() && snap.data().dashboardWidgets) {
-        const saved = snap.data().dashboardWidgets;
+      if (snap.exists() && snap.data()[field]) {
+        const saved = snap.data()[field];
         const savedIds = new Set(saved.map((w) => w.id));
         // Append any new default widgets not yet in saved prefs
         const merged = [
           ...saved,
-          ...DEFAULT_WIDGETS.filter((w) => !savedIds.has(w.id)),
+          ...defaults.filter((w) => !savedIds.has(w.id)),
         ];
         setWidgets(merged);
       }
       setLoaded(true);
     });
-  }, [user?.uid]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.uid, field]);
 
   const saveWidgets = useCallback(
     async (newWidgets) => {
@@ -50,12 +67,21 @@ export function useDashboardPrefs() {
       if (!user) return;
       await setDoc(
         doc(db, "users", user.uid),
-        { dashboardWidgets: newWidgets },
+        { [field]: newWidgets },
         { merge: true }
       );
     },
-    [user?.uid]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [user?.uid, field]
   );
 
   return { widgets, saveWidgets, loaded };
+}
+
+export function useDashboardPrefs() {
+  return useWidgetPrefs("dashboardWidgets", DEFAULT_WIDGETS);
+}
+
+export function useReportsPrefs() {
+  return useWidgetPrefs("reportsLayout", DEFAULT_REPORT_WIDGETS);
 }
