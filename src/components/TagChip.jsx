@@ -1,4 +1,4 @@
-import { tagColor } from "../utils/tags";
+import { tagColor, splitTag } from "../utils/tags";
 import { suggestedTagMeta } from "../data/suggestedTags";
 import { useTranslation } from "../hooks/useTranslation";
 
@@ -10,9 +10,11 @@ export default function TagChip({ tag, onRemove, onClick, active = false, size =
   const color = tagColor(tag);
   const meta = suggestedTagMeta(tag);
   const small = size === "sm";
+  // Emoji éventuel saisi en tête d'un tag personnalisé (ex. "😱halloween").
+  const { emoji: customEmoji, text: customText } = splitTag(tag);
   // Libellé traduit pour les tags préréglés (ex. "inutile" ↔ "unnecessary") ;
-  // sinon on affiche le tag brut saisi par l'utilisateur.
-  const label = meta ? t(meta.labelKey) : tag;
+  // sinon on affiche le tag brut saisi par l'utilisateur (sans son emoji).
+  const label = meta ? t(meta.labelKey) : customText || tag;
   return (
     <span
       onClick={onClick}
@@ -31,7 +33,7 @@ export default function TagChip({ tag, onRemove, onClick, active = false, size =
         whiteSpace: "nowrap",
       }}
     >
-      {meta ? `${meta.emoji} ` : "#"}
+      {meta ? `${meta.emoji} ` : customEmoji ? `${customEmoji} ` : "#"}
       {label}
       {onRemove && (
         <i

@@ -3,18 +3,40 @@
 // report par tag sur une période. Stockés en tableau `tags: []` sur la
 // transaction, sous forme normalisée (minuscules, sans #, espaces → tirets).
 
+// Emoji éventuel en tête d'un tag : pictogramme + ses sélecteurs de variante /
+// modificateurs de teinte / séquences ZWJ (ex. ❤️‍🩹, 👍🏽). Réutilisé pour
+// normaliser (le préserver) et pour l'affichage (le détacher du libellé).
+const LEADING_EMOJI = /^(\p{Extended_Pictographic}(?:️|[\u{1F3FB}-\u{1F3FF}]|‍\p{Extended_Pictographic}️?)*)/u;
+
 // Normalise un tag saisi : retire le(s) #, trim, minuscules, remplace les
-// espaces par des tirets, supprime les caractères parasites. Renvoie "" si
-// rien d'exploitable (à filtrer par l'appelant).
+// espaces par des tirets, supprime les caractères parasites. Un emoji en tête
+// est conservé (comme les tags préréglés) puis suivi du libellé normalisé.
+// Renvoie "" si rien d'exploitable (à filtrer par l'appelant).
 export function normalizeTag(raw) {
   if (!raw) return "";
-  return String(raw)
-    .replace(/^#+/, "")
-    .trim()
+  let s = String(raw).replace(/^#+/, "").trim();
+  const m = s.match(LEADING_EMOJI);
+  let emoji = "";
+  if (m) {
+    emoji = m[1];
+    s = s.slice(m[0].length).trim();
+  }
+  const text = s
     .toLowerCase()
     .replace(/\s+/g, "-")
     .replace(/[^\p{L}\p{N}_-]/gu, "")
+    .replace(/^-+|-+$/g, "")
     .slice(0, 30);
+  return emoji + text;
+}
+
+// Sépare un tag stocké en { emoji, text } — emoji "" si le tag n'en a pas.
+// Utilisé par TagChip pour afficher l'emoji comme les tags préréglés.
+export function splitTag(tag) {
+  const raw = String(tag || "");
+  const m = raw.match(LEADING_EMOJI);
+  if (m) return { emoji: m[1], text: raw.slice(m[0].length) };
+  return { emoji: "", text: raw };
 }
 
 // Extrait les #hashtags présents dans un texte libre (ex. une description
