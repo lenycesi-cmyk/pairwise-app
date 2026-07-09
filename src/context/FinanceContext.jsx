@@ -39,6 +39,7 @@ export function FinanceProvider({ children }) {
   const [netWorthHistory, setNetWorthHistory] = useState([]);
   const [wealthDisplayCurrency, setWealthDisplayCurrency] = useState(null);
   const [dashboardDisplayCurrency, setDashboardDisplayCurrency] = useState(null);
+  const [budgetDisplayCurrency, setBudgetDisplayCurrency] = useState(null);
   const [theme, setThemeState] = useState("pairwise");
   const [language, setLanguageState] = useState("fr");
   const [debtSettlements, setDebtSettlements] = useState([]);
@@ -106,6 +107,7 @@ export function FinanceProvider({ children }) {
         if (data.netWorthHistory) setNetWorthHistory(data.netWorthHistory);
         if (data.wealthDisplayCurrency) setWealthDisplayCurrency(data.wealthDisplayCurrency);
         if (data.dashboardDisplayCurrency) setDashboardDisplayCurrency(data.dashboardDisplayCurrency);
+        if (data.budgetDisplayCurrency) setBudgetDisplayCurrency(data.budgetDisplayCurrency);
         if (data.theme) setThemeState(data.theme);
         if (data.language) setLanguageState(data.language);
         if (data.debtSettlements) setDebtSettlements(data.debtSettlements);
@@ -498,6 +500,15 @@ export function FinanceProvider({ children }) {
     );
   }
 
+  async function updateBudgetDisplayCurrency(currency) {
+    if (!coupleId) return;
+    await setDoc(
+      doc(db, "couples", coupleId),
+      { budgetDisplayCurrency: currency },
+      { merge: true }
+    );
+  }
+
   async function updateTheme(themeKey) {
     setThemeState(themeKey);
     if (coupleId) {
@@ -557,6 +568,8 @@ export function FinanceProvider({ children }) {
     updateWealthDisplayCurrency,
     dashboardDisplayCurrency,
     updateDashboardDisplayCurrency,
+    budgetDisplayCurrency,
+    updateBudgetDisplayCurrency,
     theme,
     updateTheme,
     language,

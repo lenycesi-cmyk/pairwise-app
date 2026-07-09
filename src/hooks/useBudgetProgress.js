@@ -9,9 +9,13 @@ import { useExchangeRates } from "./useExchangeRates";
 // pour le mois affiché sur Accueil/Rapports plutôt que toujours le mois
 // calendaire réel — sans quoi le widget Budget d'Accueil dérivait du mois
 // consulté (ex: on regarde juin, le widget montre les dépenses de juillet).
-export function useBudgetProgress(viewMonth, viewYear) {
+export function useBudgetProgress(viewMonth, viewYear, displayCurrency) {
   const { transactions, budgets, defaultCurrency } = useFinance();
-  const { convert, loading: ratesLoading } = useExchangeRates(defaultCurrency);
+  // Devise d'affichage (sélecteur de l'écran Budget) ; à défaut, devise par
+  // défaut du couple — les appelants historiques (widget Accueil) ne passent
+  // rien et gardent donc le comportement d'origine.
+  const base = displayCurrency || defaultCurrency;
+  const { convert, loading: ratesLoading } = useExchangeRates(base);
 
   const now = new Date();
   const month = viewMonth ?? now.getMonth();
@@ -35,10 +39,10 @@ export function useBudgetProgress(viewMonth, viewYear) {
   }, [transactions, year]);
 
   function toBase(tx) {
-    if (tx.convertedAmount !== undefined && tx.convertedCurrency === defaultCurrency) {
+    if (tx.convertedAmount !== undefined && tx.convertedCurrency === base) {
       return tx.convertedAmount;
     }
-    return convert(tx.amount, tx.currency, defaultCurrency);
+    return convert(tx.amount, tx.currency, base);
   }
 
   // Part d'une transaction attribuable à un membre donné, selon le champ `split`
@@ -56,6 +60,11 @@ export function useBudgetProgress(viewMonth, viewYear) {
   // (budgets à granularité sous-catégorie).
   function txMatchesBudget(tx, b) {
     if (b.scope === "global") return true;
+    // Budget "tag" : la transaction compte si elle porte au moins un des tags
+    // ciblés (ex. budget "vacances" transversal aux catégories).
+    if (b.scope === "tag") {
+      return (b.tagKeys || []).some((tag) => (tx.tags || []).includes(tag));
+    }
     if (b.categoryIds?.includes(tx.categoryId)) return true;
     if (b.subcategoryKeys?.includes(`${tx.categoryId}::${tx.subcategory}`)) return true;
     return false;
@@ -71,7 +80,7 @@ export function useBudgetProgress(viewMonth, viewYear) {
           b.memberUid && b.memberUid !== "couple"
             ? scopedTx.reduce((sum, tx) => sum + memberShare(tx, b.memberUid), 0)
             : scopedTx.reduce((sum, tx) => sum + toBase(tx), 0);
-        const amountInBase = convert(b.amount, b.currency, defaultCurrency);
+        const amountInBase = convert(b.amount, b.currency, base);
         const pct = amountInBase > 0 ? (spent / amountInBase) * 100 : 0;
 
         // Projection fin de période "à ce rythme" — uniquement pour la
@@ -95,7 +104,7 @@ export function useBudgetProgress(viewMonth, viewYear) {
 
         return { budget: b, spent, amountInBase, pct, scopedTx, projected, projectedOver };
       });
-  }, [budgets, monthTx, yearTx, defaultCurrency, convert, month, year]);
+  }, [budgets, monthTx, yearTx, base, convert, month, year]);
 
   return { progress, loading: ratesLoading };
 }
