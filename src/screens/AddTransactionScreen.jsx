@@ -12,6 +12,7 @@ import { getMemberKey } from "../utils/members";
 import { buildSuggestionIndex, getSuggestions, findExactMatch } from "../utils/descriptionSuggestions";
 import TransactionComments from "../components/TransactionComments";
 import TagInput from "../components/TagInput";
+import TagManager from "../components/TagManager";
 import { dedupeTags, extractTagsFromText } from "../utils/tags";
 import { parseNaturalTransaction } from "../utils/parseNaturalTransaction";
 import QuickAddBar from "../components/QuickAddBar";
@@ -78,6 +79,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
   const [showSubPicker, setShowSubPicker] = useState(false);
   const [description, setDescription] = useState(editingTx?.description || "");
   const [tags, setTags] = useState(editingTx?.tags || []);
+  const [showTagManager, setShowTagManager] = useState(false);
   const [paidBy, setPaidBy] = useState(() => editingTx?.paidBy || findLastOwnTx()?.paidBy || user?.uid);
   const [split, setSplit] = useState(() => editingTx?.split || findLastOwnTx()?.split || "50/50");
   const [splitMode, setSplitMode] = useState(editingTx?.splitDetails ? "advanced" : "simple");
@@ -979,10 +981,35 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
             marginBottom: 12,
           }}
         >
-          <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>
-            {t("tx_tags")} <span style={{ color: "var(--ink-3)", fontWeight: 400 }}>· {t("tx_optional")}</span>
-          </p>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+            <p style={{ fontSize: 12, color: "var(--ink-2)" }}>
+              {t("tx_tags")} <span style={{ color: "var(--ink-3)", fontWeight: 400 }}>· {t("tx_optional")}</span>
+            </p>
+            {/* Bouton personnaliser : gérer la liste de tags (ajouter / réordonner
+                / supprimer) sans quitter l'écran, aligné avec le libellé "Tags". */}
+            <button
+              onClick={() => setShowTagManager((v) => !v)}
+              aria-label={t("dashboard_customize")}
+              style={{
+                width: 28, height: 28, borderRadius: "50%",
+                background: showTagManager ? "var(--sky-light)" : "var(--bg)",
+                border: showTagManager ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
+                display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+              }}
+            >
+              <i className="ti ti-pencil" style={{ fontSize: 13, color: showTagManager ? "var(--sky)" : "var(--ink-2)" }} aria-hidden="true" />
+            </button>
+          </div>
           <TagInput value={tags} onChange={setTags} />
+          {showTagManager && (
+            <div style={{ marginTop: 12, borderTop: "0.5px solid var(--rule)", paddingTop: 10 }}>
+              <p style={{ fontSize: 11, color: "var(--ink-3)", marginBottom: 8 }}>
+                <i className="ti ti-grip-vertical" style={{ fontSize: 12, verticalAlign: -2 }} aria-hidden="true" />
+                {" "}{t("categories_drag_hint")}
+              </p>
+              <TagManager />
+            </div>
+          )}
         </div>
 
         {/* Fil de discussion — seulement sur une transaction existante */}

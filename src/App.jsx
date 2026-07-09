@@ -20,6 +20,7 @@ const ReportsScreen = lazy(() => import("./screens/ReportsScreen"));
 const BudgetScreen = lazy(() => import("./screens/BudgetScreen"));
 const DebtScreen = lazy(() => import("./screens/DebtScreen"));
 const CategoriesScreen = lazy(() => import("./screens/CategoriesScreen"));
+const TagsScreen = lazy(() => import("./screens/TagsScreen"));
 const AddTransactionScreen = lazy(() => import("./screens/AddTransactionScreen"));
 const RecurringScreen = lazy(() => import("./screens/RecurringScreen"));
 const WealthScreen = lazy(() => import("./screens/WealthScreen"));
@@ -105,6 +106,7 @@ function AppContent() {
   const [showRecurring, setShowRecurring] = useState(false);
   const [recurringEditId, setRecurringEditId] = useState(null);
   const [showCategories, setShowCategories] = useState(false);
+  const [showTags, setShowTags] = useState(false);
   const [showDebt, setShowDebt] = useState(false);
   const [showCalculator, setShowCalculator] = useState(false);
   const [showAddAsset, setShowAddAsset] = useState(false);
@@ -136,6 +138,7 @@ function AppContent() {
   useBackGuard(showSettings, () => setShowSettings(false));
   useBackGuard(showRecurring, () => closeRecurring());
   useBackGuard(showCategories, () => setShowCategories(false));
+  useBackGuard(showTags, () => setShowTags(false));
   useBackGuard(showTheme, () => setShowTheme(false));
   useBackGuard(showLanguage, () => setShowLanguage(false));
 
@@ -279,6 +282,7 @@ function AppContent() {
             <SettingsScreen
               onOpenRecurring={() => openRecurring()}
               onOpenCategories={() => setShowCategories(true)}
+              onOpenTags={() => setShowTags(true)}
               onOpenTheme={() => setShowTheme(true)}
               onOpenLanguage={() => setShowLanguage(true)}
             />
@@ -288,6 +292,11 @@ function AppContent() {
         {showCategories && (
           <ModalWrapper onClose={() => setShowCategories(false)}>
             <CategoriesScreen />
+          </ModalWrapper>
+        )}
+        {showTags && (
+          <ModalWrapper onClose={() => setShowTags(false)}>
+            <TagsScreen />
           </ModalWrapper>
         )}
         {showTheme && (
