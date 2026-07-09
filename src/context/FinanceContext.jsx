@@ -43,6 +43,9 @@ export function FinanceProvider({ children }) {
   const [language, setLanguageState] = useState("fr");
   const [debtSettlements, setDebtSettlements] = useState([]);
   const [pushPrefs, setPushPrefs] = useState({});
+  // Liste de tags personnalisée du couple (ordonnée). Vide tant que non
+  // personnalisée : les suggestions retombent alors sur les presets + historique.
+  const [customTags, setCustomTags] = useState([]);
 
   useEffect(() => {
     applyTheme(theme);
@@ -107,6 +110,7 @@ export function FinanceProvider({ children }) {
         if (data.language) setLanguageState(data.language);
         if (data.debtSettlements) setDebtSettlements(data.debtSettlements);
         if (data.pushPrefs) setPushPrefs(data.pushPrefs);
+        if (data.customTags) setCustomTags(data.customTags);
       }
     });
 
@@ -259,6 +263,16 @@ export function FinanceProvider({ children }) {
     await setDoc(
       doc(db, "couples", coupleId),
       { categories: newCategories },
+      { merge: true }
+    );
+  }
+
+  async function updateCustomTags(tags) {
+    if (!coupleId) return;
+    setCustomTags(tags); // maj optimiste (le champ n'est pas re-fusionné ailleurs)
+    await setDoc(
+      doc(db, "couples", coupleId),
+      { customTags: tags },
       { merge: true }
     );
   }
@@ -517,6 +531,8 @@ export function FinanceProvider({ children }) {
     pushPrefs,
     updateMemberPushPrefs,
     updateCategories,
+    customTags,
+    updateCustomTags,
     updateDefaultCurrency,
     updateCurrencyMode,
     addRecurring,

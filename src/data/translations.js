@@ -294,6 +294,8 @@ export const TRANSLATIONS = {
     categories_name_placeholder: "Nom de la catégorie",
     categories_add_button: "Ajouter",
     categories_new_subcategory_placeholder: "Nouvelle sous-catégorie",
+    categories_tags_title: "Tags",
+    categories_new_tag_placeholder: "Nouveau tag",
     categories_delete_confirm: "Supprimer cette catégorie et toutes ses sous-catégories ?",
 
     // Recurring screen
@@ -762,6 +764,8 @@ export const TRANSLATIONS = {
     categories_name_placeholder: "Category name",
     categories_add_button: "Add",
     categories_new_subcategory_placeholder: "New subcategory",
+    categories_tags_title: "Tags",
+    categories_new_tag_placeholder: "New tag",
     categories_delete_confirm: "Delete this category and all its subcategories?",
 
     // Recurring screen

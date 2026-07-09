@@ -10,20 +10,24 @@ import TagChip from "./TagChip";
 // via `value` (tableau normalisé) / `onChange`.
 export default function TagInput({ value, onChange }) {
   const t = useTranslation();
-  const { transactions } = useFinance();
+  const { transactions, customTags } = useFinance();
   const [input, setInput] = useState("");
 
   const history = useMemo(() => usedTags(transactions), [transactions]);
-  // Suggestions = tags préréglés + historique, moins ceux déjà posés.
+  // Suggestions : la liste personnalisée du couple si elle existe (dans son
+  // ordre), sinon les presets par défaut ; complétée par l'historique. On
+  // retire ceux déjà posés et on filtre sur la saisie.
   const suggestions = useMemo(() => {
-    const preset = SUGGESTED_TAGS.map((s) => s.key);
-    const all = dedupeTags([...preset, ...history]);
+    const base = customTags && customTags.length > 0
+      ? customTags
+      : SUGGESTED_TAGS.map((s) => s.key);
+    const all = dedupeTags([...base, ...history]);
     const q = normalizeTag(input);
     return all
       .filter((tag) => !value.includes(tag))
       .filter((tag) => !q || tag.includes(q))
       .slice(0, 8);
-  }, [history, value, input]);
+  }, [customTags, history, value, input]);
 
   function addTag(raw) {
     const tag = normalizeTag(raw);
