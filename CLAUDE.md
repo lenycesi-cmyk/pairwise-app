@@ -17,6 +17,17 @@ There is no test suite configured.
 
 After completing any code task on this repo, always open a pull request to `main` when done — don't ask first. Once opened, merge it automatically (no need to ask) as long as it's a normal code change with no failing checks or unresolved review comments. Always subscribe to the PR's activity afterward so CI failures and review comments get handled automatically.
 
+### Token / context hygiene (agent workflow)
+
+To keep token usage low, future sessions MUST follow these rules:
+
+- **Do not poll deployment status** after merging. Merge and stop. Only check a deploy if the user
+  explicitly asks. When a check is genuinely needed, use `get_workflow_run` (light) — never
+  `actions_list` on `deploy.yml`, whose response is ~400k characters and floods the context.
+- **Delegate bulky reads** (workflow/build logs, screenshots, large JSON) to a sub-agent so the raw
+  content stays out of the main context; only pull back the conclusion.
+- Group related changes into one batch rather than one PR per micro-change.
+
 ### Deploying
 
 `firebase-tools` does not work on this machine (incompatible with Node v24's HTTP stack — `firebase deploy` fails with `Premature close`). Deploys go through a custom script instead:
