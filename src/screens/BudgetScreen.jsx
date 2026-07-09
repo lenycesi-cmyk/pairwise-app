@@ -12,6 +12,9 @@ import { useMediaQuery } from "../hooks/useMediaQuery";
 import { useScreenWidgets } from "../hooks/useScreenWidgets";
 import CustomizePanel, { CustomizeButton } from "../components/CustomizePanel";
 import WidgetCard from "../components/WidgetCard";
+import TagChip from "../components/TagChip";
+import { SUGGESTED_TAGS } from "../data/suggestedTags";
+import { splitTag } from "../utils/tags";
 
 // Widgets proposés dans le panneau "personnaliser" de cet onglet.
 const BUDGET_WIDGETS = [
@@ -31,11 +34,16 @@ function monthsAgoRange(n) {
 export default function BudgetScreen({ openSignal }) {
   const t = useTranslation();
   const { catName, subName } = useCategoryName();
-  const { categories, transactions, budgets, addBudget, updateBudget, removeBudget, defaultCurrency, members, coupleName } =
+  const { categories, transactions, budgets, addBudget, updateBudget, removeBudget, defaultCurrency, members, coupleName,
+    customTags, budgetDisplayCurrency, updateBudgetDisplayCurrency } =
     useFinance();
-  const { progress } = useBudgetProgress();
+  const displayCurrency = budgetDisplayCurrency || defaultCurrency;
+  const { progress } = useBudgetProgress(undefined, undefined, displayCurrency);
   const coupleLabel = coupleName || t("budget_for_couple");
   const { convert } = useExchangeRates(defaultCurrency);
+  // Liste de tags disponibles pour un budget "tag" : personnalisés du couple,
+  // sinon les tags suggérés par défaut (même source que le TagManager).
+  const availableTags = customTags.length > 0 ? customTags : SUGGESTED_TAGS.map((s) => s.key);
 
   const [showForm, setShowForm] = useState(false);
   const addButtonRef = useRef(null);
@@ -50,12 +58,15 @@ export default function BudgetScreen({ openSignal }) {
   // user narrow that down. A category with every subcategory checked is
   // saved as a full categoryId; a narrowed one is saved as subcategoryKeys.
   const [categorySelection, setCategorySelection] = useState({});
+  const [tagSelection, setTagSelection] = useState([]);
   const [expandedCatId, setExpandedCatId] = useState(null);
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState(defaultCurrency);
   const [alertThreshold, setAlertThreshold] = useState("80");
   const [memberUid, setMemberUid] = useState("couple");
   const [showCustomize, setShowCustomize] = useState(false);
+  const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
+  const currencyButtonRef = useRef(null);
   const { isVisible, toggle } = useScreenWidgets("budgetWidgets");
   const isDesktop = useMediaQuery("(min-width: 1024px)");
 
@@ -74,6 +85,7 @@ export default function BudgetScreen({ openSignal }) {
     setScope("global");
     setPeriod("monthly");
     setCategorySelection({});
+    setTagSelection([]);
     setExpandedCatId(null);
     setAmount("");
     setCurrency(defaultCurrency);
@@ -158,6 +170,7 @@ export default function BudgetScreen({ openSignal }) {
       if (!selection[catId].includes(sub)) selection[catId].push(sub);
     }
     setCategorySelection(selection);
+    setTagSelection(b.tagKeys || []);
     setAmount(b.amount.toString());
     setCurrency(b.currency);
     setAlertThreshold((b.alertThreshold ?? 80).toString());
@@ -181,6 +194,10 @@ export default function BudgetScreen({ openSignal }) {
     setExpandedCatId((prev) => (prev === id ? null : prev));
   }
 
+  function toggleTag(tag) {
+    setTagSelection((prev) => (prev.includes(tag) ? prev.filter((x) => x !== tag) : [...prev, tag]));
+  }
+
   function toggleSubcategory(catId, subcategoryName) {
     setCategorySelection((prev) => {
       const current = prev[catId] || [];
@@ -198,7 +215,9 @@ export default function BudgetScreen({ openSignal }) {
 
   async function handleSave() {
     const selectedCatIds = Object.keys(categorySelection);
-    if (!amount || (scope === "category" && selectedCatIds.length === 0)) return;
+    if (!amount) return;
+    if (scope === "category" && selectedCatIds.length === 0) return;
+    if (scope === "tag" && tagSelection.length === 0) return;
 
     const categoryIds = [];
     const subcategoryKeys = [];
@@ -216,8 +235,9 @@ export default function BudgetScreen({ openSignal }) {
       name: name.trim() || null,
       scope,
       period,
-      categoryIds: scope === "global" ? [] : categoryIds,
-      subcategoryKeys: scope === "global" ? [] : subcategoryKeys,
+      categoryIds: scope === "category" ? categoryIds : [],
+      subcategoryKeys: scope === "category" ? subcategoryKeys : [],
+      tagKeys: scope === "tag" ? tagSelection : [],
       amount: parseFloat(amount),
       currency,
       alertThreshold: parseInt(alertThreshold) || 80,
@@ -241,6 +261,14 @@ export default function BudgetScreen({ openSignal }) {
 
   function categoryNames(b) {
     if (b.scope === "global") return t("budget_scope_global");
+    if (b.scope === "tag") {
+      return (b.tagKeys || [])
+        .map((tag) => {
+          const { emoji, text } = splitTag(tag);
+          return emoji ? `${emoji} ${text}` : `#${text}`;
+        })
+        .join(", ") || t("budget_scope_tag");
+    }
     const catPart = (b.categoryIds || [])
       .map((id) => {
         const c = categories.find((c) => c.id === id);
@@ -279,6 +307,17 @@ export default function BudgetScreen({ openSignal }) {
         </h1>
         {!showForm && (
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <button
+              ref={currencyButtonRef}
+              onClick={() => setShowCurrencyPicker(!showCurrencyPicker)}
+              style={{
+                padding: "4px 10px", borderRadius: "var(--radius-md)", border: "0.5px solid var(--rule)",
+                background: "var(--bg-card)", fontSize: 12, fontWeight: 500,
+                display: "flex", alignItems: "center", gap: 4,
+              }}
+            >
+              {displayCurrency} <i className="ti ti-chevron-down" style={{ fontSize: 11 }} aria-hidden="true" />
+            </button>
             <CustomizeButton onClick={() => setShowCustomize(!showCustomize)} label={t("dashboard_customize")} />
             <button ref={addButtonRef} onClick={openNew} aria-label={t("common_add")} style={{ background: "none", border: "none" }}>
               <i className="ti ti-plus" style={{ fontSize: 20 }} aria-hidden="true" />
@@ -297,6 +336,25 @@ export default function BudgetScreen({ openSignal }) {
       </div>
 
       {!showForm && <SpotlightHint tabKey="budget" targetRef={addButtonRef} text={t("hint_budget")} />}
+
+      {!showForm && showCurrencyPicker && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12, background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "0.75rem 1rem" }}>
+          {CURRENCIES.map((c) => (
+            <button
+              key={c.code}
+              onClick={() => { updateBudgetDisplayCurrency(c.code); setShowCurrencyPicker(false); }}
+              style={{
+                padding: "6px 10px", borderRadius: "var(--radius-md)",
+                border: displayCurrency === c.code ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
+                background: displayCurrency === c.code ? "var(--sky-light)" : "var(--bg)",
+                color: displayCurrency === c.code ? "var(--sky)" : "var(--ink)", fontSize: 12,
+              }}
+            >
+              {c.symbol} {c.code}
+            </button>
+          ))}
+        </div>
+      )}
 
       {!showForm && showCustomize && (
         <CustomizePanel widgets={BUDGET_WIDGETS} isVisible={isVisible} toggle={toggle} />
@@ -444,6 +502,7 @@ export default function BudgetScreen({ openSignal }) {
             {[
               { key: "global", label: t("budget_scope_global") },
               { key: "category", label: t("budget_scope_category") },
+              { key: "tag", label: t("budget_scope_tag") },
             ].map((s) => (
               <button
                 key={s.key}
@@ -632,6 +691,24 @@ export default function BudgetScreen({ openSignal }) {
             </>
           )}
 
+          {scope === "tag" && (
+            <>
+              <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>
+                {t("budget_choose_tags")}
+              </p>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
+                {availableTags.map((tag) => (
+                  <div key={tag} onClick={() => toggleTag(tag)} style={{ cursor: "pointer" }}>
+                    <TagChip tag={tag} active={tagSelection.includes(tag)} />
+                  </div>
+                ))}
+                {availableTags.length === 0 && (
+                  <p style={{ fontSize: 12, color: "var(--ink-3)" }}>{t("budget_no_tags")}</p>
+                )}
+              </div>
+            </>
+          )}
+
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
             <input
               type="number"
@@ -687,7 +764,7 @@ export default function BudgetScreen({ openSignal }) {
 
           <button
             onClick={handleSave}
-            disabled={!amount || (scope === "category" && Object.keys(categorySelection).length === 0)}
+            disabled={!amount || (scope === "category" && Object.keys(categorySelection).length === 0) || (scope === "tag" && tagSelection.length === 0)}
             style={{
               width: "100%",
               background: "var(--ink)",
@@ -697,7 +774,7 @@ export default function BudgetScreen({ openSignal }) {
               padding: 14,
               fontSize: 14,
               fontWeight: 500,
-              opacity: !amount || (scope === "category" && Object.keys(categorySelection).length === 0) ? 0.5 : 1,
+              opacity: !amount || (scope === "category" && Object.keys(categorySelection).length === 0) || (scope === "tag" && tagSelection.length === 0) ? 0.5 : 1,
             }}
           >
             {editingId ? t("budget_update_button") : t("budget_create_button")}
@@ -729,7 +806,7 @@ export default function BudgetScreen({ openSignal }) {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
               <span className="pw-num" style={{ fontSize: 22 }}>
                 {Math.round(totalSpent).toLocaleString("fr-FR")}
-                <span style={{ fontSize: 13, color: "var(--ink-3)", fontWeight: 400 }}> / {Math.round(totalBudget).toLocaleString("fr-FR")} {defaultCurrency}</span>
+                <span style={{ fontSize: 13, color: "var(--ink-3)", fontWeight: 400 }}> / {Math.round(totalBudget).toLocaleString("fr-FR")} {displayCurrency}</span>
               </span>
               <span style={{ fontSize: 13, fontWeight: 600, color: barColor }}>{Math.round(pct)}%</span>
             </div>
@@ -775,7 +852,7 @@ export default function BudgetScreen({ openSignal }) {
                   <p style={{ fontSize: 11, color: "var(--ink-3)" }}>{categoryNames(budget)}</p>
                 )}
                 <p style={{ fontSize: 11, color: "var(--ink-3)" }}>
-                  {Math.round(spent).toLocaleString("fr-FR")} / {Math.round(amountInBase).toLocaleString("fr-FR")} {defaultCurrency}
+                  {Math.round(spent).toLocaleString("fr-FR")} / {Math.round(amountInBase).toLocaleString("fr-FR")} {displayCurrency}
                   {budget.period === "yearly" && ` · ${t("budget_period_yearly")}`}
                 </p>
               </div>
@@ -816,9 +893,9 @@ export default function BudgetScreen({ openSignal }) {
             </div>
             {!isInactive && projected !== null && pct < 100 && (
               <p style={{ fontSize: 11, color: projectedOver ? "var(--amber)" : "var(--ink-3)", marginTop: 6 }}>
-                {t("budget_projection").replace("{amount}", `${Math.round(projected).toLocaleString("fr-FR")} ${defaultCurrency}`)}
+                {t("budget_projection").replace("{amount}", `${Math.round(projected).toLocaleString("fr-FR")} ${displayCurrency}`)}
                 {projectedOver &&
-                  ` (${t("budget_projection_over").replace("{over}", `${Math.round(projected - amountInBase).toLocaleString("fr-FR")} ${defaultCurrency}`)})`}
+                  ` (${t("budget_projection_over").replace("{over}", `${Math.round(projected - amountInBase).toLocaleString("fr-FR")} ${displayCurrency}`)})`}
               </p>
             )}
           </div>
