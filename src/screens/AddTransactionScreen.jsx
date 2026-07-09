@@ -61,6 +61,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
   const [categoryId, setCategoryId] = useState(editingTx?.categoryId || null);
   const [subcategory, setSubcategory] = useState(editingTx?.subcategory || null);
   const [showCatPicker, setShowCatPicker] = useState(false);
+  const [showSubPicker, setShowSubPicker] = useState(false);
   const [description, setDescription] = useState(editingTx?.description || "");
   const [tags, setTags] = useState(editingTx?.tags || []);
   const [paidBy, setPaidBy] = useState(editingTx?.paidBy || user?.uid);
@@ -166,6 +167,14 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
     setCategoryId(cat.id);
     setSubcategory(cat.subcategories[0] || null);
     setShowCatPicker(false);
+    setShowSubPicker(false);
+    setShowNewSub(false);
+  }
+
+  function selectSubcategory(sub) {
+    setSubcategory(sub);
+    setShowSubPicker(false);
+    setShowNewSub(false);
   }
 
   async function handleCreateCategory() {
@@ -201,10 +210,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
     setSubcategory(name);
     setNewSubName("");
     setShowNewSub(false);
-  }
-
-  function getInitial(name) {
-    return name?.[0]?.toUpperCase() || "?";
+    setShowSubPicker(false);
   }
 
   // Applique une saisie en langage naturel : pré-remplit le formulaire à
@@ -692,12 +698,14 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
                     <button
                       onClick={() => setShowNewCat(true)}
                       style={{
-                        display: "flex", alignItems: "center", gap: 6,
-                        background: "none", border: "none", color: "var(--sky)",
-                        fontSize: 13, padding: "8px 4px",
+                        display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                        width: "100%", marginTop: 8,
+                        background: "var(--sky-light)", border: "0.5px solid var(--sky)",
+                        borderRadius: "var(--radius-md)", color: "var(--sky)",
+                        fontSize: 13, fontWeight: 500, padding: "10px",
                       }}
                     >
-                      <i className="ti ti-plus" style={{ fontSize: 14 }} aria-hidden="true" />
+                      <i className="ti ti-plus" style={{ fontSize: 15 }} aria-hidden="true" />
                       {t("tx_new_category")}
                     </button>
                   ) : (
@@ -769,53 +777,89 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
           {selectedCategory && (
             <>
               <p style={{ fontSize: 12, color: "var(--ink-2)", margin: "12px 0 6px" }}>{t("tx_subcategory")}</p>
-              <select
-                value={subcategory || ""}
-                onChange={(e) => setSubcategory(e.target.value)}
+              {/* Sélecteur custom identique aux catégories (remplace le <select>
+                  natif) : ligne cliquable + panneau en grille, avec l'ajout de
+                  sous-catégorie déplacé ici. */}
+              <div
+                onClick={() => setShowSubPicker(!showSubPicker)}
                 style={{
-                  width: "100%", padding: "8px 0", border: "none",
-                  borderBottom: "0.5px solid var(--rule)", background: "transparent",
-                  fontSize: 14, outline: "none",
+                  display: "flex", alignItems: "center", gap: 8,
+                  padding: "8px 0", borderBottom: "0.5px solid var(--rule)", cursor: "pointer",
                 }}
               >
-                <option value="" disabled>Choisir...</option>
-                {selectedCategory.subcategories.map((s) => (
-                  <option key={s} value={s}>{tSubName(s, selectedCategory.id)}</option>
-                ))}
-              </select>
+                {subcategory ? (
+                  <span style={{ fontSize: 14, flex: 1 }}>{tSubName(subcategory, selectedCategory.id)}</span>
+                ) : (
+                  <span style={{ fontSize: 14, flex: 1, color: "var(--ink-3)" }}>{t("tx_choose_subcategory")}</span>
+                )}
+                <i className="ti ti-chevron-down" style={{ fontSize: 14, color: "var(--ink-3)" }} aria-hidden="true" />
+              </div>
 
-              {!showNewSub ? (
-                <button
-                  onClick={() => setShowNewSub(true)}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 6,
-                    background: "none", border: "none", color: "var(--sky)",
-                    fontSize: 12, padding: "8px 0 0",
-                  }}
-                >
-                  <i className="ti ti-plus" style={{ fontSize: 13 }} aria-hidden="true" />
-                  {t("tx_new_subcategory")}
-                </button>
-              ) : (
-                <div style={{ display: "flex", gap: 6, paddingTop: 8 }}>
-                  <input
-                    type="text"
-                    autoFocus
-                    placeholder="Nom de la sous-catégorie"
-                    value={newSubName}
-                    onChange={(e) => setNewSubName(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleCreateSubcategory()}
-                    style={{
-                      flex: 1, border: "none", borderBottom: "0.5px solid var(--rule)",
-                      outline: "none", fontSize: 13, background: "transparent",
-                    }}
-                  />
-                  <button
-                    onClick={handleCreateSubcategory}
-                    style={{ background: "var(--ink)", color: "var(--bg)", border: "none", borderRadius: "var(--radius-sm)", padding: "4px 10px", fontSize: 12 }}
-                  >
-                    OK
-                  </button>
+              {showSubPicker && (
+                <div style={{ marginTop: 8 }}>
+                  {selectedCategory.subcategories.length > 0 && (
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4, maxHeight: 320, overflowY: "auto" }}>
+                      {selectedCategory.subcategories.map((s) => (
+                        <div
+                          key={s}
+                          onClick={() => selectSubcategory(s)}
+                          style={{
+                            display: "flex", alignItems: "center", gap: 6,
+                            padding: "8px 6px", cursor: "pointer",
+                            borderRadius: "var(--radius-sm)", minWidth: 0,
+                            background: subcategory === s ? "var(--sky-light)" : "transparent",
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontSize: 12.5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                              color: subcategory === s ? "var(--sky)" : "var(--ink)",
+                              fontWeight: subcategory === s ? 500 : 400,
+                            }}
+                          >
+                            {tSubName(s, selectedCategory.id)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {!showNewSub ? (
+                    <button
+                      onClick={() => setShowNewSub(true)}
+                      style={{
+                        display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                        width: "100%", marginTop: 8,
+                        background: "var(--sky-light)", border: "0.5px solid var(--sky)",
+                        borderRadius: "var(--radius-md)", color: "var(--sky)",
+                        fontSize: 13, fontWeight: 500, padding: "10px",
+                      }}
+                    >
+                      <i className="ti ti-plus" style={{ fontSize: 15 }} aria-hidden="true" />
+                      {t("tx_new_subcategory")}
+                    </button>
+                  ) : (
+                    <div style={{ display: "flex", gap: 6, paddingTop: 8 }}>
+                      <input
+                        type="text"
+                        autoFocus
+                        placeholder={t("tx_subcategory_name")}
+                        value={newSubName}
+                        onChange={(e) => setNewSubName(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && handleCreateSubcategory()}
+                        style={{
+                          flex: 1, border: "none", borderBottom: "0.5px solid var(--rule)",
+                          outline: "none", fontSize: 13, background: "transparent",
+                        }}
+                      />
+                      <button
+                        onClick={handleCreateSubcategory}
+                        style={{ background: "var(--ink)", color: "var(--bg)", border: "none", borderRadius: "var(--radius-sm)", padding: "4px 10px", fontSize: 12 }}
+                      >
+                        OK
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </>
