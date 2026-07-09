@@ -70,6 +70,18 @@ export function FinanceProvider({ children }) {
     return unsub;
   }, [coupleId]);
 
+  // Dernière devise utilisée, propre à l'utilisateur (mode "last"). Suivie en
+  // temps réel pour rester cohérente entre les appareils du même utilisateur.
+  useEffect(() => {
+    if (!user?.uid) return;
+    const unsub = onSnapshot(doc(db, "users", user.uid), (snap) => {
+      if (snap.exists() && snap.data().lastUsedCurrency) {
+        setLastUsedCurrency(snap.data().lastUsedCurrency);
+      }
+    });
+    return unsub;
+  }, [user?.uid]);
+
   useEffect(() => {
     if (!coupleId) return;
 
@@ -81,7 +93,9 @@ export function FinanceProvider({ children }) {
         if (data.members) setMembers(data.members);
         if (data.coupleName !== undefined) setCoupleName(data.coupleName);
         if (data.currencyMode) setCurrencyMode(data.currencyMode);
-        if (data.lastUsedCurrency) setLastUsedCurrency(data.lastUsedCurrency);
+        // lastUsedCurrency est désormais PAR UTILISATEUR (users/{uid}) et non
+        // plus au niveau du couple : deux partenaires dans des pays différents
+        // gardent chacun leur dernière devise. Chargé dans l'effet dédié.
         if (data.recurringTx) setRecurringTx(data.recurringTx);
         if (data.budgets) setBudgets(data.budgets);
         if (data.incomeAccountLinks) setIncomeAccountLinksState(data.incomeAccountLinks);
@@ -116,10 +130,11 @@ export function FinanceProvider({ children }) {
       createdAt: Date.now(),
       createdBy: user.uid,
     });
-    // Mémorise la dernière devise utilisée (pour le mode "last")
-    if (tx.currency && tx.currency !== lastUsedCurrency) {
+    // Mémorise la dernière devise utilisée (pour le mode "last") — PAR
+    // UTILISATEUR : chacun garde sa propre dernière devise.
+    if (tx.currency && tx.currency !== lastUsedCurrency && user?.uid) {
       await setDoc(
-        doc(db, "couples", coupleId),
+        doc(db, "users", user.uid),
         { lastUsedCurrency: tx.currency },
         { merge: true }
       );
