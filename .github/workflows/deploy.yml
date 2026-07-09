@@ -20,6 +20,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Historique complet pour pouvoir diff le commit précédent et savoir
+          # si le dossier functions/ a changé (voir "Detect functions changes").
+          fetch-depth: 0
+
+      - name: Detect functions changes
+        id: functions_changed
+        run: |
+          # On ne redéploie les Cloud Functions (~8 min) que si functions/ a
+          # bougé. Un déclenchement manuel (workflow_dispatch) force le déploiement.
+          before="${{ github.event.before }}"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          elif [ -z "$before" ] || [ "$before" = "0000000000000000000000000000000000000000" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          elif git diff --name-only "$before" "${{ github.sha }}" | grep -qE '^functions/'; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - uses: actions/setup-node@v4
         with:
@@ -46,10 +66,12 @@ jobs:
         run: node scripts/deploy.js
 
       - name: Install functions dependencies
+        if: steps.functions_changed.outputs.changed == 'true'
         run: npm ci
         working-directory: functions
 
       - name: Deploy Cloud Functions
+        if: steps.functions_changed.outputs.changed == 'true'
         env:
           GOOGLE_APPLICATION_CREDENTIALS_JSON: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
         run: node scripts/deploy-functions.js
