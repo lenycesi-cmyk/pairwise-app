@@ -54,6 +54,20 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
     ? lastUsedCurrency
     : defaultCurrency;
 
+  // Dernière transaction saisie par cet utilisateur — sert à pré-remplir
+  // "payé par" et "pour" sur une nouvelle transaction (les habitudes de
+  // chaque membre diffèrent). Ignoré en édition. Appelé une seule fois dans
+  // les initialiseurs paresseux ci-dessous (pas de mémoïsation nécessaire).
+  function findLastOwnTx() {
+    if (isEditing || !user?.uid) return null;
+    let best = null;
+    for (const tx of transactions) {
+      if (tx.createdBy !== user.uid) continue;
+      if (!best || (tx.createdAt || 0) > (best.createdAt || 0)) best = tx;
+    }
+    return best;
+  }
+
   const [type, setType] = useState(editingTx?.type || "expense");
   const [amount, setAmount] = useState(editingTx?.amount?.toString() || "");
   const [currency, setCurrency] = useState(initialCurrency);
@@ -64,8 +78,8 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
   const [showSubPicker, setShowSubPicker] = useState(false);
   const [description, setDescription] = useState(editingTx?.description || "");
   const [tags, setTags] = useState(editingTx?.tags || []);
-  const [paidBy, setPaidBy] = useState(editingTx?.paidBy || user?.uid);
-  const [split, setSplit] = useState(editingTx?.split || "50/50");
+  const [paidBy, setPaidBy] = useState(() => editingTx?.paidBy || findLastOwnTx()?.paidBy || user?.uid);
+  const [split, setSplit] = useState(() => editingTx?.split || findLastOwnTx()?.split || "50/50");
   const [splitMode, setSplitMode] = useState(editingTx?.splitDetails ? "advanced" : "simple");
   const [splitDetails, setSplitDetails] = useState(editingTx?.splitDetails || null);
   const [dateTime, setDateTime] = useState(toDateTimeLocal(editingTx?.date));
