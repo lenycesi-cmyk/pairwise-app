@@ -8,7 +8,7 @@ import { useTranslation } from "../hooks/useTranslation";
 import { getMemberKey } from "../utils/members";
 import { usePushNotifications } from "../hooks/usePushNotifications";
 
-export default function SettingsScreen({ onOpenRecurring, onOpenCategories, onOpenTheme, onOpenLanguage }) {
+export default function SettingsScreen({ onOpenRecurring, onOpenCategories, onOpenTags, onOpenTheme, onOpenLanguage }) {
   const t = useTranslation();
   const { coupleId, logout, user, updateProfilePhoto, updateDisplayName, deleteAccount, resetHints } = useAuth();
   const {
@@ -448,12 +448,27 @@ export default function SettingsScreen({ onOpenRecurring, onOpenCategories, onOp
             display: "flex",
             alignItems: "center",
             gap: 10,
-            padding: "12px 0 4px",
+            padding: "12px 0",
             cursor: "pointer",
+            borderBottom: "0.5px solid var(--rule)",
           }}
         >
           <i className="ti ti-repeat" style={{ fontSize: 18, color: "var(--lavi)" }} aria-hidden="true" />
           <span style={{ fontSize: 14, flex: 1 }}>{t("settings_recurring")}</span>
+          <i className="ti ti-chevron-right" style={{ fontSize: 14, color: "var(--ink-3)" }} aria-hidden="true" />
+        </div>
+        <div
+          onClick={onOpenTags}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            padding: "12px 0 4px",
+            cursor: "pointer",
+          }}
+        >
+          <i className="ti ti-hash" style={{ fontSize: 18, color: "var(--sky)" }} aria-hidden="true" />
+          <span style={{ fontSize: 14, flex: 1 }}>{t("settings_tags")}</span>
           <i className="ti ti-chevron-right" style={{ fontSize: 14, color: "var(--ink-3)" }} aria-hidden="true" />
         </div>
       </Card>
