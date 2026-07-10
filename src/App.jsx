@@ -8,6 +8,7 @@ import { useRecurringReminders } from "./hooks/useRecurringReminders";
 import { usePushNotifications, useForegroundPush } from "./hooks/usePushNotifications";
 import { useBackGuard } from "./hooks/useBackGuard";
 import { useTranslation } from "./hooks/useTranslation";
+import OfflineBanner from "./components/OfflineBanner";
 import AuthScreen from "./screens/AuthScreen";
 import CoupleSetupScreen from "./screens/CoupleSetupScreen";
 import OnboardingScreen from "./screens/OnboardingScreen";
@@ -203,6 +204,7 @@ function AppContent() {
       <CommentNotifierRunner />
       <RecurringRemindersRunner />
       <PushRunner />
+      <OfflineBanner />
 
       <button
         ref={settingsButtonRef}
