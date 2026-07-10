@@ -421,4 +421,37 @@ export const CURRENCIES = [
   { code: "CHF", symbol: "Fr", name: "Franc suisse" },
 ];
 
+// Catalogue élargi de devises dans lequel l'utilisateur peut piocher via
+// "Gérer les devises" (l'app en propose quelques-unes par défaut = CURRENCIES,
+// mais on peut activer les autres). Les taux sont récupérés dynamiquement via
+// open.er-api.com pour toute devise ISO ; hors ligne, seules celles présentes
+// dans la table de repli FX ont un taux garanti. Superset de CURRENCIES.
+export const ALL_CURRENCIES = [
+  ...CURRENCIES,
+  { code: "AUD", symbol: "A$", name: "Dollar australien" },
+  { code: "CAD", symbol: "C$", name: "Dollar canadien" },
+  { code: "CNY", symbol: "¥", name: "Yuan chinois" },
+  { code: "SGD", symbol: "S$", name: "Dollar de Singapour" },
+  { code: "HKD", symbol: "HK$", name: "Dollar de Hong Kong" },
+  { code: "NZD", symbol: "NZ$", name: "Dollar néo-zélandais" },
+  { code: "INR", symbol: "₹", name: "Roupie indienne" },
+  { code: "KRW", symbol: "₩", name: "Won sud-coréen" },
+  { code: "TWD", symbol: "NT$", name: "Dollar taïwanais" },
+  { code: "IDR", symbol: "Rp", name: "Roupie indonésienne" },
+  { code: "MYR", symbol: "RM", name: "Ringgit malaisien" },
+  { code: "PHP", symbol: "₱", name: "Peso philippin" },
+  { code: "AED", symbol: "د.إ", name: "Dirham des Émirats" },
+  { code: "SEK", symbol: "kr", name: "Couronne suédoise" },
+  { code: "NOK", symbol: "kr", name: "Couronne norvégienne" },
+  { code: "DKK", symbol: "kr", name: "Couronne danoise" },
+  { code: "PLN", symbol: "zł", name: "Zloty polonais" },
+  { code: "CZK", symbol: "Kč", name: "Couronne tchèque" },
+  { code: "TRY", symbol: "₺", name: "Livre turque" },
+  { code: "RUB", symbol: "₽", name: "Rouble russe" },
+  { code: "ZAR", symbol: "R", name: "Rand sud-africain" },
+  { code: "BRL", symbol: "R$", name: "Real brésilien" },
+  { code: "MXN", symbol: "$", name: "Peso mexicain" },
+  { code: "ARS", symbol: "$", name: "Peso argentin" },
+];
+
 export const SPLIT_OPTIONS = ["A", "B", "50/50"];

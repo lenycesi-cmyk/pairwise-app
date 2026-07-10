@@ -1,7 +1,7 @@
 import { useState, useRef, useMemo } from "react";
 import { useFinance } from "../context/FinanceContext";
 import { useAuth } from "../context/AuthContext";
-import { CURRENCIES } from "../data/categories";
+import { CURRENCIES, ALL_CURRENCIES } from "../data/categories";
 import { uploadPhoto } from "../utils/photoUpload";
 import IconPicker from "../components/IconPicker";
 import { AVATAR_COLOR_PALETTE } from "../utils/memberColors";
@@ -82,7 +82,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
   // et la devise par défaut restent toujours proposées pour ne pas se bloquer.
   const currencyList =
     enabledCurrencies && enabledCurrencies.length > 0
-      ? CURRENCIES.filter(
+      ? ALL_CURRENCIES.filter(
           (c) =>
             enabledCurrencies.includes(c.code) ||
             c.code === currency ||
@@ -548,10 +548,13 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
                 {t("tx_manage_currencies_hint")}
               </p>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                {CURRENCIES.map((c) => {
+                {ALL_CURRENCIES.map((c) => {
+                  // Hors liste blanche définie, seules les devises par défaut
+                  // (CURRENCIES) sont proposées ; les autres du catalogue sont
+                  // désactivées tant qu'on ne les active pas ici.
                   const on =
                     !enabledCurrencies || enabledCurrencies.length === 0
-                      ? true
+                      ? CURRENCIES.some((d) => d.code === c.code)
                       : enabledCurrencies.includes(c.code);
                   const isDefault = c.code === defaultCurrency;
                   return (
