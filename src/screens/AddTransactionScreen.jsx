@@ -685,150 +685,6 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
           )}
         </div>
 
-        {/* Description — placée juste après le montant : la saisir en premier
-            permet de remplir automatiquement catégorie/sous-catégorie via les
-            suggestions apprises de l'historique. */}
-        <div
-          style={{
-            background: "var(--bg-card)",
-            borderRadius: "var(--radius-lg)",
-            border: "0.5px solid var(--rule)",
-            padding: "1rem 1.25rem",
-            marginBottom: 12,
-          }}
-        >
-          <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>{t("tx_description")}</p>
-          <input
-            type="text"
-            value={description}
-            onChange={(e) => handleDescriptionChange(e.target.value)}
-            onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
-            placeholder={t("tx_description_optional")}
-            style={{
-              width: "100%", padding: "8px 0", border: "none",
-              borderBottom: "0.5px solid var(--rule)", background: "transparent",
-              fontSize: 14, outline: "none",
-            }}
-          />
-          {suggestions.length > 0 && (
-            <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 2 }}>
-              {suggestions.map((s) => {
-                const cat = categories.find((c) => c.id === s.categoryId);
-                return (
-                  <button
-                    key={s.description}
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => pickSuggestion(s)}
-                    style={{
-                      display: "flex", alignItems: "center", gap: 8,
-                      padding: "8px 6px", borderRadius: "var(--radius-sm)",
-                      border: "none", background: "var(--bg)",
-                      textAlign: "left", cursor: "pointer",
-                    }}
-                  >
-                    <i className="ti ti-history" style={{ fontSize: 14, color: "var(--ink-3)", flexShrink: 0 }} aria-hidden="true" />
-                    <span style={{ fontSize: 13, flex: 1, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                      {s.description}
-                    </span>
-                    {cat && (
-                      <span style={{ fontSize: 11, color: "var(--ink-3)", display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
-                        <i className={`ti ${cat.icon}`} style={{ fontSize: 13 }} aria-hidden="true" />
-                        {catName(cat)}{s.subcategory ? ` · ${tSubName(s.subcategory, cat.id)}` : ""}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Date */}
-        <div
-          style={{
-            background: "var(--bg-card)",
-            borderRadius: "var(--radius-lg)",
-            border: "0.5px solid var(--rule)",
-            padding: "1rem 1.25rem",
-            marginBottom: 12,
-          }}
-        >
-          <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>{t("tx_date")}</p>
-          <input
-            type="datetime-local"
-            value={dateTime}
-            onChange={(e) => setDateTime(e.target.value)}
-            style={{
-              width: "100%",
-              padding: "8px 0",
-              border: "none",
-              borderBottom: "0.5px solid var(--rule)",
-              background: "transparent",
-              fontSize: 14,
-              outline: "none",
-              color: "var(--ink)",
-            }}
-          />
-
-          {!isEditing && (
-            <div style={{ marginTop: 14 }}>
-              <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
-                <input
-                  type="checkbox"
-                  checked={makeRecurring}
-                  onChange={(e) => setMakeRecurring(e.target.checked)}
-                  style={{ width: 18, height: 18 }}
-                />
-                <span style={{ fontSize: 14, flex: 1 }}>{t("tx_make_recurring")}</span>
-                <i className="ti ti-repeat" style={{ fontSize: 16, color: "var(--lavi)" }} aria-hidden="true" />
-              </label>
-
-              {makeRecurring && (
-                <div style={{ marginTop: 12 }}>
-                  <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>{t("recurring_frequency")}</p>
-                  <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
-                    {[
-                      { key: "monthly", label: t("recurring_freq_monthly") },
-                      { key: "weekly", label: t("recurring_freq_weekly") },
-                      { key: "yearly", label: t("recurring_freq_yearly") },
-                    ].map((f) => (
-                      <button
-                        key={f.key}
-                        onClick={() => setRecurringFrequency(f.key)}
-                        style={{
-                          flex: 1, padding: 8, borderRadius: "var(--radius-md)",
-                          border: recurringFrequency === f.key ? "0.5px solid var(--lavi)" : "0.5px solid var(--rule)",
-                          background: recurringFrequency === f.key ? "var(--lavi-light)" : "var(--bg)",
-                          color: recurringFrequency === f.key ? "var(--lavi)" : "var(--ink)",
-                          fontSize: 12,
-                        }}
-                      >
-                        {f.label}
-                      </button>
-                    ))}
-                  </div>
-                  {recurringFrequency === "monthly" && (
-                    <>
-                      <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>{t("recurring_day_of_month")}</p>
-                      <input
-                        type="number"
-                        min="1"
-                        max="31"
-                        value={recurringDayOfMonth}
-                        onChange={(e) => setRecurringDayOfMonth(e.target.value)}
-                        style={{
-                          width: "100%", padding: "10px 12px", borderRadius: "var(--radius-md)",
-                          border: "0.5px solid var(--rule)", fontSize: 14, outline: "none",
-                        }}
-                      />
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
         {/* Catégorie / sous-catégorie / description */}
         <div
           style={{
@@ -1072,6 +928,150 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
             </>
           )}
 
+        </div>
+
+        {/* Description — placée après la catégorie pour respecter l'enchaînement
+            montant → catégorie → sous-catégorie → description. La saisie reste
+            liée aux suggestions apprises (remplit la catégorie si non choisie). */}
+        <div
+          style={{
+            background: "var(--bg-card)",
+            borderRadius: "var(--radius-lg)",
+            border: "0.5px solid var(--rule)",
+            padding: "1rem 1.25rem",
+            marginBottom: 12,
+          }}
+        >
+          <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>{t("tx_description")}</p>
+          <input
+            type="text"
+            value={description}
+            onChange={(e) => handleDescriptionChange(e.target.value)}
+            onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+            placeholder={t("tx_description_optional")}
+            style={{
+              width: "100%", padding: "8px 0", border: "none",
+              borderBottom: "0.5px solid var(--rule)", background: "transparent",
+              fontSize: 14, outline: "none",
+            }}
+          />
+          {suggestions.length > 0 && (
+            <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 2 }}>
+              {suggestions.map((s) => {
+                const cat = categories.find((c) => c.id === s.categoryId);
+                return (
+                  <button
+                    key={s.description}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => pickSuggestion(s)}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 8,
+                      padding: "8px 6px", borderRadius: "var(--radius-sm)",
+                      border: "none", background: "var(--bg)",
+                      textAlign: "left", cursor: "pointer",
+                    }}
+                  >
+                    <i className="ti ti-history" style={{ fontSize: 14, color: "var(--ink-3)", flexShrink: 0 }} aria-hidden="true" />
+                    <span style={{ fontSize: 13, flex: 1, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {s.description}
+                    </span>
+                    {cat && (
+                      <span style={{ fontSize: 11, color: "var(--ink-3)", display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+                        <i className={`ti ${cat.icon}`} style={{ fontSize: 13 }} aria-hidden="true" />
+                        {catName(cat)}{s.subcategory ? ` · ${tSubName(s.subcategory, cat.id)}` : ""}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Date */}
+        <div
+          style={{
+            background: "var(--bg-card)",
+            borderRadius: "var(--radius-lg)",
+            border: "0.5px solid var(--rule)",
+            padding: "1rem 1.25rem",
+            marginBottom: 12,
+          }}
+        >
+          <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>{t("tx_date")}</p>
+          <input
+            type="datetime-local"
+            value={dateTime}
+            onChange={(e) => setDateTime(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "8px 0",
+              border: "none",
+              borderBottom: "0.5px solid var(--rule)",
+              background: "transparent",
+              fontSize: 14,
+              outline: "none",
+              color: "var(--ink)",
+            }}
+          />
+
+          {!isEditing && (
+            <div style={{ marginTop: 14 }}>
+              <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={makeRecurring}
+                  onChange={(e) => setMakeRecurring(e.target.checked)}
+                  style={{ width: 18, height: 18 }}
+                />
+                <span style={{ fontSize: 14, flex: 1 }}>{t("tx_make_recurring")}</span>
+                <i className="ti ti-repeat" style={{ fontSize: 16, color: "var(--lavi)" }} aria-hidden="true" />
+              </label>
+
+              {makeRecurring && (
+                <div style={{ marginTop: 12 }}>
+                  <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>{t("recurring_frequency")}</p>
+                  <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+                    {[
+                      { key: "monthly", label: t("recurring_freq_monthly") },
+                      { key: "weekly", label: t("recurring_freq_weekly") },
+                      { key: "yearly", label: t("recurring_freq_yearly") },
+                    ].map((f) => (
+                      <button
+                        key={f.key}
+                        onClick={() => setRecurringFrequency(f.key)}
+                        style={{
+                          flex: 1, padding: 8, borderRadius: "var(--radius-md)",
+                          border: recurringFrequency === f.key ? "0.5px solid var(--lavi)" : "0.5px solid var(--rule)",
+                          background: recurringFrequency === f.key ? "var(--lavi-light)" : "var(--bg)",
+                          color: recurringFrequency === f.key ? "var(--lavi)" : "var(--ink)",
+                          fontSize: 12,
+                        }}
+                      >
+                        {f.label}
+                      </button>
+                    ))}
+                  </div>
+                  {recurringFrequency === "monthly" && (
+                    <>
+                      <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>{t("recurring_day_of_month")}</p>
+                      <input
+                        type="number"
+                        min="1"
+                        max="31"
+                        value={recurringDayOfMonth}
+                        onChange={(e) => setRecurringDayOfMonth(e.target.value)}
+                        style={{
+                          width: "100%", padding: "10px 12px", borderRadius: "var(--radius-md)",
+                          border: "0.5px solid var(--rule)", fontSize: 14, outline: "none",
+                        }}
+                      />
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Attribution membre — pour Expense (Payé par / Pour) ET Income/Investment (juste Payé par/Pour aussi) */}
