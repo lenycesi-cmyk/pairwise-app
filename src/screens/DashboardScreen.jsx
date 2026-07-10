@@ -408,7 +408,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
             <div>
               {topBudgets.length === 0 ? (
                 <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", padding: "0.75rem 0" }}>{t("widget_budget_empty")}</p>
-              ) : topBudgets.map(({ budget, pct, spent, scopedTx, amountInBase, projected, projectedOver }, i) => {
+              ) : topBudgets.map(({ budget, pct, spent, scopedTx, amountInBase, effectiveAmount, projected, projectedOver }, i) => {
                 const over = pct >= 100;
                 const warn = pct >= (budget.alertThreshold ?? 80);
                 const barColor = over ? "var(--red)" : warn ? "var(--amber)" : "var(--sky)";
@@ -437,7 +437,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, marginBottom: 5 }}>
                       <span style={{ fontSize: 11.5, color: "var(--sky)", minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{memberLabel}</span>
                       <span className="pw-num" style={{ fontSize: 13, fontWeight: 600, flexShrink: 0 }}>
-                        {formatAmount(spent)} <span style={{ color: "var(--ink-3)", fontWeight: 400 }}>/ {formatAmount(amountInBase)} {currencySymbol}</span>
+                        {formatAmount(spent)} <span style={{ color: "var(--ink-3)", fontWeight: 400 }}>/ {formatAmount(effectiveAmount)} {currencySymbol}</span>
                       </span>
                     </div>
                     <div style={{ height: 7, borderRadius: 4, background: "var(--rule)", overflow: "hidden" }}>

@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 import { FinanceProvider } from "./context/FinanceContext";
 import { useRecurringGenerator } from "./hooks/useRecurringGenerator";
 import { useBudgetAlerts } from "./hooks/useBudgetAlerts";
+import { useBudgetSnapshots } from "./hooks/useBudgetSnapshots";
 import { useCommentNotifications } from "./hooks/useCommentNotifications";
 import { useRecurringReminders } from "./hooks/useRecurringReminders";
 import { usePushNotifications, useForegroundPush } from "./hooks/usePushNotifications";
@@ -38,6 +39,11 @@ function RecurringGeneratorRunner() {
 
 function BudgetAlertsRunner() {
   useBudgetAlerts();
+  return null;
+}
+
+function BudgetSnapshotRunner() {
+  useBudgetSnapshots();
   return null;
 }
 
@@ -201,6 +207,7 @@ function AppContent() {
     <FinanceProvider>
       <RecurringGeneratorRunner />
       <BudgetAlertsRunner />
+      <BudgetSnapshotRunner />
       <CommentNotifierRunner />
       <RecurringRemindersRunner />
       <PushRunner />

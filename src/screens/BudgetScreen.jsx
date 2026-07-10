@@ -61,7 +61,7 @@ export default function BudgetScreen({ openSignal }) {
   const { catName, subName } = useCategoryName();
   const { categories, transactions, budgets, addBudget, updateBudget, removeBudget, reorderBudgets, defaultCurrency, members, coupleName,
     customTags, budgetDisplayCurrency, updateBudgetDisplayCurrency,
-    enabledCurrencies, updateEnabledCurrencies } =
+    enabledCurrencies, updateEnabledCurrencies, language } =
     useFinance();
 
   // Capteurs dnd pour réordonner les budgets (la poignée porte les listeners).
@@ -84,6 +84,11 @@ export default function BudgetScreen({ openSignal }) {
   const [name, setName] = useState("");
   const [scope, setScope] = useState("global");
   const [period, setPeriod] = useState("monthly");
+  const [anchorDay, setAnchorDay] = useState("1");     // mois ancré (1 = mois civil)
+  const [rollingDays, setRollingDays] = useState("30"); // fenêtre glissante
+  const [startDate, setStartDate] = useState("");       // enveloppe d'événement
+  const [endDate, setEndDate] = useState("");
+  const [rollover, setRollover] = useState(false);      // report du reliquat (YNAB)
   // Map of selected categoryId -> array of currently-included subcategory
   // names. Selecting a category includes ALL its subcategories by default;
   // the subcategory refine UI (shown only for selected categories) lets the
@@ -152,6 +157,11 @@ export default function BudgetScreen({ openSignal }) {
     setName("");
     setScope("global");
     setPeriod("monthly");
+    setAnchorDay("1");
+    setRollingDays("30");
+    setStartDate("");
+    setEndDate("");
+    setRollover(false);
     setCategorySelection({});
     setTagSelection([]);
     setExpandedCatId(null);
@@ -233,6 +243,11 @@ export default function BudgetScreen({ openSignal }) {
     setName(b.name || "");
     setScope(b.scope);
     setPeriod(b.period || "monthly");
+    setAnchorDay((b.anchorDay || 1).toString());
+    setRollingDays((b.rollingDays || 30).toString());
+    setStartDate(b.startDate ? b.startDate.slice(0, 10) : "");
+    setEndDate(b.endDate ? b.endDate.slice(0, 10) : "");
+    setRollover(!!b.rollover);
     const selection = {};
     for (const catId of b.categoryIds || []) {
       const cat = categories.find((c) => c.id === catId);
@@ -306,10 +321,21 @@ export default function BudgetScreen({ openSignal }) {
       }
     }
 
+    // Champs spécifiques à la fréquence (null quand non pertinent pour ne pas
+    // laisser trainer d'anciennes valeurs après changement de type).
+    if (period === "event" && (!startDate || !endDate)) return;
+
     const payload = {
       name: name.trim() || null,
       scope,
       period,
+      anchorDay: period === "monthly" ? Math.min(Math.max(parseInt(anchorDay) || 1, 1), 28) : null,
+      rollingDays: period === "rolling" ? Math.max(parseInt(rollingDays) || 30, 1) : null,
+      startDate: period === "event" ? new Date(startDate).toISOString() : null,
+      endDate: period === "event" ? new Date(endDate + "T23:59:59").toISOString() : null,
+      // Report du reliquat : sans objet pour les fenêtres glissantes et les
+      // enveloppes d'événement (pas de période qui se répète).
+      rollover: period === "rolling" || period === "event" ? false : rollover,
       categoryIds: scope === "category" ? categoryIds : [],
       subcategoryKeys: scope === "category" ? subcategoryKeys : [],
       tagKeys: scope === "tag" ? tagSelection : [],
@@ -381,6 +407,21 @@ export default function BudgetScreen({ openSignal }) {
     return members.find((m) => getMemberKey(m) === b.memberUid)?.name || coupleLabel;
   }
 
+  // Libellé court de la fréquence pour l'affichage d'un budget.
+  function periodLabel(b) {
+    const p = b.period || "monthly";
+    if (p === "weekly") return t("budget_period_weekly");
+    if (p === "quarterly") return t("budget_period_quarterly");
+    if (p === "yearly") return t("budget_period_yearly");
+    if (p === "rolling") return t("budget_rolling_label").replace("{n}", b.rollingDays || 30);
+    if (p === "event") {
+      const fmt = (d) => new Date(d).toLocaleDateString(language === "en" ? "en-US" : "fr-FR", { day: "numeric", month: "short" });
+      return b.startDate && b.endDate ? `${fmt(b.startDate)} – ${fmt(b.endDate)}` : t("budget_period_event");
+    }
+    if (b.anchorDay && b.anchorDay > 1) return t("budget_anchor_label").replace("{d}", b.anchorDay);
+    return t("budget_period_monthly");
+  }
+
   // Contenu d'un widget de l'onglet Budget pour WidgetCanvas (renvoie null
   // quand il n'y a rien à montrer → placeholder en mode édition).
   function renderBudgetWidget(id) {
@@ -388,7 +429,7 @@ export default function BudgetScreen({ openSignal }) {
 
     if (id === "overview") {
       const active = progress.filter(({ budget }) => budget.active !== false);
-      const totalBudget = active.reduce((s, p) => s + p.amountInBase, 0);
+      const totalBudget = active.reduce((s, p) => s + p.effectiveAmount, 0);
       const totalSpent = active.reduce((s, p) => s + p.spent, 0);
       const overCount = active.filter((p) => p.pct >= 100).length;
       const pct = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
@@ -419,7 +460,7 @@ export default function BudgetScreen({ openSignal }) {
         <DndContext sensors={budgetSensors} collisionDetection={closestCenter} onDragEnd={handleBudgetDragEnd}>
           <SortableContext items={progress.map((p) => p.budget.id)} strategy={verticalListSortingStrategy}>
             <div>
-              {progress.map(({ budget, spent, amountInBase, pct, projected, projectedOver }) => {
+              {progress.map(({ budget, spent, amountInBase, effectiveAmount, carried, pct, projected, projectedOver }) => {
                 const isInactive = budget.active === false;
                 const over = pct >= 100;
                 const warn = pct >= (budget.alertThreshold ?? 80);
@@ -467,9 +508,14 @@ export default function BudgetScreen({ openSignal }) {
                               )}
                               <p className="pw-num" style={{ fontSize: 13, fontWeight: 600, marginTop: 1 }}>
                                 {Math.round(spent).toLocaleString("fr-FR")}
-                                <span style={{ color: "var(--ink-3)", fontWeight: 400 }}> / {Math.round(amountInBase).toLocaleString("fr-FR")} {displayCurrency}</span>
-                                {budget.period === "yearly" && <span style={{ color: "var(--ink-3)", fontWeight: 400 }}> · {t("budget_period_yearly")}</span>}
+                                <span style={{ color: "var(--ink-3)", fontWeight: 400 }}> / {Math.round(effectiveAmount).toLocaleString("fr-FR")} {displayCurrency}</span>
+                                <span style={{ color: "var(--ink-3)", fontWeight: 400 }}> · {periodLabel(budget)}</span>
                               </p>
+                              {budget.rollover && Math.round(carried) !== 0 && (
+                                <p style={{ fontSize: 10.5, color: carried >= 0 ? "var(--sage)" : "var(--tang)", marginTop: 1 }}>
+                                  {carried >= 0 ? "+" : ""}{Math.round(carried).toLocaleString("fr-FR")} {displayCurrency} {t("budget_rollover_carried")}
+                                </p>
+                              )}
                             </div>
                             <p style={{ fontSize: 18, fontWeight: 700, color: barColor }}>
                               {Math.round(pct)}%
@@ -774,16 +820,19 @@ export default function BudgetScreen({ openSignal }) {
           </div>
 
           <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>{t("budget_period")}</p>
-          <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, marginBottom: 12 }}>
             {[
               { key: "monthly", label: t("budget_period_monthly") },
+              { key: "weekly", label: t("budget_period_weekly") },
+              { key: "quarterly", label: t("budget_period_quarterly") },
               { key: "yearly", label: t("budget_period_yearly") },
+              { key: "rolling", label: t("budget_period_rolling") },
+              { key: "event", label: t("budget_period_event") },
             ].map((p) => (
               <button
                 key={p.key}
                 onClick={() => setPeriod(p.key)}
                 style={{
-                  flex: 1,
                   padding: 8,
                   borderRadius: "var(--radius-md)",
                   border: "0.5px solid var(--rule)",
@@ -796,6 +845,64 @@ export default function BudgetScreen({ openSignal }) {
               </button>
             ))}
           </div>
+
+          {/* Champs spécifiques à la fréquence */}
+          {period === "monthly" && (
+            <div style={{ marginBottom: 12 }}>
+              <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>{t("budget_anchor_day")}</p>
+              <input
+                type="number" min="1" max="28" inputMode="numeric"
+                value={anchorDay}
+                onChange={(e) => setAnchorDay(e.target.value)}
+                style={{ width: "100%", padding: "10px 12px", borderRadius: "var(--radius-md)", border: "0.5px solid var(--rule)", fontSize: 14, outline: "none" }}
+              />
+              <p style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 4 }}>{t("budget_anchor_hint")}</p>
+            </div>
+          )}
+          {period === "rolling" && (
+            <div style={{ marginBottom: 12 }}>
+              <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>{t("budget_rolling_days")}</p>
+              <input
+                type="number" min="1" max="365" inputMode="numeric"
+                value={rollingDays}
+                onChange={(e) => setRollingDays(e.target.value)}
+                style={{ width: "100%", padding: "10px 12px", borderRadius: "var(--radius-md)", border: "0.5px solid var(--rule)", fontSize: 14, outline: "none" }}
+              />
+              <p style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 4 }}>{t("budget_rolling_hint")}</p>
+            </div>
+          )}
+          {period === "event" && (
+            <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>{t("budget_event_start")}</p>
+                <input
+                  type="date" value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  style={{ width: "100%", padding: "10px 12px", borderRadius: "var(--radius-md)", border: "0.5px solid var(--rule)", fontSize: 14, outline: "none", color: "var(--ink)", background: "var(--bg)" }}
+                />
+              </div>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>{t("budget_event_end")}</p>
+                <input
+                  type="date" value={endDate} min={startDate || undefined}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  style={{ width: "100%", padding: "10px 12px", borderRadius: "var(--radius-md)", border: "0.5px solid var(--rule)", fontSize: 14, outline: "none", color: "var(--ink)", background: "var(--bg)" }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Report du reliquat (YNAB) — pertinent uniquement pour les périodes
+              qui se répètent (ni glissant, ni événement). */}
+          {period !== "rolling" && period !== "event" && (
+            <label style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 12, cursor: "pointer" }}>
+              <input type="checkbox" checked={rollover} onChange={(e) => setRollover(e.target.checked)} style={{ width: 18, height: 18, marginTop: 1, flexShrink: 0 }} />
+              <span style={{ minWidth: 0 }}>
+                <span style={{ fontSize: 13 }}>{t("budget_rollover")}</span>
+                <span style={{ display: "block", fontSize: 11, color: "var(--ink-3)", marginTop: 1 }}>{t("budget_rollover_hint")}</span>
+              </span>
+            </label>
+          )}
 
           {members.length > 0 && (
             <>
