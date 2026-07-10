@@ -4,10 +4,11 @@ import { useTranslation } from "../hooks/useTranslation";
 import { useCategoryName } from "../hooks/useCategoryName";
 import { useBudgetProgress } from "../hooks/useBudgetProgress";
 import { useExchangeRates } from "../hooks/useExchangeRates";
-import { CURRENCIES } from "../data/categories";
+import { CURRENCIES, ALL_CURRENCIES } from "../data/categories";
 import { BUDGET_GROUPS, BUDGET_GROUP_KEYS } from "../data/budgetGroups";
 import SpotlightHint from "../components/SpotlightHint";
 import { getMemberKey } from "../utils/members";
+import { AVATAR_COLOR_PALETTE } from "../utils/memberColors";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 import { useBudgetPrefs } from "../hooks/useDashboardPrefs";
 import WidgetCanvas from "../components/WidgetCanvas";
@@ -30,7 +31,8 @@ export default function BudgetScreen({ openSignal }) {
   const t = useTranslation();
   const { catName, subName } = useCategoryName();
   const { categories, transactions, budgets, addBudget, updateBudget, removeBudget, defaultCurrency, members, coupleName,
-    customTags, budgetDisplayCurrency, updateBudgetDisplayCurrency } =
+    customTags, budgetDisplayCurrency, updateBudgetDisplayCurrency,
+    enabledCurrencies, updateEnabledCurrencies } =
     useFinance();
   const displayCurrency = budgetDisplayCurrency || defaultCurrency;
   const { progress } = useBudgetProgress(undefined, undefined, displayCurrency);
@@ -57,6 +59,13 @@ export default function BudgetScreen({ openSignal }) {
   const [expandedCatId, setExpandedCatId] = useState(null);
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState(defaultCurrency);
+  const [color, setColor] = useState("amber");
+  // Sélecteur de devise du formulaire (inline, calqué sur AddTransaction) —
+  // distinct du sélecteur de devise d'affichage de l'en-tête (showCurrencyPicker).
+  const [showFormCurrency, setShowFormCurrency] = useState(false);
+  const [manageCurrencies, setManageCurrencies] = useState(false);
+  const [addingCurrency, setAddingCurrency] = useState(false);
+  const [currencySearch, setCurrencySearch] = useState("");
   const [alertThreshold, setAlertThreshold] = useState("80");
   const [memberUid, setMemberUid] = useState("couple");
   const [editMode, setEditMode] = useState(false);
@@ -66,6 +75,35 @@ export default function BudgetScreen({ openSignal }) {
   const isDesktop = useMediaQuery("(min-width: 1024px)");
 
   const expenseCategories = categories.filter((c) => !EXPENSE_EXCLUDED.includes(c.id));
+
+  // ── Devise du budget : même sélecteur inline que la création de transaction
+  // (liste blanche du couple + gestion/ajout avec recherche), au lieu du
+  // <select> natif qui ouvrait le menu déroulant du système.
+  const currencyList =
+    enabledCurrencies && enabledCurrencies.length > 0
+      ? ALL_CURRENCIES.filter(
+          (c) => enabledCurrencies.includes(c.code) || c.code === currency || c.code === defaultCurrency
+        )
+      : CURRENCIES;
+  const offeredCurrencies =
+    enabledCurrencies && enabledCurrencies.length > 0
+      ? ALL_CURRENCIES.filter((c) => enabledCurrencies.includes(c.code))
+      : CURRENCIES;
+  const currencyQuery = currencySearch.trim().toLowerCase();
+  const addableCurrencies = ALL_CURRENCIES.filter(
+    (c) =>
+      !offeredCurrencies.some((o) => o.code === c.code) &&
+      (currencyQuery === "" ||
+        c.code.toLowerCase().includes(currencyQuery) ||
+        c.name.toLowerCase().includes(currencyQuery))
+  );
+  function toggleEnabledCurrency(code) {
+    const current =
+      enabledCurrencies && enabledCurrencies.length > 0 ? enabledCurrencies : CURRENCIES.map((c) => c.code);
+    let next = current.includes(code) ? current.filter((x) => x !== code) : [...current, code];
+    if (next.length === 0) next = [defaultCurrency];
+    updateEnabledCurrencies(next);
+  }
 
   function toBase(tx) {
     if (tx.convertedAmount !== undefined && tx.convertedCurrency === defaultCurrency) {
@@ -84,6 +122,11 @@ export default function BudgetScreen({ openSignal }) {
     setExpandedCatId(null);
     setAmount("");
     setCurrency(defaultCurrency);
+    setColor("amber");
+    setShowFormCurrency(false);
+    setManageCurrencies(false);
+    setAddingCurrency(false);
+    setCurrencySearch("");
     setAlertThreshold("80");
     setMemberUid("couple");
   }
@@ -169,6 +212,7 @@ export default function BudgetScreen({ openSignal }) {
     setTagSelection(b.tagKeys || []);
     setAmount(b.amount.toString());
     setCurrency(b.currency);
+    setColor(b.color || "amber");
     setAlertThreshold((b.alertThreshold ?? 80).toString());
     setMemberUid(b.memberUid || "couple");
     setQuickMode("manual");
@@ -236,6 +280,7 @@ export default function BudgetScreen({ openSignal }) {
       tagKeys: scope === "tag" ? tagSelection : [],
       amount: parseFloat(amount),
       currency,
+      color,
       alertThreshold: parseInt(alertThreshold) || 80,
       memberUid,
     };
@@ -328,6 +373,7 @@ export default function BudgetScreen({ openSignal }) {
             const over = pct >= 100;
             const warn = pct >= (budget.alertThreshold ?? 80);
             const barColor = over ? "var(--red)" : warn ? "var(--amber)" : "var(--sky)";
+            const dotColor = AVATAR_COLOR_PALETTE.find((c) => c.key === budget.color)?.text || "var(--amber)";
             return (
               <div
                 key={budget.id}
@@ -343,6 +389,7 @@ export default function BudgetScreen({ openSignal }) {
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                  <span style={{ width: 11, height: 11, borderRadius: "50%", background: dotColor, flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ fontSize: 14, fontWeight: 700 }}>
                       {budgetLabel(budget)}
@@ -472,6 +519,7 @@ export default function BudgetScreen({ openSignal }) {
         </div>
       )}
 
+      <div style={{ maxWidth: isDesktop ? 560 : "none", margin: "0 auto" }}>
       {showForm && quickMode === null && (
         <div
           className="pw-card"
@@ -593,6 +641,7 @@ export default function BudgetScreen({ openSignal }) {
             marginBottom: 16,
           }}
         >
+          <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>{t("budget_name_label")}</p>
           <input
             type="text"
             placeholder={t("budget_name_placeholder")}
@@ -608,6 +657,26 @@ export default function BudgetScreen({ openSignal }) {
               outline: "none",
             }}
           />
+
+          <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>{t("budget_color")}</p>
+          <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
+            {AVATAR_COLOR_PALETTE.map((c) => (
+              <button
+                key={c.key}
+                type="button"
+                onClick={() => setColor(c.key)}
+                aria-label={c.key}
+                style={{
+                  width: 28, height: 28, borderRadius: "50%",
+                  background: c.bg,
+                  border: color === c.key ? `2.5px solid ${c.text}` : "2px solid transparent",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}
+              >
+                {color === c.key && <i className="ti ti-check" style={{ fontSize: 14, color: c.text }} aria-hidden="true" />}
+              </button>
+            ))}
+          </div>
 
           <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>{t("budget_scope")}</p>
           <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
@@ -821,7 +890,8 @@ export default function BudgetScreen({ openSignal }) {
             </>
           )}
 
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+          <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>{t("budget_amount_label")}</p>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <input
               type="number"
               inputMode="decimal"
@@ -837,24 +907,160 @@ export default function BudgetScreen({ openSignal }) {
                 outline: "none",
               }}
             />
-            <select
-              value={currency}
-              onChange={(e) => setCurrency(e.target.value)}
+            <button
+              type="button"
+              onClick={() => { setShowFormCurrency(!showFormCurrency); setManageCurrencies(false); setAddingCurrency(false); setCurrencySearch(""); }}
               style={{
-                padding: "10px 8px",
+                padding: "10px 12px",
                 borderRadius: "var(--radius-md)",
                 border: "0.5px solid var(--rule)",
+                background: "var(--bg)",
                 fontSize: 13,
-                background: "var(--bg-card)",
+                fontWeight: 500,
+                flexShrink: 0,
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
               }}
             >
-              {CURRENCIES.map((c) => (
-                <option key={c.code} value={c.code}>{c.code}</option>
-              ))}
-            </select>
+              {currency} <i className="ti ti-chevron-down" style={{ fontSize: 12 }} aria-hidden="true" />
+            </button>
           </div>
 
-          <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>
+          {showFormCurrency && !manageCurrencies && (
+            <div style={{ marginTop: 10, display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
+              {currencyList.map((c) => (
+                <button
+                  key={c.code}
+                  type="button"
+                  onClick={() => { setCurrency(c.code); setShowFormCurrency(false); }}
+                  style={{
+                    padding: "6px 10px",
+                    borderRadius: "var(--radius-md)",
+                    border: currency === c.code ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
+                    background: currency === c.code ? "var(--sky-light)" : "var(--bg)",
+                    color: currency === c.code ? "var(--sky)" : "var(--ink)",
+                    fontSize: 12,
+                  }}
+                >
+                  {c.code}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => setManageCurrencies(true)}
+                style={{
+                  padding: "6px 10px", borderRadius: "var(--radius-md)", border: "0.5px dashed var(--rule)",
+                  background: "var(--bg)", color: "var(--ink-3)", fontSize: 12,
+                  display: "flex", alignItems: "center", gap: 4,
+                }}
+              >
+                <i className="ti ti-adjustments" style={{ fontSize: 13 }} aria-hidden="true" />
+                {t("tx_manage_currencies")}
+              </button>
+            </div>
+          )}
+
+          {showFormCurrency && manageCurrencies && (
+            <div style={{ marginTop: 10 }}>
+              <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 8, textAlign: "center" }}>
+                {t("tx_manage_currencies_hint")}
+              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {offeredCurrencies.map((c) => {
+                  const isDefault = c.code === defaultCurrency;
+                  return (
+                    <div
+                      key={c.code}
+                      style={{
+                        display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
+                        padding: "10px 12px", borderRadius: "var(--radius-md)", border: "0.5px solid var(--rule)", background: "var(--bg)",
+                      }}
+                    >
+                      <span style={{ fontSize: 13, color: "var(--ink)", textAlign: "left" }}>{c.symbol} {c.code} · {c.name}</span>
+                      {isDefault ? (
+                        <span style={{ fontSize: 11, color: "var(--ink-3)", flexShrink: 0 }}>{t("tx_currency_default")}</span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => toggleEnabledCurrency(c.code)}
+                          aria-label={t("common_delete")}
+                          style={{ background: "none", border: "none", color: "var(--ink-3)", display: "flex", alignItems: "center", flexShrink: 0 }}
+                        >
+                          <i className="ti ti-x" style={{ fontSize: 15 }} aria-hidden="true" />
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              {!addingCurrency ? (
+                <button
+                  type="button"
+                  onClick={() => { setAddingCurrency(true); setCurrencySearch(""); }}
+                  style={{
+                    marginTop: 8, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                    padding: "10px 12px", borderRadius: "var(--radius-md)", border: "0.5px dashed var(--sky)",
+                    background: "var(--bg)", color: "var(--sky)", fontSize: 13, fontWeight: 500,
+                  }}
+                >
+                  <i className="ti ti-plus" style={{ fontSize: 14 }} aria-hidden="true" />
+                  {t("tx_add_currency")}
+                </button>
+              ) : (
+                <div style={{ marginTop: 8 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                    <input
+                      autoFocus
+                      type="text"
+                      value={currencySearch}
+                      onChange={(e) => setCurrencySearch(e.target.value)}
+                      placeholder={t("tx_search_currency")}
+                      style={{ flex: 1, padding: "10px 12px", borderRadius: "var(--radius-md)", border: "0.5px solid var(--rule)", fontSize: 13, outline: "none" }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => { setAddingCurrency(false); setCurrencySearch(""); }}
+                      aria-label={t("common_cancel")}
+                      style={{ flexShrink: 0, width: 34, height: 34, borderRadius: "var(--radius-md)", border: "0.5px solid var(--rule)", background: "var(--bg)", color: "var(--ink-3)", display: "flex", alignItems: "center", justifyContent: "center" }}
+                    >
+                      <i className="ti ti-x" style={{ fontSize: 15 }} aria-hidden="true" />
+                    </button>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 220, overflowY: "auto" }}>
+                    {addableCurrencies.map((c) => (
+                      <button
+                        type="button"
+                        key={c.code}
+                        onClick={() => { toggleEnabledCurrency(c.code); setCurrency(c.code); }}
+                        style={{
+                          display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
+                          padding: "10px 12px", borderRadius: "var(--radius-md)", border: "0.5px solid var(--rule)", background: "var(--bg)", cursor: "pointer",
+                        }}
+                      >
+                        <span style={{ fontSize: 13, color: "var(--ink)", textAlign: "left" }}>{c.symbol} {c.code} · {c.name}</span>
+                        <i className="ti ti-plus" style={{ fontSize: 14, color: "var(--sky)" }} aria-hidden="true" />
+                      </button>
+                    ))}
+                    {addableCurrencies.length === 0 && (
+                      <p style={{ fontSize: 12, color: "var(--ink-3)", textAlign: "center", padding: "8px 0" }}>{t("tx_no_currency_found")}</p>
+                    )}
+                  </div>
+                </div>
+              )}
+              <div style={{ display: "flex", justifyContent: "center", marginTop: 10 }}>
+                <button
+                  type="button"
+                  onClick={() => { setManageCurrencies(false); setAddingCurrency(false); setCurrencySearch(""); }}
+                  style={{ background: "var(--ink)", color: "var(--bg)", border: "none", borderRadius: "var(--radius-md)", padding: "6px 16px", fontSize: 13, fontWeight: 500 }}
+                >
+                  {t("dashboard_done")}
+                </button>
+              </div>
+            </div>
+          )}
+
+          <p style={{ fontSize: 12, color: "var(--ink-2)", margin: "14px 0 6px" }}>
             {t("budget_alert_threshold")}
           </p>
           <input
@@ -893,6 +1099,7 @@ export default function BudgetScreen({ openSignal }) {
           </button>
         </div>
       )}
+      </div>
 
       {budgets.length === 0 && !showForm && (
         <p style={{ fontSize: 14, color: "var(--ink-3)", textAlign: "center", padding: "3rem 0" }}>

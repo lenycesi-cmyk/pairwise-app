@@ -23,7 +23,7 @@ import { useNetWorth } from "../hooks/useNetWorth";
 import CategoryRow from "../components/CategoryRow";
 import WidgetCard from "../components/WidgetCard";
 import Avatar from "../components/Avatar";
-import { buildMemberColorMap } from "../utils/memberColors";
+import { buildMemberColorMap, AVATAR_COLOR_PALETTE } from "../utils/memberColors";
 import { ALL_CURRENCIES } from "../data/categories";
 import CurrencyPicker from "../components/CurrencyPicker";
 import { useTranslation } from "../hooks/useTranslation";
@@ -413,11 +413,15 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                   ? (coupleName || t("widget_couple_summary_default"))
                   : members.find((m) => getMemberKey(m) === budget.memberUid)?.name;
                 const isOpen = detailBudgetId === budget.id;
+                const dotColor = AVATAR_COLOR_PALETTE.find((c) => c.key === budget.color)?.text || "var(--amber)";
                 return (
                   <div key={budget.id} style={{ marginBottom: i === topBudgets.length - 1 ? 0 : 14 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, marginBottom: 3 }}>
-                      <span style={{ fontSize: 13.5, fontWeight: 700, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                        {label}
+                      <span style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+                        <span style={{ width: 10, height: 10, borderRadius: "50%", background: dotColor, flexShrink: 0 }} />
+                        <span style={{ fontSize: 13.5, fontWeight: 700, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          {label}
+                        </span>
                       </span>
                       <span style={{ fontSize: 17, fontWeight: 700, color: barColor, flexShrink: 0 }}>{Math.round(pct)}%</span>
                     </div>
