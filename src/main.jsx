@@ -9,3 +9,12 @@ createRoot(document.getElementById('root')).render(
     <App />
   </StrictMode>,
 )
+
+// Enregistre le Service Worker au chargement pour que l'app se relance hors
+// connexion (cache d'app-shell). Le même SW gère aussi les notifications FCM ;
+// usePushNotifications réutilise ensuite cet enregistrement.
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/firebase-messaging-sw.js").catch(() => {})
+  })
+}

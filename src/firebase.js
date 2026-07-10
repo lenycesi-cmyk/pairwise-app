@@ -1,6 +1,10 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import {
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+} from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
@@ -15,6 +19,21 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+
+// Persistance hors ligne : Firestore garde un cache local (IndexedDB), donc les
+// lectures (onSnapshot) et écritures fonctionnent sans réseau et se
+// synchronisent à la reconnexion. persistentMultipleTabManager gère plusieurs
+// onglets ouverts sans conflit de cache. Si IndexedDB est indisponible
+// (navigation privée sur certains navigateurs), on retombe sur le cache mémoire.
+let firestore;
+try {
+  firestore = initializeFirestore(app, {
+    localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+  });
+} catch {
+  firestore = initializeFirestore(app, {});
+}
+export const db = firestore;
+
 export const storage = getStorage(app);
 export default app;
