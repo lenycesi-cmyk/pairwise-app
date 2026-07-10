@@ -43,6 +43,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
     addRecurring,
     defaultCurrency,
     currencyMode,
+    financeMode,
     lastUsedCurrency,
     enabledCurrencies,
     updateEnabledCurrencies,
@@ -1106,9 +1107,27 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
               ))}
             </div>
 
-            <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 8 }}>{t("tx_for")}</p>
+            <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 8 }}>
+              {financeMode === "common" ? t("tx_beneficiary") : t("tx_for")}
+            </p>
 
             <div style={{ display: "flex", gap: 6 }}>
+              {/* En compte commun : un bouton "Commun" (50/50, sans partage
+                  avancé) sert d'attribution bénéficiaire "commun". */}
+              {financeMode === "common" && (
+                <button
+                  onClick={() => { setSplit("50/50"); setSplitMode("simple"); setSplitDetails(null); }}
+                  style={{
+                    flex: 1, padding: 8, borderRadius: "var(--radius-md)",
+                    border: split === "50/50" && splitMode === "simple" ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
+                    background: split === "50/50" && splitMode === "simple" ? "var(--sky-light)" : "var(--bg-card)",
+                    color: split === "50/50" && splitMode === "simple" ? "var(--sky)" : "var(--ink)",
+                    fontSize: 13,
+                  }}
+                >
+                  {t("tx_common")}
+                </button>
+              )}
               {members.map((m) => (
                 <button
                   key={getMemberKey(m)}
@@ -1124,7 +1143,9 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
                   {m.name}
                 </button>
               ))}
-              {members.length === 2 && (
+              {/* Partage avancé (montant/pourcentage précis) — uniquement en
+                  mode "finances partagées" (sans objet en compte commun). */}
+              {financeMode !== "common" && members.length === 2 && (
                 <button
                   onClick={() => {
                     setSplit("50/50");
@@ -1149,7 +1170,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
               )}
             </div>
 
-            {splitMode === "advanced" && members.length === 2 && (
+            {financeMode !== "common" && splitMode === "advanced" && members.length === 2 && (
               <div style={{ marginTop: 10 }}>
                 <AdvancedSplitSelector
                   members={members}

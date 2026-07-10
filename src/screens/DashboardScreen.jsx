@@ -118,7 +118,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
   const { catName } = useCategoryName();
   const {
     transactions, categories, members, assets, recurringTx, coupleName, debtSettlements,
-    defaultCurrency, dashboardDisplayCurrency, updateDashboardDisplayCurrency, loading, language,
+    defaultCurrency, dashboardDisplayCurrency, updateDashboardDisplayCurrency, loading, language, financeMode,
   } = useFinance();
   // Noms de mois localisés selon la langue des réglages (l'ancien tableau
   // MONTHS était figé en français).
@@ -646,7 +646,8 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
         );
 
       case "debt_tracker":
-        if (!debt) return null;
+        // Pas de dette entre partenaires en compte commun.
+        if (!debt || financeMode === "common") return null;
         return (
           <WidgetCard icon="ti-arrows-exchange" accent="pink" title={t("widget_debt_tracker")}>
             {/* Contenu inline (DebtSummaryCard embarque son propre cadre — on

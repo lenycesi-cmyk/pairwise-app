@@ -31,6 +31,10 @@ export function FinanceProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [defaultCurrency, setDefaultCurrency] = useState("EUR");
   const [currencyMode, setCurrencyMode] = useState("fixed");
+  // "shared" (défaut, historique) : chacun ses finances, on suit qui doit quoi
+  // (split + debt tracker). "common" : compte commun, pas de dette entre
+  // partenaires — on garde le suivi "qui dépense quoi et pour qui".
+  const [financeMode, setFinanceMode] = useState("shared");
   // Devises proposées dans les sélecteurs (ajout de transaction...). null =
   // toutes les devises (défaut) ; sinon la liste blanche choisie par le couple.
   const [enabledCurrencies, setEnabledCurrencies] = useState(null);
@@ -101,6 +105,7 @@ export function FinanceProvider({ children }) {
         if (data.members) setMembers(data.members);
         if (data.coupleName !== undefined) setCoupleName(data.coupleName);
         if (data.currencyMode) setCurrencyMode(data.currencyMode);
+        if (data.financeMode) setFinanceMode(data.financeMode);
         if (Array.isArray(data.enabledCurrencies)) setEnabledCurrencies(data.enabledCurrencies);
         // lastUsedCurrency est désormais PAR UTILISATEUR (users/{uid}) et non
         // plus au niveau du couple : deux partenaires dans des pays différents
@@ -301,6 +306,12 @@ export function FinanceProvider({ children }) {
       { currencyMode: mode },
       { merge: true }
     );
+  }
+
+  async function updateFinanceMode(mode) {
+    if (!coupleId) return;
+    setFinanceMode(mode); // optimiste
+    await setDoc(doc(db, "couples", coupleId), { financeMode: mode }, { merge: true });
   }
 
   async function updateEnabledCurrencies(codes) {
@@ -569,6 +580,8 @@ export function FinanceProvider({ children }) {
     loading,
     defaultCurrency,
     currencyMode,
+    financeMode,
+    updateFinanceMode,
     enabledCurrencies,
     updateEnabledCurrencies,
     lastUsedCurrency,
