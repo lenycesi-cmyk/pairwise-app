@@ -16,6 +16,8 @@ export default function SettingsScreen({ onOpenRecurring, onOpenCategories, onOp
     updateDefaultCurrency,
     currencyMode,
     updateCurrencyMode,
+    financeMode,
+    updateFinanceMode,
     updateMemberPhoto,
     updateMemberName,
     updateMemberAvatarColor,
@@ -362,6 +364,26 @@ export default function SettingsScreen({ onOpenRecurring, onOpenCategories, onOp
             </button>
           </div>
         )}
+      </Card>
+
+      <SectionLabel>{t("settings_finance_mode")}</SectionLabel>
+      <Card>
+        <Row label={t("settings_finance_mode_label")}>
+          <div />
+        </Row>
+        <div style={{ display: "flex", gap: 6, padding: "8px 0 12px" }}>
+          <ModeBtn active={financeMode !== "common"} onClick={() => updateFinanceMode("shared")}>
+            {t("settings_finance_shared")}
+          </ModeBtn>
+          <ModeBtn active={financeMode === "common"} onClick={() => updateFinanceMode("common")}>
+            {t("settings_finance_common")}
+          </ModeBtn>
+        </div>
+        <p style={{ fontSize: 11, color: "var(--ink-3)", paddingBottom: 10 }}>
+          {financeMode === "common"
+            ? t("settings_finance_common_hint")
+            : t("settings_finance_shared_hint")}
+        </p>
       </Card>
 
       <SectionLabel>{t("settings_currency")}</SectionLabel>
