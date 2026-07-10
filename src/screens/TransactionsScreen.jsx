@@ -1,6 +1,5 @@
 import { useState, useMemo } from "react";
 import { useFinance } from "../context/FinanceContext";
-import { useAuth } from "../context/AuthContext";
 import { buildMemberColorMap } from "../utils/memberColors";
 import Avatar from "../components/Avatar";
 import { useTranslation } from "../hooks/useTranslation";
@@ -21,7 +20,6 @@ const COLOR_MAP = {
 export default function TransactionsScreen({ onEdit }) {
   const t = useTranslation();
   const { transactions, categories, members, deleteTransaction, defaultCurrency } = useFinance();
-  const { user } = useAuth();
   const [filter, setFilter] = useState("all");
   const [searchText, setSearchText] = useState("");
   const [categoryFilter, setCategoryFilter] = useState(null);
@@ -406,11 +404,6 @@ export default function TransactionsScreen({ onEdit }) {
                       }}
                     >
                       {tx.description}
-                      {tx.comments?.length > 0 && (
-                        <span style={{ marginLeft: 6, fontSize: 11, color: "var(--sky)", whiteSpace: "nowrap" }}>
-                          <i className="ti ti-message-circle" style={{ fontSize: 12 }} aria-hidden="true" /> {tx.comments.length}
-                        </span>
-                      )}
                     </p>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2, flexWrap: "wrap" }}>
                       <span style={{ fontSize: 12, color: "var(--ink-3)" }}>{tx.subcategory}</span>
@@ -498,24 +491,47 @@ export default function TransactionsScreen({ onEdit }) {
                       </p>
                     )}
                   </div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (confirm("Supprimer cette transaction ?")) {
-                        deleteTransaction(tx.id);
-                      }
-                    }}
-                    aria-label="Supprimer"
-                    style={{
-                      background: "none",
-                      border: "none",
-                      color: "var(--ink-3)",
-                      padding: 4,
-                      flexShrink: 0,
-                    }}
-                  >
-                    <i className="ti ti-trash" style={{ fontSize: 14 }} aria-hidden="true" />
-                  </button>
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, flexShrink: 0 }}>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (confirm("Supprimer cette transaction ?")) {
+                          deleteTransaction(tx.id);
+                        }
+                      }}
+                      aria-label="Supprimer"
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: "var(--ink-3)",
+                        padding: 4,
+                      }}
+                    >
+                      <i className="ti ti-trash" style={{ fontSize: 14 }} aria-hidden="true" />
+                    </button>
+                    {/* Bulle de discussion : toujours visible sur chaque ligne pour
+                        rendre la fonctionnalité facile à trouver (ouvre la
+                        transaction, où le fil de discussion est en bas). */}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onEdit(tx); }}
+                      aria-label={t("tx_comments")}
+                      style={{
+                        background: tx.comments?.length > 0 ? "var(--sky-light)" : "var(--bg)",
+                        border: tx.comments?.length > 0 ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
+                        color: tx.comments?.length > 0 ? "var(--sky)" : "var(--ink-3)",
+                        borderRadius: 99,
+                        padding: "3px 8px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 3,
+                      }}
+                    >
+                      <i className="ti ti-message-circle" style={{ fontSize: 14 }} aria-hidden="true" />
+                      {tx.comments?.length > 0 && (
+                        <span style={{ fontSize: 11, fontWeight: 500 }}>{tx.comments.length}</span>
+                      )}
+                    </button>
+                  </div>
                 </div>
               );
             })}
