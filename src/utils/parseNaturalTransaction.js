@@ -4,6 +4,7 @@
 // de descriptions apprises pour deviner la catégorie quand aucun mot-clé de
 // catégorie n'est reconnu.
 import { normalizeText, buildSuggestionIndex, getSuggestions } from "./descriptionSuggestions";
+import { MERCHANT_SYNONYMS } from "../data/merchantSynonyms";
 
 const CURRENCY_HINTS = [
   { code: "EUR", tokens: ["€", "eur", "euro", "euros"] },
@@ -11,6 +12,16 @@ const CURRENCY_HINTS = [
   { code: "GBP", tokens: ["£", "gbp", "livre", "livres", "pound", "pounds"] },
   { code: "CHF", tokens: ["chf", "franc", "francs"] },
   { code: "JPY", tokens: ["¥", "jpy", "yen", "yens"] },
+  { code: "VND", tokens: ["₫", "vnd", "dong", "dongs"] },
+  { code: "THB", tokens: ["฿", "thb", "baht", "bahts"] },
+  { code: "AUD", tokens: ["aud"] },
+  { code: "CAD", tokens: ["cad"] },
+  { code: "CNY", tokens: ["cny", "rmb", "yuan", "yuans", "renminbi"] },
+  { code: "SGD", tokens: ["sgd"] },
+  { code: "HKD", tokens: ["hkd"] },
+  { code: "INR", tokens: ["inr", "₹", "roupie", "roupies"] },
+  { code: "KRW", tokens: ["krw", "₩", "won"] },
+  { code: "AED", tokens: ["aed", "dirham", "dirhams"] },
 ];
 
 const INCOME_WORDS = ["recu", "recus", "salaire", "revenu", "revenus", "paie", "paye", "prime", "dividende", "dividendes", "remboursement", "rembourse", "income", "salary", "received", "paycheck", "refund", "bonus"];
@@ -99,6 +110,29 @@ function matchCategory(norm, categories, type) {
   return null;
 }
 
+function escapeRegExp(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// Cherche un marchand/synonyme courant (McDo, Uber, Netflix…) dans le texte et
+// renvoie la catégorie par défaut correspondante — uniquement pour les dépenses,
+// et seulement si cette catégorie existe encore chez le couple. La sous-catégorie
+// est validée (repli sur la première si elle a été supprimée/renommée).
+function matchSynonym(norm, categories) {
+  for (const entry of MERCHANT_SYNONYMS) {
+    for (const kw of entry.kw) {
+      if (new RegExp(`\\b${escapeRegExp(kw)}\\b`).test(norm)) {
+        const c = categories.find((x) => x.id === entry.categoryId);
+        if (!c) continue;
+        const subs = c.subcategories || [];
+        const sub = subs.includes(entry.subcategory) ? entry.subcategory : subs[0] || null;
+        return { categoryId: c.id, subcategory: sub };
+      }
+    }
+  }
+  return null;
+}
+
 export function parseNaturalTransaction(text, { categories = [], transactions = [], defaultCurrency = "EUR" } = {}) {
   if (!text || !text.trim()) return null;
   const norm = normalizeText(text);
@@ -115,14 +149,16 @@ export function parseNaturalTransaction(text, { categories = [], transactions = 
   const currency = detectCurrency(norm, defaultCurrency);
   const date = detectDate(norm).toISOString();
 
-  // Catégorie : mots-clés explicites, sinon index appris sur la description
+  // Catégorie : nom de catégorie explicite, sinon marchand/synonyme courant
+  // (dépenses uniquement), sinon index appris sur la description.
   let cat = matchCategory(norm, categories, type);
+  if (!cat && type === "expense") cat = matchSynonym(norm, categories);
 
   // Description = texte nettoyé (retire montant, symboles devise, mots de date)
   let desc = text
     .replace(/\d[\d\s]*(?:[.,]\d{1,2})?/, " ")
     .replace(/[€$£¥]/g, " ")
-    .replace(/\b(euros?|dollars?|eur|usd|gbp|chf|jpy|aujourd'?hui|today|avant[\s-]?hier|hier|yesterday|il y a \d+ jours?|\d+ days? ago|lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche|monday|tuesday|wednesday|thursday|friday|saturday|sunday|janvier|f[ée]vrier|mars|avril|mai|juin|juillet|ao[uû]t|septembre|octobre|novembre|d[ée]cembre|january|february|march|april|june|july|august|september|october|november|december)\b/gi, " ")
+    .replace(/\b(euros?|dollars?|eur|usd|gbp|chf|jpy|vnd|dongs?|thb|bahts?|aud|cad|cny|rmb|renminbi|yuans?|sgd|hkd|inr|roupies?|krw|won|aed|dirhams?|aujourd'?hui|today|avant[\s-]?hier|hier|yesterday|il y a \d+ jours?|\d+ days? ago|lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche|monday|tuesday|wednesday|thursday|friday|saturday|sunday|janvier|f[ée]vrier|mars|avril|mai|juin|juillet|ao[uû]t|septembre|octobre|novembre|d[ée]cembre|january|february|march|april|june|july|august|september|october|november|december)\b/gi, " ")
     .replace(/\s+/g, " ")
     .trim();
 
