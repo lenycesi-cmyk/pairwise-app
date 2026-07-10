@@ -547,7 +547,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
               <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 8, textAlign: "center" }}>
                 {t("tx_manage_currencies_hint")}
               </p>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "center" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {CURRENCIES.map((c) => {
                   const on =
                     !enabledCurrencies || enabledCurrencies.length === 0
@@ -556,23 +556,39 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
                   const isDefault = c.code === defaultCurrency;
                   return (
                     <button
+                      type="button"
                       key={c.code}
                       onClick={() => !isDefault && toggleEnabledCurrency(c.code)}
                       style={{
-                        padding: "6px 10px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: 8,
+                        width: "100%",
+                        padding: "10px 12px",
                         borderRadius: "var(--radius-md)",
                         border: on ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
                         background: on ? "var(--sky-light)" : "var(--bg)",
-                        color: on ? "var(--sky)" : "var(--ink-3)",
-                        fontSize: 12,
-                        opacity: isDefault ? 0.6 : 1,
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 4,
+                        cursor: isDefault ? "default" : "pointer",
+                        opacity: isDefault ? 0.65 : 1,
                       }}
                     >
-                      <i className={`ti ${on ? "ti-check" : "ti-plus"}`} style={{ fontSize: 12 }} aria-hidden="true" />
-                      {c.code}
+                      <span style={{ fontSize: 13, color: "var(--ink)", textAlign: "left" }}>
+                        {c.symbol} {c.code} · {c.name}
+                      </span>
+                      {isDefault ? (
+                        <span style={{ fontSize: 11, color: "var(--ink-3)", flexShrink: 0 }}>{t("tx_currency_default")}</span>
+                      ) : on ? (
+                        <span style={{ fontSize: 12, color: "var(--sky)", display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+                          <i className="ti ti-check" style={{ fontSize: 13 }} aria-hidden="true" />
+                          {t("tx_currency_on")}
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: 12, color: "var(--ink-2)", display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+                          <i className="ti ti-plus" style={{ fontSize: 13 }} aria-hidden="true" />
+                          {t("tx_currency_add")}
+                        </span>
+                      )}
                     </button>
                   );
                 })}
