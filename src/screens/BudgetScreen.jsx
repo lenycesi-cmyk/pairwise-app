@@ -302,11 +302,11 @@ export default function BudgetScreen({ openSignal }) {
       return (
         <WidgetCard icon="ti-gauge" accent="amber" title={t("budget_widget_overview")}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
-            <span className="pw-num" style={{ fontSize: 22 }}>
+            <span className="pw-num" style={{ fontSize: 24, fontWeight: 700 }}>
               {Math.round(totalSpent).toLocaleString("fr-FR")}
               <span style={{ fontSize: 13, color: "var(--ink-3)", fontWeight: 400 }}> / {Math.round(totalBudget).toLocaleString("fr-FR")} {displayCurrency}</span>
             </span>
-            <span style={{ fontSize: 13, fontWeight: 600, color: barColor }}>{Math.round(pct)}%</span>
+            <span style={{ fontSize: 20, fontWeight: 700, color: barColor }}>{Math.round(pct)}%</span>
           </div>
           <div style={{ height: 6, borderRadius: 3, background: "var(--rule)", overflow: "hidden" }}>
             <div style={{ height: "100%", width: `${Math.min(pct, 100)}%`, background: barColor, borderRadius: 3 }} />
@@ -344,21 +344,22 @@ export default function BudgetScreen({ openSignal }) {
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontSize: 14 }}>
+                    <p style={{ fontSize: 14, fontWeight: 700 }}>
                       {budgetLabel(budget)}
                       {members.length > 0 && (
-                        <span style={{ fontSize: 11, color: "var(--sky)", marginLeft: 6 }}>· {memberLabel(budget)}</span>
+                        <span style={{ fontSize: 11, fontWeight: 400, color: "var(--sky)", marginLeft: 6 }}>· {memberLabel(budget)}</span>
                       )}
                     </p>
                     {budget.name && (
                       <p style={{ fontSize: 11, color: "var(--ink-3)" }}>{categoryNames(budget)}</p>
                     )}
-                    <p style={{ fontSize: 11, color: "var(--ink-3)" }}>
-                      {Math.round(spent).toLocaleString("fr-FR")} / {Math.round(amountInBase).toLocaleString("fr-FR")} {displayCurrency}
-                      {budget.period === "yearly" && ` · ${t("budget_period_yearly")}`}
+                    <p className="pw-num" style={{ fontSize: 13, fontWeight: 600, marginTop: 1 }}>
+                      {Math.round(spent).toLocaleString("fr-FR")}
+                      <span style={{ color: "var(--ink-3)", fontWeight: 400 }}> / {Math.round(amountInBase).toLocaleString("fr-FR")} {displayCurrency}</span>
+                      {budget.period === "yearly" && <span style={{ color: "var(--ink-3)", fontWeight: 400 }}> · {t("budget_period_yearly")}</span>}
                     </p>
                   </div>
-                  <p style={{ fontSize: 13, fontWeight: 500, color: barColor }}>
+                  <p style={{ fontSize: 18, fontWeight: 700, color: barColor }}>
                     {Math.round(pct)}%
                   </p>
                   <button

@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useFinance } from "../context/FinanceContext";
-import { CURRENCIES } from "../data/categories";
+import { ALL_CURRENCIES } from "../data/categories";
 import { useTranslation } from "../hooks/useTranslation";
 import { useExchangeRates } from "../hooks/useExchangeRates";
 import { useCategoryName } from "../hooks/useCategoryName";
@@ -20,7 +20,7 @@ export default function MemberBreakdownScreen({ onClose }) {
   const t = useTranslation();
   const { categories, members, transactions, defaultCurrency, dashboardDisplayCurrency } = useFinance();
   const displayCurrency = dashboardDisplayCurrency || defaultCurrency;
-  const { convert } = useExchangeRates(displayCurrency);
+  const { convert, loading: ratesLoading } = useExchangeRates(displayCurrency);
   const { catName, subName: tSubName } = useCategoryName();
   const [selectedMember, setSelectedMember] = useState(members[0] ? getMemberKey(members[0]) : null);
   const [expandedCat, setExpandedCat] = useState(null);
@@ -33,7 +33,7 @@ export default function MemberBreakdownScreen({ onClose }) {
     });
   }, [transactions]);
 
-  const currencySymbol = CURRENCIES.find((c) => c.code === displayCurrency)?.symbol || displayCurrency;
+  const currencySymbol = ALL_CURRENCIES.find((c) => c.code === displayCurrency)?.symbol || displayCurrency;
 
   function toBase(tx) {
     if (tx.convertedAmount !== undefined && tx.convertedCurrency === displayCurrency) return tx.convertedAmount;
@@ -134,6 +134,13 @@ export default function MemberBreakdownScreen({ onClose }) {
           ))}
         </div>
 
+        {ratesLoading ? (
+          <>
+            <div className="skeleton" style={{ height: 72, marginBottom: 16 }} />
+            <div className="skeleton" style={{ height: 240 }} />
+          </>
+        ) : (
+        <>
         <div
           className="pw-card"
           data-accent="ocean"
@@ -229,6 +236,8 @@ export default function MemberBreakdownScreen({ onClose }) {
               })
           )}
         </div>
+        </>
+        )}
       </div>
     </div>
   );
