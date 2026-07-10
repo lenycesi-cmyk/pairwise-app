@@ -399,6 +399,14 @@ export function FinanceProvider({ children }) {
     await setDoc(doc(db, "couples", coupleId), { budgets: updated }, { merge: true });
   }
 
+  // Réordonne l'ensemble des budgets (drag & drop dans l'onglet Budget). L'ordre
+  // du tableau pilote aussi les 3 budgets affichés dans le widget d'Accueil.
+  async function reorderBudgets(orderedBudgets) {
+    if (!coupleId) return;
+    setBudgets(orderedBudgets); // optimiste
+    await setDoc(doc(db, "couples", coupleId), { budgets: orderedBudgets }, { merge: true });
+  }
+
   async function setIncomeAccountLinks(map) {
     if (!coupleId) return;
     await setDoc(doc(db, "couples", coupleId), { incomeAccountLinks: map }, { merge: true });
@@ -569,6 +577,7 @@ export function FinanceProvider({ children }) {
     addBudget,
     updateBudget,
     removeBudget,
+    reorderBudgets,
     incomeAccountLinks,
     setIncomeAccountLinks,
     assets,

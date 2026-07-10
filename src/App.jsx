@@ -226,6 +226,7 @@ function AppContent() {
           addButtonRef={addButtonRef}
           settingsButtonRef={settingsButtonRef}
           onOpenRecurring={openRecurring}
+          onOpenBudget={() => setTab("budget")}
         />
       )}
       {tab === "reports" && (

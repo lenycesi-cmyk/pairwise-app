@@ -113,7 +113,7 @@ function SortableWidget({ id, editMode, onLongPress, children }) {
 }
 
 // ── Main component ───────────────────────────────────────────────────────────
-export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTransactions, onEditTransaction, sharedMonth, onSharedMonthChange, addButtonRef, settingsButtonRef, onOpenRecurring }) {
+export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTransactions, onEditTransaction, sharedMonth, onSharedMonthChange, addButtonRef, settingsButtonRef, onOpenRecurring, onOpenBudget }) {
   const t = useTranslation();
   const { catName } = useCategoryName();
   const {
@@ -160,10 +160,9 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
   // month's spend while the rest of the screen is browsing a different one.
   const { progress: budgetProgress } = useBudgetProgress(viewMonth, viewYear, displayCurrency);
   const { suggestion: subscriptionSuggestion, accept: acceptSubscription, dismiss: dismissSubscription } = useSubscriptionSuggestion();
-  const topBudgets = useMemo(
-    () => [...budgetProgress].sort((a, b) => b.pct - a.pct).slice(0, 3),
-    [budgetProgress]
-  );
+  // Les 3 premiers budgets dans l'ordre défini par l'utilisateur (drag & drop
+  // dans l'onglet Budget) — l'ordre du tableau, plus trié par % consommé.
+  const topBudgets = useMemo(() => budgetProgress.slice(0, 3), [budgetProgress]);
 
   function changeMonth(delta) {
     let m = viewMonth + delta;
@@ -396,7 +395,16 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
 
       case "budget_tracking":
         return (
-          <WidgetCard icon="ti-target" accent="amber" title={t("dashboard_budget_progress")}>
+          <WidgetCard
+            icon="ti-target"
+            accent="amber"
+            title={t("dashboard_budget_progress")}
+            action={!editMode && budgetProgress.length > 0 && (
+              <button onClick={onOpenBudget} style={{ background: "none", border: "none", color: "var(--sky)", fontSize: 12, display: "flex", alignItems: "center", gap: 3, flexShrink: 0 }}>
+                {t("dashboard_see_all")} <i className="ti ti-chevron-right" style={{ fontSize: 12 }} aria-hidden="true" />
+              </button>
+            )}
+          >
             <div>
               {topBudgets.length === 0 ? (
                 <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", padding: "0.75rem 0" }}>{t("widget_budget_empty")}</p>
@@ -414,8 +422,9 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                   : members.find((m) => getMemberKey(m) === budget.memberUid)?.name;
                 const isOpen = detailBudgetId === budget.id;
                 const dotColor = AVATAR_COLOR_PALETTE.find((c) => c.key === budget.color)?.text || "var(--amber)";
+                const isLast = i === topBudgets.length - 1;
                 return (
-                  <div key={budget.id} style={{ marginBottom: i === topBudgets.length - 1 ? 0 : 14 }}>
+                  <div key={budget.id} style={{ paddingBottom: isLast ? 0 : 14, marginBottom: isLast ? 0 : 14, borderBottom: isLast ? "none" : "0.5px solid var(--rule)" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, marginBottom: 3 }}>
                       <span style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
                         <span style={{ width: 10, height: 10, borderRadius: "50%", background: dotColor, flexShrink: 0 }} />
