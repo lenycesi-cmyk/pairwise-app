@@ -9,18 +9,12 @@ import { BUDGET_GROUPS, BUDGET_GROUP_KEYS } from "../data/budgetGroups";
 import SpotlightHint from "../components/SpotlightHint";
 import { getMemberKey } from "../utils/members";
 import { useMediaQuery } from "../hooks/useMediaQuery";
-import { useScreenWidgets } from "../hooks/useScreenWidgets";
-import CustomizePanel, { CustomizeButton } from "../components/CustomizePanel";
+import { useBudgetPrefs } from "../hooks/useDashboardPrefs";
+import WidgetCanvas from "../components/WidgetCanvas";
 import WidgetCard from "../components/WidgetCard";
 import TagChip from "../components/TagChip";
 import { SUGGESTED_TAGS } from "../data/suggestedTags";
 import { splitTag } from "../utils/tags";
-
-// Widgets proposés dans le panneau "personnaliser" de cet onglet.
-const BUDGET_WIDGETS = [
-  { id: "overview", labelKey: "budget_widget_overview" },
-  { id: "list", labelKey: "budget_widget_list" },
-];
 
 const EXPENSE_EXCLUDED = ["income", "investment", "savings"];
 const GROUP_PCT = { essential: 0.5, fun: 0.3, investment: 0.2 };
@@ -64,10 +58,10 @@ export default function BudgetScreen({ openSignal }) {
   const [currency, setCurrency] = useState(defaultCurrency);
   const [alertThreshold, setAlertThreshold] = useState("80");
   const [memberUid, setMemberUid] = useState("couple");
-  const [showCustomize, setShowCustomize] = useState(false);
+  const [editMode, setEditMode] = useState(false);
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
   const currencyButtonRef = useRef(null);
-  const { isVisible, toggle } = useScreenWidgets("budgetWidgets");
+  const { widgets, saveWidgets } = useBudgetPrefs();
   const isDesktop = useMediaQuery("(min-width: 1024px)");
 
   const expenseCategories = categories.filter((c) => !EXPENSE_EXCLUDED.includes(c.id));
@@ -94,6 +88,7 @@ export default function BudgetScreen({ openSignal }) {
   }
 
   function openNew() {
+    setEditMode(false);
     resetForm();
     setQuickMode(null);
     setShowForm(true);
@@ -291,6 +286,115 @@ export default function BudgetScreen({ openSignal }) {
     return members.find((m) => getMemberKey(m) === b.memberUid)?.name || coupleLabel;
   }
 
+  // Contenu d'un widget de l'onglet Budget pour WidgetCanvas (renvoie null
+  // quand il n'y a rien à montrer → placeholder en mode édition).
+  function renderBudgetWidget(id) {
+    if (progress.length === 0) return null;
+
+    if (id === "overview") {
+      const active = progress.filter(({ budget }) => budget.active !== false);
+      const totalBudget = active.reduce((s, p) => s + p.amountInBase, 0);
+      const totalSpent = active.reduce((s, p) => s + p.spent, 0);
+      const overCount = active.filter((p) => p.pct >= 100).length;
+      const pct = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
+      const barColor = pct >= 100 ? "var(--red)" : pct >= 80 ? "var(--amber)" : "var(--sky)";
+      return (
+        <WidgetCard icon="ti-gauge" accent="amber" title={t("budget_widget_overview")}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
+            <span className="pw-num" style={{ fontSize: 22 }}>
+              {Math.round(totalSpent).toLocaleString("fr-FR")}
+              <span style={{ fontSize: 13, color: "var(--ink-3)", fontWeight: 400 }}> / {Math.round(totalBudget).toLocaleString("fr-FR")} {displayCurrency}</span>
+            </span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: barColor }}>{Math.round(pct)}%</span>
+          </div>
+          <div style={{ height: 6, borderRadius: 3, background: "var(--rule)", overflow: "hidden" }}>
+            <div style={{ height: "100%", width: `${Math.min(pct, 100)}%`, background: barColor, borderRadius: 3 }} />
+          </div>
+          <p style={{ fontSize: 11, color: overCount > 0 ? "var(--red)" : "var(--ink-3)", marginTop: 6 }}>
+            {overCount > 0
+              ? t("budget_overview_over").replace("{n}", overCount)
+              : t("budget_overview_ok").replace("{n}", active.length)}
+          </p>
+        </WidgetCard>
+      );
+    }
+
+    if (id === "list") {
+      return (
+        <div>
+          {progress.map(({ budget, spent, amountInBase, pct, projected, projectedOver }) => {
+            const isInactive = budget.active === false;
+            const over = pct >= 100;
+            const warn = pct >= (budget.alertThreshold ?? 80);
+            const barColor = over ? "var(--red)" : warn ? "var(--amber)" : "var(--sky)";
+            return (
+              <div
+                key={budget.id}
+                onClick={() => openEdit(budget)}
+                style={{
+                  background: "var(--bg-card)",
+                  borderRadius: "var(--radius-lg)",
+                  border: "0.5px solid var(--rule)",
+                  padding: "12px 14px",
+                  marginBottom: 8,
+                  cursor: "pointer",
+                  opacity: isInactive ? 0.5 : 1,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: 14 }}>
+                      {budgetLabel(budget)}
+                      {members.length > 0 && (
+                        <span style={{ fontSize: 11, color: "var(--sky)", marginLeft: 6 }}>· {memberLabel(budget)}</span>
+                      )}
+                    </p>
+                    {budget.name && (
+                      <p style={{ fontSize: 11, color: "var(--ink-3)" }}>{categoryNames(budget)}</p>
+                    )}
+                    <p style={{ fontSize: 11, color: "var(--ink-3)" }}>
+                      {Math.round(spent).toLocaleString("fr-FR")} / {Math.round(amountInBase).toLocaleString("fr-FR")} {displayCurrency}
+                      {budget.period === "yearly" && ` · ${t("budget_period_yearly")}`}
+                    </p>
+                  </div>
+                  <p style={{ fontSize: 13, fontWeight: 500, color: barColor }}>
+                    {Math.round(pct)}%
+                  </p>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); toggleActive(budget); }}
+                    aria-label={isInactive ? t("recurring_resume") : t("recurring_pause")}
+                    style={{ background: "none", border: "none", color: "var(--ink-3)" }}
+                  >
+                    <i className={`ti ${isInactive ? "ti-player-play" : "ti-player-pause"}`} style={{ fontSize: 14 }} aria-hidden="true" />
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); removeBudget(budget.id); }}
+                    aria-label={t("common_delete")}
+                    style={{ background: "none", border: "none", color: "var(--ink-3)" }}
+                  >
+                    <i className="ti ti-trash" style={{ fontSize: 14 }} aria-hidden="true" />
+                  </button>
+                </div>
+                <div style={{ height: 6, borderRadius: 3, background: "var(--rule)", overflow: "hidden" }}>
+                  <div style={{ height: "100%", width: `${Math.min(pct, 100)}%`, background: barColor, borderRadius: 3 }} />
+                </div>
+                {!isInactive && projected !== null && pct < 100 && (
+                  <p style={{ fontSize: 11, color: projectedOver ? "var(--amber)" : "var(--ink-3)", marginTop: 6 }}>
+                    {t("budget_projection").replace("{amount}", `${Math.round(projected).toLocaleString("fr-FR")} ${displayCurrency}`)}
+                    {projectedOver &&
+                      ` (${t("budget_projection_over").replace("{over}", `${Math.round(projected - amountInBase).toLocaleString("fr-FR")} ${displayCurrency}`)})`}
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+
+    return null;
+  }
+
   return (
     <div style={{ padding: "1.5rem 1.25rem 6rem" }}>
       <div style={{ position: "sticky", top: 0, zIndex: 30, background: "var(--bg)", marginLeft: "-1.25rem", marginRight: "-1.25rem", padding: "0.4rem 1.25rem", marginBottom: 8, display: "flex", alignItems: "center" }}>
@@ -305,7 +409,18 @@ export default function BudgetScreen({ openSignal }) {
                   : t("budget_new_title")
             : t("budget_title")}
         </h1>
-        {!showForm && (
+        {!showForm && editMode && (
+          <button
+            onClick={() => setEditMode(false)}
+            style={{
+              background: "var(--ink)", color: "var(--bg)", border: "none",
+              borderRadius: "var(--radius-md)", padding: "5px 14px", fontSize: 13, fontWeight: 500,
+            }}
+          >
+            {t("dashboard_done")}
+          </button>
+        )}
+        {!showForm && !editMode && (
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <button
               ref={currencyButtonRef}
@@ -318,7 +433,16 @@ export default function BudgetScreen({ openSignal }) {
             >
               {displayCurrency} <i className="ti ti-chevron-down" style={{ fontSize: 11 }} aria-hidden="true" />
             </button>
-            <CustomizeButton onClick={() => setShowCustomize(!showCustomize)} label={t("dashboard_customize")} />
+            <button
+              onClick={() => setEditMode(true)}
+              aria-label={t("dashboard_customize")}
+              style={{
+                width: 30, height: 30, borderRadius: "50%", background: "var(--bg-card)",
+                border: "0.5px solid var(--rule)", display: "flex", alignItems: "center", justifyContent: "center",
+              }}
+            >
+              <i className="ti ti-pencil" style={{ fontSize: 14 }} aria-hidden="true" />
+            </button>
             <button ref={addButtonRef} onClick={openNew} aria-label={t("common_add")} style={{ background: "none", border: "none" }}>
               <i className="ti ti-plus" style={{ fontSize: 20 }} aria-hidden="true" />
             </button>
@@ -354,10 +478,6 @@ export default function BudgetScreen({ openSignal }) {
             </button>
           ))}
         </div>
-      )}
-
-      {!showForm && showCustomize && (
-        <CustomizePanel widgets={BUDGET_WIDGETS} isVisible={isVisible} toggle={toggle} />
       )}
 
       {showForm && quickMode === null && (
@@ -790,118 +910,22 @@ export default function BudgetScreen({ openSignal }) {
         </p>
       )}
 
-      {!showForm && (
-      <div className={isDesktop ? "card-columns" : ""}>
-      {/* Vue d'ensemble : total dépensé vs total budgété, tous budgets actifs
-          confondus (converti en devise par défaut par useBudgetProgress). */}
-      {isVisible("overview") && progress.length > 0 && (() => {
-        const active = progress.filter(({ budget }) => budget.active !== false);
-        const totalBudget = active.reduce((s, p) => s + p.amountInBase, 0);
-        const totalSpent = active.reduce((s, p) => s + p.spent, 0);
-        const overCount = active.filter((p) => p.pct >= 100).length;
-        const pct = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
-        const barColor = pct >= 100 ? "var(--red)" : pct >= 80 ? "var(--amber)" : "var(--sky)";
-        return (
-          <WidgetCard icon="ti-gauge" accent="amber" title={t("budget_widget_overview")} style={{ marginBottom: 12 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
-              <span className="pw-num" style={{ fontSize: 22 }}>
-                {Math.round(totalSpent).toLocaleString("fr-FR")}
-                <span style={{ fontSize: 13, color: "var(--ink-3)", fontWeight: 400 }}> / {Math.round(totalBudget).toLocaleString("fr-FR")} {displayCurrency}</span>
-              </span>
-              <span style={{ fontSize: 13, fontWeight: 600, color: barColor }}>{Math.round(pct)}%</span>
-            </div>
-            <div style={{ height: 6, borderRadius: 3, background: "var(--rule)", overflow: "hidden" }}>
-              <div style={{ height: "100%", width: `${Math.min(pct, 100)}%`, background: barColor, borderRadius: 3 }} />
-            </div>
-            <p style={{ fontSize: 11, color: overCount > 0 ? "var(--red)" : "var(--ink-3)", marginTop: 6 }}>
-              {overCount > 0
-                ? t("budget_overview_over").replace("{n}", overCount)
-                : t("budget_overview_ok").replace("{n}", active.length)}
-            </p>
-          </WidgetCard>
-        );
-      })()}
-      {isVisible("list") && progress.map(({ budget, spent, amountInBase, pct, projected, projectedOver }) => {
-        const isInactive = budget.active === false;
-        const over = pct >= 100;
-        const warn = pct >= (budget.alertThreshold ?? 80);
-        const barColor = over ? "var(--red)" : warn ? "var(--amber)" : "var(--sky)";
-        return (
-          <div
-            key={budget.id}
-            onClick={() => openEdit(budget)}
-            style={{
-              background: "var(--bg-card)",
-              borderRadius: "var(--radius-lg)",
-              border: "0.5px solid var(--rule)",
-              padding: "12px 14px",
-              marginBottom: 8,
-              cursor: "pointer",
-              opacity: isInactive ? 0.5 : 1,
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: 14 }}>
-                  {budgetLabel(budget)}
-                  {members.length > 0 && (
-                    <span style={{ fontSize: 11, color: "var(--sky)", marginLeft: 6 }}>· {memberLabel(budget)}</span>
-                  )}
-                </p>
-                {budget.name && (
-                  <p style={{ fontSize: 11, color: "var(--ink-3)" }}>{categoryNames(budget)}</p>
-                )}
-                <p style={{ fontSize: 11, color: "var(--ink-3)" }}>
-                  {Math.round(spent).toLocaleString("fr-FR")} / {Math.round(amountInBase).toLocaleString("fr-FR")} {displayCurrency}
-                  {budget.period === "yearly" && ` · ${t("budget_period_yearly")}`}
-                </p>
-              </div>
-              <p style={{ fontSize: 13, fontWeight: 500, color: barColor }}>
-                {Math.round(pct)}%
-              </p>
-              <button
-                onClick={(e) => { e.stopPropagation(); toggleActive(budget); }}
-                aria-label={isInactive ? t("recurring_resume") : t("recurring_pause")}
-                style={{ background: "none", border: "none", color: "var(--ink-3)" }}
-              >
-                <i className={`ti ${isInactive ? "ti-player-play" : "ti-player-pause"}`} style={{ fontSize: 14 }} aria-hidden="true" />
-              </button>
-              <button
-                onClick={(e) => { e.stopPropagation(); removeBudget(budget.id); }}
-                aria-label={t("common_delete")}
-                style={{ background: "none", border: "none", color: "var(--ink-3)" }}
-              >
-                <i className="ti ti-trash" style={{ fontSize: 14 }} aria-hidden="true" />
-              </button>
-            </div>
-            <div
-              style={{
-                height: 6,
-                borderRadius: 3,
-                background: "var(--rule)",
-                overflow: "hidden",
-              }}
-            >
-              <div
-                style={{
-                  height: "100%",
-                  width: `${Math.min(pct, 100)}%`,
-                  background: barColor,
-                  borderRadius: 3,
-                }}
-              />
-            </div>
-            {!isInactive && projected !== null && pct < 100 && (
-              <p style={{ fontSize: 11, color: projectedOver ? "var(--amber)" : "var(--ink-3)", marginTop: 6 }}>
-                {t("budget_projection").replace("{amount}", `${Math.round(projected).toLocaleString("fr-FR")} ${displayCurrency}`)}
-                {projectedOver &&
-                  ` (${t("budget_projection_over").replace("{over}", `${Math.round(projected - amountInBase).toLocaleString("fr-FR")} ${displayCurrency}`)})`}
-              </p>
-            )}
-          </div>
-        );
-      })}
-      </div>
+      {!showForm && editMode && budgets.length > 0 && (
+        <p style={{ fontSize: 12, color: "var(--ink-3)", marginTop: 4, marginBottom: 12, textAlign: "center" }}>
+          {t("dashboard_edit_hint")}
+        </p>
+      )}
+
+      {!showForm && budgets.length > 0 && (
+        <WidgetCanvas
+          widgets={widgets}
+          onSave={saveWidgets}
+          editMode={editMode}
+          onEnterEditMode={() => setEditMode(true)}
+          renderContent={renderBudgetWidget}
+          labels={{ overview: t("budget_widget_overview"), list: t("budget_widget_list") }}
+          isDesktop={isDesktop}
+        />
       )}
     </div>
   );

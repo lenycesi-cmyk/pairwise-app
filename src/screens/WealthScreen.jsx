@@ -15,18 +15,8 @@ import { useTranslation } from "../hooks/useTranslation";
 import SpotlightHint from "../components/SpotlightHint";
 import { getMemberKey } from "../utils/members";
 import { useMediaQuery } from "../hooks/useMediaQuery";
-import { useScreenWidgets } from "../hooks/useScreenWidgets";
-import CustomizePanel, { CustomizeButton } from "../components/CustomizePanel";
-
-// Widgets proposés dans le panneau "personnaliser" de cet onglet. La liste
-// des actifs par type n'y figure pas : c'est le contenu principal de l'écran.
-const WEALTH_WIDGETS = [
-  { id: "net_worth", labelKey: "wealth_net_worth" },
-  { id: "evolution", labelKey: "wealth_evolution" },
-  { id: "allocation", labelKey: "wealth_allocation" },
-  { id: "member_allocation", labelKey: "wealth_member_allocation" },
-  { id: "calculator", labelKey: "wealth_calculator_cta" },
-];
+import { useWealthPrefs } from "../hooks/useDashboardPrefs";
+import WidgetCanvas from "../components/WidgetCanvas";
 
 const COLOR_MAP = {
   tang: { text: "var(--tang)", bg: "var(--tang-light)" },
@@ -64,11 +54,11 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef }) {
   const [liveChanges, setLiveChanges] = useState({});
   const [refreshing, setRefreshing] = useState(false);
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
-  const [showCustomize, setShowCustomize] = useState(false);
+  const [editMode, setEditMode] = useState(false);
   // Périmètre du total « comptes bancaires » : null = famille (tous), sinon la
   // clé d'un membre (comptes de ce membre + sa part des comptes partagés).
   const [bankScope, setBankScope] = useState(null);
-  const { isVisible, toggle } = useScreenWidgets("wealthWidgets");
+  const { widgets, saveWidgets } = useWealthPrefs();
 
   const currencySymbol = CURRENCIES.find((c) => c.code === displayCurrency)?.symbol || displayCurrency;
 
@@ -182,6 +172,153 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef }) {
     return Math.round(n).toLocaleString("fr-FR");
   }
 
+  const wealthWidgetLabels = {
+    net_worth: t("wealth_net_worth"),
+    evolution: t("wealth_evolution"),
+    allocation: t("wealth_allocation"),
+    member_allocation: t("wealth_member_allocation"),
+    calculator: t("wealth_calculator_cta"),
+  };
+
+  // Contenu d'un widget personnalisable de l'onglet Patrimoine pour
+  // WidgetCanvas (null quand il n'y a rien à montrer → placeholder en édition).
+  function renderWealthWidget(id) {
+    if (id === "net_worth") {
+      return (
+        <div
+          ref={netWorthCardRef}
+          className="pw-card"
+          data-accent="ocean"
+          style={{
+            background: "var(--bg-card)",
+            borderRadius: "var(--radius-lg)",
+            border: "0.5px solid var(--rule)",
+            padding: "1.25rem",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+            <p style={{ fontSize: 12, color: "var(--ink-2)" }}>{t("wealth_net_worth")}</p>
+            {refreshing && (
+              <i className="ti ti-refresh" style={{ fontSize: 13, color: "var(--ink-3)" }} aria-hidden="true" />
+            )}
+          </div>
+          <p style={{ fontSize: 30, fontWeight: 500, color: netWorth >= 0 ? "var(--sage)" : "var(--tang)" }}>
+            {formatAmount(netWorth)} {currencySymbol}
+          </p>
+          <div style={{ display: "flex", gap: 16, marginTop: 8 }}>
+            <div>
+              <p style={{ fontSize: 11, color: "var(--ink-3)" }}>{t("wealth_assets")}</p>
+              <p style={{ fontSize: 13, fontWeight: 500, color: "var(--sage)" }}>
+                {formatAmount(totalAssets)} {currencySymbol}
+              </p>
+            </div>
+            {totalLiabilities > 0 && (
+              <div>
+                <p style={{ fontSize: 11, color: "var(--ink-3)" }}>{t("wealth_liabilities")}</p>
+                <p style={{ fontSize: 13, fontWeight: 500, color: "var(--red)" }}>
+                  −{formatAmount(totalLiabilities)} {currencySymbol}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {members.length > 0 && (
+            <div style={{ display: "flex", gap: 8, marginTop: 14, paddingTop: 14, borderTop: "0.5px solid var(--rule)" }}>
+              {members.map((m) => (
+                <div key={getMemberKey(m)} style={{ flex: 1 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                    <Avatar member={m} colorMap={memberColorMap} size={18} />
+                    <span style={{ fontSize: 11, color: "var(--ink-2)" }}>{m.name}</span>
+                  </div>
+                  <p style={{
+                    fontSize: 15, fontWeight: 500,
+                    color: (netWorthByMember[getMemberKey(m)] || 0) >= 0 ? "var(--sage)" : "var(--tang)",
+                  }}>
+                    {formatAmount(netWorthByMember[getMemberKey(m)] || 0)} {currencySymbol}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    if (id === "evolution") {
+      if (netWorthHistory.length <= 1) return null;
+      return (
+        <WidgetCard icon="ti-chart-line" accent="mint" title={t("wealth_evolution")}>
+          <NetWorthChart
+            history={netWorthHistory}
+            currencySymbol={currencySymbol}
+            displayCurrency={displayCurrency}
+            convert={convert}
+          />
+        </WidgetCard>
+      );
+    }
+
+    if (id === "allocation") {
+      if (assets.length === 0) return null;
+      return (
+        <WidgetCard icon="ti-chart-donut" accent="amber" title={t("wealth_allocation")}>
+          <AllocationChart totalsByType={totalsByType} totalAssets={totalAssets} />
+        </WidgetCard>
+      );
+    }
+
+    if (id === "member_allocation") {
+      if (!(members.length > 1 && totalAssets > 0)) return null;
+      return (
+        <WidgetCard icon="ti-users" accent="ocean" title={t("wealth_member_allocation")}>
+          <div>
+            {members.map((m) => {
+              const share = netWorthByMember[getMemberKey(m)] || 0;
+              const pct = totalAssets > 0 ? (share / totalAssets) * 100 : 0;
+              return (
+                <div key={getMemberKey(m)} style={{ marginBottom: 8 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                    <span style={{ fontSize: 12, color: "var(--ink-2)" }}>{m.name}</span>
+                    <span style={{ fontSize: 12, fontWeight: 500 }}>{pct.toFixed(1)}%</span>
+                  </div>
+                  <div style={{ width: "100%", height: 6, background: "var(--rule)", borderRadius: 4, overflow: "hidden" }}>
+                    <div style={{ width: `${Math.max(0, Math.min(100, pct))}%`, height: 6, background: "var(--sky)" }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </WidgetCard>
+      );
+    }
+
+    if (id === "calculator") {
+      return (
+        <button
+          onClick={onOpenCalculator}
+          style={{
+            width: "100%",
+            background: "var(--lavi-light)",
+            border: "0.5px solid var(--lavi)",
+            borderRadius: "var(--radius-lg)",
+            padding: "14px 16px",
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+          }}
+        >
+          <i className="ti ti-calculator" style={{ fontSize: 18, color: "var(--lavi)" }} aria-hidden="true" />
+          <span style={{ fontSize: 13, color: "var(--lavi)", fontWeight: 500, flex: 1, textAlign: "left" }}>
+            {t("wealth_calculator_cta")}
+          </span>
+          <i className="ti ti-chevron-right" style={{ fontSize: 14, color: "var(--lavi)" }} aria-hidden="true" />
+        </button>
+      );
+    }
+
+    return null;
+  }
+
   if (editingAsset) {
     return (
       <AddAssetScreen
@@ -196,17 +333,40 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef }) {
       <div style={{ position: "sticky", top: 0, zIndex: 30, background: "var(--bg)", marginLeft: "-1.25rem", marginRight: "-1.25rem", padding: "0.4rem 1.25rem", marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h1 style={{ fontSize: 20, marginLeft: isDesktop ? 0 : 44 }}>{t("wealth_title")}</h1>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <button
-            onClick={() => { setShowCurrencyPicker(!showCurrencyPicker); setShowCustomize(false); }}
-            style={{
-              padding: "4px 10px", borderRadius: "var(--radius-md)",
-              border: "0.5px solid var(--rule)", background: "var(--bg-card)",
-              fontSize: 12, fontWeight: 500, display: "flex", alignItems: "center", gap: 4,
-            }}
-          >
-            {displayCurrency} <i className="ti ti-chevron-down" style={{ fontSize: 11 }} aria-hidden="true" />
-          </button>
-          <CustomizeButton onClick={() => { setShowCustomize(!showCustomize); setShowCurrencyPicker(false); }} label={t("dashboard_customize")} />
+          {editMode ? (
+            <button
+              onClick={() => setEditMode(false)}
+              style={{
+                background: "var(--ink)", color: "var(--bg)", border: "none",
+                borderRadius: "var(--radius-md)", padding: "5px 14px", fontSize: 13, fontWeight: 500,
+              }}
+            >
+              {t("dashboard_done")}
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={() => setShowCurrencyPicker(!showCurrencyPicker)}
+                style={{
+                  padding: "4px 10px", borderRadius: "var(--radius-md)",
+                  border: "0.5px solid var(--rule)", background: "var(--bg-card)",
+                  fontSize: 12, fontWeight: 500, display: "flex", alignItems: "center", gap: 4,
+                }}
+              >
+                {displayCurrency} <i className="ti ti-chevron-down" style={{ fontSize: 11 }} aria-hidden="true" />
+              </button>
+              <button
+                onClick={() => { setEditMode(true); setShowCurrencyPicker(false); }}
+                aria-label={t("dashboard_customize")}
+                style={{
+                  width: 30, height: 30, borderRadius: "50%", background: "var(--bg-card)",
+                  border: "0.5px solid var(--rule)", display: "flex", alignItems: "center", justifyContent: "center",
+                }}
+              >
+                <i className="ti ti-pencil" style={{ fontSize: 14 }} aria-hidden="true" />
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -244,142 +404,23 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef }) {
         </div>
       )}
 
-      {showCustomize && (
-        <CustomizePanel widgets={WEALTH_WIDGETS} isVisible={isVisible} toggle={toggle} />
+      {editMode && (
+        <p style={{ fontSize: 12, color: "var(--ink-3)", marginTop: 4, marginBottom: 12, textAlign: "center" }}>
+          {t("dashboard_edit_hint")}
+        </p>
       )}
+
+      <WidgetCanvas
+        widgets={widgets}
+        onSave={saveWidgets}
+        editMode={editMode}
+        onEnterEditMode={() => setEditMode(true)}
+        renderContent={renderWealthWidget}
+        labels={wealthWidgetLabels}
+        isDesktop={isDesktop}
+      />
 
       <div className={isDesktop ? "card-columns" : ""}>
-
-      {isVisible("net_worth") && (
-      <>
-      {/* Net worth total — column item so its width matches the other cards
-          on desktop (was previously full-width above the masonry). */}
-      <div
-        ref={netWorthCardRef}
-        className="pw-card"
-        data-accent="ocean"
-        style={{
-          background: "var(--bg-card)",
-          borderRadius: "var(--radius-lg)",
-          border: "0.5px solid var(--rule)",
-          padding: "1.25rem",
-          marginBottom: 12,
-        }}
-      >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-          <p style={{ fontSize: 12, color: "var(--ink-2)" }}>{t("wealth_net_worth")}</p>
-          {refreshing && (
-            <i className="ti ti-refresh" style={{ fontSize: 13, color: "var(--ink-3)" }} aria-hidden="true" />
-          )}
-        </div>
-        <p style={{ fontSize: 30, fontWeight: 500, color: netWorth >= 0 ? "var(--sage)" : "var(--tang)" }}>
-          {formatAmount(netWorth)} {currencySymbol}
-        </p>
-        <div style={{ display: "flex", gap: 16, marginTop: 8 }}>
-          <div>
-            <p style={{ fontSize: 11, color: "var(--ink-3)" }}>{t("wealth_assets")}</p>
-            <p style={{ fontSize: 13, fontWeight: 500, color: "var(--sage)" }}>
-              {formatAmount(totalAssets)} {currencySymbol}
-            </p>
-          </div>
-          {totalLiabilities > 0 && (
-            <div>
-              <p style={{ fontSize: 11, color: "var(--ink-3)" }}>{t("wealth_liabilities")}</p>
-              <p style={{ fontSize: 13, fontWeight: 500, color: "var(--red)" }}>
-                −{formatAmount(totalLiabilities)} {currencySymbol}
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* Patrimoine par membre */}
-        {members.length > 0 && (
-          <div style={{ display: "flex", gap: 8, marginTop: 14, paddingTop: 14, borderTop: "0.5px solid var(--rule)" }}>
-            {members.map((m) => (
-              <div key={getMemberKey(m)} style={{ flex: 1 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-                  <Avatar member={m} colorMap={memberColorMap} size={18} />
-                  <span style={{ fontSize: 11, color: "var(--ink-2)" }}>{m.name}</span>
-                </div>
-                <p style={{
-                  fontSize: 15, fontWeight: 500,
-                  color: (netWorthByMember[getMemberKey(m)] || 0) >= 0 ? "var(--sage)" : "var(--tang)",
-                }}>
-                  {formatAmount(netWorthByMember[getMemberKey(m)] || 0)} {currencySymbol}
-                </p>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-      </>
-      )}
-
-      {/* Net worth chart */}
-      {isVisible("evolution") && netWorthHistory.length > 1 && (
-        <WidgetCard icon="ti-chart-line" accent="mint" title={t("wealth_evolution")} style={{ marginBottom: 12 }}>
-          <NetWorthChart
-            history={netWorthHistory}
-            currencySymbol={currencySymbol}
-            displayCurrency={displayCurrency}
-            convert={convert}
-          />
-        </WidgetCard>
-      )}
-
-      {/* Allocation chart */}
-      {isVisible("allocation") && assets.length > 0 && (
-        <WidgetCard icon="ti-chart-donut" accent="amber" title={t("wealth_allocation")} style={{ marginBottom: 12 }}>
-          <AllocationChart totalsByType={totalsByType} totalAssets={totalAssets} />
-        </WidgetCard>
-      )}
-
-      {/* Répartition par membre */}
-      {isVisible("member_allocation") && members.length > 1 && totalAssets > 0 && (
-        <WidgetCard icon="ti-users" accent="ocean" title={t("wealth_member_allocation")} style={{ marginBottom: 12 }}>
-          <div>
-          {members.map((m) => {
-            const share = netWorthByMember[getMemberKey(m)] || 0;
-            const pct = totalAssets > 0 ? (share / totalAssets) * 100 : 0;
-            return (
-              <div key={getMemberKey(m)} style={{ marginBottom: 8 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                  <span style={{ fontSize: 12, color: "var(--ink-2)" }}>{m.name}</span>
-                  <span style={{ fontSize: 12, fontWeight: 500 }}>{pct.toFixed(1)}%</span>
-                </div>
-                <div style={{ width: "100%", height: 6, background: "var(--rule)", borderRadius: 4, overflow: "hidden" }}>
-                  <div style={{ width: `${Math.max(0, Math.min(100, pct))}%`, height: 6, background: "var(--sky)" }} />
-                </div>
-              </div>
-            );
-          })}
-          </div>
-        </WidgetCard>
-      )}
-
-      {/* Calculateur shortcut */}
-      {isVisible("calculator") && (
-      <button
-        onClick={onOpenCalculator}
-        style={{
-          width: "100%",
-          background: "var(--lavi-light)",
-          border: "0.5px solid var(--lavi)",
-          borderRadius: "var(--radius-lg)",
-          padding: "14px 16px",
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-          marginBottom: 16,
-        }}
-      >
-        <i className="ti ti-calculator" style={{ fontSize: 18, color: "var(--lavi)" }} aria-hidden="true" />
-        <span style={{ fontSize: 13, color: "var(--lavi)", fontWeight: 500, flex: 1, textAlign: "left" }}>
-          {t("wealth_calculator_cta")}
-        </span>
-        <i className="ti ti-chevron-right" style={{ fontSize: 14, color: "var(--lavi)" }} aria-hidden="true" />
-      </button>
-      )}
 
       {/* Liste des actifs par type */}
       {ASSET_TYPES.map((type) => {
