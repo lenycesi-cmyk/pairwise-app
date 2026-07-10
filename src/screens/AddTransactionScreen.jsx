@@ -76,6 +76,8 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
   const [currency, setCurrency] = useState(initialCurrency);
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
   const [manageCurrencies, setManageCurrencies] = useState(false);
+  const [addingCurrency, setAddingCurrency] = useState(false);
+  const [currencySearch, setCurrencySearch] = useState("");
 
   // Devises proposées dans le sélecteur : liste blanche du couple si définie,
   // sinon toutes. La devise déjà saisie (ex. édition d'une vieille transaction)
@@ -89,6 +91,21 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
             c.code === defaultCurrency
         )
       : CURRENCIES;
+
+  // Devises actuellement proposées (pour l'écran "Gérer") et celles qu'on peut
+  // encore ajouter depuis le catalogue, filtrées par la recherche.
+  const offeredCurrencies =
+    enabledCurrencies && enabledCurrencies.length > 0
+      ? ALL_CURRENCIES.filter((c) => enabledCurrencies.includes(c.code))
+      : CURRENCIES;
+  const currencyQuery = currencySearch.trim().toLowerCase();
+  const addableCurrencies = ALL_CURRENCIES.filter(
+    (c) =>
+      !offeredCurrencies.some((o) => o.code === c.code) &&
+      (currencyQuery === "" ||
+        c.code.toLowerCase().includes(currencyQuery) ||
+        c.name.toLowerCase().includes(currencyQuery))
+  );
 
   // Bascule une devise dans/hors de la liste blanche du couple. Partant de
   // "toutes" (null), le premier décochage matérialise la liste courante moins
@@ -450,7 +467,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
                 }}
               />
               <button
-                onClick={() => { setShowCurrencyPicker(!showCurrencyPicker); setManageCurrencies(false); }}
+                onClick={() => { setShowCurrencyPicker(!showCurrencyPicker); setManageCurrencies(false); setAddingCurrency(false); setCurrencySearch(""); }}
                 style={{
                   padding: "4px 10px",
                   borderRadius: "var(--radius-md)",
@@ -547,33 +564,23 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
               <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 8, textAlign: "center" }}>
                 {t("tx_manage_currencies_hint")}
               </p>
+              {/* Devises actuellement proposées — retirables (sauf la devise
+                  par défaut). */}
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                {ALL_CURRENCIES.map((c) => {
-                  // Hors liste blanche définie, seules les devises par défaut
-                  // (CURRENCIES) sont proposées ; les autres du catalogue sont
-                  // désactivées tant qu'on ne les active pas ici.
-                  const on =
-                    !enabledCurrencies || enabledCurrencies.length === 0
-                      ? CURRENCIES.some((d) => d.code === c.code)
-                      : enabledCurrencies.includes(c.code);
+                {offeredCurrencies.map((c) => {
                   const isDefault = c.code === defaultCurrency;
                   return (
-                    <button
-                      type="button"
+                    <div
                       key={c.code}
-                      onClick={() => !isDefault && toggleEnabledCurrency(c.code)}
                       style={{
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "space-between",
                         gap: 8,
-                        width: "100%",
                         padding: "10px 12px",
                         borderRadius: "var(--radius-md)",
-                        border: on ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
-                        background: on ? "var(--sky-light)" : "var(--bg)",
-                        cursor: isDefault ? "default" : "pointer",
-                        opacity: isDefault ? 0.65 : 1,
+                        border: "0.5px solid var(--rule)",
+                        background: "var(--bg)",
                       }}
                     >
                       <span style={{ fontSize: 13, color: "var(--ink)", textAlign: "left" }}>
@@ -581,24 +588,77 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
                       </span>
                       {isDefault ? (
                         <span style={{ fontSize: 11, color: "var(--ink-3)", flexShrink: 0 }}>{t("tx_currency_default")}</span>
-                      ) : on ? (
-                        <span style={{ fontSize: 12, color: "var(--sky)", display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
-                          <i className="ti ti-check" style={{ fontSize: 13 }} aria-hidden="true" />
-                          {t("tx_currency_on")}
-                        </span>
                       ) : (
-                        <span style={{ fontSize: 12, color: "var(--ink-2)", display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
-                          <i className="ti ti-plus" style={{ fontSize: 13 }} aria-hidden="true" />
-                          {t("tx_currency_add")}
-                        </span>
+                        <button
+                          type="button"
+                          onClick={() => toggleEnabledCurrency(c.code)}
+                          aria-label={t("common_delete")}
+                          style={{ background: "none", border: "none", color: "var(--ink-3)", display: "flex", alignItems: "center", flexShrink: 0 }}
+                        >
+                          <i className="ti ti-x" style={{ fontSize: 15 }} aria-hidden="true" />
+                        </button>
                       )}
-                    </button>
+                    </div>
                   );
                 })}
               </div>
+
+              {/* Ajouter une devise depuis le catalogue, avec recherche. */}
+              {!addingCurrency ? (
+                <button
+                  type="button"
+                  onClick={() => { setAddingCurrency(true); setCurrencySearch(""); }}
+                  style={{
+                    marginTop: 8, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                    padding: "10px 12px", borderRadius: "var(--radius-md)", border: "0.5px dashed var(--sky)",
+                    background: "var(--bg)", color: "var(--sky)", fontSize: 13, fontWeight: 500,
+                  }}
+                >
+                  <i className="ti ti-plus" style={{ fontSize: 14 }} aria-hidden="true" />
+                  {t("tx_add_currency")}
+                </button>
+              ) : (
+                <div style={{ marginTop: 8 }}>
+                  <input
+                    autoFocus
+                    type="text"
+                    value={currencySearch}
+                    onChange={(e) => setCurrencySearch(e.target.value)}
+                    placeholder={t("tx_search_currency")}
+                    style={{
+                      width: "100%", padding: "10px 12px", borderRadius: "var(--radius-md)",
+                      border: "0.5px solid var(--rule)", fontSize: 13, outline: "none", marginBottom: 6,
+                    }}
+                  />
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 220, overflowY: "auto" }}>
+                    {addableCurrencies.map((c) => (
+                      <button
+                        type="button"
+                        key={c.code}
+                        onClick={() => toggleEnabledCurrency(c.code)}
+                        style={{
+                          display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
+                          padding: "10px 12px", borderRadius: "var(--radius-md)", border: "0.5px solid var(--rule)",
+                          background: "var(--bg)", cursor: "pointer",
+                        }}
+                      >
+                        <span style={{ fontSize: 13, color: "var(--ink)", textAlign: "left" }}>
+                          {c.symbol} {c.code} · {c.name}
+                        </span>
+                        <i className="ti ti-plus" style={{ fontSize: 14, color: "var(--sky)" }} aria-hidden="true" />
+                      </button>
+                    ))}
+                    {addableCurrencies.length === 0 && (
+                      <p style={{ fontSize: 12, color: "var(--ink-3)", textAlign: "center", padding: "8px 0" }}>
+                        {t("tx_no_currency_found")}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
               <div style={{ display: "flex", justifyContent: "center", marginTop: 10 }}>
                 <button
-                  onClick={() => setManageCurrencies(false)}
+                  onClick={() => { setManageCurrencies(false); setAddingCurrency(false); setCurrencySearch(""); }}
                   style={{
                     background: "var(--ink)", color: "var(--bg)", border: "none",
                     borderRadius: "var(--radius-md)", padding: "6px 16px", fontSize: 13, fontWeight: 500,
