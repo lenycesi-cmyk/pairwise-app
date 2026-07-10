@@ -619,17 +619,31 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
                 </button>
               ) : (
                 <div style={{ marginTop: 8 }}>
-                  <input
-                    autoFocus
-                    type="text"
-                    value={currencySearch}
-                    onChange={(e) => setCurrencySearch(e.target.value)}
-                    placeholder={t("tx_search_currency")}
-                    style={{
-                      width: "100%", padding: "10px 12px", borderRadius: "var(--radius-md)",
-                      border: "0.5px solid var(--rule)", fontSize: 13, outline: "none", marginBottom: 6,
-                    }}
-                  />
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                    <input
+                      autoFocus
+                      type="text"
+                      value={currencySearch}
+                      onChange={(e) => setCurrencySearch(e.target.value)}
+                      placeholder={t("tx_search_currency")}
+                      style={{
+                        flex: 1, padding: "10px 12px", borderRadius: "var(--radius-md)",
+                        border: "0.5px solid var(--rule)", fontSize: 13, outline: "none",
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => { setAddingCurrency(false); setCurrencySearch(""); }}
+                      aria-label={t("common_cancel")}
+                      style={{
+                        flexShrink: 0, width: 34, height: 34, borderRadius: "var(--radius-md)",
+                        border: "0.5px solid var(--rule)", background: "var(--bg)", color: "var(--ink-3)",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                      }}
+                    >
+                      <i className="ti ti-x" style={{ fontSize: 15 }} aria-hidden="true" />
+                    </button>
+                  </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 220, overflowY: "auto" }}>
                     {addableCurrencies.map((c) => (
                       <button

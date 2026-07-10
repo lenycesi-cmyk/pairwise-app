@@ -3,7 +3,8 @@ import { useFinance } from "../context/FinanceContext";
 import { useExchangeRates } from "../hooks/useExchangeRates";
 import { ASSET_TYPES } from "../data/assetTypes";
 import { getCryptoPrice, getStockPrice } from "../utils/assetPrices";
-import { CURRENCIES } from "../data/categories";
+import { ALL_CURRENCIES } from "../data/categories";
+import CurrencyPicker from "../components/CurrencyPicker";
 import AddAssetScreen from "./AddAssetScreen";
 import WidgetCard from "../components/WidgetCard";
 import ConnectBankButton from "../components/ConnectBankButton";
@@ -60,7 +61,7 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef }) {
   const [bankScope, setBankScope] = useState(null);
   const { widgets, saveWidgets } = useWealthPrefs();
 
-  const currencySymbol = CURRENCIES.find((c) => c.code === displayCurrency)?.symbol || displayCurrency;
+  const currencySymbol = ALL_CURRENCIES.find((c) => c.code === displayCurrency)?.symbol || displayCurrency;
 
   async function refreshPrices() {
     setRefreshing(true);
@@ -381,26 +382,14 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef }) {
       {showCurrencyPicker && (
         <div
           style={{
-            display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 16,
-            background: "var(--bg-card)", borderRadius: "var(--radius-lg)",
+            marginBottom: 16, background: "var(--bg-card)", borderRadius: "var(--radius-lg)",
             border: "0.5px solid var(--rule)", padding: "0.75rem 1rem",
           }}
         >
-          {CURRENCIES.map((c) => (
-            <button
-              key={c.code}
-              onClick={() => { updateWealthDisplayCurrency(c.code); setShowCurrencyPicker(false); }}
-              style={{
-                padding: "6px 10px", borderRadius: "var(--radius-md)",
-                border: displayCurrency === c.code ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
-                background: displayCurrency === c.code ? "var(--sky-light)" : "var(--bg)",
-                color: displayCurrency === c.code ? "var(--sky)" : "var(--ink)",
-                fontSize: 12,
-              }}
-            >
-              {c.symbol} {c.code}
-            </button>
-          ))}
+          <CurrencyPicker
+            value={displayCurrency}
+            onSelect={(code) => { updateWealthDisplayCurrency(code); setShowCurrencyPicker(false); }}
+          />
         </div>
       )}
 
