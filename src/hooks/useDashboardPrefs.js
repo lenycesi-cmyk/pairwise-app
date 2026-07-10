@@ -35,6 +35,24 @@ export const DEFAULT_REPORT_WIDGETS = [
   { id: "by_category", visible: true },
 ];
 
+// Ordre + visibilité par défaut des cartes personnalisables de l'onglet
+// Patrimoine (les listes d'actifs par type restent le contenu principal, hors
+// système de widgets). Champ distinct de l'ancien `wealthWidgets` (map
+// visibilité seule) pour ne pas mélanger les deux formats.
+export const DEFAULT_WEALTH_WIDGETS = [
+  { id: "net_worth", visible: true },
+  { id: "evolution", visible: true },
+  { id: "allocation", visible: true },
+  { id: "member_allocation", visible: true },
+  { id: "calculator", visible: true },
+];
+
+// Ordre + visibilité par défaut des cartes de l'onglet Budget.
+export const DEFAULT_BUDGET_WIDGETS = [
+  { id: "overview", visible: true },
+  { id: "list", visible: true },
+];
+
 // Préférences de widgets par utilisateur et par écran (ordre + visibilité),
 // stockées comme un tableau sur users/{uid}.{field}. Les widgets par défaut
 // absents des prefs enregistrées sont ajoutés à la fin (ils restent visibles).
@@ -84,4 +102,12 @@ export function useDashboardPrefs() {
 
 export function useReportsPrefs() {
   return useWidgetPrefs("reportsLayout", DEFAULT_REPORT_WIDGETS);
+}
+
+export function useWealthPrefs() {
+  return useWidgetPrefs("wealthLayout", DEFAULT_WEALTH_WIDGETS);
+}
+
+export function useBudgetPrefs() {
+  return useWidgetPrefs("budgetLayout", DEFAULT_BUDGET_WIDGETS);
 }

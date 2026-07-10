@@ -9,7 +9,7 @@ import {
 } from "@dnd-kit/core";
 import {
   SortableContext,
-  verticalListSortingStrategy,
+  rectSortingStrategy,
   useSortable,
   arrayMove,
 } from "@dnd-kit/sortable";
@@ -931,18 +931,21 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
       )}
       </div>
 
-      {/* Widgets — sortable in edit mode. On desktop, laid out as a masonry
-          column layout when not actively reordering — dnd-kit's drag math
-          here still assumes a single vertical list
-          (verticalListSortingStrategy), so edit mode temporarily falls back
-          to one column while dragging to keep reordering correct; the
-          masonry layout resumes right after. */}
+      {/* Widgets — sortable in edit mode. Masonry (card-columns) when not
+          editing ; two-column grid on desktop while customizing so the
+          customize view isn't a single narrow column. rectSortingStrategy
+          handles both single-column and grid reordering. */}
       <div
         className={isDesktop && !editMode ? "card-columns" : ""}
-        style={{ padding: "0 1.25rem" }}
+        style={{
+          padding: "0 1.25rem",
+          ...(isDesktop && editMode
+            ? { display: "grid", gridTemplateColumns: "1fr 1fr", columnGap: 20, alignItems: "start" }
+            : {}),
+        }}
       >
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext items={visibleIds} strategy={verticalListSortingStrategy}>
+        <SortableContext items={visibleIds} strategy={rectSortingStrategy}>
           {displayList
             .filter((w) => w.visible || editMode)
             .map((w) => {

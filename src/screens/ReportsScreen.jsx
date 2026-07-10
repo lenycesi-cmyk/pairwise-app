@@ -4,7 +4,7 @@ import {
   DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors,
 } from "@dnd-kit/core";
 import {
-  SortableContext, verticalListSortingStrategy, useSortable, arrayMove,
+  SortableContext, rectSortingStrategy, useSortable, arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useFinance } from "../context/FinanceContext";
@@ -750,9 +750,12 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
       {/* Cartes — réorganisables et masquables en mode édition, comme sur Home.
           Layout masonry desktop sauf pendant l'édition (le drag suppose une
           seule colonne verticale). */}
-      <div className={isDesktop && !editMode ? "card-columns" : ""}>
+      <div
+        className={isDesktop && !editMode ? "card-columns" : ""}
+        style={isDesktop && editMode ? { display: "grid", gridTemplateColumns: "1fr 1fr", columnGap: 20, alignItems: "start" } : undefined}
+      >
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-          <SortableContext items={visibleIds} strategy={verticalListSortingStrategy}>
+          <SortableContext items={visibleIds} strategy={rectSortingStrategy}>
             {activeWidgets
               .filter((w) => w.visible || editMode)
               .map((w) => {
