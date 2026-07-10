@@ -14,7 +14,8 @@ import CategoryRow from "../components/CategoryRow";
 import WidgetCard from "../components/WidgetCard";
 import Avatar from "../components/Avatar";
 import { buildMemberColorMap } from "../utils/memberColors";
-import { CURRENCIES } from "../data/categories";
+import { ALL_CURRENCIES } from "../data/categories";
+import CurrencyPicker from "../components/CurrencyPicker";
 import { useTranslation } from "../hooks/useTranslation";
 import SpotlightHint from "../components/SpotlightHint";
 import { getMemberKey } from "../utils/members";
@@ -404,7 +405,7 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
   }
 
   const currencySymbol =
-    CURRENCIES.find((c) => c.code === displayCurrency)?.symbol || displayCurrency;
+    ALL_CURRENCIES.find((c) => c.code === displayCurrency)?.symbol || displayCurrency;
 
   function CustomTooltip({ active, payload, label }) {
     if (!active || !payload?.length) return null;
@@ -697,21 +698,11 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
       )}
 
       {showCurrencyPicker && !editMode && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 16, background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "0.75rem 1rem" }}>
-          {CURRENCIES.map((c) => (
-            <button
-              key={c.code}
-              onClick={() => { updateDashboardDisplayCurrency(c.code); setShowCurrencyPicker(false); }}
-              style={{
-                padding: "6px 10px", borderRadius: "var(--radius-md)",
-                border: displayCurrency === c.code ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
-                background: displayCurrency === c.code ? "var(--sky-light)" : "var(--bg)",
-                color: displayCurrency === c.code ? "var(--sky)" : "var(--ink)", fontSize: 12,
-              }}
-            >
-              {c.symbol} {c.code}
-            </button>
-          ))}
+        <div style={{ marginBottom: 16, background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "0.75rem 1rem" }}>
+          <CurrencyPicker
+            value={displayCurrency}
+            onSelect={(code) => { updateDashboardDisplayCurrency(code); setShowCurrencyPicker(false); }}
+          />
         </div>
       )}
 

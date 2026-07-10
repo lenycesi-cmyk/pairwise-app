@@ -11,6 +11,7 @@ import { getMemberKey } from "../utils/members";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 import { useBudgetPrefs } from "../hooks/useDashboardPrefs";
 import WidgetCanvas from "../components/WidgetCanvas";
+import CurrencyPicker from "../components/CurrencyPicker";
 import WidgetCard from "../components/WidgetCard";
 import TagChip from "../components/TagChip";
 import { SUGGESTED_TAGS } from "../data/suggestedTags";
@@ -462,21 +463,11 @@ export default function BudgetScreen({ openSignal }) {
       {!showForm && <SpotlightHint tabKey="budget" targetRef={addButtonRef} text={t("hint_budget")} />}
 
       {!showForm && showCurrencyPicker && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12, background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "0.75rem 1rem" }}>
-          {CURRENCIES.map((c) => (
-            <button
-              key={c.code}
-              onClick={() => { updateBudgetDisplayCurrency(c.code); setShowCurrencyPicker(false); }}
-              style={{
-                padding: "6px 10px", borderRadius: "var(--radius-md)",
-                border: displayCurrency === c.code ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
-                background: displayCurrency === c.code ? "var(--sky-light)" : "var(--bg)",
-                color: displayCurrency === c.code ? "var(--sky)" : "var(--ink)", fontSize: 12,
-              }}
-            >
-              {c.symbol} {c.code}
-            </button>
-          ))}
+        <div style={{ marginBottom: 12, background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "0.75rem 1rem" }}>
+          <CurrencyPicker
+            value={displayCurrency}
+            onSelect={(code) => { updateBudgetDisplayCurrency(code); setShowCurrencyPicker(false); }}
+          />
         </div>
       )}
 
