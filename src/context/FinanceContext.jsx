@@ -37,6 +37,7 @@ export function FinanceProvider({ children }) {
   const [lastUsedCurrency, setLastUsedCurrency] = useState("EUR");
   const [recurringTx, setRecurringTx] = useState([]);
   const [budgets, setBudgets] = useState([]);
+  const [budgetHistory, setBudgetHistory] = useState({});
   const [incomeAccountLinks, setIncomeAccountLinksState] = useState({});
   const [assets, setAssets] = useState([]);
   const [netWorthHistory, setNetWorthHistory] = useState([]);
@@ -106,6 +107,7 @@ export function FinanceProvider({ children }) {
         // gardent chacun leur dernière devise. Chargé dans l'effet dédié.
         if (data.recurringTx) setRecurringTx(data.recurringTx);
         if (data.budgets) setBudgets(data.budgets);
+        if (data.budgetHistory) setBudgetHistory(data.budgetHistory);
         if (data.incomeAccountLinks) setIncomeAccountLinksState(data.incomeAccountLinks);
         if (data.assets) setAssets(data.assets);
         if (data.netWorthHistory) setNetWorthHistory(data.netWorthHistory);
@@ -407,6 +409,19 @@ export function FinanceProvider({ children }) {
     await setDoc(doc(db, "couples", coupleId), { budgets: orderedBudgets }, { merge: true });
   }
 
+  // Enregistre un lot de snapshots d'historique de budget (clôtures de période).
+  // entries: [{ budgetId, key, data }]. Read-modify-merge de l'objet complet
+  // pour ne jamais écraser les autres budgets/périodes déjà stockés.
+  async function saveBudgetSnapshots(entries) {
+    if (!coupleId || !entries || entries.length === 0) return;
+    const next = { ...budgetHistory };
+    for (const { budgetId, key, data } of entries) {
+      next[budgetId] = { ...(next[budgetId] || {}), [key]: data };
+    }
+    setBudgetHistory(next); // optimiste
+    await setDoc(doc(db, "couples", coupleId), { budgetHistory: next }, { merge: true });
+  }
+
   async function setIncomeAccountLinks(map) {
     if (!coupleId) return;
     await setDoc(doc(db, "couples", coupleId), { incomeAccountLinks: map }, { merge: true });
@@ -578,6 +593,8 @@ export function FinanceProvider({ children }) {
     updateBudget,
     removeBudget,
     reorderBudgets,
+    budgetHistory,
+    saveBudgetSnapshots,
     incomeAccountLinks,
     setIncomeAccountLinks,
     assets,

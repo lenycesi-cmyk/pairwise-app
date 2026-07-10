@@ -1,19 +1,18 @@
 import { useMemo } from "react";
 import { useFinance } from "../context/FinanceContext";
 import { useExchangeRates } from "./useExchangeRates";
+import { periodRange, previousPeriodRange, inRange } from "../utils/budgetPeriods";
 
-// Calcule, pour chaque budget actif, le montant dépensé sur la période de
+// Calcule, pour chaque budget actif, le montant dépensé sur sa période de
 // référence et le % consommé — même logique de conversion que DashboardScreen
 // (convertedAmount figé à la création en priorité, fallback sur conversion
-// dynamique). `viewMonth`/`viewYear` permettent de calculer la progression
-// pour le mois affiché sur Accueil/Rapports plutôt que toujours le mois
-// calendaire réel — sans quoi le widget Budget d'Accueil dérivait du mois
-// consulté (ex: on regarde juin, le widget montre les dépenses de juillet).
+// dynamique). La période dépend désormais de la fréquence du budget (mensuel,
+// mois ancré, hebdo, trimestriel, annuel, glissant, enveloppe d'événement) via
+// utils/budgetPeriods. `viewMonth`/`viewYear` positionnent la période pour les
+// fréquences calendaires (Accueil/Rapports navigables) ; hebdo/glissant/
+// événement se basent sur maintenant / leurs dates fixes.
 export function useBudgetProgress(viewMonth, viewYear, displayCurrency) {
   const { transactions, budgets, defaultCurrency } = useFinance();
-  // Devise d'affichage (sélecteur de l'écran Budget) ; à défaut, devise par
-  // défaut du couple — les appelants historiques (widget Accueil) ne passent
-  // rien et gardent donc le comportement d'origine.
   const base = displayCurrency || defaultCurrency;
   const { convert, loading: ratesLoading } = useExchangeRates(base);
 
@@ -21,22 +20,10 @@ export function useBudgetProgress(viewMonth, viewYear, displayCurrency) {
   const month = viewMonth ?? now.getMonth();
   const year = viewYear ?? now.getFullYear();
 
-  const monthTx = useMemo(() => {
-    return transactions.filter((tx) => {
-      const d = new Date(tx.date);
-      return tx.type === "expense" && d.getMonth() === month && d.getFullYear() === year;
-    });
-  }, [transactions, month, year]);
-
-  // Budgets à période "yearly" (dépenses annuelles irrégulières — cadeaux,
-  // voyages, impôts...) se calculent sur l'année civile complète plutôt que
-  // le mois affiché.
-  const yearTx = useMemo(() => {
-    return transactions.filter((tx) => {
-      const d = new Date(tx.date);
-      return tx.type === "expense" && d.getFullYear() === year;
-    });
-  }, [transactions, year]);
+  const expenseTx = useMemo(
+    () => transactions.filter((tx) => tx.type === "expense"),
+    [transactions]
+  );
 
   function toBase(tx) {
     if (tx.convertedAmount !== undefined && tx.convertedCurrency === base) {
@@ -45,9 +32,8 @@ export function useBudgetProgress(viewMonth, viewYear, displayCurrency) {
     return convert(tx.amount, tx.currency, base);
   }
 
-  // Part d'une transaction attribuable à un membre donné, selon le champ `split`
-  // (même logique que MemberBreakdownScreen) : 50/50 → moitié chacun, split === uid
-  // → entièrement à ce membre, sinon 0 (attribué à l'autre membre).
+  // Part d'une transaction attribuable à un membre donné (même logique que
+  // MemberBreakdownScreen).
   function memberShare(tx, memberUid) {
     const val = toBase(tx);
     if (tx.split === "50/50") return val / 2;
@@ -55,13 +41,8 @@ export function useBudgetProgress(viewMonth, viewYear, displayCurrency) {
     return 0;
   }
 
-  // Une transaction matche un budget "category" si sa catégorie entière est
-  // sélectionnée, OU si sa combinaison catégorie+sous-catégorie précise l'est
-  // (budgets à granularité sous-catégorie).
   function txMatchesBudget(tx, b) {
     if (b.scope === "global") return true;
-    // Budget "tag" : la transaction compte si elle porte au moins un des tags
-    // ciblés (ex. budget "vacances" transversal aux catégories).
     if (b.scope === "tag") {
       return (b.tagKeys || []).some((tag) => (tx.tags || []).includes(tag));
     }
@@ -70,41 +51,66 @@ export function useBudgetProgress(viewMonth, viewYear, displayCurrency) {
     return false;
   }
 
+  // Dépense d'un budget sur une plage donnée (respecte scope + membre).
+  function spendOver(b, range) {
+    let sum = 0;
+    for (const tx of expenseTx) {
+      const ms = new Date(tx.date).getTime();
+      if (!inRange(ms, range)) continue;
+      if (!txMatchesBudget(tx, b)) continue;
+      sum += b.memberUid && b.memberUid !== "couple" ? memberShare(tx, b.memberUid) : toBase(tx);
+    }
+    return sum;
+  }
+
   const progress = useMemo(() => {
+    // Date de référence au milieu du mois consulté : pour un mois ancré, cela
+    // sélectionne sans ambiguïté la période qui contient ce mois.
+    const refDate = new Date(year, month, 15);
     return budgets
       .filter((b) => b.active)
       .map((b) => {
-        const periodTx = b.period === "yearly" ? yearTx : monthTx;
-        const scopedTx = periodTx.filter((tx) => txMatchesBudget(tx, b));
+        const range = periodRange(b, refDate);
+        const scopedTx = expenseTx.filter(
+          (tx) => inRange(new Date(tx.date).getTime(), range) && txMatchesBudget(tx, b)
+        );
         const spent =
           b.memberUid && b.memberUid !== "couple"
-            ? scopedTx.reduce((sum, tx) => sum + memberShare(tx, b.memberUid), 0)
-            : scopedTx.reduce((sum, tx) => sum + toBase(tx), 0);
+            ? scopedTx.reduce((s, tx) => s + memberShare(tx, b.memberUid), 0)
+            : scopedTx.reduce((s, tx) => s + toBase(tx), 0);
+
         const amountInBase = convert(b.amount, b.currency, base);
-        const pct = amountInBase > 0 ? (spent / amountInBase) * 100 : 0;
 
-        // Projection fin de période "à ce rythme" — uniquement pour la
-        // période en cours (projeter un mois passé n'a pas de sens) et
-        // après quelques jours (sinon le 1er du mois multiplie n'importe
-        // quelle dépense par 30).
-        let projected = null;
-        const today = new Date();
-        const isCurrentMonth = month === today.getMonth() && year === today.getFullYear();
-        if (b.period === "yearly") {
-          const dayOfYear = Math.ceil((today - new Date(year, 0, 1)) / 86400000);
-          const daysInYear = (new Date(year, 11, 31) - new Date(year, 0, 0)) / 86400000;
-          if (year === today.getFullYear() && dayOfYear >= 14) {
-            projected = (spent / dayOfYear) * daysInYear;
+        // Report du reliquat (YNAB), optionnel : on ajoute au budget courant le
+        // reliquat de la période PRÉCÉDENTE (budget − dépensé), une seule
+        // période en arrière. Peut être négatif (dépassement reporté).
+        let carried = 0;
+        if (b.rollover) {
+          const prev = previousPeriodRange(b, refDate);
+          if (prev && prev.end.getTime() < range.start.getTime()) {
+            carried = amountInBase - spendOver(b, prev);
           }
-        } else if (isCurrentMonth && today.getDate() >= 5) {
-          const daysInMonth = new Date(year, month + 1, 0).getDate();
-          projected = (spent / today.getDate()) * daysInMonth;
         }
-        const projectedOver = projected !== null && amountInBase > 0 && projected > amountInBase;
+        const effectiveAmount = amountInBase + carried;
+        const denom = effectiveAmount > 0 ? effectiveAmount : amountInBase;
+        const pct = denom > 0 ? (spent / denom) * 100 : 0;
 
-        return { budget: b, spent, amountInBase, pct, scopedTx, projected, projectedOver };
+        // Projection "à ce rythme" — généralisée à toute période dont on est en
+        // cours (aujourd'hui dans la plage) et suffisamment avancée (>15%).
+        let projected = null;
+        const startMs = range.start.getTime();
+        const endMs = range.end.getTime();
+        const nowMs = now.getTime();
+        if (nowMs >= startMs && nowMs <= endMs) {
+          const elapsed = (nowMs - startMs) / (endMs - startMs);
+          if (elapsed >= 0.15) projected = spent / elapsed;
+        }
+        const projectedOver = projected !== null && denom > 0 && projected > denom;
+
+        return { budget: b, spent, amountInBase, effectiveAmount, carried, pct, scopedTx, range, projected, projectedOver };
       });
-  }, [budgets, monthTx, yearTx, base, convert, month, year]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [budgets, expenseTx, base, convert, year, month]);
 
   return { progress, loading: ratesLoading };
 }
