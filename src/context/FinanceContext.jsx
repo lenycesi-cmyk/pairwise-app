@@ -31,6 +31,9 @@ export function FinanceProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [defaultCurrency, setDefaultCurrency] = useState("EUR");
   const [currencyMode, setCurrencyMode] = useState("fixed");
+  // Devises proposées dans les sélecteurs (ajout de transaction...). null =
+  // toutes les devises (défaut) ; sinon la liste blanche choisie par le couple.
+  const [enabledCurrencies, setEnabledCurrencies] = useState(null);
   const [lastUsedCurrency, setLastUsedCurrency] = useState("EUR");
   const [recurringTx, setRecurringTx] = useState([]);
   const [budgets, setBudgets] = useState([]);
@@ -97,6 +100,7 @@ export function FinanceProvider({ children }) {
         if (data.members) setMembers(data.members);
         if (data.coupleName !== undefined) setCoupleName(data.coupleName);
         if (data.currencyMode) setCurrencyMode(data.currencyMode);
+        if (Array.isArray(data.enabledCurrencies)) setEnabledCurrencies(data.enabledCurrencies);
         // lastUsedCurrency est désormais PAR UTILISATEUR (users/{uid}) et non
         // plus au niveau du couple : deux partenaires dans des pays différents
         // gardent chacun leur dernière devise. Chargé dans l'effet dédié.
@@ -293,6 +297,16 @@ export function FinanceProvider({ children }) {
     await setDoc(
       doc(db, "couples", coupleId),
       { currencyMode: mode },
+      { merge: true }
+    );
+  }
+
+  async function updateEnabledCurrencies(codes) {
+    setEnabledCurrencies(codes);
+    if (!coupleId) return;
+    await setDoc(
+      doc(db, "couples", coupleId),
+      { enabledCurrencies: codes },
       { merge: true }
     );
   }
@@ -532,6 +546,8 @@ export function FinanceProvider({ children }) {
     loading,
     defaultCurrency,
     currencyMode,
+    enabledCurrencies,
+    updateEnabledCurrencies,
     lastUsedCurrency,
     recurringTx,
     addTransaction,
