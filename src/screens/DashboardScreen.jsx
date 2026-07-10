@@ -158,7 +158,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
   // Budget progress must follow the currently viewed month, not always the
   // real calendar month — otherwise the widget silently shows next/prev
   // month's spend while the rest of the screen is browsing a different one.
-  const { progress: budgetProgress } = useBudgetProgress(viewMonth, viewYear);
+  const { progress: budgetProgress } = useBudgetProgress(viewMonth, viewYear, displayCurrency);
   const { suggestion: subscriptionSuggestion, accept: acceptSubscription, dismiss: dismissSubscription } = useSubscriptionSuggestion();
   const topBudgets = useMemo(
     () => [...budgetProgress].sort((a, b) => b.pct - a.pct).slice(0, 3),
@@ -400,35 +400,42 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
             <div>
               {topBudgets.length === 0 ? (
                 <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", padding: "0.75rem 0" }}>{t("widget_budget_empty")}</p>
-              ) : topBudgets.map(({ budget, pct, scopedTx, amountInBase, projected, projectedOver }, i) => {
+              ) : topBudgets.map(({ budget, pct, spent, scopedTx, amountInBase, projected, projectedOver }, i) => {
                 const over = pct >= 100;
                 const warn = pct >= (budget.alertThreshold ?? 80);
                 const barColor = over ? "var(--red)" : warn ? "var(--amber)" : "var(--sky)";
                 const label = budget.name || (budget.scope === "global"
                   ? t("budget_scope_global")
                   : (budget.categoryIds || []).map((cid) => { const c = categories.find((c) => c.id === cid); return c ? catName(c) : null; }).filter(Boolean).join(", "));
+                // « Pour qui » : nom du membre pour un budget individuel, sinon le
+                // nom du couple (ex. ❤️ Team T&T ❤️) — toujours affiché, jamais vide.
                 const memberLabel = !budget.memberUid || budget.memberUid === "couple"
-                  ? null
+                  ? (coupleName || t("widget_couple_summary_default"))
                   : members.find((m) => getMemberKey(m) === budget.memberUid)?.name;
                 const isOpen = detailBudgetId === budget.id;
                 return (
-                  <div key={budget.id} style={{ marginBottom: i === topBudgets.length - 1 ? 0 : 12 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                      <span style={{ fontSize: 12 }}>
+                  <div key={budget.id} style={{ marginBottom: i === topBudgets.length - 1 ? 0 : 14 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, marginBottom: 3 }}>
+                      <span style={{ fontSize: 13.5, fontWeight: 700, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                         {label}
-                        {memberLabel && <span style={{ color: "var(--sky)" }}> · {memberLabel}</span>}
                       </span>
-                      <span style={{ fontSize: 12, fontWeight: 500, color: barColor }}>{Math.round(pct)}%</span>
+                      <span style={{ fontSize: 17, fontWeight: 700, color: barColor, flexShrink: 0 }}>{Math.round(pct)}%</span>
                     </div>
-                    <div style={{ height: 6, borderRadius: 3, background: "var(--rule)", overflow: "hidden" }}>
-                      <div style={{ height: "100%", width: `${Math.min(pct, 100)}%`, background: barColor, borderRadius: 3 }} />
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, marginBottom: 5 }}>
+                      <span style={{ fontSize: 11.5, color: "var(--sky)", minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{memberLabel}</span>
+                      <span className="pw-num" style={{ fontSize: 13, fontWeight: 600, flexShrink: 0 }}>
+                        {formatAmount(spent)} <span style={{ color: "var(--ink-3)", fontWeight: 400 }}>/ {formatAmount(amountInBase)} {currencySymbol}</span>
+                      </span>
+                    </div>
+                    <div style={{ height: 7, borderRadius: 4, background: "var(--rule)", overflow: "hidden" }}>
+                      <div style={{ height: "100%", width: `${Math.min(pct, 100)}%`, background: barColor, borderRadius: 4 }} />
                     </div>
                     {projected !== null && pct < 100 && (
                       <p style={{ fontSize: 10.5, color: projectedOver ? "var(--amber)" : "var(--ink-3)", marginTop: 4 }}>
                         {t("budget_projection")
-                          .replace("{amount}", `${Math.round(projected).toLocaleString("fr-FR")} ${defaultCurrency}`)}
+                          .replace("{amount}", `${Math.round(projected).toLocaleString("fr-FR")} ${currencySymbol}`)}
                         {projectedOver &&
-                          ` (${t("budget_projection_over").replace("{over}", `${Math.round(projected - amountInBase).toLocaleString("fr-FR")} ${defaultCurrency}`)})`}
+                          ` (${t("budget_projection_over").replace("{over}", `${Math.round(projected - amountInBase).toLocaleString("fr-FR")} ${currencySymbol}`)})`}
                       </p>
                     )}
                     {!editMode && (
