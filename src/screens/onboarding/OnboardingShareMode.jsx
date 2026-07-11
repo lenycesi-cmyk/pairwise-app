@@ -1,14 +1,16 @@
 import { onboardingT } from "../../data/onboardingCopy";
-import { SetupGauge, ChoiceCard } from "./onboardingUI";
+import { SetupGauge, ChoiceCard, BackBar } from "./onboardingUI";
 import { screenWrap, scrollArea, displayTitle } from "./onboardingStyles";
 
-// Écran 5 · Mode de partage (si couple). "shared" (dépenses partagées + suivi
-// des dettes) vs "common" (compte commun, sans dette). Jauge 70 %.
-export default function OnboardingShareMode({ language, onPick }) {
+// Écran 3 · Mode de partage (si couple), juste après le choix solo/couple.
+// "shared" (dépenses partagées + suivi des dettes) vs "common" (compte commun,
+// sans dette). Jauge 90 %.
+export default function OnboardingShareMode({ language, onPick, onBack }) {
   const t = onboardingT(language);
   return (
     <div style={screenWrap}>
-      <SetupGauge pct={70} label={t("gauge")} />
+      <BackBar onBack={onBack} />
+      <SetupGauge pct={90} label={t("gauge")} />
       <div style={scrollArea}>
         <h1 style={displayTitle}>{t("s5_t")}</h1>
         <p style={{ fontSize: 14, lineHeight: 1.5, color: "var(--ink-2)", margin: "0 0 22px" }}>

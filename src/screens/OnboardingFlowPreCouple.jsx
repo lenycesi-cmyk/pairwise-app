@@ -4,9 +4,9 @@ import { db } from "../firebase";
 import { useAuth } from "../context/AuthContext";
 import AuthScreen from "./AuthScreen";
 import CoupleSetupScreen from "./CoupleSetupScreen";
-import OnboardingWelcome from "./onboarding/OnboardingWelcome";
-import OnboardingAha from "./onboarding/OnboardingAha";
+import OnboardingEntry from "./onboarding/OnboardingEntry";
 import OnboardingAccountType from "./onboarding/OnboardingAccountType";
+import OnboardingShareMode from "./onboarding/OnboardingShareMode";
 import { Splash } from "./onboarding/onboardingUI";
 import { onboardingT, detectOnboardingLanguage } from "../data/onboardingCopy";
 import {
@@ -26,13 +26,13 @@ function generateCoupleCode() {
 }
 
 // Orchestrateur de la phase PRÉ-couple de l'onboarding "valeur d'abord" :
-// Accueil → Aha (brouillon local) → Solo/Couple → Sign-up. Une fois le compte
-// créé (user présent, coupleId encore absent), crée l'espace couple à partir
-// du brouillon/meta, ce qui fait basculer App vers la phase post-couple.
+// Saisie langage naturel + Aha → Solo/Couple → (Mode de partage si couple) →
+// Sign-up. Une fois le compte créé (user présent, coupleId absent), crée
+// l'espace couple à partir du brouillon/meta.
 export default function OnboardingFlowPreCouple({ onSignIn }) {
   const { user, setCoupleId, setOnboardingComplete } = useAuth();
   const [lang, setLang] = useState(() => loadOnbLang() || detectOnboardingLanguage());
-  const [step, setStep] = useState("welcome"); // welcome | aha | account | signup
+  const [step, setStep] = useState("entry"); // entry | account | mode | signup
   const creatingRef = useRef(false);
 
   function setLanguage(l) {
@@ -41,8 +41,7 @@ export default function OnboardingFlowPreCouple({ onSignIn }) {
   }
 
   // Post-signup : compte créé mais pas encore d'espace couple → on le crée.
-  // Le cas "join" (rejoindre le code d'un·e partenaire) est délégué à
-  // CoupleSetupScreen, qui gère déjà tout le flux de jointure.
+  // Le cas "join" est délégué à CoupleSetupScreen (flux de jointure existant).
   useEffect(() => {
     if (!user || creatingRef.current) return;
     const meta = loadMeta();
@@ -57,7 +56,7 @@ export default function OnboardingFlowPreCouple({ onSignIn }) {
           members: [{ uid: user.uid, memberId: user.uid, name: user.displayName || "Moi" }],
           memberUids: [user.uid],
           defaultCurrency: guessDefaultCurrency(),
-          financeMode: "shared",
+          financeMode: meta.shareMode || "shared",
         },
         { merge: true }
       );
@@ -76,24 +75,24 @@ export default function OnboardingFlowPreCouple({ onSignIn }) {
     return <Splash text={onboardingT(lang)("saving")} />;
   }
 
-  if (step === "welcome")
+  if (step === "entry")
     return (
-      <OnboardingWelcome
+      <OnboardingEntry
         language={lang}
         onSetLanguage={setLanguage}
-        onStart={() => setStep("aha")}
         onSignIn={onSignIn}
+        onNext={() => setStep("account")}
       />
     );
-  if (step === "aha")
-    return <OnboardingAha language={lang} onCreateAccount={() => setStep("account")} />;
+
   if (step === "account")
     return (
       <OnboardingAccountType
         language={lang}
+        onBack={() => setStep("entry")}
         onPick={(type) => {
           saveMeta({ accountType: type });
-          setStep("signup");
+          setStep(type === "couple" ? "mode" : "signup");
         }}
         onJoin={() => {
           saveMeta({ accountType: "join" });
@@ -101,8 +100,26 @@ export default function OnboardingFlowPreCouple({ onSignIn }) {
         }}
       />
     );
+
+  if (step === "mode")
+    return (
+      <OnboardingShareMode
+        language={lang}
+        onBack={() => setStep("account")}
+        onPick={(mode) => {
+          saveMeta({ shareMode: mode });
+          setStep("signup");
+        }}
+      />
+    );
+
   // signup
+  const isCouple = loadMeta().accountType === "couple";
   return (
-    <AuthScreen defaultMode="signup" draftCount={loadDraft().length} onBack={() => setStep("account")} />
+    <AuthScreen
+      defaultMode="signup"
+      draftCount={loadDraft().length}
+      onBack={() => setStep(isCouple ? "mode" : "account")}
+    />
   );
 }

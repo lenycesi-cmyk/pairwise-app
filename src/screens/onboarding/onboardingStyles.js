@@ -6,7 +6,9 @@ export const screenWrap = {
   display: "flex",
   flexDirection: "column",
   width: "100%",
-  maxWidth: "var(--app-shell-width)",
+  // Colonne un peu plus étroite que le shell (480) : les cartes d'onboarding
+  // paraissaient trop larges sur desktop.
+  maxWidth: 430,
   margin: "0 auto",
   padding: "0",
 };

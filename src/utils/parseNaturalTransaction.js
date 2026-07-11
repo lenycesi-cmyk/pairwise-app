@@ -83,13 +83,18 @@ function detectDate(norm) {
   if (/\bhier\b|\byesterday\b/.test(norm)) return at(new Date(now.getTime() - 86400000));
   const ago = norm.match(/il y a (\d{1,3}) jours?|(\d{1,3}) days? ago/);
   if (ago) return at(new Date(now.getTime() - (parseInt(ago[1] || ago[2]) || 0) * 86400000));
-  // "3 juin" / "june 3" / "le 3 juin"
-  const dm = norm.match(/(\d{1,2})\s+([a-z]+)|([a-z]+)\s+(\d{1,2})/);
-  if (dm) {
-    const day = parseInt(dm[1] || dm[4]);
-    const monthWord = dm[2] || dm[3];
+  // "3 juin" / "june 3" / "le 3 juin" — on parcourt TOUTES les paires
+  // nombre+mot (et mot+nombre) et on retient la première dont le mot est un
+  // vrai mois. Sans ça, "25 euros ... le 8 juillet" s'arrêtait sur "25 euros".
+  const pairs = [
+    ...norm.matchAll(/(\d{1,2})\s+([a-zéûô]+)/g),
+    ...norm.matchAll(/([a-zéûô]+)\s+(\d{1,2})/g),
+  ];
+  for (const m of pairs) {
+    const day = parseInt(/^\d/.test(m[1]) ? m[1] : m[2]);
+    const monthWord = /^\d/.test(m[1]) ? m[2] : m[1];
     if (monthWord in MONTHS && day >= 1 && day <= 31) {
-      let year = now.getFullYear();
+      const year = now.getFullYear();
       const d = new Date(year, MONTHS[monthWord], day);
       if (d > now) d.setFullYear(year - 1); // date future → année précédente
       return at(d);
@@ -174,6 +179,35 @@ function detectTags(norm, usedTags) {
   return found;
 }
 
+// Mots-clés courants (FR/EN, sans accents car le texte est normalisé) → id de
+// catégorie de dépense. Filet de sécurité quand ni le nom de catégorie ni un
+// marchand ne matchent : évite que "lunch"/"loyer" tombent dans "Divers".
+// Ordre = priorité (spécifique avant générique).
+const KEYWORD_CATEGORIES = [
+  { id: "housing", kw: ["loyer", "rent", "edf", "electricite", "electric", "internet", "box", "gaz", "eau", "water", "charges", "copropriete"] },
+  { id: "food", kw: ["dejeuner", "lunch", "diner", "dinner", "breakfast", "petit-dejeuner", "brunch", "repas", "restaurant", "resto", "courses", "cafe", "coffee", "groceries", "supermarche", "epicerie", "pizza", "burger", "sushi", "kebab", "tacos", "boulangerie", "snack", "gouter"] },
+  { id: "transport", kw: ["taxi", "uber", "essence", "gas", "fuel", "petrol", "train", "bus", "metro", "tram", "parking", "peage", "velo", "trottinette", "sncf", "carburant"] },
+  { id: "sport", kw: ["sport", "gym", "fitness", "muscu", "musculation", "yoga", "piscine", "crossfit", "tennis", "foot", "coach"] },
+  { id: "health", kw: ["pharmacie", "pharmacy", "medecin", "docteur", "doctor", "dentiste", "dentist", "osteo", "kine", "opticien"] },
+  { id: "leisure", kw: ["cinema", "cine", "movie", "film", "bar", "sortie", "concert", "musee", "theatre", "bowling", "expo", "spectacle"] },
+  { id: "subscriptions", kw: ["netflix", "spotify", "abonnement", "subscription", "disney", "canal", "prime", "icloud", "youtube", "telephone", "phone", "forfait", "mobile", "sfr", "orange", "bouygues", "free"] },
+  { id: "travel", kw: ["hotel", "avion", "flight", "vol", "airbnb", "voyage", "trip", "booking", "sejour"] },
+  { id: "beauty", kw: ["coiffeur", "coiffure", "manucure", "spa", "massage", "esthetique", "cosmetique"] },
+  { id: "clothing", kw: ["vetement", "vetements", "chaussures", "shoes", "clothes", "zara", "uniqlo"] },
+];
+
+function matchKeyword(norm, categories) {
+  for (const entry of KEYWORD_CATEGORIES) {
+    for (const kw of entry.kw) {
+      if (new RegExp(`\\b${escapeRegExp(kw)}\\b`).test(norm)) {
+        const c = categories.find((x) => x.id === entry.id);
+        if (c) return { categoryId: c.id, subcategory: null };
+      }
+    }
+  }
+  return null;
+}
+
 export function parseNaturalTransaction(text, { categories = [], transactions = [], defaultCurrency = "EUR", usedTags = [] } = {}) {
   if (!text || !text.trim()) return null;
   const norm = normalizeText(text);
@@ -194,12 +228,13 @@ export function parseNaturalTransaction(text, { categories = [], transactions = 
   // (dépenses uniquement), sinon index appris sur la description.
   let cat = matchCategory(norm, categories, type);
   if (!cat && type === "expense") cat = matchSynonym(norm, categories);
+  if (!cat && type === "expense") cat = matchKeyword(norm, categories);
 
   // Description = texte nettoyé (retire montant, symboles devise, mots de date)
   let desc = text
-    .replace(/\d[\d\s]*(?:[.,]\d{1,2})?/, " ")
+    .replace(/\d[\d\s]*(?:[.,]\d{1,2})?/g, " ")
     .replace(/[€$£¥]/g, " ")
-    .replace(/\b(euros?|dollars?|eur|usd|gbp|chf|jpy|vnd|dongs?|thb|bahts?|aud|cad|cny|rmb|renminbi|yuans?|sgd|hkd|inr|roupies?|krw|won|aed|dirhams?|aujourd'?hui|today|avant[\s-]?hier|hier|yesterday|il y a \d+ jours?|\d+ days? ago|lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche|monday|tuesday|wednesday|thursday|friday|saturday|sunday|janvier|f[ée]vrier|mars|avril|mai|juin|juillet|ao[uû]t|septembre|octobre|novembre|d[ée]cembre|january|february|march|april|june|july|august|september|october|november|december)\b/gi, " ")
+    .replace(/\b(euros?|dollars?|eur|usd|gbp|chf|jpy|vnd|dongs?|thb|bahts?|aud|cad|cny|rmb|renminbi|yuans?|sgd|hkd|inr|roupies?|krw|won|aed|dirhams?|aujourd'?hui|today|avant[\s-]?hier|hier|yesterday|il y a \d+ jours?|\d+ days? ago|le|on|the|lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche|monday|tuesday|wednesday|thursday|friday|saturday|sunday|janvier|f[ée]vrier|mars|avril|mai|juin|juillet|ao[uû]t|septembre|octobre|novembre|d[ée]cembre|january|february|march|april|june|july|august|september|october|november|december)\b/gi, " ")
     .replace(/\s+/g, " ")
     .trim();
 
