@@ -84,17 +84,20 @@ export default function OnboardingEntry({ language, onSignIn, onNext }) {
 
   // ── Fragments réutilisés ────────────────────────────────────────────────
   function logo(center) {
+    const sz = center && isDesktop ? 34 : 28;
     return (
-      <div style={{ display: "flex", alignItems: "center", gap: 9, justifyContent: center ? "center" : "flex-start" }}>
-        <div style={{ width: 28, height: 28, borderRadius: 8, background: "var(--tang)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 15 }}>P</div>
-        <span style={{ fontWeight: 700, fontSize: 15 }}>PairWise</span>
+      <div style={{ display: "flex", alignItems: "center", gap: center && isDesktop ? 11 : 9, justifyContent: center ? "center" : "flex-start" }}>
+        <div style={{ width: sz, height: sz, borderRadius: sz * 0.28, background: "var(--tang)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: sz * 0.55 }}>P</div>
+        <span style={{ fontWeight: 700, fontSize: center && isDesktop ? 19 : 15 }}>PairWise</span>
       </div>
     );
   }
 
+  // Badge confidentialité — un peu plus grand sur l'accueil desktop.
+  const badgeBig = isDesktop && !hasDraft;
   const privacyBadge = (
-    <div style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "var(--sage-light)", color: "var(--sage)", borderRadius: 999, padding: "5px 11px", fontSize: 11, fontWeight: 600, lineHeight: 1.3 }}>
-      <i className="ti ti-lock" style={{ fontSize: 12 }} />
+    <div style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "var(--sage-light)", color: "var(--sage)", borderRadius: 999, padding: badgeBig ? "7px 15px" : "5px 11px", fontSize: badgeBig ? 13 : 11, fontWeight: 600, lineHeight: 1.3 }}>
+      <i className="ti ti-lock" style={{ fontSize: badgeBig ? 14 : 12 }} />
       <span>{t("s1_kicker")}</span>
     </div>
   );
@@ -294,9 +297,9 @@ export default function OnboardingEntry({ language, onSignIn, onNext }) {
             {previewRow}
             {chipsRow(true)}
           </div>
-          <div style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", paddingTop: 24 }}>
+          <div style={{ fontSize: isDesktop ? 15 : 13, color: "var(--ink-3)", textAlign: "center", paddingTop: 24 }}>
             {t("s1_signin")}{" "}
-            <button onClick={onSignIn} style={{ background: "none", border: "none", fontWeight: 700, color: "var(--sky)", cursor: "pointer", fontSize: 13, fontFamily: "inherit" }}>
+            <button onClick={onSignIn} style={{ background: "none", border: "none", fontWeight: 700, color: "var(--sky)", cursor: "pointer", fontSize: isDesktop ? 15 : 13, fontFamily: "inherit" }}>
               {t("s1_signinCta")}
             </button>
           </div>
