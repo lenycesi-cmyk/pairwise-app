@@ -2,9 +2,9 @@ import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import Logo from "../components/Logo";
 
-export default function AuthScreen() {
+export default function AuthScreen({ defaultMode = "login", draftCount = 0, onBack = null }) {
   const { login, signup } = useAuth();
-  const [mode, setMode] = useState("login");
+  const [mode, setMode] = useState(defaultMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -32,6 +32,7 @@ export default function AuthScreen() {
   return (
     <div
       style={{
+        position: "relative",
         minHeight: "100dvh",
         display: "flex",
         flexDirection: "column",
@@ -44,12 +45,43 @@ export default function AuthScreen() {
         margin: "0 auto",
       }}
     >
-      <div style={{ marginBottom: "2.5rem", display: "flex", flexDirection: "column", alignItems: "center" }}>
-        <Logo size={84} stacked />
-        <p style={{ fontSize: 14, color: "var(--ink-3)", marginTop: 12 }}>
-          Vos finances, à deux
-        </p>
-      </div>
+      {onBack && (
+        <button
+          onClick={onBack}
+          aria-label="Retour"
+          style={{ position: "absolute", top: 18, left: 18, background: "none", border: "none", display: "flex", color: "var(--ink-3)", cursor: "pointer" }}
+        >
+          <i className="ti ti-arrow-left" style={{ fontSize: 22 }} aria-hidden="true" />
+        </button>
+      )}
+
+      {draftCount > 0 && mode === "signup" ? (
+        <div style={{ marginBottom: "2rem", textAlign: "center" }}>
+          <div
+            style={{
+              width: 56, height: 56, borderRadius: 16, margin: "0 auto 16px",
+              background: "var(--sky-light)", color: "var(--sky)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}
+          >
+            <i className="ti ti-device-floppy" style={{ fontSize: 28 }} aria-hidden="true" />
+          </div>
+          <h1 style={{ fontSize: 22, marginBottom: 8 }}>
+            {draftCount > 1 ? `Sauvegarde tes ${draftCount} entrées` : "Sauvegarde ton entrée"}
+          </h1>
+          <p style={{ fontSize: 13.5, color: "var(--ink-3)", lineHeight: 1.5 }}>
+            Ton brouillon vit sur cet appareil. Crée un compte pour le garder en sûreté et le
+            retrouver partout.
+          </p>
+        </div>
+      ) : (
+        <div style={{ marginBottom: "2.5rem", display: "flex", flexDirection: "column", alignItems: "center" }}>
+          <Logo size={84} stacked />
+          <p style={{ fontSize: 14, color: "var(--ink-3)", marginTop: 12 }}>
+            Vos finances, à deux
+          </p>
+        </div>
+      )}
 
       <form
         onSubmit={handleSubmit}
