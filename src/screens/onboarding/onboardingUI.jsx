@@ -27,22 +27,6 @@ export function BrandRow() {
   );
 }
 
-// Barre de retour (flèche) collée en haut d'une étape de configuration.
-export function BackBar({ onBack }) {
-  if (!onBack) return null;
-  return (
-    <div style={{ flex: "none", padding: "12px 14px 0" }}>
-      <button
-        onClick={onBack}
-        aria-label="Retour"
-        style={{ background: "none", border: "none", display: "flex", color: "var(--ink-3)", cursor: "pointer", padding: 4 }}
-      >
-        <i className="ti ti-arrow-left" style={{ fontSize: 22 }} />
-      </button>
-    </div>
-  );
-}
-
 // Écran d'attente pendant la création de l'espace / la migration du brouillon.
 export function Splash({ text }) {
   return (
@@ -56,20 +40,28 @@ export function Splash({ text }) {
 // Indicateur d'étape "Étape n/total" + pastilles (n remplies, reste vides).
 // Remplace la jauge en % : repère de progression plus clair sur un parcours
 // court. Bandeau collé en haut, centré.
-export function StepDots({ current, total, label }) {
+export function StepDots({ current, total, label, onBack }) {
   return (
     <div
       style={{
+        position: "relative",
         flex: "none",
         padding: "13px 22px 14px",
-        background: "var(--bg-card)",
-        borderBottom: "0.5px solid var(--rule)",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         gap: 8,
       }}
     >
+      {onBack && (
+        <button
+          onClick={onBack}
+          aria-label="Retour"
+          style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", display: "flex", color: "var(--ink-3)", cursor: "pointer", padding: 4 }}
+        >
+          <i className="ti ti-arrow-left" style={{ fontSize: 22 }} />
+        </button>
+      )}
       <span
         style={{
           fontSize: 11,
