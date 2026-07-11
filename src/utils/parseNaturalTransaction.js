@@ -5,6 +5,24 @@
 // catégorie n'est reconnu.
 import { normalizeText, buildSuggestionIndex, getSuggestions } from "./descriptionSuggestions";
 import { MERCHANT_SYNONYMS } from "../data/merchantSynonyms";
+import { SUGGESTED_TAGS } from "../data/suggestedTags";
+
+// Mots-clés parlés (FR/EN) → tag préréglé. À l'oral personne ne dit « hashtag »,
+// donc on reconnaît les tournures courantes et on retombe sur le tag normalisé.
+// La clé = key d'un tag de SUGGESTED_TAGS ; les valeurs = variantes à détecter.
+const TAG_SPEECH = {
+  inutile: ["inutile", "inutiles", "useless", "waste", "gaspillage"],
+  impulsif: ["impulsif", "impulsive", "impulsion", "impulse", "coup de tete", "coup de coeur"],
+  regret: ["regret", "regrette", "je regrette", "regrettable"],
+  yolo: ["yolo", "assume", "assumee", "no regret"],
+  plaisir: ["plaisir", "petit plaisir", "treat", "guilty pleasure"],
+  urgence: ["urgence", "urgent", "urgente", "emergency"],
+  sante: ["sante", "medical", "medicale", "health", "docteur", "medecin"],
+  remboursable: ["remboursable", "a rembourser", "reimbursable", "expensable"],
+  pro: ["pro", "professionnel", "professionnelle", "boulot", "travail", "business", "work"],
+  cadeau: ["cadeau", "cadeaux", "gift", "present"],
+  vacances: ["vacances", "vacation", "holiday", "holidays", "voyage", "trip"],
+};
 
 const CURRENCY_HINTS = [
   { code: "EUR", tokens: ["€", "eur", "euro", "euros"] },
@@ -133,7 +151,30 @@ function matchSynonym(norm, categories) {
   return null;
 }
 
-export function parseNaturalTransaction(text, { categories = [], transactions = [], defaultCurrency = "EUR" } = {}) {
+// Détecte des tags parlés dans le texte : variantes des tags préréglés, puis
+// tags déjà utilisés dans l'historique (matchés par mot entier). Renvoie une
+// liste normalisée dédoublonnée.
+function detectTags(norm, usedTags) {
+  const found = [];
+  const push = (key) => { if (key && !found.includes(key)) found.push(key); };
+  const preset = new Map(SUGGESTED_TAGS.map((t) => [t.key, t.emoji]));
+  for (const [key, variants] of Object.entries(TAG_SPEECH)) {
+    for (const v of variants) {
+      if (new RegExp(`\\b${escapeRegExp(normalizeText(v))}\\b`).test(norm)) {
+        const emoji = preset.get(key);
+        push(emoji ? emoji + key : key);
+        break;
+      }
+    }
+  }
+  for (const raw of usedTags || []) {
+    const bare = normalizeText(String(raw).replace(/^[^\p{L}\p{N}]+/u, ""));
+    if (bare.length >= 3 && new RegExp(`\\b${escapeRegExp(bare)}\\b`).test(norm)) push(raw);
+  }
+  return found;
+}
+
+export function parseNaturalTransaction(text, { categories = [], transactions = [], defaultCurrency = "EUR", usedTags = [] } = {}) {
   if (!text || !text.trim()) return null;
   const norm = normalizeText(text);
 
@@ -179,5 +220,6 @@ export function parseNaturalTransaction(text, { categories = [], transactions = 
     categoryId: cat?.categoryId || null,
     subcategory: cat?.subcategory || null,
     description: desc || null,
+    tags: detectTags(norm, usedTags),
   };
 }
