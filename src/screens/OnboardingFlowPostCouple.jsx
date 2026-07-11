@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useFinance } from "../context/FinanceContext";
-import OnboardingShareMode from "./onboarding/OnboardingShareMode";
 import OnboardingInvite from "./onboarding/OnboardingInvite";
 import { Splash } from "./onboarding/onboardingUI";
 import { onboardingT } from "../data/onboardingCopy";
@@ -9,16 +8,17 @@ import { loadDraft, clearDraft, loadMeta, clearMeta, loadOnbLang } from "../util
 
 // Orchestrateur de la phase POST-couple (monté dans FinanceProvider, coupleId
 // présent) : migre le brouillon local vers Firestore, puis — si couple —
-// propose le mode de partage et l'invitation, avant de clôturer l'onboarding.
+// affiche l'invitation du/de la partenaire, avant de clôturer l'onboarding.
+// (Le mode de partage est désormais choisi avant le sign-up.)
 export default function OnboardingFlowPostCouple() {
   const { user, coupleId, completeOnboarding } = useAuth();
-  const { addTransaction, updateFinanceMode } = useFinance();
+  const { addTransaction } = useFinance();
   const lang = loadOnbLang() || "fr";
   const meta = loadMeta();
   const isCouple = meta.accountType === "couple";
 
   const [migrated, setMigrated] = useState(false);
-  const [step, setStep] = useState(isCouple ? "mode" : "finalizing");
+  const step = isCouple ? "invite" : "finalizing";
   const migRef = useRef(false);
 
   // Migration du brouillon (une seule fois).
@@ -58,17 +58,6 @@ export default function OnboardingFlowPostCouple() {
       completeOnboarding();
     }
   }, [isCouple, migrated, step, completeOnboarding]);
-
-  if (step === "mode")
-    return (
-      <OnboardingShareMode
-        language={lang}
-        onPick={async (mode) => {
-          await updateFinanceMode(mode);
-          setStep("invite");
-        }}
-      />
-    );
 
   if (step === "invite")
     return (

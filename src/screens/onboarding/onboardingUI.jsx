@@ -27,6 +27,22 @@ export function BrandRow() {
   );
 }
 
+// Barre de retour (flèche) collée en haut d'une étape de configuration.
+export function BackBar({ onBack }) {
+  if (!onBack) return null;
+  return (
+    <div style={{ flex: "none", padding: "12px 14px 0" }}>
+      <button
+        onClick={onBack}
+        aria-label="Retour"
+        style={{ background: "none", border: "none", display: "flex", color: "var(--ink-3)", cursor: "pointer", padding: 4 }}
+      >
+        <i className="ti ti-arrow-left" style={{ fontSize: 22 }} />
+      </button>
+    </div>
+  );
+}
+
 // Écran d'attente pendant la création de l'espace / la migration du brouillon.
 export function Splash({ text }) {
   return (
