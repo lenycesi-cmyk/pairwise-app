@@ -1,14 +1,14 @@
 import { onboardingT } from "../../data/onboardingCopy";
-import { SetupGauge, ChoiceCard, BackBar } from "./onboardingUI";
+import { StepDots, ChoiceCard, BackBar } from "./onboardingUI";
 import { screenWrap, scrollArea, displayTitle } from "./onboardingStyles";
 
-// Écran 2 · Solo ou couple ? Choix réversible, jauge "jamais à 0 %" (80 %).
+// Écran 2 · Solo ou couple ? Choix réversible (dernière étape : 3/3).
 export default function OnboardingAccountType({ language, onPick, onJoin, onBack }) {
   const t = onboardingT(language);
   return (
     <div style={screenWrap}>
       <BackBar onBack={onBack} />
-      <SetupGauge pct={80} label={t("gauge")} />
+      <StepDots current={3} total={3} label={t("step")} />
       <div style={scrollArea}>
         <h1 style={displayTitle}>{t("s4_t")}</h1>
         <p style={{ fontSize: 14, lineHeight: 1.5, color: "var(--ink-2)", margin: "0 0 24px" }}>

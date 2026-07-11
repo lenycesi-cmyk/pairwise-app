@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { onboardingT } from "../../data/onboardingCopy";
-import { SetupGauge } from "./onboardingUI";
+import { StepDots } from "./onboardingUI";
 import { screenWrap, scrollArea, primaryBtn, displayTitle } from "./onboardingStyles";
 
 // Écran 6 · Inviter le/la partenaire (si couple). Code du couple + copie du
@@ -22,7 +22,7 @@ export default function OnboardingInvite({ language, coupleCode, onDone }) {
 
   return (
     <div style={screenWrap}>
-      <SetupGauge pct={90} label={t("gauge")} />
+      <StepDots current={3} total={3} label={t("step")} />
       <div style={{ ...scrollArea, alignItems: "center", textAlign: "center" }}>
         <div
           style={{

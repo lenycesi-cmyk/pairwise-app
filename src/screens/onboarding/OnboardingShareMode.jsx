@@ -1,5 +1,5 @@
 import { onboardingT } from "../../data/onboardingCopy";
-import { SetupGauge, ChoiceCard, BackBar } from "./onboardingUI";
+import { StepDots, ChoiceCard, BackBar } from "./onboardingUI";
 import { screenWrap, scrollArea, displayTitle } from "./onboardingStyles";
 
 // Écran 3 · Mode de partage (si couple), juste après le choix solo/couple.
@@ -10,7 +10,7 @@ export default function OnboardingShareMode({ language, onPick, onBack }) {
   return (
     <div style={screenWrap}>
       <BackBar onBack={onBack} />
-      <SetupGauge pct={90} label={t("gauge")} />
+      <StepDots current={3} total={3} label={t("step")} />
       <div style={scrollArea}>
         <h1 style={displayTitle}>{t("s5_t")}</h1>
         <p style={{ fontSize: 14, lineHeight: 1.5, color: "var(--ink-2)", margin: "0 0 22px" }}>
