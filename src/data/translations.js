@@ -101,6 +101,8 @@ export const TRANSLATIONS = {
     // Add transaction
     tx_new: "Nouvelle transaction",
     tx_edit: "Modifier la transaction",
+    tx_delete: "Supprimer la transaction",
+    tx_delete_confirm: "Supprimer cette transaction ?",
     tx_expense: "Dépense",
     tx_income: "Revenu",
     tx_investment: "Invest.",
@@ -609,6 +611,8 @@ export const TRANSLATIONS = {
     // Add transaction
     tx_new: "New transaction",
     tx_edit: "Edit transaction",
+    tx_delete: "Delete transaction",
+    tx_delete_confirm: "Delete this transaction?",
     tx_expense: "Expense",
     tx_income: "Income",
     tx_investment: "Invest.",

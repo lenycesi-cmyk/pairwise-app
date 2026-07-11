@@ -13,7 +13,7 @@ import { buildSuggestionIndex, getSuggestions, findExactMatch } from "../utils/d
 import TransactionComments from "../components/TransactionComments";
 import TagInput from "../components/TagInput";
 import TagManager from "../components/TagManager";
-import { dedupeTags, extractTagsFromText } from "../utils/tags";
+import { dedupeTags, extractTagsFromText, usedTags } from "../utils/tags";
 import { parseNaturalTransaction } from "../utils/parseNaturalTransaction";
 import QuickAddBar from "../components/QuickAddBar";
 
@@ -39,6 +39,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
     transactions,
     addTransaction,
     updateTransaction,
+    deleteTransaction,
     updateCategories,
     addRecurring,
     defaultCurrency,
@@ -285,6 +286,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
       categories,
       transactions,
       defaultCurrency: currencyMode === "last" ? lastUsedCurrency : defaultCurrency,
+      usedTags: usedTags(transactions),
     });
     if (!parsed) return;
     setType(parsed.type);
@@ -293,10 +295,11 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
     if (parsed.date) setDateTime(toDateTimeLocal(parsed.date));
     if (parsed.categoryId) setCategoryId(parsed.categoryId);
     if (parsed.subcategory) setSubcategory(parsed.subcategory);
-    if (parsed.description) {
-      setDescription(parsed.description);
-      setTags(extractTagsFromText(text));
-    }
+    if (parsed.description) setDescription(parsed.description);
+    // Tags : #hashtags éventuels + tags détectés à l'oral (mots-clés préréglés
+    // ou tags déjà utilisés dans l'historique).
+    const nlTags = dedupeTags([...extractTagsFromText(text), ...(parsed.tags || [])]);
+    if (nlTags.length) setTags((prev) => dedupeTags([...prev, ...nlTags]));
   }
 
   async function handleSave() {
@@ -393,7 +396,22 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
         <h1 style={{ fontSize: 17, flex: 1, textAlign: "center", margin: 0 }}>
           {isEditing ? t("tx_edit") : t("tx_new")}
         </h1>
-        <div style={{ width: 20 }} />
+        {isEditing ? (
+          <button
+            onClick={async () => {
+              if (confirm(t("tx_delete_confirm"))) {
+                await deleteTransaction(editingTx.id);
+                onClose();
+              }
+            }}
+            aria-label={t("tx_delete")}
+            style={{ background: "none", border: "none", display: "flex", color: "var(--tang)", cursor: "pointer" }}
+          >
+            <i className="ti ti-trash" style={{ fontSize: 20 }} aria-hidden="true" />
+          </button>
+        ) : (
+          <div style={{ width: 20 }} />
+        )}
       </div>
 
       <div style={{ flex: 1, overflowY: "auto", padding: "1rem 1.25rem" }}>
