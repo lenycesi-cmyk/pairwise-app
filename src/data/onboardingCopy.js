@@ -6,7 +6,8 @@ const ONBOARDING_COPY = {
   fr: {
     // Accueil
     s1_kicker: "Aucune inscription · tes données restent sur cet appareil",
-    s1_sub: "Tape une dépense ou un revenu récent, on range tout pour toi.",
+    s1_title: "Commence par une dépense ou un revenu",
+    s1_sub: "Tape ce que tu as dépensé ou reçu, on range tout pour toi",
     s1_cta: "C'est parti",
     s1_signin: "Déjà un compte ?",
     s1_signinCta: "Se connecter",
@@ -75,7 +76,8 @@ const ONBOARDING_COPY = {
   },
   en: {
     s1_kicker: "No sign-up · your data stays on this device",
-    s1_sub: "Type a recent expense or income, we'll sort it all for you.",
+    s1_title: "Start with an expense or an income",
+    s1_sub: "Type what you spent or received, we'll sort it all for you",
     s1_cta: "Let's go",
     s1_signin: "Already have an account?",
     s1_signinCta: "Sign in",

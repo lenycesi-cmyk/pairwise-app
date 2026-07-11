@@ -31,14 +31,15 @@ function generateCoupleCode() {
 // l'espace couple à partir du brouillon/meta.
 export default function OnboardingFlowPreCouple({ onSignIn }) {
   const { user, setCoupleId, setOnboardingComplete } = useAuth();
-  const [lang, setLang] = useState(() => loadOnbLang() || detectOnboardingLanguage());
+  // Langue détectée depuis le navigateur (pas de sélecteur à l'écran). On la
+  // mémorise pour que la phase post-couple (migration, invitation) l'utilise.
+  const [lang] = useState(() => loadOnbLang() || detectOnboardingLanguage());
   const [step, setStep] = useState("entry"); // entry | account | mode | signup
   const creatingRef = useRef(false);
 
-  function setLanguage(l) {
-    setLang(l);
-    saveOnbLang(l);
-  }
+  useEffect(() => {
+    saveOnbLang(lang);
+  }, [lang]);
 
   // Post-signup : compte créé mais pas encore d'espace couple → on le crée.
   // Le cas "join" est délégué à CoupleSetupScreen (flux de jointure existant).
@@ -79,7 +80,6 @@ export default function OnboardingFlowPreCouple({ onSignIn }) {
     return (
       <OnboardingEntry
         language={lang}
-        onSetLanguage={setLanguage}
         onSignIn={onSignIn}
         onNext={() => setStep("account")}
       />

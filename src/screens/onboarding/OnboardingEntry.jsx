@@ -12,7 +12,7 @@ import {
 } from "../../utils/onboardingDraft";
 import { ALL_CATEGORIES, getCategoryName } from "../../data/categories";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
-import { screenWrap, primaryBtn, ghostBtn } from "./onboardingStyles";
+import { screenWrap, primaryBtn } from "./onboardingStyles";
 import { StepDots } from "./onboardingUI";
 
 const CHIPS = {
@@ -30,10 +30,10 @@ const EXPENSE_CATS = ALL_CATEGORIES.filter(
 );
 
 // Écran 1 unifié · Accueil ↔ "ajoute des éléments". Une seule page qui se
-// transforme : à vide, c'est l'accueil (hero + champ à exemples défilants) ;
-// dès la 1ʳᵉ ligne saisie, elle devient l'étape 2/3 (insight + répartition +
-// liste), sans impression de changement de page. Desktop en 2 colonnes.
-export default function OnboardingEntry({ language, onSetLanguage, onSignIn, onNext }) {
+// transforme : à vide, c'est l'accueil (hero centré + champ à exemples
+// défilants) ; dès la 1ʳᵉ ligne, elle devient l'étape 2/3. Langue détectée
+// depuis le navigateur (pas de sélecteur). Desktop en 2 colonnes.
+export default function OnboardingEntry({ language, onSignIn, onNext }) {
   const t = onboardingT(language);
   const defCur = guessDefaultCurrency();
   const isDesktop = useMediaQuery("(min-width: 760px)");
@@ -48,7 +48,6 @@ export default function OnboardingEntry({ language, onSetLanguage, onSignIn, onN
   const chips = CHIPS[lg];
   const placeholders = PLACEHOLDERS[lg];
 
-  // Défilement des exemples dans le placeholder tant que le champ est vide.
   useEffect(() => {
     if (input) return;
     const iv = setInterval(() => setPhIndex((n) => (n + 1) % placeholders.length), 2600);
@@ -71,10 +70,10 @@ export default function OnboardingEntry({ language, onSetLanguage, onSignIn, onN
     persist([entry, ...draft]);
     setInput("");
   }
-  function reset() {
-    persist([]);
-    clearDraft();
-    setInput("");
+  function removeEntry(id) {
+    const next = draft.filter((d) => d.id !== id);
+    persist(next);
+    if (next.length === 0) clearDraft();
   }
   function setCategory(id, categoryId) {
     persist(draft.map((d) => (d.id === id ? { ...d, categoryId, subcategory: null } : d)));
@@ -84,25 +83,14 @@ export default function OnboardingEntry({ language, onSetLanguage, onSignIn, onN
   const insight = hasDraft ? deriveInsight(draft, language, t) : null;
 
   // ── Fragments réutilisés ────────────────────────────────────────────────
-  const brandBar = (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-        <div style={{ width: 26, height: 26, borderRadius: 8, background: "var(--tang)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 14 }}>P</div>
+  function logo(center) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", gap: 9, justifyContent: center ? "center" : "flex-start" }}>
+        <div style={{ width: 28, height: 28, borderRadius: 8, background: "var(--tang)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 15 }}>P</div>
         <span style={{ fontWeight: 700, fontSize: 15 }}>PairWise</span>
       </div>
-      <div style={{ display: "flex", background: "var(--bg-card)", border: "0.5px solid var(--rule)", borderRadius: 999, padding: 3 }}>
-        {["fr", "en"].map((l) => (
-          <button
-            key={l}
-            onClick={() => onSetLanguage(l)}
-            style={{ border: "none", borderRadius: 999, padding: "4px 10px", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, cursor: "pointer", background: language === l ? "var(--ink)" : "transparent", color: language === l ? "var(--bg)" : "var(--ink-3)" }}
-          >
-            {l.toUpperCase()}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
+    );
+  }
 
   const privacyBadge = (
     <div style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "var(--sage-light)", color: "var(--sage)", borderRadius: 999, padding: "5px 11px", fontSize: 11, fontWeight: 600, lineHeight: 1.3 }}>
@@ -127,16 +115,30 @@ export default function OnboardingEntry({ language, onSetLanguage, onSignIn, onN
     );
   }
 
-  const chipsRow = (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 11 }}>
-      <span style={{ fontSize: 11.5, color: "var(--ink-3)", alignSelf: "center" }}>{t("s1_try")}</span>
-      {chips.map((c) => (
-        <button key={c} onClick={() => setInput(c)} style={{ fontSize: 11.5, color: "var(--ink-2)", background: "var(--bg-card)", border: "0.5px solid var(--rule)", borderRadius: 999, padding: "4px 10px", cursor: "pointer", fontFamily: "inherit" }}>
-          {c}
+  // Champ + bouton flèche (étape 2).
+  function addRow() {
+    return (
+      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        {inputField()}
+        <button onClick={submit} aria-label={t("s2_add")} style={{ border: "none", background: "var(--tang)", color: "#fff", borderRadius: 13, width: 46, height: 46, flex: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "var(--shadow)" }}>
+          <i className="ti ti-arrow-up" style={{ fontSize: 20 }} />
         </button>
-      ))}
-    </div>
-  );
+      </div>
+    );
+  }
+
+  function chipsRow(center) {
+    return (
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 11, justifyContent: center ? "center" : "flex-start" }}>
+        <span style={{ fontSize: 11.5, color: "var(--ink-3)", alignSelf: "center" }}>{t("s1_try")}</span>
+        {chips.map((c) => (
+          <button key={c} onClick={() => setInput(c)} style={{ fontSize: 11.5, color: "var(--ink-2)", background: "var(--bg-card)", border: "0.5px solid var(--rule)", borderRadius: 999, padding: "4px 10px", cursor: "pointer", fontFamily: "inherit" }}>
+            {c}
+          </button>
+        ))}
+      </div>
+    );
+  }
 
   const previewRow = preview && (
     <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginTop: 11, animation: "pw-rise .3s ease both" }}>
@@ -186,7 +188,7 @@ export default function OnboardingEntry({ language, onSetLanguage, onSignIn, onN
     </div>
   );
 
-  function listBlock({ withTotal }) {
+  function listBlock() {
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {draft.map((d) => {
@@ -208,15 +210,16 @@ export default function OnboardingEntry({ language, onSetLanguage, onSignIn, onN
                 <div style={{ fontSize: 11.5, color: "var(--ink-3)" }}>{v.dateLabel}</div>
               </div>
               <div style={{ fontSize: 14, fontWeight: 700, color: v.amountColor }}>{v.amountDisp}</div>
+              <button
+                onClick={() => removeEntry(d.id)}
+                aria-label="Supprimer"
+                style={{ background: "none", border: "none", display: "flex", color: "var(--ink-3)", cursor: "pointer", padding: 4, flex: "none" }}
+              >
+                <i className="ti ti-trash" style={{ fontSize: 16 }} />
+              </button>
             </div>
           );
         })}
-        {withTotal && insight && (
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 4px 2px", borderTop: "0.5px solid var(--rule)", marginTop: 4 }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink-2)" }}>Total</span>
-            <span style={{ fontSize: 15, fontWeight: 800, color: "var(--tang)" }}>{insight.expenseDisp}</span>
-          </div>
-        )}
       </div>
     );
   }
@@ -225,12 +228,6 @@ export default function OnboardingEntry({ language, onSetLanguage, onSignIn, onN
     <button onClick={onNext} style={primaryBtn}>
       {t("s2_next")}
       <i className="ti ti-arrow-right" style={{ fontSize: 16 }} />
-    </button>
-  );
-  const resetBtn = (
-    <button onClick={reset} style={ghostBtn}>
-      <i className="ti ti-trash" style={{ fontSize: 14 }} />
-      {t("s2_reset")}
     </button>
   );
 
@@ -252,17 +249,20 @@ export default function OnboardingEntry({ language, onSetLanguage, onSignIn, onN
     </div>
   );
 
-  // ── ÉTAT ACCUEIL (aucune entrée) ────────────────────────────────────────
+  // ── ÉTAT ACCUEIL (aucune entrée) — centré, sans sélecteur de langue ──────
   if (!hasDraft) {
     return (
       <div style={{ ...screenWrap, maxWidth: 430 }}>
-        <div style={{ flex: 1, overflowY: "auto", padding: "24px 22px 22px", display: "flex", flexDirection: "column" }}>
-          {brandBar}
-          <div style={{ marginTop: 20, marginBottom: 20 }}>{privacyBadge}</div>
-          <p style={{ fontSize: 19, fontWeight: 700, lineHeight: 1.35, color: "var(--ink)", margin: "0 0 22px" }}>
+        <div style={{ flex: 1, overflowY: "auto", padding: "40px 22px 24px", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
+          {logo(true)}
+          <div style={{ margin: "22px 0 22px" }}>{privacyBadge}</div>
+          <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 27, lineHeight: 1.2, letterSpacing: "-0.01em", color: "var(--ink)", margin: "0 0 12px", maxWidth: 340 }}>
+            {t("s1_title")}
+          </h1>
+          <p style={{ fontSize: 14.5, lineHeight: 1.5, color: "var(--ink-3)", margin: "0 0 26px", maxWidth: 320 }}>
             {t("s1_sub")}
           </p>
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <div style={{ width: "100%", display: "flex", gap: 8, alignItems: "center" }}>
             {inputField()}
             {isDesktop && (
               <button onClick={submit} style={{ ...primaryBtn, width: "auto", padding: "0 18px", height: 48, flex: "none" }}>
@@ -278,9 +278,9 @@ export default function OnboardingEntry({ language, onSetLanguage, onSignIn, onN
               <i className="ti ti-arrow-right" style={{ fontSize: 17 }} />
             </button>
           )}
-          {chipsRow}
+          {chipsRow(true)}
           <div style={{ flex: 1 }} />
-          <div style={{ textAlign: "center", fontSize: 13, color: "var(--ink-3)", paddingTop: 20 }}>
+          <div style={{ fontSize: 13, color: "var(--ink-3)", paddingTop: 24 }}>
             {t("s1_signin")}{" "}
             <button onClick={onSignIn} style={{ background: "none", border: "none", fontWeight: 700, color: "var(--sky)", cursor: "pointer", fontSize: 13, fontFamily: "inherit" }}>
               {t("s1_signinCta")}
@@ -292,61 +292,60 @@ export default function OnboardingEntry({ language, onSetLanguage, onSignIn, onN
   }
 
   // ── ÉTAT "AJOUTE DES ÉLÉMENTS" (étape 2/3) ──────────────────────────────
-  const header = (
+  const topBar = (
     <div style={{ flex: "none" }}>
       <div style={{ padding: "16px 20px 0" }}>
-        {brandBar}
-        <div style={{ marginTop: 12, marginBottom: 14 }}>{privacyBadge}</div>
+        {logo(false)}
+        <div style={{ marginTop: 12 }}>{privacyBadge}</div>
       </div>
       <StepDots current={2} total={3} label={t("step")} />
-      <div style={{ padding: "14px 20px 12px" }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink-2)", marginBottom: 9 }}>{t("s2_hero")}</div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          {inputField()}
-          <button onClick={submit} aria-label={t("s2_add")} style={{ border: "none", background: "var(--tang)", color: "#fff", borderRadius: 13, width: 46, height: 46, flex: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "var(--shadow)" }}>
-            <i className="ti ti-arrow-up" style={{ fontSize: 20 }} />
-          </button>
-        </div>
-        {previewRow}
-        {chipsRow}
-      </div>
+    </div>
+  );
+
+  // Bloc de saisie (label + champ + chips) — colonne gauche desktop / en-tête mobile.
+  const addZone = (
+    <div>
+      <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink-2)", marginBottom: 9 }}>{t("s2_hero")}</div>
+      {addRow()}
+      {previewRow}
+      {chipsRow(false)}
     </div>
   );
 
   if (isDesktop) {
     return (
       <div style={{ ...screenWrap, maxWidth: 760, height: "100dvh", overflow: "hidden" }}>
-        {header}
-        <div style={{ flex: 1, overflowY: "auto", padding: "16px 20px 24px", borderTop: "0.5px solid var(--rule)" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, alignItems: "start" }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {listBlock({ withTotal: true })}
+        {topBar}
+        <div style={{ flex: 1, overflowY: "auto", padding: "8px 20px 24px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 22, alignItems: "start" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              {addZone}
+              {listBlock()}
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               {insightCard}
               {breakdownBlock}
-              {ctaBtn}
-              {resetBtn}
             </div>
           </div>
+          <div style={{ maxWidth: 360, margin: "28px auto 0" }}>{ctaBtn}</div>
         </div>
         {editSheet}
       </div>
     );
   }
 
-  // Mobile : contenu défilant + footer collé (CTA visible même >3 lignes).
+  // Mobile : en-tête (stepper + saisie) → contenu défilant → footer CTA collé.
   return (
     <div style={{ ...screenWrap, maxWidth: 430, height: "100dvh", overflow: "hidden" }}>
-      {header}
-      <div style={{ flex: 1, overflowY: "auto", padding: "14px 20px 18px", borderTop: "0.5px solid var(--rule)", display: "flex", flexDirection: "column", gap: 16 }}>
+      {topBar}
+      <div style={{ padding: "10px 20px 0", flex: "none" }}>{addZone}</div>
+      <div style={{ flex: 1, overflowY: "auto", padding: "16px 20px 18px", borderTop: "0.5px solid var(--rule)", marginTop: 14, display: "flex", flexDirection: "column", gap: 16 }}>
         {insightCard}
         {breakdownBlock}
-        {listBlock({ withTotal: false })}
+        {listBlock()}
       </div>
-      <div style={{ flex: "none", padding: "12px 20px", borderTop: "0.5px solid var(--rule)", background: "var(--bg)", display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={{ flex: "none", padding: "12px 20px 16px", borderTop: "0.5px solid var(--rule)", background: "var(--bg)" }}>
         {ctaBtn}
-        {resetBtn}
       </div>
       {editSheet}
     </div>
