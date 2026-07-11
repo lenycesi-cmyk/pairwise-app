@@ -11,8 +11,8 @@ import { useBackGuard } from "./hooks/useBackGuard";
 import { useTranslation } from "./hooks/useTranslation";
 import OfflineBanner from "./components/OfflineBanner";
 import AuthScreen from "./screens/AuthScreen";
-import CoupleSetupScreen from "./screens/CoupleSetupScreen";
-import OnboardingScreen from "./screens/OnboardingScreen";
+import OnboardingFlowPreCouple from "./screens/OnboardingFlowPreCouple";
+import OnboardingFlowPostCouple from "./screens/OnboardingFlowPostCouple";
 import DashboardScreen from "./screens/DashboardScreen";
 import BottomNav from "./components/BottomNav";
 
@@ -122,6 +122,10 @@ function AppContent() {
   const [showLanguage, setShowLanguage] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showTransactions, setShowTransactions] = useState(false);
+  // Un·e utilisateur·rice existant·e qui clique "Se connecter" depuis l'accueil
+  // de l'onboarding : on affiche l'écran de connexion classique au lieu du
+  // parcours "valeur d'abord".
+  const [showLogin, setShowLogin] = useState(false);
   // Selected month shared between Home and Reports so switching tabs doesn't
   // silently jump back to the current month (both only ever browse by month;
   // Reports' quarter/year/last12/custom modes stay local to that screen).
@@ -159,8 +163,13 @@ function AppContent() {
     );
   }
 
-  if (!user) return <AuthScreen />;
-  if (!coupleId) return <CoupleSetupScreen />;
+  // Onboarding "valeur d'abord" (option A) : tant qu'il n'y a pas d'espace
+  // couple, on déroule Accueil → Aha → Solo/Couple → Sign-up (pré-couple).
+  // Un·e utilisateur·rice existant·e peut basculer sur la connexion classique.
+  if (!coupleId) {
+    if (showLogin && !user) return <AuthScreen onBack={() => setShowLogin(false)} />;
+    return <OnboardingFlowPreCouple onSignIn={() => setShowLogin(true)} />;
+  }
 
   function openEdit(tx, returnTo = null) {
     setEditingTx(tx);
@@ -198,7 +207,7 @@ function AppContent() {
   if (!onboardingComplete) {
     return (
       <FinanceProvider>
-        <OnboardingScreen />
+        <OnboardingFlowPostCouple />
       </FinanceProvider>
     );
   }

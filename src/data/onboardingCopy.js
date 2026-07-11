@@ -1,0 +1,158 @@
+// Copy bilingue de l'onboarding "valeur d'abord" (option A).
+// Bloc plat par langue, comme le reste de l'i18n de l'app. On garde ce module
+// séparé de translations.js : c'est un gros paquet de chaînes propres au
+// parcours de mise en route, consommé uniquement par les écrans onboarding/.
+const ONBOARDING_COPY = {
+  fr: {
+    // Accueil
+    s1_kicker: "Aucune inscription · tes données restent sur cet appareil",
+    s1_t1: "Commence par une dépense.",
+    s1_t2: "Le compte, plus tard.",
+    s1_sub: "Tape ce que tu as dépensé, comme tu le dirais à voix haute. On range tout pour toi.",
+    s1_cta: "C'est parti",
+    s1_signin: "Déjà un compte ?",
+    s1_signinCta: "Se connecter",
+    s1_try: "Essaie :",
+    // Saisie + Aha
+    s2_hero: "Ta 1ʳᵉ dépense ou ton revenu",
+    s2_add: "Ajouter",
+    s2_next: "Créer mon compte",
+    s2_got: "Compris",
+    s2_empty: "Tape une dépense ou un revenu — ça se range tout seul.",
+    s2_insight: "Ton premier insight",
+    s2_break: "Répartition",
+    s2_reset: "Vider le brouillon",
+    revLabel: "Revenus",
+    expLabel: "Dépenses",
+    // Insight généré
+    week: "cette semaine",
+    mostly: "surtout en",
+    balance_pos: "Solde +{bal} cette semaine — {exp} dépensés, {mostly} {cat}.",
+    balance_neg: "Solde −{bal} cette semaine — {exp} dépensés, {mostly} {cat}.",
+    income_only: "{inc} de revenus enregistrés cette semaine.",
+    expense_only: "Tu as dépensé {exp} cette semaine — surtout en {cat}.",
+    // Jauge
+    gauge: "Mise en route",
+    // Solo / couple
+    s4_t: "Tu gères seul·e, ou à deux ?",
+    s4_sub: "Aucun engagement : tu changes quand tu veux dans les réglages.",
+    s4_solo_t: "Juste moi",
+    s4_solo_b: "Je suis mes finances. J'inviterai quelqu'un plus tard si l'envie vient.",
+    s4_cpl_t: "Nous deux",
+    s4_cpl_b: "On suit nos dépenses ensemble — chacun voit tout, en temps réel.",
+    s4_rev: "Réversible à tout moment",
+    s4_join: "J'ai reçu un code d'invitation",
+    // Sign-up différé
+    s6_title: "Sauvegarde tes {n} entrées",
+    s6_title_zero: "Crée ton compte",
+    s6_sub: "Ton brouillon vit sur cet appareil. Crée un compte pour le garder en sûreté et le retrouver partout.",
+    s6_draft: "À rattacher à ton compte",
+    s6_notsaved: "Non sauvegardé",
+    s6_after: "Rien à ressaisir : tes dépenses sont conservées telles quelles.",
+    // Mode de partage
+    s5_t: "Comment gérez-vous l'argent ?",
+    s5_sub: "En langage humain, pas en jargon. Modifiable dans les réglages.",
+    s5_sh_t: "Dépenses partagées",
+    s5_sh_b: "Chacun paie parfois. On calcule qui doit combien à l'autre, sans prise de tête.",
+    s5_sh_tag: "Suivi des dettes",
+    s5_default: "par défaut",
+    s5_co_t: "Compte commun",
+    s5_co_b: "L'argent est déjà commun. Pas de dette entre vous : on suit juste qui dépense quoi.",
+    s5_co_tag: "Sans dette",
+    // Invitation
+    s7_t: "Invite ta moitié",
+    s7_sub: "Partage ce code ou ce lien. Iel rejoint en dix secondes.",
+    s7_code: "Code du couple",
+    s7_copy: "Copier le lien",
+    s7_copied: "Lien copié",
+    s7_scan: "ou fais scanner ce code",
+    s7_later: "Plus tard",
+    s7_done: "Terminer",
+    s7_anytime: "Accessible à tout moment — pas seulement maintenant.",
+    // Divers
+    saving: "On sauvegarde ton brouillon…",
+    tod: "Aujourd'hui",
+    yest: "Hier",
+  },
+  en: {
+    s1_kicker: "No sign-up · your data stays on this device",
+    s1_t1: "Start with an expense.",
+    s1_t2: "The account comes later.",
+    s1_sub: "Type what you spent, the way you'd say it out loud. We sort it all for you.",
+    s1_cta: "Let's go",
+    s1_signin: "Already have an account?",
+    s1_signinCta: "Sign in",
+    s1_try: "Try:",
+    s2_hero: "Your 1st expense or income",
+    s2_add: "Add",
+    s2_next: "Create my account",
+    s2_got: "Got it",
+    s2_empty: "Type an expense or income — it sorts itself.",
+    s2_insight: "Your first insight",
+    s2_break: "Breakdown",
+    s2_reset: "Clear draft",
+    revLabel: "Income",
+    expLabel: "Expenses",
+    week: "this week",
+    mostly: "mostly on",
+    balance_pos: "Balance +{bal} this week — {exp} spent, {mostly} {cat}.",
+    balance_neg: "Balance −{bal} this week — {exp} spent, {mostly} {cat}.",
+    income_only: "{inc} of income logged this week.",
+    expense_only: "You spent {exp} this week — mostly on {cat}.",
+    gauge: "Getting set up",
+    s4_t: "Just you, or the two of you?",
+    s4_sub: "No commitment: switch whenever you like in settings.",
+    s4_solo_t: "Just me",
+    s4_solo_b: "I track my own finances. I'll invite someone later if I want to.",
+    s4_cpl_t: "The two of us",
+    s4_cpl_b: "We track spending together — each of us sees everything, in real time.",
+    s4_rev: "Reversible anytime",
+    s4_join: "I received an invite code",
+    s6_title: "Save your {n} entries",
+    s6_title_zero: "Create your account",
+    s6_sub: "Your draft lives on this device. Create an account to keep it safe and find it anywhere.",
+    s6_draft: "To attach to your account",
+    s6_notsaved: "Not saved",
+    s6_after: "Nothing to re-enter: your expenses are kept exactly as they are.",
+    s5_t: "How do you handle money?",
+    s5_sub: "In plain language, not jargon. Changeable in settings.",
+    s5_sh_t: "Shared expenses",
+    s5_sh_b: "Each of you pays sometimes. We work out who owes whom, no headaches.",
+    s5_sh_tag: "Debt tracking",
+    s5_default: "default",
+    s5_co_t: "Joint account",
+    s5_co_b: "The money is already shared. No debt between you: we just track who spends what.",
+    s5_co_tag: "No debt",
+    s7_t: "Invite your other half",
+    s7_sub: "Share this code or link. They join in ten seconds.",
+    s7_code: "Couple code",
+    s7_copy: "Copy link",
+    s7_copied: "Link copied",
+    s7_scan: "or have them scan this code",
+    s7_later: "Later",
+    s7_done: "Finish",
+    s7_anytime: "Available anytime — not only right now.",
+    saving: "Saving your draft…",
+    tod: "Today",
+    yest: "Yesterday",
+  },
+};
+
+// Renvoie une fonction de lookup t(key) + interpolation {var} pour la langue.
+export function onboardingT(language) {
+  const dict = ONBOARDING_COPY[language === "en" ? "en" : "fr"];
+  return (key, vars) => {
+    let s = dict[key] ?? key;
+    if (vars) for (const k in vars) s = s.replace(`{${k}}`, vars[k]);
+    return s;
+  };
+}
+
+// Langue initiale déduite du navigateur (fr par défaut), overridable ensuite.
+export function detectOnboardingLanguage() {
+  try {
+    return (navigator.language || "fr").toLowerCase().startsWith("en") ? "en" : "fr";
+  } catch {
+    return "fr";
+  }
+}

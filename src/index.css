@@ -82,6 +82,17 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Animations de l'onboarding "valeur d'abord" (voir screens/onboarding). */
+@keyframes pw-blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+@keyframes pw-rise { 0% { opacity: 0; transform: translateY(10px) scale(0.98); } 100% { opacity: 1; transform: none; } }
+@keyframes pw-pop { 0% { opacity: 0; transform: scale(0.85); } 60% { transform: scale(1.04); } 100% { opacity: 1; transform: scale(1); } }
+@keyframes pw-spin { to { transform: rotate(360deg); } }
+.pw-spin { animation: pw-spin 0.9s linear infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .pw-spin { animation-duration: 2s; }
+  [style*="pw-rise"], [style*="pw-pop"] { animation: none !important; }
+}
+
 html {
   font-size: 16px;
   -webkit-text-size-adjust: 100%;
