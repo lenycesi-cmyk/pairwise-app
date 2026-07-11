@@ -249,38 +249,52 @@ export default function OnboardingEntry({ language, onSignIn, onNext }) {
     </div>
   );
 
-  // ── ÉTAT ACCUEIL (aucune entrée) — centré, sans sélecteur de langue ──────
+  // ── ÉTAT ACCUEIL (aucune entrée) — grand hero centré, langue auto ────────
   if (!hasDraft) {
     return (
-      <div style={{ ...screenWrap, maxWidth: 430 }}>
-        <div style={{ flex: 1, overflowY: "auto", padding: "40px 22px 24px", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
-          {logo(true)}
-          <div style={{ margin: "22px 0 22px" }}>{privacyBadge}</div>
-          <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 27, lineHeight: 1.2, letterSpacing: "-0.01em", color: "var(--ink)", margin: "0 0 12px", maxWidth: 340 }}>
-            {t("s1_title")}
-          </h1>
-          <p style={{ fontSize: 14.5, lineHeight: 1.5, color: "var(--ink-3)", margin: "0 0 26px", maxWidth: 320 }}>
-            {t("s1_sub")}
-          </p>
-          <div style={{ width: "100%", display: "flex", gap: 8, alignItems: "center" }}>
-            {inputField()}
-            {isDesktop && (
-              <button onClick={submit} style={{ ...primaryBtn, width: "auto", padding: "0 18px", height: 48, flex: "none" }}>
-                {t("s1_cta")}
-                <i className="ti ti-arrow-right" style={{ fontSize: 16 }} />
-              </button>
-            )}
+      <div style={{ ...screenWrap, maxWidth: isDesktop ? 620 : 430 }}>
+        <div style={{ flex: 1, overflowY: "auto", padding: "32px 24px 24px", display: "flex", flexDirection: "column" }}>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center" }}>
+            {logo(true)}
+            <div style={{ margin: "24px 0" }}>{privacyBadge}</div>
+            <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: isDesktop ? 42 : 29, lineHeight: 1.12, letterSpacing: "-0.02em", color: "var(--ink)", margin: "0 0 16px", maxWidth: isDesktop ? 540 : 340 }}>
+              {t("s1_title")}
+            </h1>
+            <p style={{ fontSize: isDesktop ? 17 : 15, lineHeight: 1.5, color: "var(--ink-3)", margin: "0 0 30px", maxWidth: isDesktop ? 470 : 320 }}>
+              {t("s1_sub")}
+            </p>
+
+            <div style={{ width: "100%", maxWidth: 540 }}>
+              {isDesktop ? (
+                <div style={{ display: "flex", alignItems: "center", gap: 10, background: "var(--bg-card)", border: "1.5px solid var(--tang)", borderRadius: 18, padding: "8px 8px 8px 18px", boxShadow: "0 10px 28px var(--tang-light)" }}>
+                  <i className="ti ti-sparkles" style={{ color: "var(--tang)", fontSize: 20, flex: "none" }} />
+                  <input
+                    ref={inputRef}
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && submit()}
+                    placeholder={input ? "" : placeholders[phIndex]}
+                    style={{ flex: 1, border: "none", outline: "none", background: "transparent", fontFamily: "inherit", fontSize: 16, fontWeight: 500, color: "var(--ink)", padding: "14px 0", minWidth: 0 }}
+                  />
+                  <button onClick={submit} style={{ ...primaryBtn, width: "auto", padding: "0 20px", height: 48, flex: "none", fontSize: 15 }}>
+                    {t("s1_cta")}
+                    <i className="ti ti-arrow-right" style={{ fontSize: 16 }} />
+                  </button>
+                </div>
+              ) : (
+                <>
+                  {inputField()}
+                  <button onClick={submit} style={{ ...primaryBtn, marginTop: 12 }}>
+                    {t("s1_cta")}
+                    <i className="ti ti-arrow-right" style={{ fontSize: 17 }} />
+                  </button>
+                </>
+              )}
+            </div>
+            {previewRow}
+            {chipsRow(true)}
           </div>
-          {previewRow}
-          {!isDesktop && (
-            <button onClick={submit} style={{ ...primaryBtn, marginTop: 12 }}>
-              {t("s1_cta")}
-              <i className="ti ti-arrow-right" style={{ fontSize: 17 }} />
-            </button>
-          )}
-          {chipsRow(true)}
-          <div style={{ flex: 1 }} />
-          <div style={{ fontSize: 13, color: "var(--ink-3)", paddingTop: 24 }}>
+          <div style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", paddingTop: 24 }}>
             {t("s1_signin")}{" "}
             <button onClick={onSignIn} style={{ background: "none", border: "none", fontWeight: 700, color: "var(--sky)", cursor: "pointer", fontSize: 13, fontFamily: "inherit" }}>
               {t("s1_signinCta")}
