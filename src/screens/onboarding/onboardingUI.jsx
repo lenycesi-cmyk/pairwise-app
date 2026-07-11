@@ -53,59 +53,51 @@ export function Splash({ text }) {
   );
 }
 
-// Jauge de mise en route "jamais à 0 %" (goal-gradient). Bandeau collé en haut.
-export function SetupGauge({ pct, label }) {
+// Indicateur d'étape "Étape n/total" + pastilles (n remplies, reste vides).
+// Remplace la jauge en % : repère de progression plus clair sur un parcours
+// court. Bandeau collé en haut, centré.
+export function StepDots({ current, total, label }) {
   return (
     <div
       style={{
         flex: "none",
-        padding: "12px 22px 13px",
+        padding: "13px 22px 14px",
         background: "var(--bg-card)",
         borderBottom: "0.5px solid var(--rule)",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 8,
       }}
     >
-      <div
+      <span
         style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: 7,
+          fontSize: 11,
+          fontWeight: 800,
+          textTransform: "uppercase",
+          letterSpacing: "0.06em",
+          color: "var(--ink-3)",
         }}
       >
-        <span
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            fontSize: 10.5,
-            fontWeight: 800,
-            textTransform: "uppercase",
-            letterSpacing: "0.05em",
-            color: "var(--ink-3)",
-          }}
-        >
-          <i className="ti ti-flag" style={{ fontSize: 13, color: "var(--tang)" }} />
-          {label}
+        {label}{" "}
+        <span style={{ color: "var(--tang)" }}>
+          {current}/{total}
         </span>
-        <span style={{ fontSize: 12, fontWeight: 800, color: "var(--tang)" }}>{pct}%</span>
-      </div>
-      <div
-        style={{
-          height: 6,
-          borderRadius: 99,
-          background: "var(--rule)",
-          overflow: "hidden",
-        }}
-      >
-        <div
-          style={{
-            height: "100%",
-            width: `${pct}%`,
-            background: "linear-gradient(90deg, var(--tang), var(--amber))",
-            borderRadius: 99,
-            transition: "width .5s ease",
-          }}
-        />
+      </span>
+      <div style={{ display: "flex", gap: 7 }}>
+        {Array.from({ length: total }).map((_, i) => (
+          <span
+            key={i}
+            style={{
+              width: i < current ? 22 : 8,
+              height: 8,
+              borderRadius: 99,
+              transition: "width .3s ease, background .3s ease",
+              background: i < current ? "var(--tang)" : "transparent",
+              border: i < current ? "none" : "1.5px solid var(--rule)",
+            }}
+          />
+        ))}
       </div>
     </div>
   );
