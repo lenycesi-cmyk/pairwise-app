@@ -12,6 +12,7 @@ import {
   setDoc,
   orderBy,
   arrayUnion,
+  writeBatch,
 } from "firebase/firestore";
 import { db } from "../firebase";
 import { applyTheme } from "../data/themes";
@@ -19,6 +20,7 @@ import { useAuth } from "./AuthContext";
 import { ALL_CATEGORIES } from "../data/categories";
 import { getExchangeRate } from "../utils/currencyConversion";
 import { sendPushNotification } from "../utils/sendPush";
+import { dedupeTags } from "../utils/tags";
 
 const FinanceContext = createContext(null);
 
@@ -288,6 +290,26 @@ export function FinanceProvider({ children }) {
       { customTags: tags },
       { merge: true }
     );
+  }
+
+  // Renomme un tag partout : dans les transactions qui le portent (pour que
+  // les chips et le report par tag restent cohérents) via un batch d'écritures.
+  // La liste customTags elle-même est mise à jour côté appelant (TagManager),
+  // qui connaît la matérialisation des presets.
+  async function replaceTagInTransactions(oldTag, newTag) {
+    if (!coupleId || !newTag || oldTag === newTag) return;
+    const affected = transactions.filter((t) => (t.tags || []).includes(oldTag));
+    if (!affected.length) return;
+    const batch = writeBatch(db);
+    for (const tx of affected) {
+      const nextTags = dedupeTags(
+        (tx.tags || []).map((x) => (x === oldTag ? newTag : x))
+      );
+      batch.update(doc(db, "couples", coupleId, "transactions", tx.id), {
+        tags: nextTags,
+      });
+    }
+    await batch.commit();
   }
 
   async function updateDefaultCurrency(currency) {
@@ -596,6 +618,7 @@ export function FinanceProvider({ children }) {
     updateCategories,
     customTags,
     updateCustomTags,
+    replaceTagInTransactions,
     updateDefaultCurrency,
     updateCurrencyMode,
     addRecurring,

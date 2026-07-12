@@ -144,6 +144,13 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
   const [uploadingReceipt, setUploadingReceipt] = useState(false);
   const receiptInputRef = useRef(null);
 
+  // Suivent si le montant / la catégorie ont été remplis automatiquement à
+  // partir de la description (langage naturel). Tant que c'est le cas, on peut
+  // les affiner à chaque frappe ; dès que l'utilisateur les modifie à la main,
+  // on cesse d'y toucher.
+  const amountAutoRef = useRef(false);
+  const catAutoRef = useRef(false);
+
   function handleReceiptSelect(e) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -199,17 +206,53 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
   function handleDescriptionChange(value) {
     setDescription(value);
     setShowSuggestions(true);
-    // Description connue tapée en entier → catégorie remplie silencieusement
-    // (seulement si l'utilisateur n'en a pas déjà choisi une).
-    if (!categoryId) {
-      const exact = findExactMatch(suggestionIndex, value);
-      if (exact) applyCategoryFromSuggestion(exact);
+
+    // Auto-remplissage à la façon de l'onboarding : on déduit catégorie /
+    // sous-catégorie (et le montant s'il est vide) directement de la saisie.
+    // On ne touche jamais un choix fait à la main — seulement une valeur vide
+    // ou une valeur déjà auto-remplie (qu'on peut donc affiner en tapant).
+    const canFillCat = !categoryId || catAutoRef.current;
+
+    // 1. Description déjà apprise de l'historique → catégorie exacte.
+    const exact = findExactMatch(suggestionIndex, value);
+    if (exact && canFillCat) {
+      applyCategoryFromSuggestion(exact);
+      catAutoRef.current = true;
+      return;
+    }
+
+    // 2. Analyse en langage naturel (marchands, mots-clés type "courses",
+    //    "resto", "loyer"…) + montant éventuel.
+    const parsed = parseNaturalTransaction(value, {
+      categories,
+      transactions,
+      defaultCurrency: currencyMode === "last" ? lastUsedCurrency : defaultCurrency,
+    });
+    if (!parsed) return;
+
+    if (parsed.categoryId && canFillCat) {
+      const cat = availableCategories.find((c) => c.id === parsed.categoryId);
+      if (cat) {
+        setCategoryId(cat.id);
+        setSubcategory(
+          parsed.subcategory && cat.subcategories.includes(parsed.subcategory)
+            ? parsed.subcategory
+            : cat.subcategories[0] || null
+        );
+        catAutoRef.current = true;
+      }
+    }
+
+    if (parsed.amount != null && (!amount || amountAutoRef.current)) {
+      setAmount(String(parsed.amount));
+      amountAutoRef.current = true;
     }
   }
 
   function pickSuggestion(s) {
     setDescription(s.description);
     applyCategoryFromSuggestion(s);
+    catAutoRef.current = false; // choix explicite : ne plus écraser
     setShowSuggestions(false);
   }
 
@@ -218,6 +261,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
   const needsMemberAttribution = type === "income" || type === "investment";
 
   function handleTypeChange(newType) {
+    catAutoRef.current = false;
     setType(newType);
     if (newType === "income") {
       const incomeCat = categories.find((c) => c.id === "income");
@@ -230,6 +274,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
   }
 
   function selectCategory(cat) {
+    catAutoRef.current = false; // choix manuel : l'auto-remplissage ne l'écrase plus
     setCategoryId(cat.id);
     setSubcategory(cat.subcategories[0] || null);
     setShowCatPicker(false);
@@ -300,6 +345,10 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
     // ou tags déjà utilisés dans l'historique).
     const nlTags = dedupeTags([...extractTagsFromText(text), ...(parsed.tags || [])]);
     if (nlTags.length) setTags((prev) => dedupeTags([...prev, ...nlTags]));
+    // Valeurs issues d'un apply explicite : on les fige (l'édition de la
+    // description ne doit pas les réécraser derrière).
+    amountAutoRef.current = false;
+    catAutoRef.current = false;
   }
 
   async function handleSave() {
@@ -473,7 +522,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
                 inputMode="decimal"
                 placeholder="0"
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                onChange={(e) => { amountAutoRef.current = false; setAmount(e.target.value); }}
                 style={{
                   fontSize: 30,
                   fontWeight: 500,
@@ -704,7 +753,65 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
           )}
         </div>
 
-        {/* Catégorie / sous-catégorie / description */}
+        {/* Description — placée juste sous le montant : la saisie déclenche
+            l'auto-remplissage (catégorie / sous-catégorie, et montant si vide)
+            à la façon de l'onboarding, tant que rien n'a été choisi à la main. */}
+        <div
+          style={{
+            background: "var(--bg-card)",
+            borderRadius: "var(--radius-lg)",
+            border: "0.5px solid var(--rule)",
+            padding: "1rem 1.25rem",
+            marginBottom: 12,
+          }}
+        >
+          <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>{t("tx_description")}</p>
+          <input
+            type="text"
+            value={description}
+            onChange={(e) => handleDescriptionChange(e.target.value)}
+            onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+            placeholder={t("tx_description_optional")}
+            style={{
+              width: "100%", padding: "8px 0", border: "none",
+              borderBottom: "0.5px solid var(--rule)", background: "transparent",
+              fontSize: 14, outline: "none",
+            }}
+          />
+          {suggestions.length > 0 && (
+            <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 2 }}>
+              {suggestions.map((s) => {
+                const cat = categories.find((c) => c.id === s.categoryId);
+                return (
+                  <button
+                    key={s.description}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => pickSuggestion(s)}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 8,
+                      padding: "8px 6px", borderRadius: "var(--radius-sm)",
+                      border: "none", background: "var(--bg)",
+                      textAlign: "left", cursor: "pointer",
+                    }}
+                  >
+                    <i className="ti ti-history" style={{ fontSize: 14, color: "var(--ink-3)", flexShrink: 0 }} aria-hidden="true" />
+                    <span style={{ fontSize: 13, flex: 1, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {s.description}
+                    </span>
+                    {cat && (
+                      <span style={{ fontSize: 11, color: "var(--ink-3)", display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+                        <i className={`ti ${cat.icon}`} style={{ fontSize: 13 }} aria-hidden="true" />
+                        {catName(cat)}{s.subcategory ? ` · ${tSubName(s.subcategory, cat.id)}` : ""}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Catégorie / sous-catégorie */}
         <div
           style={{
             background: "var(--bg-card)",
@@ -947,64 +1054,6 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
             </>
           )}
 
-        </div>
-
-        {/* Description — placée après la catégorie pour respecter l'enchaînement
-            montant → catégorie → sous-catégorie → description. La saisie reste
-            liée aux suggestions apprises (remplit la catégorie si non choisie). */}
-        <div
-          style={{
-            background: "var(--bg-card)",
-            borderRadius: "var(--radius-lg)",
-            border: "0.5px solid var(--rule)",
-            padding: "1rem 1.25rem",
-            marginBottom: 12,
-          }}
-        >
-          <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>{t("tx_description")}</p>
-          <input
-            type="text"
-            value={description}
-            onChange={(e) => handleDescriptionChange(e.target.value)}
-            onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
-            placeholder={t("tx_description_optional")}
-            style={{
-              width: "100%", padding: "8px 0", border: "none",
-              borderBottom: "0.5px solid var(--rule)", background: "transparent",
-              fontSize: 14, outline: "none",
-            }}
-          />
-          {suggestions.length > 0 && (
-            <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 2 }}>
-              {suggestions.map((s) => {
-                const cat = categories.find((c) => c.id === s.categoryId);
-                return (
-                  <button
-                    key={s.description}
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => pickSuggestion(s)}
-                    style={{
-                      display: "flex", alignItems: "center", gap: 8,
-                      padding: "8px 6px", borderRadius: "var(--radius-sm)",
-                      border: "none", background: "var(--bg)",
-                      textAlign: "left", cursor: "pointer",
-                    }}
-                  >
-                    <i className="ti ti-history" style={{ fontSize: 14, color: "var(--ink-3)", flexShrink: 0 }} aria-hidden="true" />
-                    <span style={{ fontSize: 13, flex: 1, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                      {s.description}
-                    </span>
-                    {cat && (
-                      <span style={{ fontSize: 11, color: "var(--ink-3)", display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
-                        <i className={`ti ${cat.icon}`} style={{ fontSize: 13 }} aria-hidden="true" />
-                        {catName(cat)}{s.subcategory ? ` · ${tSubName(s.subcategory, cat.id)}` : ""}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          )}
         </div>
 
         {/* Date */}
