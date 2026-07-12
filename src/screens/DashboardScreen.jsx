@@ -29,6 +29,7 @@ import CurrencyPicker from "../components/CurrencyPicker";
 import { useTranslation } from "../hooks/useTranslation";
 import { useCategoryName } from "../hooks/useCategoryName";
 import SpotlightHint from "../components/SpotlightHint";
+import GreetingHeader from "../components/GreetingHeader";
 import { getMemberKey } from "../utils/members";
 import { nextOccurrence, daysUntil } from "../utils/recurrence";
 import { useSubscriptionSuggestion } from "../hooks/useSubscriptionSuggestion";
@@ -858,7 +859,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
         {/* Titre d'onglet, aligné avec la colonne gauche — cohérent avec
             Rapports / Patrimoine / Budget. Sur mobile, laisse la place au
             bouton de menu en haut à gauche (même retrait de 44px). */}
-        <h1 style={{ fontSize: 20, marginLeft: isDesktop ? 0 : 44, whiteSpace: "nowrap" }}>{t("home_title")}</h1>
+        <GreetingHeader subtitleKey="home_subtitle" marginLeft={isDesktop ? 0 : 44} />
         <div style={{ display: "flex", alignItems: "center", gap: 10, justifySelf: "center" }}>
           <button onClick={() => changeMonth(-1)} aria-label="Mois précédent" style={navBtnStyle}>
             <i className="ti ti-chevron-left" style={{ fontSize: 16 }} aria-hidden="true" />
