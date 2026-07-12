@@ -34,6 +34,26 @@ import { getMemberKey } from "../utils/members";
 import { nextOccurrence, daysUntil } from "../utils/recurrence";
 import { useSubscriptionSuggestion } from "../hooks/useSubscriptionSuggestion";
 import { useMediaQuery } from "../hooks/useMediaQuery";
+import { useMasonryGrid } from "../hooks/useMasonryGrid";
+
+// Largeur « bento » de chaque widget en nombre de colonnes de la grille desktop
+// (2 sur desktop standard, 3 au-delà de 1500px). 1 = tuile étroite (compacte :
+// soldes, jauges, graphiques), 2 = tuile large (cartes riches : tableaux,
+// listes, séries temporelles). Valeur par défaut : 1.
+const BENTO_SPAN = {
+  net_balance: 1,
+  health_score: 1,
+  available_savings: 1,
+  net_worth: 1,
+  debt_tracker: 1,
+  wealth_allocation: 1,
+  budget_tracking: 2,
+  member_breakdown: 2,
+  spending_by_category: 2,
+  transaction_history: 2,
+  recurring: 2,
+  reports_trend: 2,
+};
 
 // Desktop-only widgets pull in recharts, which is deliberately kept out of
 // the eager bundle (Dashboard itself loads eagerly — see CLAUDE.md/
@@ -51,7 +71,7 @@ const DESKTOP_ONLY_WIDGETS = ["wealth_allocation", "reports_trend"];
 const LONG_PRESS_DELAY = 500;
 
 // ── Sortable widget wrapper ──────────────────────────────────────────────────
-function SortableWidget({ id, editMode, onLongPress, children }) {
+function SortableWidget({ id, editMode, onLongPress, outerStyle, children }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id, disabled: !editMode });
 
@@ -73,6 +93,7 @@ function SortableWidget({ id, editMode, onLongPress, children }) {
         transition,
         opacity: isDragging ? 0.5 : 1,
         position: "relative",
+        ...outerStyle,
       }}
       onMouseDown={startLongPress}
       onMouseUp={cancelLongPress}
@@ -144,6 +165,21 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
   const { widgets, saveWidgets } = useDashboardPrefs();
   const [localWidgets, setLocalWidgets] = useState(null);
   const activeWidgets = localWidgets ?? widgets;
+
+  // Grille bento (desktop hors édition) : masonry JS pour tasser les cartes de
+  // largeurs variables (BENTO_SPAN) sans espace mort. Le hook doit être appelé
+  // à chaque rendu (avant tout return anticipé). Le ResizeObserver interne gère
+  // les changements de hauteur de contenu ; on ré-attache quand la liste de
+  // widgets change, quand on (dé)charge, ou quand la devise/langue change.
+  const gridRef = useRef(null);
+  const bentoEnabled = isDesktop && !editMode;
+  const bentoSignal = activeWidgets.map((w) => `${w.id}:${w.visible}`).join("|");
+
+  useMasonryGrid(
+    gridRef,
+    { enabled: bentoEnabled },
+    [bentoEnabled, bentoSignal, loading, ratesLoading, displayCurrency, language, trendPeriod]
+  );
 
   const debt = useDebtCalculation(transactions, members, displayCurrency, convert, { settlements: debtSettlements });
   const memberColorMap = useMemo(() => buildMemberColorMap(members), [members]);
@@ -988,12 +1024,13 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
       )}
       </div>
 
-      {/* Widgets — sortable in edit mode. Masonry (card-columns) when not
-          editing ; two-column grid on desktop while customizing so the
-          customize view isn't a single narrow column. rectSortingStrategy
-          handles both single-column and grid reordering. */}
+      {/* Widgets — sortable in edit mode. « Bento » (grille masonry à tuiles de
+          largeurs variables) sur desktop hors édition ; grille 2 colonnes sur
+          desktop pendant la personnalisation ; empilement simple sur mobile.
+          rectSortingStrategy gère la réorganisation dans tous les cas. */}
       <div
-        className={isDesktop && !editMode ? "card-columns" : ""}
+        ref={gridRef}
+        className={bentoEnabled ? "bento-grid" : ""}
         style={{
           padding: "0 1.25rem",
           ...(isDesktop && editMode
@@ -1014,8 +1051,9 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                   id={w.id}
                   editMode={editMode}
                   onLongPress={enterEditMode}
+                  outerStyle={bentoEnabled ? { gridColumn: `span ${BENTO_SPAN[w.id] || 1}` } : undefined}
                 >
-                  <div style={{ marginBottom: 28, position: "relative" }}>
+                  <div style={{ marginBottom: bentoEnabled ? 0 : 28, position: "relative" }}>
                     {/* Toggle button overlay in edit mode — kept at full opacity/contrast
                         regardless of widget visibility, so it stays obviously tappable
                         even when the widget below it is faded out. */}

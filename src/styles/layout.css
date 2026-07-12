@@ -289,3 +289,26 @@
   -webkit-column-break-inside: avoid;
 }
 
+/* Mise en page « bento » du Dashboard (desktop, hors mode édition) : grille à
+   colonnes fixes où chaque widget occupe 1 ou 2 colonnes (`grid-column: span`,
+   posé en inline par widget), et une hauteur de ligne fine (8px) dont le
+   `grid-row-end: span N` est calculé en JS par useMasonryGrid pour tasser les
+   cartes verticalement sans espace mort. row-gap: 0 — l'espacement vertical est
+   intégré au calcul du span (voir le hook). */
+.bento-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-auto-rows: 8px;
+  column-gap: 24px;
+  row-gap: 0;
+  align-items: start;
+}
+
+/* Écrans très larges : 3 colonnes pour plus de variété de tailles (tuiles au
+   tiers / deux-tiers / largeur des cartes riches). */
+@media (min-width: 1500px) {
+  .bento-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
