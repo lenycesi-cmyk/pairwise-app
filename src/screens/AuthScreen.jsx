@@ -1,8 +1,15 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import Logo from "../components/Logo";
+import { useMediaQuery } from "../hooks/useMediaQuery";
+import { onboardingT, detectOnboardingLanguage } from "../data/onboardingCopy";
+import { draftEntryView, deriveInsight } from "../utils/onboardingDraft";
 
-export default function AuthScreen({ defaultMode = "login", draftCount = 0, onBack = null }) {
+// Combien de lignes de brouillon on affiche avant de résumer le reste en
+// "+N autres" — garde la carte compacte sur mobile (pas de scroll voulu).
+const MAX_DRAFT_ROWS = 4;
+
+export default function AuthScreen({ defaultMode = "login", draft = [], language, onBack = null }) {
   const { login, signup } = useAuth();
   const [mode, setMode] = useState(defaultMode);
   const [email, setEmail] = useState("");
@@ -11,6 +18,11 @@ export default function AuthScreen({ defaultMode = "login", draftCount = 0, onBa
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const isDesktop = useMediaQuery("(min-width: 760px)");
+  const lang = language || detectOnboardingLanguage();
+  const t = onboardingT(lang);
+  const draftCount = draft.length;
+  const showDraft = draftCount > 0 && mode === "signup";
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -29,59 +41,86 @@ export default function AuthScreen({ defaultMode = "login", draftCount = 0, onBa
     }
   }
 
-  return (
-    <div
-      style={{
-        position: "relative",
-        minHeight: "100dvh",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "center",
-        padding: "2rem 1.5rem",
-        // Standard des formulaires d'authentification : colonne étroite
-        // centrée (~400px) plutôt que des champs étirés sur tout l'écran.
-        width: "100%",
-        maxWidth: 400,
-        margin: "0 auto",
-      }}
-    >
-      {onBack && (
-        <button
-          onClick={onBack}
-          aria-label="Retour"
-          style={{ position: "absolute", top: 18, left: 18, background: "none", border: "none", display: "flex", color: "var(--ink-3)", cursor: "pointer" }}
-        >
-          <i className="ti ti-arrow-left" style={{ fontSize: 22 }} aria-hidden="true" />
-        </button>
-      )}
-
-      {draftCount > 0 && mode === "signup" ? (
-        <div style={{ marginBottom: "2rem", textAlign: "center" }}>
-          <div
-            style={{
-              width: 56, height: 56, borderRadius: 16, margin: "0 auto 16px",
-              background: "var(--sky-light)", color: "var(--sky)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-            }}
-          >
-            <i className="ti ti-device-floppy" style={{ fontSize: 28 }} aria-hidden="true" />
+  // Carte "à rattacher à ton compte" : liste condensée du brouillon + note
+  // verte de rétention. Affichée quand il y a des entrées à sauvegarder.
+  const draftPanel = showDraft && (() => {
+    const insight = deriveInsight(draft, lang, t);
+    const rows = draft.slice(0, MAX_DRAFT_ROWS).map((d) => draftEntryView(d, lang, t));
+    const rest = draft.length - rows.length;
+    return (
+      <div style={{ width: "100%" }}>
+        <div style={{ background: "var(--bg-card)", border: "0.5px solid var(--rule)", borderRadius: "var(--radius-lg)", padding: "14px 16px" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 10 }}>
+            <div style={{ fontSize: 10.5, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--ink-3)" }}>
+              {t("s6_draft")}
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 4, background: "var(--amber-light)", color: "var(--amber)", borderRadius: 999, padding: "3px 9px", fontSize: 10.5, fontWeight: 700, flex: "none" }}>
+              <i className="ti ti-cloud-off" style={{ fontSize: 11 }} aria-hidden="true" />
+              {t("s6_notsaved")}
+            </div>
           </div>
-          <h1 style={{ fontSize: 22, marginBottom: 8 }}>
-            {draftCount > 1 ? `Sauvegarde tes ${draftCount} entrées` : "Sauvegarde ton entrée"}
-          </h1>
-          <p style={{ fontSize: 13.5, color: "var(--ink-3)", lineHeight: 1.5 }}>
-            Ton brouillon vit sur cet appareil. Crée un compte pour le garder en sûreté et le
-            retrouver partout.
-          </p>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {rows.map((r) => (
+              <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 9, minWidth: 0 }}>
+                <div style={{ width: 26, height: 26, borderRadius: 8, flex: "none", display: "flex", alignItems: "center", justifyContent: "center", background: `var(${r.color}-light)`, color: `var(${r.color})` }}>
+                  <i className={`ti ${r.icon}`} style={{ fontSize: 13 }} aria-hidden="true" />
+                </div>
+                <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.catName}</span>
+                <span style={{ flex: "none", fontSize: 13, fontWeight: 700, color: r.amountColor }}>{r.amountDisp}</span>
+              </div>
+            ))}
+            {rest > 0 && (
+              <div style={{ fontSize: 12, color: "var(--ink-3)", paddingLeft: 35 }}>+{rest} {lang === "en" ? "more" : "autres"}</div>
+            )}
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, borderTop: "0.5px solid var(--rule)", marginTop: 10, paddingTop: 10 }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>{lang === "en" ? "Total" : "Total"}</span>
+            <span style={{ fontSize: 14, fontWeight: 800, color: "var(--ink)" }}>{insight.expenseDisp}</span>
+          </div>
         </div>
-      ) : (
-        <div style={{ marginBottom: "2.5rem", display: "flex", flexDirection: "column", alignItems: "center" }}>
-          <Logo size={84} stacked />
-          <p style={{ fontSize: 14, color: "var(--ink-3)", marginTop: 12 }}>
-            Vos finances, à deux
-          </p>
+
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 8, background: "var(--sage-light)", color: "var(--sage)", borderRadius: "var(--radius-md)", padding: "10px 12px", marginTop: 10 }}>
+          <i className="ti ti-shield-check" style={{ fontSize: 15, flex: "none", marginTop: 1 }} aria-hidden="true" />
+          <span style={{ fontSize: 12, lineHeight: 1.45, fontWeight: 600 }}>{t("s6_after")}</span>
         </div>
-      )}
+      </div>
+    );
+  })();
+
+  const header = showDraft ? (
+    <div style={{ marginBottom: isDesktop ? "1.75rem" : "1.25rem", display: "flex", alignItems: "center", gap: 14, textAlign: "left" }}>
+      <div
+        style={{
+          width: 52, height: 52, borderRadius: 16, flex: "none",
+          background: "var(--sky-light)", color: "var(--sky)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }}
+      >
+        <i className="ti ti-device-floppy" style={{ fontSize: 26 }} aria-hidden="true" />
+      </div>
+      <div>
+        <h1 style={{ fontSize: isDesktop ? 21 : 18, marginBottom: 4, textAlign: "left" }}>
+          {t("s6_title", { n: draftCount })}
+        </h1>
+        <p style={{ fontSize: 13, color: "var(--ink-3)", lineHeight: 1.45, textAlign: "left" }}>
+          {t("s6_sub")}
+        </p>
+      </div>
+    </div>
+  ) : (
+    <div style={{ marginBottom: "2.5rem", display: "flex", flexDirection: "column", alignItems: "center" }}>
+      <Logo size={84} stacked />
+      <p style={{ fontSize: 14, color: "var(--ink-3)", marginTop: 12 }}>
+        Vos finances, à deux
+      </p>
+    </div>
+  );
+
+  const formCol = (
+    <div style={{ width: "100%", maxWidth: 400 }}>
+      {header}
 
       <form
         onSubmit={handleSubmit}
@@ -90,7 +129,7 @@ export default function AuthScreen({ defaultMode = "login", draftCount = 0, onBa
         {mode === "signup" && (
           <input
             type="text"
-            placeholder="Votre prénom"
+            placeholder="Ton prénom"
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
@@ -182,6 +221,49 @@ export default function AuthScreen({ defaultMode = "login", draftCount = 0, onBa
           ? "Pas encore de compte ? Créer un compte"
           : "Déjà un compte ? Se connecter"}
       </button>
+    </div>
+  );
+
+  return (
+    <div
+      style={{
+        position: "relative",
+        minHeight: "100dvh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: draftPanel && !isDesktop ? "1.1rem 1.25rem" : "2rem 1.5rem",
+        width: "100%",
+      }}
+    >
+      {onBack && (
+        <button
+          onClick={onBack}
+          aria-label="Retour"
+          style={{ position: "absolute", top: 18, left: 18, background: "none", border: "none", display: "flex", color: "var(--ink-3)", cursor: "pointer" }}
+        >
+          <i className="ti ti-arrow-left" style={{ fontSize: 22 }} aria-hidden="true" />
+        </button>
+      )}
+
+      {draftPanel ? (
+        <div
+          style={{
+            display: "flex",
+            flexDirection: isDesktop ? "row" : "column",
+            alignItems: isDesktop ? "center" : "stretch",
+            gap: isDesktop ? 40 : 18,
+            width: "100%",
+            maxWidth: isDesktop ? 760 : 400,
+            margin: "0 auto",
+          }}
+        >
+          <div style={{ flex: isDesktop ? "1 1 300px" : "none", maxWidth: isDesktop ? 300 : "none" }}>{draftPanel}</div>
+          <div style={{ flex: isDesktop ? "1 1 360px" : "none", display: "flex", justifyContent: "center" }}>{formCol}</div>
+        </div>
+      ) : (
+        formCol
+      )}
     </div>
   );
 }
