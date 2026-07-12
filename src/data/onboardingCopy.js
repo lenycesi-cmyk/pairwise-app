@@ -45,7 +45,7 @@ const ONBOARDING_COPY = {
     // Sign-up différé
     s6_title: "Sauvegarde tes {n} entrées",
     s6_title_zero: "Crée ton compte",
-    s6_sub: "Ton brouillon vit sur cet appareil. Crée un compte pour le garder en sûreté et le retrouver partout.",
+    s6_sub: "Ton brouillon vit sur cet appareil. Crée ton compte pour le garder en sûreté et le retrouver partout.",
     s6_draft: "À rattacher à ton compte",
     s6_notsaved: "Non sauvegardé",
     s6_after: "Rien à ressaisir : tes dépenses sont conservées telles quelles.",
@@ -118,7 +118,7 @@ const ONBOARDING_COPY = {
     s4_join: "I received an invite code",
     s6_title: "Save your {n} entries",
     s6_title_zero: "Create your account",
-    s6_sub: "Your draft lives on this device. Create an account to keep it safe and find it anywhere.",
+    s6_sub: "Your draft lives on this device. Create your account to keep it safe and find it anywhere.",
     s6_draft: "To attach to your account",
     s6_notsaved: "Not saved",
     s6_after: "Nothing to re-enter: your expenses are kept exactly as they are.",
