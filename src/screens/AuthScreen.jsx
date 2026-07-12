@@ -119,7 +119,7 @@ export default function AuthScreen({ defaultMode = "login", draft = [], language
   );
 
   const formCol = (
-    <div style={{ width: "100%", maxWidth: showDraft ? 440 : 400 }}>
+    <div style={{ width: "100%", maxWidth: 400 }}>
       {header}
 
       <form
@@ -272,10 +272,17 @@ export default function AuthScreen({ defaultMode = "login", draft = [], language
               width: "100%",
             }}
           >
-            <div style={{ flex: isDesktop ? "0 1 300px" : "none", maxWidth: isDesktop ? 300 : 440, width: isDesktop ? undefined : "100%", margin: isDesktop ? 0 : "0 auto" }}>{draftPanel}</div>
-            <div style={{ flex: isDesktop ? "0 1 440px" : "none", maxWidth: 440, width: isDesktop ? undefined : "100%", margin: isDesktop ? 0 : "0 auto" }}>{formCol}</div>
+            {/* Colonnes de largeur ÉGALE : le bloc est symétrique, donc le
+                milieu de l'écart entre les deux panneaux tombe pile sur le
+                centre de l'écran — là où le logo et le lien "déjà un compte"
+                sont centrés. Sans ça (draft 300 / form 440), le bloc penche à
+                droite et l'écart visuel se décale à gauche du centre. */}
+            <div style={{ flex: isDesktop ? "0 1 400px" : "none", maxWidth: 400, width: isDesktop ? undefined : "100%", margin: isDesktop ? 0 : "0 auto", display: "flex", justifyContent: "flex-end" }}>
+              <div style={{ width: "100%" }}>{draftPanel}</div>
+            </div>
+            <div style={{ flex: isDesktop ? "0 1 400px" : "none", maxWidth: 400, width: isDesktop ? undefined : "100%", margin: isDesktop ? 0 : "0 auto" }}>{formCol}</div>
           </div>
-          <div style={{ marginTop: isDesktop ? 96 : 56 }}>{toggleLink}</div>
+          <div style={{ marginTop: isDesktop ? 128 : 72 }}>{toggleLink}</div>
         </div>
       ) : (
         <>
