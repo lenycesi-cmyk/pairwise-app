@@ -231,20 +231,21 @@ export default function AuthScreen({ defaultMode = "login", draft = [], language
   return (
     <div
       style={{
-        position: "relative",
+        // position: fixed + inset: 0 → on couvre le vrai viewport et on ignore
+        // complètement le décalage de #root : cette page s'affiche avant
+        // connexion, mais body réserve la largeur de la sidebar (>= 1024px, voir
+        // layout.css) et centre #root dans l'espace restant, ce qui le décalait
+        // par rapport au centre réel de l'écran. En sortant du flux avec
+        // position: fixed, le centrage se fait sur l'écran entier.
+        position: "fixed",
+        inset: 0,
         minHeight: "100dvh",
+        overflowY: "auto",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         justifyContent: draftPanel ? "flex-start" : "center",
         padding: draftPanel && !isDesktop ? "1.1rem 1.25rem" : "2rem 1.5rem",
-        width: "100%",
-        // Cette page n'a pas de sidebar (elle s'affiche avant connexion) mais
-        // body réserve quand même sa largeur (>= 1024px, voir layout.css) pour
-        // la colonne de navigation de l'app authentifiée, ce qui décale tout
-        // #root de la moitié de cette largeur par rapport au vrai centre de
-        // l'écran — on annule ce décalage ici.
-        marginLeft: "calc(-0.5 * var(--sidebar-width, 0px))",
       }}
     >
       {onBack && (
@@ -274,7 +275,7 @@ export default function AuthScreen({ defaultMode = "login", draft = [], language
             <div style={{ flex: isDesktop ? "0 1 300px" : "none", maxWidth: isDesktop ? 300 : 440, width: isDesktop ? undefined : "100%", margin: isDesktop ? 0 : "0 auto" }}>{draftPanel}</div>
             <div style={{ flex: isDesktop ? "0 1 440px" : "none", maxWidth: 440, width: isDesktop ? undefined : "100%", margin: isDesktop ? 0 : "0 auto" }}>{formCol}</div>
           </div>
-          <div style={{ marginTop: isDesktop ? 64 : 40 }}>{toggleLink}</div>
+          <div style={{ marginTop: isDesktop ? 96 : 56 }}>{toggleLink}</div>
         </div>
       ) : (
         <>
