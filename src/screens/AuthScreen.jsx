@@ -90,21 +90,21 @@ export default function AuthScreen({ defaultMode = "login", draft = [], language
   })();
 
   const header = showDraft ? (
-    <div style={{ marginBottom: isDesktop ? "1.75rem" : "1.25rem", display: "flex", alignItems: "center", gap: 14, textAlign: "left" }}>
+    <div style={{ marginBottom: isDesktop ? "1.75rem" : "1.25rem", display: "flex", alignItems: "stretch", gap: 14, textAlign: "left" }}>
       <div
         style={{
-          width: 52, height: 52, borderRadius: 16, flex: "none",
+          width: 68, borderRadius: 16, flex: "none",
           background: "var(--sky-light)", color: "var(--sky)",
           display: "flex", alignItems: "center", justifyContent: "center",
         }}
       >
-        <i className="ti ti-device-floppy" style={{ fontSize: 26 }} aria-hidden="true" />
+        <i className="ti ti-device-floppy" style={{ fontSize: 30 }} aria-hidden="true" />
       </div>
       <div>
         <h1 style={{ fontSize: isDesktop ? 21 : 18, marginBottom: 4, textAlign: "left" }}>
           {t("s6_title", { n: draftCount })}
         </h1>
-        <p style={{ fontSize: 13, color: "var(--ink-3)", lineHeight: 1.45, textAlign: "left" }}>
+        <p style={{ fontSize: 14.5, color: "var(--ink-3)", lineHeight: 1.5, textAlign: "justify" }}>
           {t("s6_sub")}
         </p>
       </div>
@@ -199,29 +199,33 @@ export default function AuthScreen({ defaultMode = "login", draft = [], language
             opacity: busy ? 0.6 : 1,
           }}
         >
-          {busy ? "..." : mode === "login" ? "Se connecter" : "Créer un compte"}
+          {busy ? "..." : mode === "login" ? "Se connecter" : "Crée ton compte"}
         </button>
       </form>
-
-      <button
-        onClick={() => {
-          setMode(mode === "login" ? "signup" : "login");
-          setError("");
-        }}
-        style={{
-          marginTop: 20,
-          background: "none",
-          border: "none",
-          fontSize: 13,
-          color: "var(--ink-3)",
-          textAlign: "center",
-        }}
-      >
-        {mode === "login"
-          ? "Pas encore de compte ? Créer un compte"
-          : "Déjà un compte ? Se connecter"}
-      </button>
     </div>
+  );
+
+  const toggleLink = (
+    <button
+      onClick={() => {
+        setMode(mode === "login" ? "signup" : "login");
+        setError("");
+      }}
+      style={{
+        marginTop: 0,
+        background: "none",
+        border: "none",
+        fontSize: 15,
+        color: "var(--ink-3)",
+        textAlign: "center",
+      }}
+    >
+      {mode === "login" ? (
+        <>Pas encore de compte ? <span style={{ fontWeight: 700, color: "var(--sky)" }}>Créer un compte</span></>
+      ) : (
+        <>Déjà un compte ? <span style={{ fontWeight: 700, color: "var(--sky)" }}>Se connecter</span></>
+      )}
+    </button>
   );
 
   return (
@@ -230,8 +234,9 @@ export default function AuthScreen({ defaultMode = "login", draft = [], language
         position: "relative",
         minHeight: "100dvh",
         display: "flex",
+        flexDirection: "column",
         alignItems: "center",
-        justifyContent: "center",
+        justifyContent: draftPanel ? "flex-start" : "center",
         padding: draftPanel && !isDesktop ? "1.1rem 1.25rem" : "2rem 1.5rem",
         width: "100%",
       }}
@@ -246,23 +251,31 @@ export default function AuthScreen({ defaultMode = "login", draft = [], language
         </button>
       )}
 
+      {draftPanel && <div style={{ marginBottom: isDesktop ? 48 : 28 }}><Logo size={36} /></div>}
+
       {draftPanel ? (
-        <div
-          style={{
-            display: "flex",
-            flexDirection: isDesktop ? "row" : "column",
-            alignItems: isDesktop ? "center" : "stretch",
-            gap: isDesktop ? 40 : 18,
-            width: "100%",
-            maxWidth: isDesktop ? 760 : 400,
-            margin: "0 auto",
-          }}
-        >
-          <div style={{ flex: isDesktop ? "1 1 300px" : "none", maxWidth: isDesktop ? 300 : "none" }}>{draftPanel}</div>
-          <div style={{ flex: isDesktop ? "1 1 360px" : "none", display: "flex", justifyContent: "center" }}>{formCol}</div>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1, width: "100%", justifyContent: "center" }}>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: isDesktop ? "row" : "column",
+              alignItems: isDesktop ? "flex-start" : "stretch",
+              gap: isDesktop ? 40 : 18,
+              width: "100%",
+              maxWidth: isDesktop ? 760 : 400,
+              margin: "0 auto",
+            }}
+          >
+            <div style={{ flex: isDesktop ? "1 1 300px" : "none", maxWidth: isDesktop ? 300 : "none" }}>{draftPanel}</div>
+            <div style={{ flex: isDesktop ? "1 1 360px" : "none", display: "flex", justifyContent: "center" }}>{formCol}</div>
+          </div>
+          <div style={{ marginTop: isDesktop ? 40 : 24 }}>{toggleLink}</div>
         </div>
       ) : (
-        formCol
+        <>
+          {formCol}
+          <div style={{ marginTop: 20 }}>{toggleLink}</div>
+        </>
       )}
     </div>
   );
