@@ -230,6 +230,35 @@ button[style*="background: var(--ink)"] {
   .pw-card[data-accent="pink"]:hover { border-color: var(--blush) !important; }
 }
 
+/* Équivalent tactile du survol : sur mobile (pas de curseur), la carte au
+   centre de l'écran pendant le scroll reçoit le même effet (montée + ombre +
+   bordure d'accent + pastille remplie). La classe .pw-card--focus est posée
+   par useScrollFocus via IntersectionObserver. Gardé sous (hover: none) pour ne
+   jamais interférer avec le survol desktop. */
+@media (hover: none) {
+  .pw-card--focus {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+  }
+  .pw-card--focus[data-accent="coral"] { border-color: var(--tang) !important; }
+  .pw-card--focus[data-accent="ocean"] { border-color: var(--lavi) !important; }
+  .pw-card--focus[data-accent="sky"] { border-color: var(--sky) !important; }
+  .pw-card--focus[data-accent="amber"] { border-color: var(--amber) !important; }
+  .pw-card--focus[data-accent="mint"] { border-color: var(--sage) !important; }
+  .pw-card--focus[data-accent="pink"] { border-color: var(--blush) !important; }
+  .pw-card--focus .pw-chip {
+    transform: scale(1.06);
+    background: var(--pw-chip, var(--tang)) !important;
+  }
+  .pw-card--focus .pw-chip i {
+    color: var(--bg) !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pw-card--focus { transform: none; }
+}
+
 /* Chip d'icône : petit carré/rond teinté qui se REMPLIT au survol de sa carte
    hôte (fond plein + icône claire), comme le brand kit. La couleur pleine est
    passée par la variable inline --pw-chip ; !important pour battre le style
