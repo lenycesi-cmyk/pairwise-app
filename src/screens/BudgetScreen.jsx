@@ -599,12 +599,12 @@ export default function BudgetScreen({ openSignal, onOpenSettings }) {
                 ref={currencyButtonRef}
                 onClick={() => setShowCurrencyPicker(!showCurrencyPicker)}
                 style={{
-                  padding: "4px 10px", borderRadius: "var(--radius-md)", border: "0.5px solid var(--rule)",
+                  height: 30, padding: "0 10px", borderRadius: "var(--radius-md)", border: "0.5px solid var(--rule)",
                   background: "var(--bg-card)", fontSize: 12, fontWeight: 500,
                   display: "flex", alignItems: "center", gap: 4,
                 }}
               >
-                {displayCurrency} <i className="ti ti-chevron-down" style={{ fontSize: 11 }} aria-hidden="true" />
+                {ALL_CURRENCIES.find((c) => c.code === displayCurrency)?.symbol || displayCurrency} <i className="ti ti-chevron-down" style={{ fontSize: 11 }} aria-hidden="true" />
               </button>
               <button
                 onClick={() => setEditMode(true)}
@@ -629,9 +629,9 @@ export default function BudgetScreen({ openSignal, onOpenSettings }) {
           }
           return (
             <>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 10 }}>
-                <HeaderSettingsButton onClick={onOpenSettings} />
-                {actions}
+              <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                <div style={{ justifySelf: "start" }}><HeaderSettingsButton onClick={onOpenSettings} /></div>
+                <div style={{ justifySelf: "end" }}>{actions}</div>
               </div>
               {greeting}
             </>

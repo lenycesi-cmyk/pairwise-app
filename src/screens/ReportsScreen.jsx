@@ -409,6 +409,34 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
   const currencySymbol =
     ALL_CURRENCIES.find((c) => c.code === displayCurrency)?.symbol || displayCurrency;
 
+  // Libellé de période : sur mobile, le mois (type "month") est abrégé à 4
+  // lettres s'il dépasse (Juillet → Juil), comme le sélecteur de l'accueil.
+  const periodLabel =
+    !isDesktop && periodType === "month"
+      ? `${(() => {
+          const m = anchor.toLocaleDateString(locale, { month: "long" });
+          return m.length > 4 ? m.slice(0, 4) : m;
+        })()} ${anchor.getFullYear()}`
+      : range.label;
+
+  // Navigation de période (‹ libellé ›) — réutilisée dans la ligne 1 du header
+  // sur mobile et sous les filtres sur desktop.
+  const periodNav = (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+      {periodType !== "last12" && periodType !== "custom" && (
+        <button onClick={() => setAnchor(shiftAnchor(periodType, anchor, -1))} aria-label="Période précédente" style={navBtnStyle}>
+          <i className="ti ti-chevron-left" style={{ fontSize: 16 }} aria-hidden="true" />
+        </button>
+      )}
+      <p style={{ fontSize: 15, fontWeight: 500, textTransform: "capitalize", textAlign: "center", whiteSpace: "nowrap" }}>{periodLabel}</p>
+      {periodType !== "last12" && periodType !== "custom" && (
+        <button onClick={() => setAnchor(shiftAnchor(periodType, anchor, 1))} aria-label="Période suivante" style={navBtnStyle}>
+          <i className="ti ti-chevron-right" style={{ fontSize: 16 }} aria-hidden="true" />
+        </button>
+      )}
+    </div>
+  );
+
   function CustomTooltip({ active, payload, label }) {
     if (!active || !payload?.length) return null;
     return (
@@ -648,12 +676,12 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
                   <button
                     onClick={() => setShowCurrencyPicker(!showCurrencyPicker)}
                     style={{
-                      padding: "4px 10px", borderRadius: "var(--radius-md)", border: "0.5px solid var(--rule)",
+                      height: 30, padding: "0 10px", borderRadius: "var(--radius-md)", border: "0.5px solid var(--rule)",
                       background: "var(--bg-card)", fontSize: 12, fontWeight: 500,
                       display: "flex", alignItems: "center", gap: 4,
                     }}
                   >
-                    {displayCurrency} <i className="ti ti-chevron-down" style={{ fontSize: 11 }} aria-hidden="true" />
+                    {currencySymbol} <i className="ti ti-chevron-down" style={{ fontSize: 11 }} aria-hidden="true" />
                   </button>
                   <button
                     ref={customizeButtonRef}
@@ -681,9 +709,12 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
           }
           return (
             <>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 10 }}>
-                <HeaderSettingsButton onClick={onOpenSettings} />
-                {actions}
+              {/* Ligne 1 : [Réglages | nav période centrée | devise/personnaliser],
+                  colonnes latérales égales (1fr) pour centrer la période, comme l'accueil. */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                <div style={{ justifySelf: "start" }}><HeaderSettingsButton onClick={onOpenSettings} /></div>
+                {editMode ? <span /> : periodNav}
+                <div style={{ justifySelf: "end" }}>{actions}</div>
               </div>
               {greeting}
             </>
@@ -744,20 +775,9 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
         </div>
       )}
 
-      {/* Navigation de période compacte (flèches rapprochées, centrées). */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 16 }}>
-        {periodType !== "last12" && periodType !== "custom" && (
-          <button onClick={() => setAnchor(shiftAnchor(periodType, anchor, -1))} aria-label="Période précédente" style={navBtnStyle}>
-            <i className="ti ti-chevron-left" style={{ fontSize: 16 }} aria-hidden="true" />
-          </button>
-        )}
-        <p style={{ fontSize: 15, fontWeight: 500, textTransform: "capitalize", textAlign: "center", minWidth: 120 }}>{range.label}</p>
-        {periodType !== "last12" && periodType !== "custom" && (
-          <button onClick={() => setAnchor(shiftAnchor(periodType, anchor, 1))} aria-label="Période suivante" style={navBtnStyle}>
-            <i className="ti ti-chevron-right" style={{ fontSize: 16 }} aria-hidden="true" />
-          </button>
-        )}
-      </div>
+      {/* Navigation de période — sur desktop uniquement (sur mobile elle est
+          remontée dans la ligne 1 du header). */}
+      {isDesktop && <div style={{ marginBottom: 16 }}>{periodNav}</div>}
 
       {/* Cartes — réorganisables et masquables en mode édition, comme sur Home.
           Layout masonry desktop sauf pendant l'édition (le drag suppose une

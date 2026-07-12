@@ -8,6 +8,7 @@ import { useCommentNotifications } from "./hooks/useCommentNotifications";
 import { useRecurringReminders } from "./hooks/useRecurringReminders";
 import { usePushNotifications, useForegroundPush } from "./hooks/usePushNotifications";
 import { useBackGuard } from "./hooks/useBackGuard";
+import { useTabSwipe } from "./hooks/useTabSwipe";
 import { useTranslation } from "./hooks/useTranslation";
 import OfflineBanner from "./components/OfflineBanner";
 import AuthScreen from "./screens/AuthScreen";
@@ -31,6 +32,10 @@ const MemberBreakdownScreen = lazy(() => import("./screens/MemberBreakdownScreen
 const InvestmentCalculatorScreen = lazy(() => import("./screens/InvestmentCalculatorScreen"));
 const ThemeScreen = lazy(() => import("./screens/ThemeScreen"));
 const LanguageScreen = lazy(() => import("./screens/LanguageScreen"));
+
+// Ordre des onglets principaux pour la navigation par swipe (le « + » central
+// n'est pas un onglet ; Réglages est une modale, hors du cycle).
+const TAB_SWIPE_ORDER = ["dashboard", "reports", "budget", "wealth"];
 
 function RecurringGeneratorRunner() {
   useRecurringGenerator();
@@ -152,6 +157,16 @@ function AppContent() {
   useBackGuard(showTags, () => setShowTags(false));
   useBackGuard(showTheme, () => setShowTheme(false));
   useBackGuard(showLanguage, () => setShowLanguage(false));
+
+  // Swipe horizontal entre onglets (mobile). Coupé quand un overlay/modale est
+  // ouvert (on met à jour le ref à chaque rendu sans réattacher les écouteurs).
+  const anyOverlay =
+    showAdd || showAddAsset || showBreakdown || showCalculator || showDebt ||
+    showTransactions || showSettings || showRecurring || showCategories ||
+    showTags || showTheme || showLanguage || showLogin;
+  const swipeEnabledRef = useRef(true);
+  swipeEnabledRef.current = !anyOverlay;
+  useTabSwipe({ order: TAB_SWIPE_ORDER, active: tab, onChange: setTab, enabledRef: swipeEnabledRef });
 
   if (loading) {
     return (
