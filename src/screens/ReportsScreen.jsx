@@ -18,6 +18,7 @@ import { ALL_CURRENCIES } from "../data/categories";
 import CurrencyPicker from "../components/CurrencyPicker";
 import { useTranslation } from "../hooks/useTranslation";
 import SpotlightHint from "../components/SpotlightHint";
+import GreetingHeader from "../components/GreetingHeader";
 import { getMemberKey } from "../utils/members";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 import { tagColor } from "../utils/tags";
@@ -629,7 +630,7 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
       {/* En-tête collant : titre + filtres temporels, alignés à gauche. */}
       <div style={{ position: "sticky", top: 0, zIndex: 30, background: "var(--bg)", marginLeft: "-1.25rem", marginRight: "-1.25rem", padding: "0.5rem 1.25rem 0.6rem", marginBottom: 12 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-          <h1 style={{ fontSize: 20, marginLeft: isDesktop ? 0 : 44 }}>{t("reports_title")}</h1>
+          <GreetingHeader subtitleKey="reports_subtitle" marginLeft={isDesktop ? 0 : 44} />
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             {editMode ? (
               <button

@@ -22,6 +22,7 @@ import { useExchangeRates } from "../hooks/useExchangeRates";
 import { CURRENCIES, ALL_CURRENCIES } from "../data/categories";
 import { BUDGET_GROUPS, BUDGET_GROUP_KEYS } from "../data/budgetGroups";
 import SpotlightHint from "../components/SpotlightHint";
+import GreetingHeader from "../components/GreetingHeader";
 import { getMemberKey } from "../utils/members";
 import { AVATAR_COLOR_PALETTE } from "../utils/memberColors";
 import { useMediaQuery } from "../hooks/useMediaQuery";
@@ -563,17 +564,21 @@ export default function BudgetScreen({ openSignal }) {
   return (
     <div style={{ padding: "1.5rem 1.25rem 6rem" }}>
       <div style={{ position: "sticky", top: 0, zIndex: 30, background: "var(--bg)", marginLeft: "-1.25rem", marginRight: "-1.25rem", padding: "0.4rem 1.25rem", marginBottom: 8, display: "flex", alignItems: "center" }}>
-        <h1 style={{ fontSize: 20, marginLeft: isDesktop ? 0 : 44, flex: 1 }}>
-          {showForm
-            ? editingId
+        {showForm ? (
+          <h1 style={{ fontSize: 20, marginLeft: isDesktop ? 0 : 44, flex: 1 }}>
+            {editingId
               ? t("budget_edit_title")
               : quickMode === null
                 ? t("budget_new_title")
                 : quickMode === "history"
                   ? t("budget_quick_history")
-                  : t("budget_new_title")
-            : t("budget_title")}
-        </h1>
+                  : t("budget_new_title")}
+          </h1>
+        ) : (
+          <div style={{ flex: 1 }}>
+            <GreetingHeader subtitleKey="budget_subtitle" marginLeft={isDesktop ? 0 : 44} />
+          </div>
+        )}
         {!showForm && editMode && (
           <button
             onClick={() => setEditMode(false)}

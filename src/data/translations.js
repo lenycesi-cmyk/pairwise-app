@@ -460,6 +460,11 @@ export const TRANSLATIONS = {
 
     // Dashboard customization
     home_title: "Accueil",
+    greeting_hello: "Bonjour",
+    home_subtitle: "Voici ton aperçu financier pour {month}.",
+    budget_subtitle: "Voici ton aperçu budget pour {month}.",
+    wealth_subtitle: "Voici ton rapport patrimoine pour {month}.",
+    reports_subtitle: "Voici ton rapport financier pour {month}.",
     dashboard_customize: "Personnaliser",
     dashboard_edit_hint: "Glissez pour réorganiser · appuyez pour afficher/masquer",
     dashboard_done: "Terminer",
@@ -970,6 +975,11 @@ export const TRANSLATIONS = {
 
     // Dashboard customization
     home_title: "Home",
+    greeting_hello: "Hello",
+    home_subtitle: "Here's your financial overview for {month}.",
+    budget_subtitle: "Here's your budget report for {month}.",
+    wealth_subtitle: "Here's your wealth report for {month}.",
+    reports_subtitle: "Here's your financial report for {month}.",
     dashboard_customize: "Customize",
     dashboard_edit_hint: "Drag to reorder · tap to show/hide",
     dashboard_done: "Done",

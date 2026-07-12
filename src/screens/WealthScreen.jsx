@@ -14,6 +14,7 @@ import Avatar from "../components/Avatar";
 import { buildMemberColorMap } from "../utils/memberColors";
 import { useTranslation } from "../hooks/useTranslation";
 import SpotlightHint from "../components/SpotlightHint";
+import GreetingHeader from "../components/GreetingHeader";
 import { getMemberKey } from "../utils/members";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 import { useWealthPrefs } from "../hooks/useDashboardPrefs";
@@ -332,7 +333,7 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef }) {
   return (
     <div style={{ padding: "1.5rem 1.25rem 6rem" }}>
       <div style={{ position: "sticky", top: 0, zIndex: 30, background: "var(--bg)", marginLeft: "-1.25rem", marginRight: "-1.25rem", padding: "0.4rem 1.25rem", marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h1 style={{ fontSize: 20, marginLeft: isDesktop ? 0 : 44 }}>{t("wealth_title")}</h1>
+        <GreetingHeader subtitleKey="wealth_subtitle" marginLeft={isDesktop ? 0 : 44} />
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           {editMode ? (
             <button

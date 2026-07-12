@@ -1,4 +1,5 @@
 import { useTranslation } from "../hooks/useTranslation";
+import Logo from "./Logo";
 
 export default function BottomNav({ active, onChange, onAddClick, addButtonRef, onSettingsClick, settingsOpen }) {
   const t = useTranslation();
@@ -12,6 +13,10 @@ export default function BottomNav({ active, onChange, onAddClick, addButtonRef, 
 
   return (
     <div className="bottom-nav">
+      {/* En-tête de la sidebar desktop (masqué sur mobile via CSS). */}
+      <div className="bottom-nav-logo">
+        <Logo size={26} />
+      </div>
       {tabs.map((tab) => {
         if (tab.key === "add") {
           return (
@@ -37,10 +42,9 @@ export default function BottomNav({ active, onChange, onAddClick, addButtonRef, 
             onClick={() => onChange(tab.key)}
             className="bottom-nav-tab"
             data-active={isActive ? "true" : "false"}
-            style={{ color: isActive ? "var(--ink)" : "var(--ink-3)" }}
           >
             <i className={`ti ${tab.icon}`} style={{ fontSize: 20 }} aria-hidden="true" />
-            <span style={{ fontSize: 10 }}>{tab.label}</span>
+            <span>{tab.label}</span>
           </button>
         );
       })}
@@ -51,10 +55,9 @@ export default function BottomNav({ active, onChange, onAddClick, addButtonRef, 
         aria-label={t("nav_settings")}
         className="bottom-nav-tab bottom-nav-settings"
         data-active={settingsOpen ? "true" : "false"}
-        style={{ color: settingsOpen ? "var(--ink)" : "var(--ink-3)" }}
       >
         <i className="ti ti-settings" style={{ fontSize: 20 }} aria-hidden="true" />
-        <span style={{ fontSize: 10 }}>{t("nav_settings")}</span>
+        <span>{t("nav_settings")}</span>
       </button>
     </div>
   );
