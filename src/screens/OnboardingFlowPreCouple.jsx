@@ -118,7 +118,8 @@ export default function OnboardingFlowPreCouple({ onSignIn }) {
   return (
     <AuthScreen
       defaultMode="signup"
-      draftCount={loadDraft().length}
+      draft={loadDraft()}
+      language={lang}
       onBack={() => setStep(isCouple ? "mode" : "account")}
     />
   );
