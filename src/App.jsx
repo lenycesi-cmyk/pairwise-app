@@ -9,6 +9,7 @@ import { useRecurringReminders } from "./hooks/useRecurringReminders";
 import { usePushNotifications, useForegroundPush } from "./hooks/usePushNotifications";
 import { useBackGuard } from "./hooks/useBackGuard";
 import { useTabSwipe } from "./hooks/useTabSwipe";
+import { useScrollFocus } from "./hooks/useScrollFocus";
 import { useTranslation } from "./hooks/useTranslation";
 import OfflineBanner from "./components/OfflineBanner";
 import AuthScreen from "./screens/AuthScreen";
@@ -39,6 +40,11 @@ const TAB_SWIPE_ORDER = ["dashboard", "reports", "budget", "wealth"];
 
 function RecurringGeneratorRunner() {
   useRecurringGenerator();
+  return null;
+}
+
+function ScrollFocusRunner() {
+  useScrollFocus();
   return null;
 }
 
@@ -241,6 +247,7 @@ function AppContent() {
   return (
     <FinanceProvider>
       <RecurringGeneratorRunner />
+      <ScrollFocusRunner />
       <BudgetAlertsRunner />
       <BudgetSnapshotRunner />
       <CommentNotifierRunner />
