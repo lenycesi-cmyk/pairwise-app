@@ -360,19 +360,19 @@ export default function OnboardingEntry({ language, onSignIn, onNext }) {
           {form.type !== "income" && (
             <>
               <div style={fieldLabel}>{t("e_cat")}</div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, minWidth: 0 }}>
                 {EXPENSE_CATS.map((c) => {
                   const sel = form.categoryId === c.id;
                   return (
                     <button
                       key={c.id}
                       onClick={() => setForm({ ...form, categoryId: c.id })}
-                      style={{ display: "flex", alignItems: "center", gap: 9, background: "var(--bg-card)", border: `1.5px solid ${sel ? `var(--${c.color})` : "var(--rule)"}`, borderRadius: 12, padding: "10px 11px", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}
+                      style={{ display: "flex", alignItems: "center", gap: 7, minWidth: 0, background: "var(--bg-card)", border: `1.5px solid ${sel ? `var(--${c.color})` : "var(--rule)"}`, borderRadius: 12, padding: "9px 9px", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}
                     >
-                      <div style={{ width: 28, height: 28, borderRadius: 8, flex: "none", display: "flex", alignItems: "center", justifyContent: "center", background: `var(--${c.color}-light)`, color: `var(--${c.color})` }}>
-                        <i className={`ti ${c.icon}`} style={{ fontSize: 15 }} />
+                      <div style={{ width: 24, height: 24, borderRadius: 7, flex: "none", display: "flex", alignItems: "center", justifyContent: "center", background: `var(--${c.color}-light)`, color: `var(--${c.color})` }}>
+                        <i className={`ti ${c.icon}`} style={{ fontSize: 13 }} />
                       </div>
-                      <span style={{ fontSize: 12.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{getCategoryName(c, language)}</span>
+                      <span style={{ flex: 1, minWidth: 0, fontSize: 12, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{getCategoryName(c, language)}</span>
                     </button>
                   );
                 })}
