@@ -58,9 +58,10 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenSet
   const [refreshing, setRefreshing] = useState(false);
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
   const [editMode, setEditMode] = useState(false);
-  // Périmètre du total « comptes bancaires » : null = famille (tous), sinon la
-  // clé d'un membre (comptes de ce membre + sa part des comptes partagés).
-  const [bankScope, setBankScope] = useState(null);
+  // Périmètre du total par catégorie d'actifs : null = famille (tous), sinon la
+  // clé d'un membre (part de ce membre). Mémorisé par type d'actif (comptes,
+  // assurance vie…) puisque chaque catégorie a son propre filtre.
+  const [scopeByType, setScopeByType] = useState({});
   const { widgets, saveWidgets } = useWealthPrefs();
 
   const currencySymbol = ALL_CURRENCIES.find((c) => c.code === displayCurrency)?.symbol || displayCurrency;
@@ -450,33 +451,46 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenSet
             style={{ marginBottom: 16 }}
           >
             <div>
-              {/* Total disponible sur les comptes bancaires, filtrable par
-                  famille (tous) ou par membre. Uniquement sur la carte
-                  "Compte en banque". */}
-              {type.id === "account" && (() => {
-                const bankTotal = typeAssets.reduce(
-                  (s, a) => s + (bankScope === null ? getAssetValue(a) : getMemberShare(a, bankScope)),
+              {/* Total de la catégorie : sur les comptes en banque toujours,
+                  et sur toute autre catégorie contenant au moins deux entrées.
+                  Filtrable par membre (Famille / A / B) quand la catégorie
+                  comporte des entrées pour plus d'un membre. */}
+              {(type.id === "account" || typeAssets.length >= 2) && (() => {
+                const scope = scopeByType[type.id] ?? null;
+                const catTotal = typeAssets.reduce(
+                  (s, a) => s + (scope === null ? getAssetValue(a) : getMemberShare(a, scope)),
                   0
                 );
+                // Membres réellement représentés dans la catégorie (un actif
+                // "partagé" compte pour les deux) → pills seulement si >1.
+                const owners = new Set();
+                for (const a of typeAssets) {
+                  if (a.ownership === "shared") members.forEach((m) => owners.add(getMemberKey(m)));
+                  else if (a.ownership) owners.add(a.ownership);
+                }
+                const spansMembers = members.length > 1 && members.filter((m) => owners.has(getMemberKey(m))).length > 1;
                 const scopes = [{ key: null, label: t("bank_scope_family") }, ...members.map((m) => ({ key: getMemberKey(m), label: m.name }))];
+                const label = type.id === "account" ? t("bank_total_available") : t("wealth_category_total");
                 return (
                   <div style={{ padding: "12px 14px", borderBottom: "0.5px solid var(--rule)" }}>
                     <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10 }}>
-                      <span style={{ fontSize: 12.5, color: "var(--ink-3)", fontWeight: 500 }}>{t("bank_total_available")}</span>
-                      <span style={{ fontSize: 16, fontWeight: 600 }}>{formatAmount(bankTotal)} {currencySymbol}</span>
+                      <span style={{ fontSize: 13.5, color: "var(--ink-2)", fontWeight: 600 }}>{label}</span>
+                      <span style={{ fontSize: 18, fontWeight: 700, color: type.isLiability ? "var(--red)" : "var(--ink)" }}>
+                        {type.isLiability ? "−" : ""}{formatAmount(catTotal)} {currencySymbol}
+                      </span>
                     </div>
-                    {members.length > 1 && (
+                    {spansMembers && (
                       <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
                         {scopes.map((s) => (
                           <button
                             key={s.key ?? "family"}
-                            onClick={() => setBankScope(s.key)}
+                            onClick={() => setScopeByType((prev) => ({ ...prev, [type.id]: s.key }))}
                             style={{
                               padding: "3px 11px", borderRadius: 99, fontSize: 11.5,
-                              border: bankScope === s.key ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
-                              background: bankScope === s.key ? "var(--sky-light)" : "var(--bg)",
-                              color: bankScope === s.key ? "var(--sky)" : "var(--ink-2)",
-                              fontWeight: bankScope === s.key ? 500 : 400,
+                              border: scope === s.key ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
+                              background: scope === s.key ? "var(--sky-light)" : "var(--bg)",
+                              color: scope === s.key ? "var(--sky)" : "var(--ink-2)",
+                              fontWeight: scope === s.key ? 500 : 400,
                             }}
                           >
                             {s.label}
@@ -484,20 +498,6 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenSet
                         ))}
                       </div>
                     )}
-                  </div>
-                );
-              })()}
-              {/* Total de la catégorie dès qu'elle contient plus de deux
-                  éléments (même principe que le total des comptes en banque,
-                  qui a lui son propre bloc filtrable au-dessus). */}
-              {type.id !== "account" && typeAssets.length > 2 && (() => {
-                const catTotal = typeAssets.reduce((s, a) => s + getAssetValue(a), 0);
-                return (
-                  <div style={{ padding: "12px 14px", borderBottom: "0.5px solid var(--rule)", display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10 }}>
-                    <span style={{ fontSize: 12.5, color: "var(--ink-3)", fontWeight: 500 }}>{t("wealth_category_total")}</span>
-                    <span style={{ fontSize: 16, fontWeight: 600, color: type.isLiability ? "var(--red)" : "var(--ink)" }}>
-                      {type.isLiability ? "−" : ""}{formatAmount(catTotal)} {currencySymbol}
-                    </span>
                   </div>
                 );
               })()}
@@ -536,8 +536,8 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenSet
                         <i className={`ti ${type.icon}`} style={{ fontSize: 16, color: colors.text }} aria-hidden="true" />
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontSize: 14 }}>{asset.name}</p>
-                        <p style={{ fontSize: 11, color: "var(--ink-3)" }}>
+                        <p style={{ fontSize: 12 }}>{asset.name}</p>
+                        <p style={{ fontSize: 10, color: "var(--ink-3)" }}>
                           {asset.apiId && `${asset.quantity} ${asset.apiId.toUpperCase()} · `}
                           {ownerLabel}
                           {asset.ownership === "shared" && ` (${asset.sharePct ?? 50}/${100 - (asset.sharePct ?? 50)})`}
@@ -554,7 +554,7 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenSet
                             {t("wealth_price_unavailable_short")}
                           </p>
                         ) : (
-                          <p style={{ fontSize: 14, fontWeight: 500, color: type.isLiability ? "var(--red)" : "var(--ink)" }}>
+                          <p style={{ fontSize: 12, fontWeight: 500, color: type.isLiability ? "var(--red)" : "var(--ink)" }}>
                             {type.isLiability ? "−" : ""}{formatAmount(val)} {currencySymbol}
                           </p>
                         )}
