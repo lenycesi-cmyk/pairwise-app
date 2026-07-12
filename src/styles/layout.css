@@ -54,18 +54,19 @@
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: var(--lavi);
+  background: var(--tang);
   border: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 16px rgba(35, 109, 170, 0.35);
+  box-shadow: 0 4px 16px rgba(245, 99, 70, 0.35);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
 }
 .bottom-nav-addlabel {
   display: none;
   font-size: 10px;
   font-weight: 600;
-  color: var(--lavi);
+  color: var(--tang);
 }
 
 /* Settings tab: lives in the sidebar rail on desktop, alongside the other
@@ -183,9 +184,9 @@
     width: 100%;
     margin: 0 0 10px;
     padding: 11px 14px;
-    background: var(--lavi);
+    background: var(--tang);
     border-radius: var(--radius-md);
-    transition: filter 0.18s ease, transform 0.18s ease;
+    transition: filter 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
   }
   .bottom-nav-add {
     width: auto;
@@ -263,8 +264,9 @@
     color: #fff;
   }
   .bottom-nav-addcol:hover {
-    filter: brightness(1.06);
-    transform: translateY(-1px);
+    filter: brightness(1.08);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 22px rgba(245, 99, 70, 0.4);
   }
 }
 

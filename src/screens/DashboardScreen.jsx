@@ -854,65 +854,94 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
           padding: "1rem 1.25rem",
         }}
       >
-      {/* Header */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center" }}>
-        {/* Titre d'onglet, aligné avec la colonne gauche — cohérent avec
-            Rapports / Patrimoine / Budget. Sur mobile, laisse la place au
-            bouton de menu en haut à gauche (même retrait de 44px). */}
-        <GreetingHeader subtitleKey="home_subtitle" marginLeft={isDesktop ? 0 : 44} />
-        <div style={{ display: "flex", alignItems: "center", gap: 10, justifySelf: "center" }}>
-          <button onClick={() => changeMonth(-1)} aria-label="Mois précédent" style={navBtnStyle}>
-            <i className="ti ti-chevron-left" style={{ fontSize: 16 }} aria-hidden="true" />
-          </button>
-          <p style={{ fontSize: 15, fontWeight: 500 }}>
-            {monthName(viewMonth)} {viewYear}
-            {ratesError === "using_fallback_rates" && (
-              <i className="ti ti-alert-triangle" title="Taux de change approximatifs" style={{ fontSize: 12, color: "var(--amber)", marginLeft: 6 }} aria-hidden="true" />
-            )}
-          </p>
-          <button onClick={() => changeMonth(1)} aria-label="Mois suivant" style={navBtnStyle}>
-            <i className="ti ti-chevron-right" style={{ fontSize: 16 }} aria-hidden="true" />
-          </button>
-        </div>
-        <div style={{ justifySelf: "end", display: "flex", alignItems: "center", gap: 6 }}>
-          {editMode ? (
-            <button
-              onClick={exitEditMode}
-              style={{
-                background: "var(--ink)", color: "var(--bg)", border: "none",
-                borderRadius: "var(--radius-md)", padding: "5px 14px", fontSize: 13, fontWeight: 500,
-              }}
-            >
-              {t("dashboard_done")}
+      {/* Header. Desktop : une ligne [accueil | mois | actions]. Mobile :
+          ligne 1 [mois + actions] (le bouton Réglages flottant occupe le coin
+          gauche), ligne 2 le bloc « Bonjour … » sur toute la largeur. */}
+      {(() => {
+        const monthNav = (
+          <div style={{ display: "flex", alignItems: "center", gap: 10, justifySelf: "center" }}>
+            <button onClick={() => changeMonth(-1)} aria-label="Mois précédent" style={navBtnStyle}>
+              <i className="ti ti-chevron-left" style={{ fontSize: 16 }} aria-hidden="true" />
             </button>
-          ) : (
-            <>
+            <p style={{ fontSize: 15, fontWeight: 500 }}>
+              {monthName(viewMonth)} {viewYear}
+              {ratesError === "using_fallback_rates" && (
+                <i className="ti ti-alert-triangle" title="Taux de change approximatifs" style={{ fontSize: 12, color: "var(--amber)", marginLeft: 6 }} aria-hidden="true" />
+              )}
+            </p>
+            <button onClick={() => changeMonth(1)} aria-label="Mois suivant" style={navBtnStyle}>
+              <i className="ti ti-chevron-right" style={{ fontSize: 16 }} aria-hidden="true" />
+            </button>
+          </div>
+        );
+        const actions = (
+          <div style={{ justifySelf: "end", display: "flex", alignItems: "center", gap: 6 }}>
+            {editMode ? (
               <button
-                ref={currencyButtonRef}
-                onClick={() => setShowCurrencyPicker(!showCurrencyPicker)}
+                onClick={exitEditMode}
                 style={{
-                  padding: "4px 10px", borderRadius: "var(--radius-md)", border: "0.5px solid var(--rule)",
-                  background: "var(--bg-card)", fontSize: 12, fontWeight: 500,
-                  display: "flex", alignItems: "center", gap: 4,
+                  background: "var(--ink)", color: "var(--bg)", border: "none",
+                  borderRadius: "var(--radius-md)", padding: "5px 14px", fontSize: 13, fontWeight: 500,
                 }}
               >
-                {displayCurrency} <i className="ti ti-chevron-down" style={{ fontSize: 11 }} aria-hidden="true" />
+                {t("dashboard_done")}
               </button>
-              <button
-                ref={customizeButtonRef}
-                onClick={enterEditMode}
-                aria-label={t("dashboard_customize")}
-                style={{
-                  width: 30, height: 30, borderRadius: "50%", background: "var(--bg-card)",
-                  border: "0.5px solid var(--rule)", display: "flex", alignItems: "center", justifyContent: "center",
-                }}
-              >
-                <i className="ti ti-pencil" style={{ fontSize: 14 }} aria-hidden="true" />
-              </button>
-            </>
-          )}
-        </div>
-      </div>
+            ) : (
+              <>
+                <button
+                  ref={currencyButtonRef}
+                  onClick={() => setShowCurrencyPicker(!showCurrencyPicker)}
+                  style={{
+                    padding: "4px 10px", borderRadius: "var(--radius-md)", border: "0.5px solid var(--rule)",
+                    background: "var(--bg-card)", fontSize: 12, fontWeight: 500,
+                    display: "flex", alignItems: "center", gap: 4,
+                  }}
+                >
+                  {displayCurrency} <i className="ti ti-chevron-down" style={{ fontSize: 11 }} aria-hidden="true" />
+                </button>
+                <button
+                  ref={customizeButtonRef}
+                  onClick={enterEditMode}
+                  aria-label={t("dashboard_customize")}
+                  style={{
+                    width: 30, height: 30, borderRadius: "50%", background: "var(--bg-card)",
+                    border: "0.5px solid var(--rule)", display: "flex", alignItems: "center", justifyContent: "center",
+                  }}
+                >
+                  <i className="ti ti-pencil" style={{ fontSize: 14 }} aria-hidden="true" />
+                </button>
+              </>
+            )}
+          </div>
+        );
+        const greeting = (
+          <GreetingHeader
+            subtitleKey="home_subtitle"
+            marginLeft={0}
+            month={`${monthName(viewMonth)} ${viewYear}`}
+          />
+        );
+        if (isDesktop) {
+          return (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center" }}>
+              {greeting}
+              {monthNav}
+              {actions}
+            </div>
+          );
+        }
+        return (
+          <>
+            {/* Ligne 1 : mois + actions (le FAB Réglages tient le coin gauche). */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, paddingLeft: 40, marginBottom: 10 }}>
+              {monthNav}
+              {actions}
+            </div>
+            {/* Ligne 2 : Bonjour + sous-titre. */}
+            {greeting}
+          </>
+        );
+      })()}
 
       {!editMode && (
         <SpotlightHint

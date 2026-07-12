@@ -461,8 +461,8 @@ export const TRANSLATIONS = {
     // Dashboard customization
     home_title: "Accueil",
     greeting_hello: "Bonjour",
-    home_subtitle: "Voici ton aperçu financier pour {month}.",
-    budget_subtitle: "Voici ton aperçu budget pour {month}.",
+    home_subtitle: "Voici ton résumé financier pour {month}.",
+    budget_subtitle: "Voici ton résumé budget pour {month}.",
     wealth_subtitle: "Voici ton rapport patrimoine pour {month}.",
     reports_subtitle: "Voici ton rapport financier pour {month}.",
     dashboard_customize: "Personnaliser",
