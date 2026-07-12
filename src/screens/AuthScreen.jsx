@@ -3,7 +3,7 @@ import { useAuth } from "../context/AuthContext";
 import Logo from "../components/Logo";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 import { onboardingT, detectOnboardingLanguage } from "../data/onboardingCopy";
-import { draftEntryView, deriveInsight } from "../utils/onboardingDraft";
+import { draftEntryView, deriveInsight, formatMoney } from "../utils/onboardingDraft";
 
 // Combien de lignes de brouillon on affiche avant de résumer le reste en
 // "+N autres" — garde la carte compacte sur mobile (pas de scroll voulu).
@@ -76,9 +76,18 @@ export default function AuthScreen({ defaultMode = "login", draft = [], language
           </div>
 
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, borderTop: "0.5px solid var(--rule)", marginTop: 10, paddingTop: 10 }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>{lang === "en" ? "Total" : "Total"}</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>{insight.hasIncome ? t("s6_total_spent") : t("s6_total")}</span>
             <span style={{ fontSize: 14, fontWeight: 800, color: "var(--ink)" }}>{insight.expenseDisp}</span>
           </div>
+
+          {insight.hasIncome && (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginTop: 8 }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink-3)" }}>{t("s6_net")}</span>
+              <span style={{ fontSize: 14, fontWeight: 800, color: insight.balance >= 0 ? "var(--sage)" : "var(--tang)" }}>
+                {(insight.balance >= 0 ? "+" : "") + formatMoney(insight.balance, insight.currency, lang)}
+              </span>
+            </div>
+          )}
         </div>
 
         <div style={{ display: "flex", alignItems: "flex-start", gap: 8, background: "var(--sage-light)", color: "var(--sage)", borderRadius: "var(--radius-md)", padding: "10px 12px", marginTop: 10 }}>
