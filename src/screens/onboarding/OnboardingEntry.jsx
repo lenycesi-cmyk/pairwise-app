@@ -9,6 +9,7 @@ import {
   deriveInsight,
   guessDefaultCurrency,
   formatMoney,
+  currencySymbol,
 } from "../../utils/onboardingDraft";
 import { ALL_CATEGORIES, getCategoryName } from "../../data/categories";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
@@ -42,6 +43,8 @@ export default function OnboardingEntry({ language, onSignIn, onNext }) {
   const [draft, setDraft] = useState(() => loadDraft());
   const [input, setInput] = useState("");
   const [editId, setEditId] = useState(null);
+  const [form, setForm] = useState(null); // valeurs en cours d'édition d'une entrée
+  const [collapsed, setCollapsed] = useState(false); // "retour" depuis l'étape 2 → accueil
   const [phIndex, setPhIndex] = useState(0);
   const inputRef = useRef(null);
 
@@ -69,26 +72,56 @@ export default function OnboardingEntry({ language, onSignIn, onNext }) {
     }
     persist([entry, ...draft]);
     setInput("");
+    setCollapsed(false);
   }
   function removeEntry(id) {
     const next = draft.filter((d) => d.id !== id);
     persist(next);
     if (next.length === 0) clearDraft();
   }
-  function setCategory(id, categoryId) {
-    persist(draft.map((d) => (d.id === id ? { ...d, categoryId, subcategory: null } : d)));
+  // Édition complète d'une entrée (montant, description, catégorie).
+  function openEdit(d) {
+    setForm({
+      description: d.description || "",
+      amount: String(d.amount),
+      currency: d.currency,
+      categoryId: d.categoryId,
+      type: d.type,
+    });
+    setEditId(d.id);
+  }
+  function closeEdit() {
     setEditId(null);
+    setForm(null);
+  }
+  function saveEdit() {
+    const amt = parseFloat(String(form.amount).replace(",", "."));
+    persist(
+      draft.map((d) =>
+        d.id === editId
+          ? {
+              ...d,
+              description: form.description.trim() || null,
+              amount: isNaN(amt) || amt <= 0 ? d.amount : amt,
+              categoryId: form.categoryId,
+              subcategory: form.categoryId !== d.categoryId ? null : d.subcategory,
+            }
+          : d
+      )
+    );
+    closeEdit();
   }
 
   const insight = hasDraft ? deriveInsight(draft, language, t) : null;
 
   // ── Fragments réutilisés ────────────────────────────────────────────────
-  function logo(center) {
-    const sz = center && isDesktop ? 42 : 28;
+  function logo(center, big) {
+    const large = big && isDesktop;
+    const sz = large ? 42 : 28;
     return (
-      <div style={{ display: "flex", alignItems: "center", gap: center && isDesktop ? 13 : 9, justifyContent: center ? "center" : "flex-start" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: large ? 13 : 9, justifyContent: center ? "center" : "flex-start" }}>
         <div style={{ width: sz, height: sz, borderRadius: sz * 0.28, background: "var(--tang)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: sz * 0.55 }}>P</div>
-        <span style={{ fontWeight: 700, fontSize: center && isDesktop ? 24 : 15 }}>PairWise</span>
+        <span style={{ fontWeight: 700, fontSize: large ? 24 : 15 }}>PairWise</span>
       </div>
     );
   }
@@ -102,36 +135,36 @@ export default function OnboardingEntry({ language, onSignIn, onNext }) {
     </div>
   );
 
-  function inputField() {
+  function inputField(big) {
     return (
-      <div style={{ flex: 1, background: "var(--bg-card)", border: "1.5px solid var(--tang)", borderRadius: 14, padding: "0 12px", display: "flex", alignItems: "center", gap: 9, boxShadow: "0 6px 18px var(--tang-light)" }}>
-        <i className="ti ti-sparkles" style={{ color: "var(--tang)", fontSize: 18 }} />
+      <div style={{ flex: 1, background: "var(--bg-card)", border: "1.5px solid var(--tang)", borderRadius: big ? 18 : 14, padding: big ? "0 18px" : "0 12px", display: "flex", alignItems: "center", gap: big ? 12 : 9, boxShadow: "0 6px 18px var(--tang-light)" }}>
+        <i className="ti ti-sparkles" style={{ color: "var(--tang)", fontSize: big ? 22 : 18, flex: "none" }} />
         <input
           ref={inputRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && submit()}
           placeholder={input ? "" : placeholders[phIndex]}
-          style={{ flex: 1, border: "none", outline: "none", background: "transparent", fontFamily: "inherit", fontSize: 14.5, fontWeight: 500, color: "var(--ink)", padding: "13px 0", minWidth: 0 }}
+          style={{ flex: 1, border: "none", outline: "none", background: "transparent", fontFamily: "inherit", fontSize: big ? 18 : 14.5, fontWeight: 500, color: "var(--ink)", padding: big ? "16px 0" : "13px 0", minWidth: 0 }}
         />
       </div>
     );
   }
 
-  // Champ + bouton flèche (étape 2).
-  function addRow() {
+  // Champ + bouton flèche (étape 2). Plus grand sur desktop.
+  function addRow(big) {
+    const sz = big ? 56 : 46;
     return (
-      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-        {inputField()}
-        <button onClick={submit} aria-label={t("s2_add")} style={{ border: "none", background: "var(--tang)", color: "#fff", borderRadius: 13, width: 46, height: 46, flex: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "var(--shadow)" }}>
-          <i className="ti ti-arrow-up" style={{ fontSize: 20 }} />
+      <div style={{ display: "flex", gap: big ? 10 : 8, alignItems: "center" }}>
+        {inputField(big)}
+        <button onClick={submit} aria-label={t("s2_add")} style={{ border: "none", background: "var(--tang)", color: "#fff", borderRadius: big ? 16 : 13, width: sz, height: sz, flex: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "var(--shadow)" }}>
+          <i className="ti ti-arrow-up" style={{ fontSize: big ? 24 : 20 }} />
         </button>
       </div>
     );
   }
 
-  function chipsRow(center) {
-    const big = center && isDesktop;
+  function chipsRow(big, center) {
     const fz = big ? 14 : 11.5;
     return (
       <div style={{ display: "flex", flexWrap: "wrap", gap: big ? 8 : 6, marginTop: big ? 16 : 11, justifyContent: center ? "center" : "flex-start" }}>
@@ -154,12 +187,12 @@ export default function OnboardingEntry({ language, onSignIn, onNext }) {
   );
 
   const insightCard = insight && (
-    <div style={{ background: "linear-gradient(135deg, var(--sage-light), var(--mint-light))", borderRadius: 16, padding: "15px 16px", animation: "pw-rise .4s ease both" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--sage)", marginBottom: 7 }}>
-        <i className="ti ti-sparkles" style={{ fontSize: 13 }} />
+    <div style={{ background: "linear-gradient(135deg, var(--sage-light), var(--mint-light))", borderRadius: isDesktop ? 20 : 16, padding: isDesktop ? "20px 22px" : "15px 16px", animation: "pw-rise .4s ease both" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: isDesktop ? 13 : 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--sage)", marginBottom: 8 }}>
+        <i className="ti ti-sparkles" style={{ fontSize: isDesktop ? 15 : 13 }} />
         {t("s2_insight")}
       </div>
-      <div style={{ fontSize: 15, fontWeight: 600, lineHeight: 1.4, color: "var(--ink)" }}>{insight.insight}</div>
+      <div style={{ fontSize: isDesktop ? 19 : 15, fontWeight: 600, lineHeight: 1.4, color: "var(--ink)" }}>{insight.insight}</div>
       {insight.hasIncome && (
         <div style={{ display: "flex", gap: 8, marginTop: 11 }}>
           <MiniTile label={t("revLabel")} value={insight.incomeDisp} color="var(--sage)" />
@@ -171,15 +204,15 @@ export default function OnboardingEntry({ language, onSignIn, onNext }) {
 
   const breakdownBlock = insight && insight.breakdown.length > 0 && (
     <div>
-      <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--ink-3)", margin: "0 0 10px" }}>{t("s2_break")}</div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <div style={{ fontSize: isDesktop ? 13 : 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--ink-3)", margin: "0 0 12px" }}>{t("s2_break")}</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: isDesktop ? 13 : 10 }}>
         {insight.breakdown.map((c) => (
-          <div key={c.categoryId} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 30, height: 30, borderRadius: 9, flex: "none", display: "flex", alignItems: "center", justifyContent: "center", background: `var(${c.color}-light)`, color: `var(${c.color})` }}>
-              <i className={`ti ${c.icon}`} style={{ fontSize: 16 }} />
+          <div key={c.categoryId} style={{ display: "flex", alignItems: "center", gap: isDesktop ? 12 : 10 }}>
+            <div style={{ width: isDesktop ? 36 : 30, height: isDesktop ? 36 : 30, borderRadius: 10, flex: "none", display: "flex", alignItems: "center", justifyContent: "center", background: `var(${c.color}-light)`, color: `var(${c.color})` }}>
+              <i className={`ti ${c.icon}`} style={{ fontSize: isDesktop ? 19 : 16 }} />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 13, fontWeight: 600, marginBottom: 4 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: isDesktop ? 15 : 13, fontWeight: 600, marginBottom: 5 }}>
                 <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.name}</span>
                 <span style={{ whiteSpace: "nowrap", flex: "none" }}>{c.amountFmt}</span>
               </div>
@@ -194,33 +227,37 @@ export default function OnboardingEntry({ language, onSignIn, onNext }) {
   );
 
   function listBlock() {
+    const big = isDesktop;
+    const av = big ? 38 : 32;
     return (
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: big ? 10 : 8 }}>
         {draft.map((d) => {
           const v = draftEntryView(d, language, t);
+          // Toute la ligne est cliquable pour éditer ; la corbeille reste à part.
           return (
-            <div key={d.id} style={{ display: "flex", alignItems: "center", gap: 10, background: "var(--bg-card)", border: "0.5px solid var(--rule)", borderRadius: 12, padding: "9px 11px", animation: "pw-pop .5s ease both" }}>
-              <button
-                onClick={() => d.type !== "income" && setEditId(editId === d.id ? null : d.id)}
-                aria-label="Modifier la catégorie"
-                style={{ position: "relative", width: 32, height: 32, borderRadius: 9, flex: "none", display: "flex", alignItems: "center", justifyContent: "center", background: `var(${v.color}-light)`, color: `var(${v.color})`, border: "none", cursor: d.type === "income" ? "default" : "pointer" }}
-              >
-                <i className={`ti ${v.icon}`} style={{ fontSize: 16 }} />
-                {d.type !== "income" && (
-                  <i className="ti ti-pencil" style={{ position: "absolute", right: -4, bottom: -4, fontSize: 11, background: "var(--bg-card)", borderRadius: 99, padding: 1, color: "var(--ink-3)" }} />
-                )}
-              </button>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.catName}</div>
-                <div style={{ fontSize: 11.5, color: "var(--ink-3)" }}>{v.dateLabel}</div>
+            <div
+              key={d.id}
+              onClick={() => openEdit(d)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && openEdit(d)}
+              style={{ display: "flex", alignItems: "center", gap: big ? 12 : 10, background: "var(--bg-card)", border: "0.5px solid var(--rule)", borderRadius: 12, padding: big ? "12px 14px" : "9px 11px", animation: "pw-pop .5s ease both", cursor: "pointer" }}
+            >
+              <div style={{ position: "relative", width: av, height: av, borderRadius: 10, flex: "none", display: "flex", alignItems: "center", justifyContent: "center", background: `var(${v.color}-light)`, color: `var(${v.color})` }}>
+                <i className={`ti ${v.icon}`} style={{ fontSize: big ? 19 : 16 }} />
+                <i className="ti ti-pencil" style={{ position: "absolute", right: -4, bottom: -4, fontSize: 11, background: "var(--bg-card)", borderRadius: 99, padding: 1, color: "var(--ink-3)" }} />
               </div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: v.amountColor }}>{v.amountDisp}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: big ? 15.5 : 13.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.catName}</div>
+                <div style={{ fontSize: big ? 13 : 11.5, color: "var(--ink-3)" }}>{v.dateLabel}</div>
+              </div>
+              <div style={{ fontSize: big ? 16 : 14, fontWeight: 700, color: v.amountColor }}>{v.amountDisp}</div>
               <button
-                onClick={() => removeEntry(d.id)}
+                onClick={(e) => { e.stopPropagation(); removeEntry(d.id); }}
                 aria-label="Supprimer"
                 style={{ background: "none", border: "none", display: "flex", color: "var(--ink-3)", cursor: "pointer", padding: 4, flex: "none" }}
               >
-                <i className="ti ti-trash" style={{ fontSize: 16 }} />
+                <i className="ti ti-trash" style={{ fontSize: big ? 18 : 16 }} />
               </button>
             </div>
           );
@@ -236,31 +273,96 @@ export default function OnboardingEntry({ language, onSignIn, onNext }) {
     </button>
   );
 
-  const editSheet = editId && (
-    <div onClick={() => setEditId(null)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.35)", zIndex: 50, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 430, background: "var(--bg)", borderTopLeftRadius: "var(--radius-xl)", borderTopRightRadius: "var(--radius-xl)", padding: "18px 18px 26px", maxHeight: "70vh", overflowY: "auto" }}>
-        <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 14 }}>{language === "en" ? "Choose a category" : "Choisir une catégorie"}</div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-          {EXPENSE_CATS.map((c) => (
-            <button key={c.id} onClick={() => setCategory(editId, c.id)} style={{ display: "flex", alignItems: "center", gap: 9, background: "var(--bg-card)", border: "0.5px solid var(--rule)", borderRadius: 12, padding: "10px 11px", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
-              <div style={{ width: 28, height: 28, borderRadius: 8, flex: "none", display: "flex", alignItems: "center", justifyContent: "center", background: `var(--${c.color}-light)`, color: `var(--${c.color})` }}>
-                <i className={`ti ${c.icon}`} style={{ fontSize: 15 }} />
-              </div>
-              <span style={{ fontSize: 12.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{getCategoryName(c, language)}</span>
-            </button>
-          ))}
+  const fieldLabel = { fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--ink-3)", marginBottom: 7 };
+  const fieldBox = { width: "100%", background: "var(--bg-card)", border: "0.5px solid var(--rule)", borderRadius: 12, padding: "12px 13px", fontFamily: "inherit", fontSize: 15, color: "var(--ink)", outline: "none", boxSizing: "border-box" };
+
+  const editSheet = editId && form && (
+    <div
+      onClick={closeEdit}
+      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.35)", zIndex: 50, display: "flex", alignItems: isDesktop ? "center" : "flex-end", justifyContent: "center", padding: isDesktop ? 24 : 0 }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: "100%",
+          maxWidth: 430,
+          background: "var(--bg)",
+          borderRadius: isDesktop ? "var(--radius-xl)" : "var(--radius-xl) var(--radius-xl) 0 0",
+          padding: "16px 18px 22px",
+          maxHeight: isDesktop ? "86vh" : "82vh",
+          overflowY: "auto",
+          boxShadow: isDesktop ? "0 24px 60px rgba(0,0,0,.28)" : "none",
+        }}
+      >
+        {/* En-tête : annuler (retour) à gauche + titre */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+          <button onClick={closeEdit} aria-label={t("e_cancel")} style={{ background: "none", border: "none", display: "flex", color: "var(--ink-3)", cursor: "pointer", padding: 2, flex: "none" }}>
+            <i className="ti ti-arrow-left" style={{ fontSize: 22 }} />
+          </button>
+          <div style={{ fontSize: 16, fontWeight: 700 }}>{t("e_title")}</div>
         </div>
+
+        <div style={{ marginBottom: 14 }}>
+          <div style={fieldLabel}>{t("e_desc")}</div>
+          <input
+            value={form.description}
+            onChange={(e) => setForm({ ...form, description: e.target.value })}
+            placeholder={t("e_desc_ph")}
+            style={fieldBox}
+          />
+        </div>
+
+        <div style={{ marginBottom: form.type === "income" ? 4 : 18 }}>
+          <div style={fieldLabel}>{t("e_amount")}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <input
+              value={form.amount}
+              onChange={(e) => setForm({ ...form, amount: e.target.value })}
+              inputMode="decimal"
+              style={{ ...fieldBox, flex: 1 }}
+            />
+            <span style={{ fontSize: 15, fontWeight: 700, color: "var(--ink-2)", flex: "none" }}>{currencySymbol(form.currency)}</span>
+          </div>
+        </div>
+
+        {form.type !== "income" && (
+          <>
+            <div style={fieldLabel}>{t("e_cat")}</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              {EXPENSE_CATS.map((c) => {
+                const sel = form.categoryId === c.id;
+                return (
+                  <button
+                    key={c.id}
+                    onClick={() => setForm({ ...form, categoryId: c.id })}
+                    style={{ display: "flex", alignItems: "center", gap: 9, background: "var(--bg-card)", border: `1.5px solid ${sel ? `var(--${c.color})` : "var(--rule)"}`, borderRadius: 12, padding: "10px 11px", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}
+                  >
+                    <div style={{ width: 28, height: 28, borderRadius: 8, flex: "none", display: "flex", alignItems: "center", justifyContent: "center", background: `var(--${c.color}-light)`, color: `var(--${c.color})` }}>
+                      <i className={`ti ${c.icon}`} style={{ fontSize: 15 }} />
+                    </div>
+                    <span style={{ fontSize: 12.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{getCategoryName(c, language)}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
+
+        <button onClick={saveEdit} style={{ ...primaryBtn, marginTop: 20 }}>
+          <i className="ti ti-check" style={{ fontSize: 17 }} />
+          {t("e_save")}
+        </button>
       </div>
     </div>
   );
 
-  // ── ÉTAT ACCUEIL (aucune entrée) — grand hero centré, langue auto ────────
-  if (!hasDraft) {
+  // ── ÉTAT ACCUEIL (aucune entrée, ou "retour" depuis l'étape 2) ───────────
+  if (!hasDraft || collapsed) {
     return (
       <div style={{ ...screenWrap, maxWidth: isDesktop ? 760 : 430 }}>
         <div style={{ flex: 1, overflowY: "auto", padding: "32px 24px 24px", display: "flex", flexDirection: "column" }}>
           <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center" }}>
-            {logo(true)}
+            {logo(true, true)}
             <div style={{ margin: isDesktop ? "30px 0 52px" : "24px 0" }}>{privacyBadge}</div>
             <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: isDesktop ? 52 : 29, lineHeight: 1.12, letterSpacing: "-0.02em", color: "var(--ink)", margin: "0 0 20px", maxWidth: isDesktop ? 660 : 340 }}>
               {t("s1_title")}
@@ -297,7 +399,16 @@ export default function OnboardingEntry({ language, onSignIn, onNext }) {
               )}
             </div>
             {previewRow}
-            {chipsRow(true)}
+            {chipsRow(isDesktop, true)}
+            {collapsed && hasDraft && (
+              <button
+                onClick={() => setCollapsed(false)}
+                style={{ marginTop: 24, background: "none", border: "none", color: "var(--tang)", fontWeight: 700, fontSize: isDesktop ? 17 : 14, cursor: "pointer", fontFamily: "inherit", display: "inline-flex", alignItems: "center", gap: 6 }}
+              >
+                {language === "en" ? "Resume" : "Reprendre"}
+                <i className="ti ti-arrow-right" style={{ fontSize: 16 }} />
+              </button>
+            )}
           </div>
           <div style={{ fontSize: isDesktop ? 18 : 13, color: "var(--ink-3)", textAlign: "center", paddingTop: 28 }}>
             {t("s1_signin")}{" "}
@@ -311,23 +422,24 @@ export default function OnboardingEntry({ language, onSignIn, onNext }) {
   }
 
   // ── ÉTAT "AJOUTE DES ÉLÉMENTS" (étape 2/3) ──────────────────────────────
+  // Logo centré tout en haut ; le badge confidentialité ne s'affiche que sur
+  // l'accueil (pas répété ici). Flèche retour liée à "Étape 2/3".
   const topBar = (
     <div style={{ flex: "none" }}>
-      <div style={{ padding: "16px 20px 0" }}>
-        {logo(false)}
-        <div style={{ marginTop: 12 }}>{privacyBadge}</div>
+      <div style={{ padding: "16px 20px 0", display: "flex", justifyContent: "center" }}>
+        {logo(true)}
       </div>
-      <StepDots current={2} total={3} label={t("step")} />
+      <StepDots current={2} total={3} label={t("step")} onBack={() => setCollapsed(true)} />
     </div>
   );
 
   // Bloc de saisie (label + champ + chips) — colonne gauche desktop / en-tête mobile.
   const addZone = (
     <div>
-      <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink-2)", marginBottom: 9 }}>{t("s2_hero")}</div>
-      {addRow()}
+      <div style={{ fontSize: isDesktop ? 16 : 13, fontWeight: 700, color: "var(--ink-2)", marginBottom: isDesktop ? 12 : 9 }}>{t("s2_hero")}</div>
+      {addRow(isDesktop)}
       {previewRow}
-      {chipsRow(false)}
+      {chipsRow(isDesktop, false)}
     </div>
   );
 
@@ -341,7 +453,8 @@ export default function OnboardingEntry({ language, onSignIn, onNext }) {
               {addZone}
               {listBlock()}
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {/* marginTop = hauteur du label "Ajoute…" pour aligner l'insight sur le champ de saisie */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 16, marginTop: 32 }}>
               {insightCard}
               {breakdownBlock}
             </div>
