@@ -247,6 +247,12 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
       setAmount(String(parsed.amount));
       amountAutoRef.current = true;
     }
+
+    // Devise : uniquement si un indice explicite est présent dans le texte
+    // ("euros", "$", "usd"…) — sinon on laisse la devise choisie intacte.
+    if (parsed.currencyDetected && parsed.currency) {
+      setCurrency(parsed.currency);
+    }
   }
 
   function pickSuggestion(s) {
