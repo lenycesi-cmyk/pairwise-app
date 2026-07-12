@@ -114,7 +114,7 @@ function SortableWidget({ id, editMode, onLongPress, children }) {
 }
 
 // ── Main component ───────────────────────────────────────────────────────────
-export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTransactions, onEditTransaction, sharedMonth, onSharedMonthChange, addButtonRef, settingsButtonRef, onOpenRecurring, onOpenBudget }) {
+export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTransactions, onEditTransaction, sharedMonth, onSharedMonthChange, addButtonRef, settingsButtonRef, onOpenSettings, onOpenRecurring, onOpenBudget }) {
   const t = useTranslation();
   const { catName } = useCategoryName();
   const {
@@ -863,8 +863,13 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
             <button onClick={() => changeMonth(-1)} aria-label="Mois précédent" style={navBtnStyle}>
               <i className="ti ti-chevron-left" style={{ fontSize: 16 }} aria-hidden="true" />
             </button>
-            <p style={{ fontSize: 15, fontWeight: 500 }}>
-              {monthName(viewMonth)} {viewYear}
+            <p style={{ fontSize: 15, fontWeight: 500, whiteSpace: "nowrap" }}>
+              {(() => {
+                // Sur mobile, abréger le mois s'il dépasse 4 lettres (Septembre → Sept)
+                // pour que la ligne du sélecteur reste compacte.
+                const full = monthName(viewMonth);
+                return isDesktop || full.length <= 4 ? full : full.slice(0, 4);
+              })()} {viewYear}
               {ratesError === "using_fallback_rates" && (
                 <i className="ti ti-alert-triangle" title="Taux de change approximatifs" style={{ fontSize: 12, color: "var(--amber)", marginLeft: 6 }} aria-hidden="true" />
               )}
@@ -932,8 +937,18 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
         }
         return (
           <>
-            {/* Ligne 1 : mois + actions (le FAB Réglages tient le coin gauche). */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, paddingLeft: 40, marginBottom: 10 }}>
+            {/* Ligne 1 : [Réglages] [période centrée] [devise/actions], alignés
+                sur une même ligne (Réglages intégré ici, plus de FAB flottant
+                sur l'accueil). */}
+            <div style={{ display: "grid", gridTemplateColumns: "auto 1fr auto", alignItems: "center", gap: 8, marginBottom: 10 }}>
+              <button
+                ref={settingsButtonRef}
+                onClick={onOpenSettings}
+                aria-label={t("nav_settings")}
+                style={navBtnStyle}
+              >
+                <i className="ti ti-settings" style={{ fontSize: 15 }} aria-hidden="true" />
+              </button>
               {monthNav}
               {actions}
             </div>
@@ -949,7 +964,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
           steps={[
             addButtonRef && { ref: addButtonRef, text: t("hint_dashboard_add") },
             { ref: currencyButtonRef, text: t("hint_dashboard_currency") },
-            settingsButtonRef && { ref: settingsButtonRef, text: t("hint_dashboard_settings") },
+            !isDesktop && settingsButtonRef && { ref: settingsButtonRef, text: t("hint_dashboard_settings") },
             { ref: customizeButtonRef, text: t("hint_dashboard_customize") },
           ].filter(Boolean)}
         />

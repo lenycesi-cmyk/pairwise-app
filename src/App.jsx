@@ -222,14 +222,19 @@ function AppContent() {
       <PushRunner />
       <OfflineBanner />
 
-      <button
-        ref={settingsButtonRef}
-        onClick={() => setShowSettings(true)}
-        aria-label="Réglages"
-        className="settings-fab"
-      >
-        <i className="ti ti-settings" style={{ fontSize: 17 }} aria-hidden="true" />
-      </button>
+      {/* FAB Réglages flottant : pour tous les onglets SAUF l'accueil, dont le
+          header intègre désormais son propre bouton Réglages (aligné avec le
+          sélecteur de période). Masqué sur desktop via CSS dans tous les cas. */}
+      {tab !== "dashboard" && (
+        <button
+          ref={settingsButtonRef}
+          onClick={() => setShowSettings(true)}
+          aria-label="Réglages"
+          className="settings-fab"
+        >
+          <i className="ti ti-settings" style={{ fontSize: 17 }} aria-hidden="true" />
+        </button>
+      )}
 
       {tab === "dashboard" && (
         <DashboardScreen
@@ -241,6 +246,7 @@ function AppContent() {
           onSharedMonthChange={setSharedMonth}
           addButtonRef={addButtonRef}
           settingsButtonRef={settingsButtonRef}
+          onOpenSettings={() => setShowSettings(true)}
           onOpenRecurring={openRecurring}
           onOpenBudget={() => setTab("budget")}
         />
