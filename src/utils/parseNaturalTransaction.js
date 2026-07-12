@@ -66,13 +66,16 @@ function parseAmount(token) {
 }
 
 // Détecte la devise : symbole/mot le plus proche d'un montant, sinon défaut.
+// `detected` distingue une vraie détection (un indice présent dans le texte)
+// d'un simple repli sur la devise par défaut — utile pour ne pas écraser la
+// devise choisie quand la saisie n'en mentionne aucune.
 function detectCurrency(norm, fallback) {
   for (const { code, tokens } of CURRENCY_HINTS) {
     for (const tk of tokens) {
-      if (norm.includes(tk)) return code;
+      if (norm.includes(tk)) return { code, detected: true };
     }
   }
-  return fallback;
+  return { code: fallback, detected: false };
 }
 
 function detectDate(norm) {
@@ -221,7 +224,7 @@ export function parseNaturalTransaction(text, { categories = [], transactions = 
   const amountMatch = text.match(/\d[\d\s]*(?:[.,]\d{1,2})?/);
   const amount = amountMatch ? parseAmount(amountMatch[0]) : null;
 
-  const currency = detectCurrency(norm, defaultCurrency);
+  const { code: currency, detected: currencyDetected } = detectCurrency(norm, defaultCurrency);
   const date = detectDate(norm).toISOString();
 
   // Catégorie : nom de catégorie explicite, sinon marchand/synonyme courant
@@ -251,6 +254,7 @@ export function parseNaturalTransaction(text, { categories = [], transactions = 
     type,
     amount,
     currency,
+    currencyDetected,
     date,
     categoryId: cat?.categoryId || null,
     subcategory: cat?.subcategory || null,
