@@ -300,7 +300,9 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
       .sort((a, b) => a.date.localeCompare(b.date))
       .slice(-12)
       .map((h) => ({
-        label: new Date(h.date).toLocaleDateString(locale, { month: "short" }),
+        // Jour + mois : les snapshots sont quotidiens, un label « mois » seul
+        // affichait « juil. » répété pour chaque point du même mois.
+        label: new Date(h.date).toLocaleDateString(locale, { day: "2-digit", month: "short" }),
         value: h.currency && h.currency !== displayCurrency
           ? convert(h.value ?? 0, h.currency, displayCurrency)
           : (h.value ?? 0),
