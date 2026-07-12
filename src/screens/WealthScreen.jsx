@@ -487,6 +487,20 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenSet
                   </div>
                 );
               })()}
+              {/* Total de la catégorie dès qu'elle contient plus de deux
+                  éléments (même principe que le total des comptes en banque,
+                  qui a lui son propre bloc filtrable au-dessus). */}
+              {type.id !== "account" && typeAssets.length > 2 && (() => {
+                const catTotal = typeAssets.reduce((s, a) => s + getAssetValue(a), 0);
+                return (
+                  <div style={{ padding: "12px 14px", borderBottom: "0.5px solid var(--rule)", display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10 }}>
+                    <span style={{ fontSize: 12.5, color: "var(--ink-3)", fontWeight: 500 }}>{t("wealth_category_total")}</span>
+                    <span style={{ fontSize: 16, fontWeight: 600, color: type.isLiability ? "var(--red)" : "var(--ink)" }}>
+                      {type.isLiability ? "−" : ""}{formatAmount(catTotal)} {currencySymbol}
+                    </span>
+                  </div>
+                );
+              })()}
               {typeAssets.map((asset, i) => {
                 const val = getAssetValue(asset);
                 // API-priced asset with no live price and no stored value: price couldn't be fetched

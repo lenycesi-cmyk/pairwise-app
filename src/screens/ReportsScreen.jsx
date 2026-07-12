@@ -293,14 +293,19 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
     prevTotalIncome > 0 ? ((totalIncome - prevTotalIncome) / prevTotalIncome) * 100 : null;
 
   const netWorthChartData = useMemo(() => {
+    // Les snapshots sont stockés sous { date, value, currency } (voir
+    // recordNetWorthSnapshot) — on lit donc h.value et on reconvertit depuis
+    // la devise enregistrée au moment du snapshot, pas depuis defaultCurrency.
     return [...netWorthHistory]
       .sort((a, b) => a.date.localeCompare(b.date))
       .slice(-12)
       .map((h) => ({
         label: new Date(h.date).toLocaleDateString(locale, { month: "short" }),
-        value: convert(h.netWorth ?? 0, defaultCurrency, displayCurrency),
+        value: h.currency && h.currency !== displayCurrency
+          ? convert(h.value ?? 0, h.currency, displayCurrency)
+          : (h.value ?? 0),
       }));
-  }, [netWorthHistory, convert, displayCurrency, defaultCurrency, locale]);
+  }, [netWorthHistory, convert, displayCurrency, locale]);
 
   const categoryTotals = useMemo(() => {
     const result = {};
@@ -524,7 +529,7 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
                 <ResponsiveContainer>
                   <LineChart data={evolutionData} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
                     <XAxis dataKey="label" tick={{ fontSize: 10, fill: "var(--ink-3)" }} axisLine={{ stroke: "var(--rule)" }} tickLine={false} />
-                    <YAxis hide domain={["auto", "auto"]} />
+                    <YAxis tick={{ fontSize: 10, fill: "var(--ink-3)" }} axisLine={false} tickLine={false} tickFormatter={formatAxisTick} width={38} domain={[0, "auto"]} />
                     <Tooltip content={<CustomTooltip />} />
                     <Line type="monotone" dataKey="value" stroke="var(--tang)" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
                   </LineChart>

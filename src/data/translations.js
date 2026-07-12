@@ -289,6 +289,7 @@ export const TRANSLATIONS = {
     bank_disconnect: "Déconnecter",
     bank_disconnect_confirm: "Déconnecter ce compte bancaire ?",
     bank_total_available: "Total disponible",
+    wealth_category_total: "Total de la catégorie",
     bank_scope_family: "Famille",
 
     // Advanced split
@@ -805,6 +806,7 @@ export const TRANSLATIONS = {
     bank_disconnect: "Disconnect",
     bank_disconnect_confirm: "Disconnect this bank account?",
     bank_total_available: "Total available",
+    wealth_category_total: "Category total",
     bank_scope_family: "Family",
 
     // Advanced split
