@@ -20,10 +20,18 @@ export default function BottomNav({ active, onChange, onAddClick, addButtonRef, 
       {tabs.map((tab) => {
         if (tab.key === "add") {
           return (
-            <div key={tab.key} className="bottom-nav-addcol">
+            // Sur desktop, tout le rectangle (icône + libellé + padding) est
+            // cliquable : le onClick est porté par le conteneur. Le bouton
+            // interne garde son onClick (avec stopPropagation pour éviter un
+            // double appel) afin de rester focalisable au clavier + porter la ref.
+            <div
+              key={tab.key}
+              className="bottom-nav-addcol"
+              onClick={() => onAddClick(active)}
+            >
               <button
                 ref={addButtonRef}
-                onClick={() => onAddClick(active)}
+                onClick={(e) => { e.stopPropagation(); onAddClick(active); }}
                 aria-label={t("nav_add")}
                 className="bottom-nav-add"
               >
