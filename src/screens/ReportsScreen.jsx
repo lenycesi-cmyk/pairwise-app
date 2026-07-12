@@ -155,6 +155,44 @@ function getRange(periodType, anchor, customRange, locale) {
   };
 }
 
+// Énumère tous les buckets (intervalles) d'une plage, dans l'ordre, selon le
+// type de période : un par jour en semaine/mois, un par mois sinon. Sert à
+// tracer un axe continu qui laisse en blanc les périodes sans donnée (au lieu
+// de sauter les buckets vides, ce qui écrasait un trimestre à un seul point).
+function enumerateBuckets(range, periodType, locale) {
+  const out = [];
+  const byDay = periodType === "month" || periodType === "week";
+  const cur = new Date(range.start);
+  cur.setHours(0, 0, 0, 0);
+  if (byDay) {
+    while (cur < range.end) {
+      out.push({ key: cur.getDate(), label: cur.getDate().toString() });
+      cur.setDate(cur.getDate() + 1);
+    }
+  } else {
+    cur.setDate(1);
+    while (cur < range.end) {
+      out.push({ key: `${cur.getFullYear()}-${cur.getMonth()}`, label: cur.toLocaleDateString(locale, { month: "short" }) });
+      cur.setMonth(cur.getMonth() + 1);
+    }
+  }
+  return out;
+}
+
+// Clé de bucket d'une date, cohérente avec enumerateBuckets.
+function bucketKeyOf(d, periodType) {
+  return periodType === "month" || periodType === "week"
+    ? d.getDate()
+    : `${d.getFullYear()}-${d.getMonth()}`;
+}
+
+// Retire les buckets vides en tête (le graphe commence au plus ancien point
+// disposant d'une donnée) ; les trous internes et de fin restent en blanc.
+function trimLeadingEmpty(series) {
+  const first = series.findIndex((p) => p.value != null);
+  return first === -1 ? [] : series.slice(first);
+}
+
 function shiftAnchor(periodType, anchor, delta) {
   const d = new Date(anchor);
   if (periodType === "week") d.setDate(d.getDate() + delta * 7);
@@ -293,34 +331,32 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
     prevTotalIncome > 0 ? ((totalIncome - prevTotalIncome) / prevTotalIncome) * 100 : null;
 
   const netWorthChartData = useMemo(() => {
-    // Calé sur le sélecteur de période de la page : mêmes buckets que
-    // « évolution des dépenses » (jour si semaine/mois, mois sinon). Les
-    // snapshots sont { date, value, currency } (voir recordNetWorthSnapshot) —
-    // on reconvertit depuis la devise du snapshot. Le patrimoine net est une
-    // valeur instantanée (pas une somme) : on garde donc le DERNIER snapshot
-    // de chaque bucket.
-    let bucketKey, bucketLabel;
-    if (periodType === "month" || periodType === "week") {
-      bucketKey = (d) => d.getDate();
-      bucketLabel = (d) => d.getDate().toString();
-    } else {
-      bucketKey = (d) => `${d.getFullYear()}-${d.getMonth()}`;
-      bucketLabel = (d) => d.toLocaleDateString(locale, { month: "short" });
-    }
-    const buckets = new Map();
+    // Calé sur le sélecteur de période. Snapshots { date, value, currency }
+    // (voir recordNetWorthSnapshot) — reconvertis depuis la devise du snapshot.
+    // Le patrimoine net est une valeur instantanée (pas une somme) : on garde
+    // le DERNIER snapshot de chaque bucket. On projette ensuite sur tous les
+    // buckets de la période (blanc = pas de donnée).
+    const valueByKey = new Map();
+    const timeByKey = new Map();
     for (const h of netWorthHistory) {
       const d = new Date(h.date);
       if (d < range.start || d >= range.end) continue;
-      const key = bucketKey(d);
-      const existing = buckets.get(key);
-      if (!existing || d.getTime() > existing.sortKey) {
-        const value = h.currency && h.currency !== displayCurrency
-          ? convert(h.value ?? 0, h.currency, displayCurrency)
-          : (h.value ?? 0);
-        buckets.set(key, { label: bucketLabel(d), value, sortKey: d.getTime() });
+      const key = bucketKeyOf(d, periodType);
+      if (!timeByKey.has(key) || d.getTime() > timeByKey.get(key)) {
+        timeByKey.set(key, d.getTime());
+        valueByKey.set(
+          key,
+          h.currency && h.currency !== displayCurrency
+            ? convert(h.value ?? 0, h.currency, displayCurrency)
+            : (h.value ?? 0)
+        );
       }
     }
-    return [...buckets.values()].sort((a, b) => a.sortKey - b.sortKey);
+    const series = enumerateBuckets(range, periodType, locale).map((b) => ({
+      label: b.label,
+      value: valueByKey.has(b.key) ? valueByKey.get(b.key) : null,
+    }));
+    return trimLeadingEmpty(series);
   }, [netWorthHistory, range, periodType, convert, displayCurrency, locale]);
 
   const categoryTotals = useMemo(() => {
@@ -362,25 +398,22 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
   const maxTagTotal = Math.max(1, ...tagTotals.map((t) => t.total));
 
   const evolutionData = useMemo(() => {
-    const buckets = new Map();
-    let bucketKey, bucketLabel;
-    if (periodType === "month" || periodType === "week") {
-      bucketKey = (d) => d.getDate();
-      bucketLabel = (d) => d.getDate().toString();
-    } else {
-      bucketKey = (d) => `${d.getFullYear()}-${d.getMonth()}`;
-      bucketLabel = (d) => d.toLocaleDateString(locale, { month: "short" });
-    }
+    // Somme des dépenses par bucket, projetée sur tous les buckets de la
+    // période. Un bucket sans dépense reste à null (blanc) plutôt que 0, pour
+    // laisser en blanc les intervalles sans donnée (cf. vue trimestre en début
+    // d'historique). Le graphe démarre au plus ancien bucket avec donnée.
+    const sumByKey = new Map();
     for (const tx of periodTx) {
       if (tx.type !== "expense") continue;
-      const d = new Date(tx.date);
-      const key = bucketKey(d);
-      const existing = buckets.get(key) || { label: bucketLabel(d), value: 0, sortKey: d.getTime() };
-      existing.value += toBase(tx);
-      buckets.set(key, existing);
+      const key = bucketKeyOf(new Date(tx.date), periodType);
+      sumByKey.set(key, (sumByKey.get(key) || 0) + toBase(tx));
     }
-    return [...buckets.values()].sort((a, b) => a.sortKey - b.sortKey);
-  }, [periodTx, periodType, displayCurrency, convert, locale]);
+    const series = enumerateBuckets(range, periodType, locale).map((b) => ({
+      label: b.label,
+      value: sumByKey.has(b.key) ? sumByKey.get(b.key) : null,
+    }));
+    return trimLeadingEmpty(series);
+  }, [periodTx, range, periodType, displayCurrency, convert, locale]);
 
   const incomeExpenseData = useMemo(() => {
     const buckets = new Map();
@@ -514,14 +547,14 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
           </WidgetCard>
         );
       case "net_worth":
-        if (netWorthChartData.length < 2) return null;
+        if (netWorthChartData.length === 0) return null;
         return (
           <WidgetCard icon="ti-diamond" accent="ocean" title={t("reports_net_worth_evolution")}>
             <div style={{ width: "100%", height: 140 }}>
               <ResponsiveContainer>
                 <BarChart data={netWorthChartData} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
                   <XAxis dataKey="label" tick={{ fontSize: 10, fill: "var(--ink-3)" }} axisLine={{ stroke: "var(--rule)" }} tickLine={false} />
-                  <YAxis hide domain={["auto", "auto"]} />
+                  <YAxis tick={{ fontSize: 10, fill: "var(--ink-3)" }} axisLine={false} tickLine={false} tickFormatter={formatAxisTick} width={38} domain={["auto", "auto"]} />
                   <Tooltip content={({ active, payload, label }) => active && payload?.length ? (
                     <div style={{ background: "var(--ink)", color: "var(--bg)", padding: "6px 10px", borderRadius: "var(--radius-sm)", fontSize: 12 }}>
                       {label}: {formatAmount(payload[0].value)} {currencySymbol}
@@ -547,7 +580,7 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
                     <XAxis dataKey="label" tick={{ fontSize: 10, fill: "var(--ink-3)" }} axisLine={{ stroke: "var(--rule)" }} tickLine={false} />
                     <YAxis tick={{ fontSize: 10, fill: "var(--ink-3)" }} axisLine={false} tickLine={false} tickFormatter={formatAxisTick} width={38} domain={[0, "auto"]} />
                     <Tooltip content={<CustomTooltip />} />
-                    <Line type="monotone" dataKey="value" stroke="var(--tang)" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+                    <Line type="monotone" dataKey="value" stroke="var(--tang)" strokeWidth={2} dot={{ r: 2, fill: "var(--tang)" }} activeDot={{ r: 4 }} connectNulls={false} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
