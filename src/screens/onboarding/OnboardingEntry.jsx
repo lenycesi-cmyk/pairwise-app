@@ -11,7 +11,7 @@ import {
   formatMoney,
   currencySymbol,
 } from "../../utils/onboardingDraft";
-import { ALL_CATEGORIES, getCategoryName } from "../../data/categories";
+import { ALL_CATEGORIES, ALL_CURRENCIES, getCategoryName } from "../../data/categories";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { screenWrap, primaryBtn } from "./onboardingStyles";
 import { StepDots } from "./onboardingUI";
@@ -45,6 +45,7 @@ export default function OnboardingEntry({ language, onSignIn, onNext }) {
   const [editId, setEditId] = useState(null);
   const [form, setForm] = useState(null); // valeurs en cours d'édition d'une entrée
   const [collapsed, setCollapsed] = useState(false); // "retour" depuis l'étape 2 → accueil
+  const [curOpen, setCurOpen] = useState(false); // sélecteur de devise ouvert dans la fiche d'édition
   const [phIndex, setPhIndex] = useState(0);
   const inputRef = useRef(null);
 
@@ -93,6 +94,7 @@ export default function OnboardingEntry({ language, onSignIn, onNext }) {
   function closeEdit() {
     setEditId(null);
     setForm(null);
+    setCurOpen(false);
   }
   function saveEdit() {
     const amt = parseFloat(String(form.amount).replace(",", "."));
@@ -279,79 +281,113 @@ export default function OnboardingEntry({ language, onSignIn, onNext }) {
   const editSheet = editId && form && (
     <div
       onClick={closeEdit}
-      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.35)", zIndex: 50, display: "flex", alignItems: isDesktop ? "center" : "flex-end", justifyContent: "center", padding: isDesktop ? 24 : 0 }}
+      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.35)", zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: isDesktop ? 24 : 10 }}
     >
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
           width: "100%",
           maxWidth: 430,
+          height: isDesktop ? "auto" : "100%",
           background: "var(--bg)",
-          borderRadius: isDesktop ? "var(--radius-xl)" : "var(--radius-xl) var(--radius-xl) 0 0",
-          padding: "16px 18px 22px",
-          maxHeight: isDesktop ? "86vh" : "82vh",
-          overflowY: "auto",
-          boxShadow: isDesktop ? "0 24px 60px rgba(0,0,0,.28)" : "none",
+          borderRadius: "var(--radius-xl)",
+          display: "flex",
+          flexDirection: "column",
+          maxHeight: isDesktop ? "86vh" : "100%",
+          overflow: "hidden",
+          boxShadow: isDesktop ? "0 24px 60px rgba(0,0,0,.28)" : "0 8px 32px rgba(0,0,0,.22)",
         }}
       >
-        {/* En-tête : annuler (retour) à gauche + titre */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-          <button onClick={closeEdit} aria-label={t("e_cancel")} style={{ background: "none", border: "none", display: "flex", color: "var(--ink-3)", cursor: "pointer", padding: 2, flex: "none" }}>
+        {/* En-tête sticky : retour à gauche + titre centré */}
+        <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center", padding: "16px 18px", borderBottom: "0.5px solid var(--rule)", flex: "none" }}>
+          <button onClick={closeEdit} aria-label={t("e_cancel")} style={{ position: "absolute", left: 14, background: "none", border: "none", display: "flex", color: "var(--ink-3)", cursor: "pointer", padding: 2 }}>
             <i className="ti ti-arrow-left" style={{ fontSize: 22 }} />
           </button>
-          <div style={{ fontSize: 16, fontWeight: 700 }}>{t("e_title")}</div>
+          <div style={{ fontSize: 16, fontWeight: 700, textAlign: "center" }}>{t("e_title")}</div>
         </div>
 
-        <div style={{ marginBottom: 14 }}>
-          <div style={fieldLabel}>{t("e_desc")}</div>
-          <input
-            value={form.description}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
-            placeholder={t("e_desc_ph")}
-            style={fieldBox}
-          />
-        </div>
-
-        <div style={{ marginBottom: form.type === "income" ? 4 : 18 }}>
-          <div style={fieldLabel}>{t("e_amount")}</div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        {/* Corps défilant */}
+        <div style={{ flex: 1, overflowY: "auto", padding: "16px 18px" }}>
+          <div style={{ marginBottom: 14 }}>
+            <div style={fieldLabel}>{t("e_desc")}</div>
             <input
-              value={form.amount}
-              onChange={(e) => setForm({ ...form, amount: e.target.value })}
-              inputMode="decimal"
-              style={{ ...fieldBox, flex: 1 }}
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              placeholder={t("e_desc_ph")}
+              style={fieldBox}
             />
-            <span style={{ fontSize: 15, fontWeight: 700, color: "var(--ink-2)", flex: "none" }}>{currencySymbol(form.currency)}</span>
           </div>
+
+          <div style={{ marginBottom: form.type === "income" ? 4 : 18, position: "relative" }}>
+            <div style={fieldLabel}>{t("e_amount")}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <input
+                value={form.amount}
+                onChange={(e) => setForm({ ...form, amount: e.target.value })}
+                inputMode="decimal"
+                style={{ ...fieldBox, flex: 1 }}
+              />
+              <button
+                type="button"
+                onClick={() => setCurOpen((o) => !o)}
+                style={{ display: "flex", alignItems: "center", gap: 4, flex: "none", background: "var(--bg-card)", border: "0.5px solid var(--rule)", borderRadius: 12, padding: "12px 12px", fontFamily: "inherit", fontSize: 14, fontWeight: 700, color: "var(--ink-2)", cursor: "pointer" }}
+              >
+                {currencySymbol(form.currency)} {form.currency}
+                <i className={`ti ti-chevron-${curOpen ? "up" : "down"}`} style={{ fontSize: 14 }} />
+              </button>
+            </div>
+
+            {curOpen && (
+              <div style={{ position: "absolute", top: "100%", right: 0, marginTop: 6, zIndex: 5, width: 190, maxHeight: 220, overflowY: "auto", background: "var(--bg-card)", border: "0.5px solid var(--rule)", borderRadius: 12, boxShadow: "0 12px 28px rgba(0,0,0,.16)", padding: 6 }}>
+                {ALL_CURRENCIES.map((c) => {
+                  const sel = c.code === form.currency;
+                  return (
+                    <button
+                      key={c.code}
+                      type="button"
+                      onClick={() => { setForm({ ...form, currency: c.code }); setCurOpen(false); }}
+                      style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, background: sel ? "var(--sky-light)" : "transparent", border: "none", borderRadius: 8, padding: "8px 9px", fontFamily: "inherit", fontSize: 13, color: sel ? "var(--sky)" : "var(--ink)", cursor: "pointer", textAlign: "left" }}
+                    >
+                      <span>{c.symbol} {c.code}</span>
+                      {sel && <i className="ti ti-check" style={{ fontSize: 13 }} />}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {form.type !== "income" && (
+            <>
+              <div style={fieldLabel}>{t("e_cat")}</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                {EXPENSE_CATS.map((c) => {
+                  const sel = form.categoryId === c.id;
+                  return (
+                    <button
+                      key={c.id}
+                      onClick={() => setForm({ ...form, categoryId: c.id })}
+                      style={{ display: "flex", alignItems: "center", gap: 9, background: "var(--bg-card)", border: `1.5px solid ${sel ? `var(--${c.color})` : "var(--rule)"}`, borderRadius: 12, padding: "10px 11px", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}
+                    >
+                      <div style={{ width: 28, height: 28, borderRadius: 8, flex: "none", display: "flex", alignItems: "center", justifyContent: "center", background: `var(--${c.color}-light)`, color: `var(--${c.color})` }}>
+                        <i className={`ti ${c.icon}`} style={{ fontSize: 15 }} />
+                      </div>
+                      <span style={{ fontSize: 12.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{getCategoryName(c, language)}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
         </div>
 
-        {form.type !== "income" && (
-          <>
-            <div style={fieldLabel}>{t("e_cat")}</div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              {EXPENSE_CATS.map((c) => {
-                const sel = form.categoryId === c.id;
-                return (
-                  <button
-                    key={c.id}
-                    onClick={() => setForm({ ...form, categoryId: c.id })}
-                    style={{ display: "flex", alignItems: "center", gap: 9, background: "var(--bg-card)", border: `1.5px solid ${sel ? `var(--${c.color})` : "var(--rule)"}`, borderRadius: 12, padding: "10px 11px", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}
-                  >
-                    <div style={{ width: 28, height: 28, borderRadius: 8, flex: "none", display: "flex", alignItems: "center", justifyContent: "center", background: `var(--${c.color}-light)`, color: `var(--${c.color})` }}>
-                      <i className={`ti ${c.icon}`} style={{ fontSize: 15 }} />
-                    </div>
-                    <span style={{ fontSize: 12.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{getCategoryName(c, language)}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </>
-        )}
-
-        <button onClick={saveEdit} style={{ ...primaryBtn, marginTop: 20 }}>
-          <i className="ti ti-check" style={{ fontSize: 17 }} />
-          {t("e_save")}
-        </button>
+        {/* Pied sticky : valider */}
+        <div style={{ flex: "none", padding: "12px 18px", borderTop: "0.5px solid var(--rule)" }}>
+          <button onClick={saveEdit} style={primaryBtn}>
+            <i className="ti ti-check" style={{ fontSize: 17 }} />
+            {t("e_save")}
+          </button>
+        </div>
       </div>
     </div>
   );
