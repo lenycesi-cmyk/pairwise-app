@@ -70,7 +70,7 @@ const ONBOARDING_COPY = {
     s7_done: "Terminer",
     s7_anytime: "Accessible à tout moment — pas seulement maintenant.",
     // Édition d'une entrée du brouillon
-    e_title: "Modifier",
+    e_title: "Modifier la transaction",
     e_desc: "Description",
     e_desc_ph: "Ex. déjeuner, loyer…",
     e_amount: "Montant",
@@ -140,7 +140,7 @@ const ONBOARDING_COPY = {
     s7_later: "Later",
     s7_done: "Finish",
     s7_anytime: "Available anytime — not only right now.",
-    e_title: "Edit",
+    e_title: "Edit transaction",
     e_desc: "Description",
     e_desc_ph: "E.g. lunch, rent…",
     e_amount: "Amount",
