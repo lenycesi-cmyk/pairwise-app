@@ -222,20 +222,6 @@ function AppContent() {
       <PushRunner />
       <OfflineBanner />
 
-      {/* FAB Réglages flottant : pour tous les onglets SAUF l'accueil, dont le
-          header intègre désormais son propre bouton Réglages (aligné avec le
-          sélecteur de période). Masqué sur desktop via CSS dans tous les cas. */}
-      {tab !== "dashboard" && (
-        <button
-          ref={settingsButtonRef}
-          onClick={() => setShowSettings(true)}
-          aria-label="Réglages"
-          className="settings-fab"
-        >
-          <i className="ti ti-settings" style={{ fontSize: 17 }} aria-hidden="true" />
-        </button>
-      )}
-
       {tab === "dashboard" && (
         <DashboardScreen
           onOpenDebt={() => setShowDebt(true)}
@@ -257,17 +243,18 @@ function AppContent() {
             onOpenBreakdown={() => setShowBreakdown(true)}
             sharedMonth={sharedMonth}
             onSharedMonthChange={setSharedMonth}
+            onOpenSettings={() => setShowSettings(true)}
           />
         </Suspense>
       )}
       {tab === "wealth" && (
         <Suspense fallback={null}>
-          <WealthScreen onOpenCalculator={() => setShowCalculator(true)} addButtonRef={addButtonRef} />
+          <WealthScreen onOpenCalculator={() => setShowCalculator(true)} addButtonRef={addButtonRef} onOpenSettings={() => setShowSettings(true)} />
         </Suspense>
       )}
       {tab === "budget" && (
         <Suspense fallback={null}>
-          <BudgetScreen openSignal={budgetAddSignal} />
+          <BudgetScreen openSignal={budgetAddSignal} onOpenSettings={() => setShowSettings(true)} />
         </Suspense>
       )}
 
