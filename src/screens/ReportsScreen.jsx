@@ -19,6 +19,7 @@ import CurrencyPicker from "../components/CurrencyPicker";
 import { useTranslation } from "../hooks/useTranslation";
 import SpotlightHint from "../components/SpotlightHint";
 import GreetingHeader from "../components/GreetingHeader";
+import HeaderSettingsButton from "../components/HeaderSettingsButton";
 import { getMemberKey } from "../utils/members";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 import { tagColor } from "../utils/tags";
@@ -163,7 +164,7 @@ function shiftAnchor(periodType, anchor, delta) {
   return d;
 }
 
-export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMonthChange }) {
+export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMonthChange, onOpenSettings }) {
   const t = useTranslation();
   const { transactions, categories, members, defaultCurrency, dashboardDisplayCurrency, updateDashboardDisplayCurrency, netWorthHistory, language } = useFinance();
   const locale = language === "en" ? "en-US" : "fr-FR";
@@ -629,47 +630,66 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
     <div style={{ padding: "1.5rem 1.25rem 6rem" }}>
       {/* En-tête collant : titre + filtres temporels, alignés à gauche. */}
       <div style={{ position: "sticky", top: 0, zIndex: 30, background: "var(--bg)", marginLeft: "-1.25rem", marginRight: "-1.25rem", padding: "0.5rem 1.25rem 0.6rem", marginBottom: 12 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-          <GreetingHeader subtitleKey="reports_subtitle" marginLeft={isDesktop ? 0 : 44} />
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            {editMode ? (
-              <button
-                onClick={exitEditMode}
-                style={{
-                  background: "var(--ink)", color: "var(--bg)", border: "none",
-                  borderRadius: "var(--radius-md)", padding: "5px 14px", fontSize: 13, fontWeight: 500,
-                }}
-              >
-                {t("dashboard_done")}
-              </button>
-            ) : (
-              <>
+        {(() => {
+          const actions = (
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              {editMode ? (
                 <button
-                  onClick={() => setShowCurrencyPicker(!showCurrencyPicker)}
+                  onClick={exitEditMode}
                   style={{
-                    padding: "4px 10px", borderRadius: "var(--radius-md)", border: "0.5px solid var(--rule)",
-                    background: "var(--bg-card)", fontSize: 12, fontWeight: 500,
-                    display: "flex", alignItems: "center", gap: 4,
+                    background: "var(--ink)", color: "var(--bg)", border: "none",
+                    borderRadius: "var(--radius-md)", padding: "5px 14px", fontSize: 13, fontWeight: 500,
                   }}
                 >
-                  {displayCurrency} <i className="ti ti-chevron-down" style={{ fontSize: 11 }} aria-hidden="true" />
+                  {t("dashboard_done")}
                 </button>
-                <button
-                  ref={customizeButtonRef}
-                  onClick={enterEditMode}
-                  aria-label={t("dashboard_customize")}
-                  style={{
-                    width: 30, height: 30, borderRadius: "50%", background: "var(--bg-card)",
-                    border: "0.5px solid var(--rule)", display: "flex", alignItems: "center", justifyContent: "center",
-                  }}
-                >
-                  <i className="ti ti-pencil" style={{ fontSize: 14 }} aria-hidden="true" />
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-        <div ref={periodRowRef} style={{ display: "flex", gap: 6, flexWrap: "wrap", marginLeft: isDesktop ? 0 : 44 }}>
+              ) : (
+                <>
+                  <button
+                    onClick={() => setShowCurrencyPicker(!showCurrencyPicker)}
+                    style={{
+                      padding: "4px 10px", borderRadius: "var(--radius-md)", border: "0.5px solid var(--rule)",
+                      background: "var(--bg-card)", fontSize: 12, fontWeight: 500,
+                      display: "flex", alignItems: "center", gap: 4,
+                    }}
+                  >
+                    {displayCurrency} <i className="ti ti-chevron-down" style={{ fontSize: 11 }} aria-hidden="true" />
+                  </button>
+                  <button
+                    ref={customizeButtonRef}
+                    onClick={enterEditMode}
+                    aria-label={t("dashboard_customize")}
+                    style={{
+                      width: 30, height: 30, borderRadius: "50%", background: "var(--bg-card)",
+                      border: "0.5px solid var(--rule)", display: "flex", alignItems: "center", justifyContent: "center",
+                    }}
+                  >
+                    <i className="ti ti-pencil" style={{ fontSize: 14 }} aria-hidden="true" />
+                  </button>
+                </>
+              )}
+            </div>
+          );
+          const greeting = <GreetingHeader subtitleKey="reports_subtitle" marginLeft={0} />;
+          if (isDesktop) {
+            return (
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                {greeting}
+                {actions}
+              </div>
+            );
+          }
+          return (
+            <>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 10 }}>
+                <HeaderSettingsButton onClick={onOpenSettings} />
+                {actions}
+              </div>
+              {greeting}
+            </>
+          );
+        })()}
+        <div ref={periodRowRef} style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
         {PERIOD_TYPES.map((p) => (
           <button
             key={p}

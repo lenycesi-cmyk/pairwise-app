@@ -15,6 +15,7 @@ import { buildMemberColorMap } from "../utils/memberColors";
 import { useTranslation } from "../hooks/useTranslation";
 import SpotlightHint from "../components/SpotlightHint";
 import GreetingHeader from "../components/GreetingHeader";
+import HeaderSettingsButton from "../components/HeaderSettingsButton";
 import { getMemberKey } from "../utils/members";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 import { useWealthPrefs } from "../hooks/useDashboardPrefs";
@@ -31,7 +32,7 @@ const COLOR_MAP = {
   red: { text: "var(--red)", bg: "var(--red-light)" },
 };
 
-export default function WealthScreen({ onOpenCalculator, addButtonRef }) {
+export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenSettings }) {
   const t = useTranslation();
   const { language } = useFinance();
   const netWorthCardRef = useRef(null);
@@ -332,44 +333,65 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef }) {
 
   return (
     <div style={{ padding: "1.5rem 1.25rem 6rem" }}>
-      <div style={{ position: "sticky", top: 0, zIndex: 30, background: "var(--bg)", marginLeft: "-1.25rem", marginRight: "-1.25rem", padding: "0.4rem 1.25rem", marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <GreetingHeader subtitleKey="wealth_subtitle" marginLeft={isDesktop ? 0 : 44} />
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          {editMode ? (
-            <button
-              onClick={() => setEditMode(false)}
-              style={{
-                background: "var(--ink)", color: "var(--bg)", border: "none",
-                borderRadius: "var(--radius-md)", padding: "5px 14px", fontSize: 13, fontWeight: 500,
-              }}
-            >
-              {t("dashboard_done")}
-            </button>
-          ) : (
+      <div style={{ position: "sticky", top: 0, zIndex: 30, background: "var(--bg)", marginLeft: "-1.25rem", marginRight: "-1.25rem", padding: "0.4rem 1.25rem", marginBottom: 12 }}>
+        {(() => {
+          const actions = (
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              {editMode ? (
+                <button
+                  onClick={() => setEditMode(false)}
+                  style={{
+                    background: "var(--ink)", color: "var(--bg)", border: "none",
+                    borderRadius: "var(--radius-md)", padding: "5px 14px", fontSize: 13, fontWeight: 500,
+                  }}
+                >
+                  {t("dashboard_done")}
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={() => setShowCurrencyPicker(!showCurrencyPicker)}
+                    style={{
+                      padding: "4px 10px", borderRadius: "var(--radius-md)",
+                      border: "0.5px solid var(--rule)", background: "var(--bg-card)",
+                      fontSize: 12, fontWeight: 500, display: "flex", alignItems: "center", gap: 4,
+                    }}
+                  >
+                    {displayCurrency} <i className="ti ti-chevron-down" style={{ fontSize: 11 }} aria-hidden="true" />
+                  </button>
+                  <button
+                    onClick={() => { setEditMode(true); setShowCurrencyPicker(false); }}
+                    aria-label={t("dashboard_customize")}
+                    style={{
+                      width: 30, height: 30, borderRadius: "50%", background: "var(--bg-card)",
+                      border: "0.5px solid var(--rule)", display: "flex", alignItems: "center", justifyContent: "center",
+                    }}
+                  >
+                    <i className="ti ti-pencil" style={{ fontSize: 14 }} aria-hidden="true" />
+                  </button>
+                </>
+              )}
+            </div>
+          );
+          const greeting = <GreetingHeader subtitleKey="wealth_subtitle" marginLeft={0} />;
+          if (isDesktop) {
+            return (
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                {greeting}
+                {actions}
+              </div>
+            );
+          }
+          return (
             <>
-              <button
-                onClick={() => setShowCurrencyPicker(!showCurrencyPicker)}
-                style={{
-                  padding: "4px 10px", borderRadius: "var(--radius-md)",
-                  border: "0.5px solid var(--rule)", background: "var(--bg-card)",
-                  fontSize: 12, fontWeight: 500, display: "flex", alignItems: "center", gap: 4,
-                }}
-              >
-                {displayCurrency} <i className="ti ti-chevron-down" style={{ fontSize: 11 }} aria-hidden="true" />
-              </button>
-              <button
-                onClick={() => { setEditMode(true); setShowCurrencyPicker(false); }}
-                aria-label={t("dashboard_customize")}
-                style={{
-                  width: 30, height: 30, borderRadius: "50%", background: "var(--bg-card)",
-                  border: "0.5px solid var(--rule)", display: "flex", alignItems: "center", justifyContent: "center",
-                }}
-              >
-                <i className="ti ti-pencil" style={{ fontSize: 14 }} aria-hidden="true" />
-              </button>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                <HeaderSettingsButton onClick={onOpenSettings} />
+                {actions}
+              </div>
+              {greeting}
             </>
-          )}
-        </div>
+          );
+        })()}
       </div>
 
       <SpotlightHint

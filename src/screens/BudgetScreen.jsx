@@ -21,8 +21,8 @@ import { useBudgetProgress } from "../hooks/useBudgetProgress";
 import { useExchangeRates } from "../hooks/useExchangeRates";
 import { CURRENCIES, ALL_CURRENCIES } from "../data/categories";
 import { BUDGET_GROUPS, BUDGET_GROUP_KEYS } from "../data/budgetGroups";
-import SpotlightHint from "../components/SpotlightHint";
 import GreetingHeader from "../components/GreetingHeader";
+import HeaderSettingsButton from "../components/HeaderSettingsButton";
 import { getMemberKey } from "../utils/members";
 import { AVATAR_COLOR_PALETTE } from "../utils/memberColors";
 import { useMediaQuery } from "../hooks/useMediaQuery";
@@ -57,7 +57,7 @@ function monthsAgoRange(n) {
   return start;
 }
 
-export default function BudgetScreen({ openSignal }) {
+export default function BudgetScreen({ openSignal, onOpenSettings }) {
   const t = useTranslation();
   const { catName, subName } = useCategoryName();
   const { categories, transactions, budgets, addBudget, updateBudget, removeBudget, reorderBudgets, defaultCurrency, members, coupleName,
@@ -79,7 +79,6 @@ export default function BudgetScreen({ openSignal }) {
   const availableTags = customTags.length > 0 ? customTags : SUGGESTED_TAGS.map((s) => s.key);
 
   const [showForm, setShowForm] = useState(false);
-  const addButtonRef = useRef(null);
   const [quickMode, setQuickMode] = useState(null); // null | "5030" | "history" | "manual"
   const [editingId, setEditingId] = useState(null);
   const [name, setName] = useState("");
@@ -563,73 +562,82 @@ export default function BudgetScreen({ openSignal }) {
 
   return (
     <div style={{ padding: "1.5rem 1.25rem 6rem" }}>
-      <div style={{ position: "sticky", top: 0, zIndex: 30, background: "var(--bg)", marginLeft: "-1.25rem", marginRight: "-1.25rem", padding: "0.4rem 1.25rem", marginBottom: 8, display: "flex", alignItems: "center" }}>
+      <div style={{ position: "sticky", top: 0, zIndex: 30, background: "var(--bg)", marginLeft: "-1.25rem", marginRight: "-1.25rem", padding: "0.4rem 1.25rem", marginBottom: 8 }}>
         {showForm ? (
-          <h1 style={{ fontSize: 20, marginLeft: isDesktop ? 0 : 44, flex: 1 }}>
-            {editingId
-              ? t("budget_edit_title")
-              : quickMode === null
-                ? t("budget_new_title")
-                : quickMode === "history"
-                  ? t("budget_quick_history")
-                  : t("budget_new_title")}
-          </h1>
-        ) : (
-          <div style={{ flex: 1 }}>
-            <GreetingHeader subtitleKey="budget_subtitle" marginLeft={isDesktop ? 0 : 44} />
-          </div>
-        )}
-        {!showForm && editMode && (
-          <button
-            onClick={() => setEditMode(false)}
-            style={{
-              background: "var(--ink)", color: "var(--bg)", border: "none",
-              borderRadius: "var(--radius-md)", padding: "5px 14px", fontSize: 13, fontWeight: 500,
-            }}
-          >
-            {t("dashboard_done")}
-          </button>
-        )}
-        {!showForm && !editMode && (
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "center" }}>
+            <h1 style={{ fontSize: 20, marginLeft: 0, flex: 1 }}>
+              {editingId
+                ? t("budget_edit_title")
+                : quickMode === null
+                  ? t("budget_new_title")
+                  : quickMode === "history"
+                    ? t("budget_quick_history")
+                    : t("budget_new_title")}
+            </h1>
             <button
-              ref={currencyButtonRef}
-              onClick={() => setShowCurrencyPicker(!showCurrencyPicker)}
-              style={{
-                padding: "4px 10px", borderRadius: "var(--radius-md)", border: "0.5px solid var(--rule)",
-                background: "var(--bg-card)", fontSize: 12, fontWeight: 500,
-                display: "flex", alignItems: "center", gap: 4,
-              }}
+              onClick={() => { setShowForm(false); setQuickMode(null); resetForm(); }}
+              aria-label={t("common_close")}
+              style={{ background: "none", border: "none" }}
             >
-              {displayCurrency} <i className="ti ti-chevron-down" style={{ fontSize: 11 }} aria-hidden="true" />
-            </button>
-            <button
-              onClick={() => setEditMode(true)}
-              aria-label={t("dashboard_customize")}
-              style={{
-                width: 30, height: 30, borderRadius: "50%", background: "var(--bg-card)",
-                border: "0.5px solid var(--rule)", display: "flex", alignItems: "center", justifyContent: "center",
-              }}
-            >
-              <i className="ti ti-pencil" style={{ fontSize: 14 }} aria-hidden="true" />
-            </button>
-            <button ref={addButtonRef} onClick={openNew} aria-label={t("common_add")} style={{ background: "none", border: "none" }}>
-              <i className="ti ti-plus" style={{ fontSize: 20 }} aria-hidden="true" />
+              <i className="ti ti-x" style={{ fontSize: 20 }} aria-hidden="true" />
             </button>
           </div>
-        )}
-        {showForm && (
-          <button
-            onClick={() => { setShowForm(false); setQuickMode(null); resetForm(); }}
-            aria-label={t("common_close")}
-            style={{ background: "none", border: "none" }}
-          >
-            <i className="ti ti-x" style={{ fontSize: 20 }} aria-hidden="true" />
-          </button>
-        )}
+        ) : (() => {
+          const actions = editMode ? (
+            <button
+              onClick={() => setEditMode(false)}
+              style={{
+                background: "var(--ink)", color: "var(--bg)", border: "none",
+                borderRadius: "var(--radius-md)", padding: "5px 14px", fontSize: 13, fontWeight: 500,
+              }}
+            >
+              {t("dashboard_done")}
+            </button>
+          ) : (
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <button
+                ref={currencyButtonRef}
+                onClick={() => setShowCurrencyPicker(!showCurrencyPicker)}
+                style={{
+                  padding: "4px 10px", borderRadius: "var(--radius-md)", border: "0.5px solid var(--rule)",
+                  background: "var(--bg-card)", fontSize: 12, fontWeight: 500,
+                  display: "flex", alignItems: "center", gap: 4,
+                }}
+              >
+                {displayCurrency} <i className="ti ti-chevron-down" style={{ fontSize: 11 }} aria-hidden="true" />
+              </button>
+              <button
+                onClick={() => setEditMode(true)}
+                aria-label={t("dashboard_customize")}
+                style={{
+                  width: 30, height: 30, borderRadius: "50%", background: "var(--bg-card)",
+                  border: "0.5px solid var(--rule)", display: "flex", alignItems: "center", justifyContent: "center",
+                }}
+              >
+                <i className="ti ti-pencil" style={{ fontSize: 14 }} aria-hidden="true" />
+              </button>
+            </div>
+          );
+          const greeting = <GreetingHeader subtitleKey="budget_subtitle" marginLeft={0} />;
+          if (isDesktop) {
+            return (
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                {greeting}
+                {actions}
+              </div>
+            );
+          }
+          return (
+            <>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 10 }}>
+                <HeaderSettingsButton onClick={onOpenSettings} />
+                {actions}
+              </div>
+              {greeting}
+            </>
+          );
+        })()}
       </div>
-
-      {!showForm && <SpotlightHint tabKey="budget" targetRef={addButtonRef} text={t("hint_budget")} />}
 
       {!showForm && showCurrencyPicker && (
         <div style={{ marginBottom: 12, background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "0.75rem 1rem" }}>
