@@ -1,4 +1,4 @@
-import { useState, useRef, lazy, Suspense } from "react";
+import { useState, useRef, useEffect, lazy, Suspense } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { FinanceProvider } from "./context/FinanceContext";
 import { useRecurringGenerator } from "./hooks/useRecurringGenerator";
@@ -168,6 +168,17 @@ function AppContent() {
   swipeEnabledRef.current = !anyOverlay;
   useTabSwipe({ order: TAB_SWIPE_ORDER, active: tab, onChange: setTab, enabledRef: swipeEnabledRef });
 
+  // Sens de la transition glissée : « fwd » (depuis la droite) si le nouvel
+  // onglet est plus loin dans l'ordre, « back » sinon. On lit l'onglet précédent
+  // via un ref (encore l'ancienne valeur pendant le rendu du changement) puis on
+  // le met à jour après coup.
+  const prevTabRef = useRef(tab);
+  const tabDir =
+    TAB_SWIPE_ORDER.indexOf(tab) < TAB_SWIPE_ORDER.indexOf(prevTabRef.current) ? "back" : "fwd";
+  useEffect(() => {
+    prevTabRef.current = tab;
+  }, [tab]);
+
   if (loading) {
     return (
       <div style={{ padding: "2rem 1.5rem" }}>
@@ -237,6 +248,7 @@ function AppContent() {
       <PushRunner />
       <OfflineBanner />
 
+      <div className="tab-slide" key={tab} data-dir={tabDir}>
       {tab === "dashboard" && (
         <DashboardScreen
           onOpenDebt={() => setShowDebt(true)}
@@ -272,6 +284,7 @@ function AppContent() {
           <BudgetScreen openSignal={budgetAddSignal} onOpenSettings={() => setShowSettings(true)} />
         </Suspense>
       )}
+      </div>
 
       <BottomNav
         active={tab}

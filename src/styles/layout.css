@@ -289,6 +289,28 @@
   -webkit-column-break-inside: avoid;
 }
 
+/* Transition glissée au changement d'onglet (façon défilement de homescreen).
+   Seul l'onglet entrant est animé (les écrans sont montés un à la fois) : il
+   glisse depuis le bord correspondant au sens de navigation (avant = depuis la
+   droite, arrière = depuis la gauche) avec un léger fondu. Le wrapper porte
+   key={tab}, donc React rejoue l'animation à chaque changement. L'animation ne
+   laisse aucun transform résiduel (pas de fill forwards) pour ne pas perturber
+   les en-têtes sticky une fois terminée. */
+@keyframes tabSlideFwd {
+  from { transform: translateX(7%); opacity: 0.35; }
+  to { transform: none; opacity: 1; }
+}
+@keyframes tabSlideBack {
+  from { transform: translateX(-7%); opacity: 0.35; }
+  to { transform: none; opacity: 1; }
+}
+.tab-slide[data-dir="fwd"] { animation: tabSlideFwd 0.24s ease-out; }
+.tab-slide[data-dir="back"] { animation: tabSlideBack 0.24s ease-out; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tab-slide[data-dir] { animation: none; }
+}
+
 /* Mise en page « bento » du Dashboard (desktop, hors mode édition) : grille à
    colonnes fixes où chaque widget occupe 1 ou 2 colonnes (`grid-column: span`,
    posé en inline par widget), et une hauteur de ligne fine (8px) dont le
