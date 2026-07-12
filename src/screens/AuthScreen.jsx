@@ -89,28 +89,23 @@ export default function AuthScreen({ defaultMode = "login", draft = [], language
     );
   })();
 
-  // Rendu sur exactement deux lignes : la copie est deux phrases séparées
-  // par ". " — on coupe dessus plutôt que de dépendre du wrap du conteneur.
-  const [subLine1, subLine2] = showDraft ? t("s6_sub").split(". ") : ["", ""];
-
   const header = showDraft ? (
-    <div style={{ marginBottom: isDesktop ? "1.75rem" : "1.25rem", display: "flex", alignItems: "stretch", gap: 14, textAlign: "left" }}>
+    <div style={{ marginBottom: isDesktop ? "1.75rem" : "1.25rem", display: "flex", alignItems: "stretch", gap: 10, textAlign: "left" }}>
       <div
         style={{
-          width: 68, borderRadius: 16, flex: "none",
+          width: 48, borderRadius: 16, flex: "none",
           background: "var(--sky-light)", color: "var(--sky)",
           display: "flex", alignItems: "center", justifyContent: "center",
         }}
       >
-        <i className="ti ti-device-floppy" style={{ fontSize: 30 }} aria-hidden="true" />
+        <i className="ti ti-device-floppy" style={{ fontSize: 24 }} aria-hidden="true" />
       </div>
       <div>
         <h1 style={{ fontSize: isDesktop ? 21 : 18, marginBottom: 4, textAlign: "left" }}>
           {t("s6_title", { n: draftCount })}
         </h1>
-        <p style={{ fontSize: 14.5, color: "var(--ink-3)", lineHeight: 1.5, textAlign: "justify" }}>
-          {subLine1}.<br />
-          {subLine2}
+        <p style={{ fontSize: 13, color: "var(--ink-3)", lineHeight: 1.45, textAlign: "justify" }}>
+          {t("s6_sub")}
         </p>
       </div>
     </div>
@@ -124,7 +119,7 @@ export default function AuthScreen({ defaultMode = "login", draft = [], language
   );
 
   const formCol = (
-    <div style={{ width: "100%", maxWidth: 400 }}>
+    <div style={{ width: "100%", maxWidth: showDraft ? 440 : 400 }}>
       {header}
 
       <form
@@ -244,6 +239,12 @@ export default function AuthScreen({ defaultMode = "login", draft = [], language
         justifyContent: draftPanel ? "flex-start" : "center",
         padding: draftPanel && !isDesktop ? "1.1rem 1.25rem" : "2rem 1.5rem",
         width: "100%",
+        // Cette page n'a pas de sidebar (elle s'affiche avant connexion) mais
+        // body réserve quand même sa largeur (>= 1024px, voir layout.css) pour
+        // la colonne de navigation de l'app authentifiée, ce qui décale tout
+        // #root de la moitié de cette largeur par rapport au vrai centre de
+        // l'écran — on annule ce décalage ici.
+        marginLeft: "calc(-0.5 * var(--sidebar-width, 0px))",
       }}
     >
       {onBack && (
@@ -270,8 +271,8 @@ export default function AuthScreen({ defaultMode = "login", draft = [], language
               width: "100%",
             }}
           >
-            <div style={{ flex: isDesktop ? "0 1 300px" : "none", maxWidth: isDesktop ? 300 : 400, width: isDesktop ? undefined : "100%", margin: isDesktop ? 0 : "0 auto" }}>{draftPanel}</div>
-            <div style={{ flex: isDesktop ? "0 1 400px" : "none", maxWidth: 400, width: isDesktop ? undefined : "100%", margin: isDesktop ? 0 : "0 auto" }}>{formCol}</div>
+            <div style={{ flex: isDesktop ? "0 1 300px" : "none", maxWidth: isDesktop ? 300 : 440, width: isDesktop ? undefined : "100%", margin: isDesktop ? 0 : "0 auto" }}>{draftPanel}</div>
+            <div style={{ flex: isDesktop ? "0 1 440px" : "none", maxWidth: 440, width: isDesktop ? undefined : "100%", margin: isDesktop ? 0 : "0 auto" }}>{formCol}</div>
           </div>
           <div style={{ marginTop: isDesktop ? 64 : 40 }}>{toggleLink}</div>
         </div>
