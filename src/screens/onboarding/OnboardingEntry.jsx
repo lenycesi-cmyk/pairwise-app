@@ -84,20 +84,20 @@ export default function OnboardingEntry({ language, onSignIn, onNext }) {
 
   // ── Fragments réutilisés ────────────────────────────────────────────────
   function logo(center) {
-    const sz = center && isDesktop ? 34 : 28;
+    const sz = center && isDesktop ? 42 : 28;
     return (
-      <div style={{ display: "flex", alignItems: "center", gap: center && isDesktop ? 11 : 9, justifyContent: center ? "center" : "flex-start" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: center && isDesktop ? 13 : 9, justifyContent: center ? "center" : "flex-start" }}>
         <div style={{ width: sz, height: sz, borderRadius: sz * 0.28, background: "var(--tang)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: sz * 0.55 }}>P</div>
-        <span style={{ fontWeight: 700, fontSize: center && isDesktop ? 19 : 15 }}>PairWise</span>
+        <span style={{ fontWeight: 700, fontSize: center && isDesktop ? 24 : 15 }}>PairWise</span>
       </div>
     );
   }
 
-  // Badge confidentialité — un peu plus grand sur l'accueil desktop.
+  // Badge confidentialité — nettement plus grand sur l'accueil desktop.
   const badgeBig = isDesktop && !hasDraft;
   const privacyBadge = (
-    <div style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "var(--sage-light)", color: "var(--sage)", borderRadius: 999, padding: badgeBig ? "7px 15px" : "5px 11px", fontSize: badgeBig ? 13 : 11, fontWeight: 600, lineHeight: 1.3 }}>
-      <i className="ti ti-lock" style={{ fontSize: badgeBig ? 14 : 12 }} />
+    <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "var(--sage-light)", color: "var(--sage)", borderRadius: 999, padding: badgeBig ? "9px 19px" : "5px 11px", fontSize: badgeBig ? 16 : 11, fontWeight: 600, lineHeight: 1.3 }}>
+      <i className="ti ti-lock" style={{ fontSize: badgeBig ? 17 : 12 }} />
       <span>{t("s1_kicker")}</span>
     </div>
   );
@@ -131,11 +131,13 @@ export default function OnboardingEntry({ language, onSignIn, onNext }) {
   }
 
   function chipsRow(center) {
+    const big = center && isDesktop;
+    const fz = big ? 14 : 11.5;
     return (
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 11, justifyContent: center ? "center" : "flex-start" }}>
-        <span style={{ fontSize: 11.5, color: "var(--ink-3)", alignSelf: "center" }}>{t("s1_try")}</span>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: big ? 8 : 6, marginTop: big ? 16 : 11, justifyContent: center ? "center" : "flex-start" }}>
+        <span style={{ fontSize: fz, color: "var(--ink-3)", alignSelf: "center" }}>{t("s1_try")}</span>
         {chips.map((c) => (
-          <button key={c} onClick={() => setInput(c)} style={{ fontSize: 11.5, color: "var(--ink-2)", background: "var(--bg-card)", border: "0.5px solid var(--rule)", borderRadius: 999, padding: "4px 10px", cursor: "pointer", fontFamily: "inherit" }}>
+          <button key={c} onClick={() => setInput(c)} style={{ fontSize: fz, color: "var(--ink-2)", background: "var(--bg-card)", border: "0.5px solid var(--rule)", borderRadius: 999, padding: big ? "6px 13px" : "4px 10px", cursor: "pointer", fontFamily: "inherit" }}>
             {c}
           </button>
         ))}
@@ -255,33 +257,33 @@ export default function OnboardingEntry({ language, onSignIn, onNext }) {
   // ── ÉTAT ACCUEIL (aucune entrée) — grand hero centré, langue auto ────────
   if (!hasDraft) {
     return (
-      <div style={{ ...screenWrap, maxWidth: isDesktop ? 620 : 430 }}>
+      <div style={{ ...screenWrap, maxWidth: isDesktop ? 760 : 430 }}>
         <div style={{ flex: 1, overflowY: "auto", padding: "32px 24px 24px", display: "flex", flexDirection: "column" }}>
           <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center" }}>
             {logo(true)}
-            <div style={{ margin: "24px 0" }}>{privacyBadge}</div>
-            <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: isDesktop ? 42 : 29, lineHeight: 1.12, letterSpacing: "-0.02em", color: "var(--ink)", margin: "0 0 16px", maxWidth: isDesktop ? 540 : 340 }}>
+            <div style={{ margin: isDesktop ? "30px 0 52px" : "24px 0" }}>{privacyBadge}</div>
+            <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: isDesktop ? 52 : 29, lineHeight: 1.12, letterSpacing: "-0.02em", color: "var(--ink)", margin: "0 0 20px", maxWidth: isDesktop ? 660 : 340 }}>
               {t("s1_title")}
             </h1>
-            <p style={{ fontSize: isDesktop ? 17 : 15, lineHeight: 1.5, color: "var(--ink-3)", margin: "0 0 30px", maxWidth: isDesktop ? 470 : 320 }}>
+            <p style={{ fontSize: isDesktop ? 21 : 15, lineHeight: 1.5, color: "var(--ink-3)", margin: isDesktop ? "0 0 38px" : "0 0 30px", maxWidth: isDesktop ? 560 : 320 }}>
               {t("s1_sub")}
             </p>
 
-            <div style={{ width: "100%", maxWidth: 540 }}>
+            <div style={{ width: "100%", maxWidth: isDesktop ? 660 : 540 }}>
               {isDesktop ? (
-                <div style={{ display: "flex", alignItems: "center", gap: 10, background: "var(--bg-card)", border: "1.5px solid var(--tang)", borderRadius: 18, padding: "8px 8px 8px 18px", boxShadow: "0 10px 28px var(--tang-light)" }}>
-                  <i className="ti ti-sparkles" style={{ color: "var(--tang)", fontSize: 20, flex: "none" }} />
+                <div style={{ display: "flex", alignItems: "center", gap: 12, background: "var(--bg-card)", border: "1.5px solid var(--tang)", borderRadius: 22, padding: "10px 10px 10px 22px", boxShadow: "0 12px 32px var(--tang-light)" }}>
+                  <i className="ti ti-sparkles" style={{ color: "var(--tang)", fontSize: 24, flex: "none" }} />
                   <input
                     ref={inputRef}
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && submit()}
                     placeholder={input ? "" : placeholders[phIndex]}
-                    style={{ flex: 1, border: "none", outline: "none", background: "transparent", fontFamily: "inherit", fontSize: 16, fontWeight: 500, color: "var(--ink)", padding: "14px 0", minWidth: 0 }}
+                    style={{ flex: 1, border: "none", outline: "none", background: "transparent", fontFamily: "inherit", fontSize: 20, fontWeight: 500, color: "var(--ink)", padding: "18px 0", minWidth: 0 }}
                   />
-                  <button onClick={submit} style={{ ...primaryBtn, width: "auto", padding: "0 20px", height: 48, flex: "none", fontSize: 15 }}>
+                  <button onClick={submit} style={{ ...primaryBtn, width: "auto", padding: "0 26px", height: 58, flex: "none", fontSize: 18, borderRadius: 16 }}>
                     {t("s1_cta")}
-                    <i className="ti ti-arrow-right" style={{ fontSize: 16 }} />
+                    <i className="ti ti-arrow-right" style={{ fontSize: 19 }} />
                   </button>
                 </div>
               ) : (
@@ -297,9 +299,9 @@ export default function OnboardingEntry({ language, onSignIn, onNext }) {
             {previewRow}
             {chipsRow(true)}
           </div>
-          <div style={{ fontSize: isDesktop ? 15 : 13, color: "var(--ink-3)", textAlign: "center", paddingTop: 24 }}>
+          <div style={{ fontSize: isDesktop ? 18 : 13, color: "var(--ink-3)", textAlign: "center", paddingTop: 28 }}>
             {t("s1_signin")}{" "}
-            <button onClick={onSignIn} style={{ background: "none", border: "none", fontWeight: 700, color: "var(--sky)", cursor: "pointer", fontSize: isDesktop ? 15 : 13, fontFamily: "inherit" }}>
+            <button onClick={onSignIn} style={{ background: "none", border: "none", fontWeight: 700, color: "var(--sky)", cursor: "pointer", fontSize: isDesktop ? 18 : 13, fontFamily: "inherit" }}>
               {t("s1_signinCta")}
             </button>
           </div>
