@@ -89,6 +89,10 @@ export default function AuthScreen({ defaultMode = "login", draft = [], language
     );
   })();
 
+  // Rendu sur exactement deux lignes : la copie est deux phrases séparées
+  // par ". " — on coupe dessus plutôt que de dépendre du wrap du conteneur.
+  const [subLine1, subLine2] = showDraft ? t("s6_sub").split(". ") : ["", ""];
+
   const header = showDraft ? (
     <div style={{ marginBottom: isDesktop ? "1.75rem" : "1.25rem", display: "flex", alignItems: "stretch", gap: 14, textAlign: "left" }}>
       <div
@@ -105,7 +109,8 @@ export default function AuthScreen({ defaultMode = "login", draft = [], language
           {t("s6_title", { n: draftCount })}
         </h1>
         <p style={{ fontSize: 14.5, color: "var(--ink-3)", lineHeight: 1.5, textAlign: "justify" }}>
-          {t("s6_sub")}
+          {subLine1}.<br />
+          {subLine2}
         </p>
       </div>
     </div>
@@ -259,17 +264,16 @@ export default function AuthScreen({ defaultMode = "login", draft = [], language
             style={{
               display: "flex",
               flexDirection: isDesktop ? "row" : "column",
+              justifyContent: "center",
               alignItems: isDesktop ? "flex-start" : "stretch",
               gap: isDesktop ? 40 : 18,
               width: "100%",
-              maxWidth: isDesktop ? 760 : 400,
-              margin: "0 auto",
             }}
           >
-            <div style={{ flex: isDesktop ? "1 1 300px" : "none", maxWidth: isDesktop ? 300 : "none" }}>{draftPanel}</div>
-            <div style={{ flex: isDesktop ? "1 1 360px" : "none", display: "flex", justifyContent: "center" }}>{formCol}</div>
+            <div style={{ flex: isDesktop ? "0 1 300px" : "none", maxWidth: isDesktop ? 300 : 400, width: isDesktop ? undefined : "100%", margin: isDesktop ? 0 : "0 auto" }}>{draftPanel}</div>
+            <div style={{ flex: isDesktop ? "0 1 400px" : "none", maxWidth: 400, width: isDesktop ? undefined : "100%", margin: isDesktop ? 0 : "0 auto" }}>{formCol}</div>
           </div>
-          <div style={{ marginTop: isDesktop ? 40 : 24 }}>{toggleLink}</div>
+          <div style={{ marginTop: isDesktop ? 64 : 40 }}>{toggleLink}</div>
         </div>
       ) : (
         <>
