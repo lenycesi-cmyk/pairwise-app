@@ -293,21 +293,35 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
     prevTotalIncome > 0 ? ((totalIncome - prevTotalIncome) / prevTotalIncome) * 100 : null;
 
   const netWorthChartData = useMemo(() => {
-    // Les snapshots sont stockés sous { date, value, currency } (voir
-    // recordNetWorthSnapshot) — on lit donc h.value et on reconvertit depuis
-    // la devise enregistrée au moment du snapshot, pas depuis defaultCurrency.
-    return [...netWorthHistory]
-      .sort((a, b) => a.date.localeCompare(b.date))
-      .slice(-12)
-      .map((h) => ({
-        // Jour + mois : les snapshots sont quotidiens, un label « mois » seul
-        // affichait « juil. » répété pour chaque point du même mois.
-        label: new Date(h.date).toLocaleDateString(locale, { day: "2-digit", month: "short" }),
-        value: h.currency && h.currency !== displayCurrency
+    // Calé sur le sélecteur de période de la page : mêmes buckets que
+    // « évolution des dépenses » (jour si semaine/mois, mois sinon). Les
+    // snapshots sont { date, value, currency } (voir recordNetWorthSnapshot) —
+    // on reconvertit depuis la devise du snapshot. Le patrimoine net est une
+    // valeur instantanée (pas une somme) : on garde donc le DERNIER snapshot
+    // de chaque bucket.
+    let bucketKey, bucketLabel;
+    if (periodType === "month" || periodType === "week") {
+      bucketKey = (d) => d.getDate();
+      bucketLabel = (d) => d.getDate().toString();
+    } else {
+      bucketKey = (d) => `${d.getFullYear()}-${d.getMonth()}`;
+      bucketLabel = (d) => d.toLocaleDateString(locale, { month: "short" });
+    }
+    const buckets = new Map();
+    for (const h of netWorthHistory) {
+      const d = new Date(h.date);
+      if (d < range.start || d >= range.end) continue;
+      const key = bucketKey(d);
+      const existing = buckets.get(key);
+      if (!existing || d.getTime() > existing.sortKey) {
+        const value = h.currency && h.currency !== displayCurrency
           ? convert(h.value ?? 0, h.currency, displayCurrency)
-          : (h.value ?? 0),
-      }));
-  }, [netWorthHistory, convert, displayCurrency, locale]);
+          : (h.value ?? 0);
+        buckets.set(key, { label: bucketLabel(d), value, sortKey: d.getTime() });
+      }
+    }
+    return [...buckets.values()].sort((a, b) => a.sortKey - b.sortKey);
+  }, [netWorthHistory, range, periodType, convert, displayCurrency, locale]);
 
   const categoryTotals = useMemo(() => {
     const result = {};
