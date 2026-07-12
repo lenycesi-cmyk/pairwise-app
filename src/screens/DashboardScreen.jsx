@@ -902,7 +902,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                     display: "flex", alignItems: "center", gap: 4,
                   }}
                 >
-                  {displayCurrency} <i className="ti ti-chevron-down" style={{ fontSize: 11 }} aria-hidden="true" />
+                  {ALL_CURRENCIES.find((c) => c.code === displayCurrency)?.symbol || displayCurrency} <i className="ti ti-chevron-down" style={{ fontSize: 11 }} aria-hidden="true" />
                 </button>
                 <button
                   ref={customizeButtonRef}
@@ -940,7 +940,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
             {/* Ligne 1 : [Réglages] [période centrée] [devise/actions], alignés
                 sur une même ligne (Réglages intégré ici, plus de FAB flottant
                 sur l'accueil). */}
-            <div style={{ display: "grid", gridTemplateColumns: "auto 1fr auto", alignItems: "center", gap: 8, marginBottom: 10 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", gap: 8, marginBottom: 10 }}>
               <button
                 ref={settingsButtonRef}
                 onClick={onOpenSettings}
