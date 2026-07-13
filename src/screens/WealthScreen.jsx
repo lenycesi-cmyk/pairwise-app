@@ -15,7 +15,7 @@ import { buildMemberColorMap } from "../utils/memberColors";
 import { useTranslation } from "../hooks/useTranslation";
 import SpotlightHint from "../components/SpotlightHint";
 import GreetingHeader from "../components/GreetingHeader";
-import HeaderSettingsButton from "../components/HeaderSettingsButton";
+import HeaderMenuButton from "../components/HeaderMenuButton";
 import { getMemberKey } from "../utils/members";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 import { useWealthPrefs } from "../hooks/useDashboardPrefs";
@@ -32,7 +32,7 @@ const COLOR_MAP = {
   red: { text: "var(--red)", bg: "var(--red-light)" },
 };
 
-export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenSettings }) {
+export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMenu }) {
   const t = useTranslation();
   const { language } = useFinance();
   const netWorthCardRef = useRef(null);
@@ -386,7 +386,7 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenSet
           return (
             <>
               <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                <div style={{ justifySelf: "start" }}><HeaderSettingsButton onClick={onOpenSettings} /></div>
+                <div style={{ justifySelf: "start" }}><HeaderMenuButton onClick={onOpenMenu} /></div>
                 <div style={{ justifySelf: "end" }}>{actions}</div>
               </div>
               {greeting}

@@ -22,7 +22,7 @@ import { useExchangeRates } from "../hooks/useExchangeRates";
 import { CURRENCIES, ALL_CURRENCIES } from "../data/categories";
 import { BUDGET_GROUPS, BUDGET_GROUP_KEYS } from "../data/budgetGroups";
 import GreetingHeader from "../components/GreetingHeader";
-import HeaderSettingsButton from "../components/HeaderSettingsButton";
+import HeaderMenuButton from "../components/HeaderMenuButton";
 import { getMemberKey } from "../utils/members";
 import { AVATAR_COLOR_PALETTE } from "../utils/memberColors";
 import { useMediaQuery } from "../hooks/useMediaQuery";
@@ -58,7 +58,7 @@ function monthsAgoRange(n) {
   return start;
 }
 
-export default function BudgetScreen({ openSignal, onOpenSettings }) {
+export default function BudgetScreen({ openSignal, onOpenMenu }) {
   const t = useTranslation();
   const { catName, subName } = useCategoryName();
   const { categories, transactions, budgets, addBudget, updateBudget, removeBudget, reorderBudgets, defaultCurrency, members, coupleName,
@@ -528,7 +528,7 @@ export default function BudgetScreen({ openSignal, onOpenSettings }) {
           return (
             <>
               <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                <div style={{ justifySelf: "start" }}><HeaderSettingsButton onClick={onOpenSettings} /></div>
+                <div style={{ justifySelf: "start" }}><HeaderMenuButton onClick={onOpenMenu} /></div>
                 <div style={{ justifySelf: "end" }}>{actions}</div>
               </div>
               {greeting}

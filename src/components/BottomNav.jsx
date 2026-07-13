@@ -1,72 +1,94 @@
 import { useTranslation } from "../hooks/useTranslation";
+import { useFinance } from "../context/FinanceContext";
+import { useAuth } from "../context/AuthContext";
 import Logo from "./Logo";
 
-export default function BottomNav({ active, onChange, onAddClick, addButtonRef, onSettingsClick, settingsOpen }) {
+// Menu de navigation « plein écran » (façon Gmail) :
+//  • sur mobile, c'est un tiroir hors-écran ouvert par le bouton ☰ du header —
+//    contrôlé par `open`/`onClose`, avec un voile cliquable (.nav-scrim) ;
+//  • sur desktop (≥1024px), les mêmes classes deviennent le rail latéral
+//    permanent (voir styles/layout.css) — `open` n'a alors aucun effet.
+// Le bouton « Ajouter » n'apparaît que dans le rail desktop ; sur mobile, c'est
+// le FAB flottant rendu par App.jsx qui prend le relais.
+export default function NavDrawer({ active, onChange, onAddClick, addButtonRef, onSettingsClick, settingsOpen, open, onClose }) {
   const t = useTranslation();
+  const { members, coupleName } = useFinance();
+  const { user } = useAuth();
+
+  const coupleLabel =
+    members && members.length
+      ? members.map((m) => m.name).filter(Boolean).join(" & ")
+      : coupleName || "PairWise";
+
   const tabs = [
     { key: "dashboard", icon: "ti-home", label: t("nav_home") },
-    { key: "reports", icon: "ti-chart-bar", label: t("nav_reports") },
-    { key: "add", icon: "ti-plus", label: "" },
+    { key: "flux", icon: "ti-arrows-exchange", label: t("nav_flux") },
     { key: "budget", icon: "ti-wallet", label: t("nav_budget") },
+    { key: "goals", icon: "ti-target", label: t("nav_goals") },
     { key: "wealth", icon: "ti-chart-pie", label: t("nav_wealth") },
+    { key: "reports", icon: "ti-chart-bar", label: t("nav_reports") },
   ];
 
+  const go = (key) => {
+    onChange(key);
+    onClose?.();
+  };
+
   return (
-    <div className="bottom-nav">
-      {/* En-tête de la sidebar desktop (masqué sur mobile via CSS). */}
-      <div className="bottom-nav-logo">
-        <Logo size={26} />
-      </div>
-      {tabs.map((tab) => {
-        if (tab.key === "add") {
-          return (
-            // Sur desktop, tout le rectangle (icône + libellé + padding) est
-            // cliquable : le onClick est porté par le conteneur. Le bouton
-            // interne garde son onClick (avec stopPropagation pour éviter un
-            // double appel) afin de rester focalisable au clavier + porter la ref.
-            <div
-              key={tab.key}
-              className="bottom-nav-addcol"
-              onClick={() => onAddClick(active)}
-            >
-              <button
-                ref={addButtonRef}
-                onClick={(e) => { e.stopPropagation(); onAddClick(active); }}
-                aria-label={t("nav_add")}
-                className="bottom-nav-add"
-              >
-                <i className="ti ti-plus" style={{ fontSize: 22, color: "white" }} aria-hidden="true" />
-              </button>
-              <span className="bottom-nav-addlabel">{t("nav_add")}</span>
-            </div>
-          );
-        }
-        // Quand Settings est ouvert, aucun onglet de page n'est actif (c'est
-        // Settings qui l'est) ; on réactive l'onglet courant à la fermeture.
-        const isActive = active === tab.key && !settingsOpen;
-        return (
+    <>
+      <div
+        className={`nav-scrim${open ? " open" : ""}`}
+        onClick={onClose}
+        aria-hidden="true"
+      />
+      <nav className={`bottom-nav${open ? " open" : ""}`} aria-label={t("nav_menu")}>
+        {/* En-tête : logo (desktop + mobile) + identité du couple (mobile). */}
+        <div className="bottom-nav-logo">
+          <Logo size={26} />
+        </div>
+        <div className="nav-identity">
+          <div className="nav-identity-name">{coupleLabel}</div>
+          {user?.email && <div className="nav-identity-mail">{user.email}</div>}
+          <button className="nav-close" onClick={onClose} aria-label={t("nav_menu_close")}>
+            <i className="ti ti-x" style={{ fontSize: 18 }} aria-hidden="true" />
+          </button>
+        </div>
+
+        {/* Bouton « Ajouter » : présent dans le rail desktop uniquement
+            (masqué en CSS sur mobile, remplacé par le FAB flottant). */}
+        <div className="bottom-nav-addcol" onClick={() => onAddClick(active)}>
+          <button
+            ref={addButtonRef}
+            onClick={(e) => { e.stopPropagation(); onAddClick(active); }}
+            aria-label={t("nav_add")}
+            className="bottom-nav-add"
+          >
+            <i className="ti ti-plus" style={{ fontSize: 22, color: "white" }} aria-hidden="true" />
+          </button>
+          <span className="bottom-nav-addlabel">{t("nav_add")}</span>
+        </div>
+
+        {tabs.map((tab) => (
           <button
             key={tab.key}
-            onClick={() => onChange(tab.key)}
+            onClick={() => go(tab.key)}
             className="bottom-nav-tab"
-            data-active={isActive ? "true" : "false"}
+            data-active={active === tab.key && !settingsOpen ? "true" : "false"}
           >
             <i className={`ti ${tab.icon}`} style={{ fontSize: 20 }} aria-hidden="true" />
             <span>{tab.label}</span>
           </button>
-        );
-      })}
-      {/* Desktop-only: settings sits alongside the other tabs in the
-          sidebar rail instead of the floating mobile button (.settings-fab). */}
-      <button
-        onClick={onSettingsClick}
-        aria-label={t("nav_settings")}
-        className="bottom-nav-tab bottom-nav-settings"
-        data-active={settingsOpen ? "true" : "false"}
-      >
-        <i className="ti ti-settings" style={{ fontSize: 20 }} aria-hidden="true" />
-        <span>{t("nav_settings")}</span>
-      </button>
-    </div>
+        ))}
+
+        <button
+          onClick={() => { onSettingsClick(); onClose?.(); }}
+          className="bottom-nav-tab bottom-nav-settings"
+          data-active={settingsOpen ? "true" : "false"}
+        >
+          <i className="ti ti-settings" style={{ fontSize: 20 }} aria-hidden="true" />
+          <span>{t("nav_settings")}</span>
+        </button>
+      </nav>
+    </>
   );
 }

@@ -3,52 +3,150 @@
    styles) specifically so they can respond to the desktop breakpoint
    below — inline styles can't express media queries. */
 
+/* Mobile : tiroir de navigation hors-écran (façon Gmail), glissé depuis la
+   gauche, ouvert par le ☰ du header. Sur desktop il devient le rail latéral
+   permanent (override plus bas). */
 .bottom-nav {
   position: fixed;
+  top: 0;
   bottom: 0;
   left: 0;
-  right: 0;
-  max-width: var(--app-shell-width);
-  margin: 0 auto;
+  width: min(84%, 320px);
+  max-width: none;
+  margin: 0;
   background: var(--bg-card);
-  border-top: 0.5px solid var(--rule);
+  border-right: 0.5px solid var(--rule);
   display: flex;
-  justify-content: space-around;
-  align-items: center;
-  padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
-  z-index: 50;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 3px;
+  padding: 14px 12px calc(14px + env(safe-area-inset-bottom));
+  z-index: 120;
+  overflow-y: auto;
+  transform: translateX(-100%);
+  transition: transform 0.26s ease;
+}
+.bottom-nav.open {
+  transform: translateX(0);
+  box-shadow: 12px 0 40px -18px rgba(0, 0, 0, 0.5);
 }
 
+/* Voile derrière le tiroir (mobile). */
+.nav-scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 21, 32, 0.45);
+  z-index: 110;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.26s ease;
+}
+.nav-scrim.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Item de navigation : rangée icône + libellé (mobile). */
 .bottom-nav-tab {
   background: none;
   border: none;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 2px;
-  padding: 4px 8px;
-  color: var(--ink-3);
+  gap: 13px;
+  width: 100%;
+  padding: 11px 12px;
+  border-radius: 13px;
+  color: var(--ink-2);
+  text-align: left;
 }
-.bottom-nav-tab[data-active="true"] {
-  color: var(--ink);
+.bottom-nav-tab i {
+  width: 26px;
+  text-align: center;
+  color: var(--ink-3);
+  flex-shrink: 0;
 }
 .bottom-nav-tab span {
-  font-size: 10px;
+  font-size: 14.5px;
+  font-weight: 600;
+}
+.bottom-nav-tab[data-active="true"] {
+  background: var(--tang-light);
+  color: var(--ink);
+}
+.bottom-nav-tab[data-active="true"] i {
+  color: var(--tang);
 }
 
-/* En-tête logo de la sidebar : desktop uniquement (voir override plus bas). */
+/* En-tête du tiroir : logo + identité du couple (mobile). */
 .bottom-nav-logo {
-  display: none;
+  display: flex;
+  padding: 4px 10px 10px;
+}
+.nav-identity {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 12px 12px;
+  margin-bottom: 8px;
+  border-bottom: 0.5px solid var(--rule);
+}
+.nav-identity-name {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.nav-identity-mail {
+  font-size: 11.5px;
+  color: var(--ink-3);
+}
+.nav-close {
+  position: absolute;
+  top: -2px;
+  right: 4px;
+  background: none;
+  border: none;
+  color: var(--ink-3);
+  display: flex;
+  padding: 4px;
 }
 
-/* Bouton "Ajouter une transaction" : cercle océan (distinct du coral des
-   onglets actifs) + libellé sous l'icône (affiché sur desktop). */
-.bottom-nav-addcol {
+/* FAB « Ajouter » flottant (mobile). */
+.nav-fab {
+  position: fixed;
+  right: 16px;
+  bottom: calc(20px + env(safe-area-inset-bottom));
+  left: auto;
+  z-index: 80;
   display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--tang);
+  color: #fff;
+  border: none;
+  border-radius: 16px;
+  padding: 13px 17px 13px 14px;
+  box-shadow: 0 10px 22px -8px rgba(245, 99, 70, 0.55);
+  font-size: 14px;
+  font-weight: 700;
+  transition: transform 0.18s ease, filter 0.18s ease;
+}
+.nav-fab i {
+  font-size: 20px;
+  margin-top: -1px;
+}
+.nav-fab:active {
+  transform: scale(0.96);
+}
+
+/* Bouton "Ajouter" : masqué dans le tiroir mobile (le FAB flottant .nav-fab le
+   remplace) ; réaffiché en tête du rail desktop (override plus bas). */
+.bottom-nav-addcol {
+  display: none;
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  margin-top: -20px;
 }
 .bottom-nav-add {
   width: 48px;
@@ -69,26 +167,13 @@
   color: var(--tang);
 }
 
-/* Settings tab: lives in the sidebar rail on desktop, alongside the other
-   tabs. On mobile it stays hidden here — the floating .settings-fab
-   button covers that case instead (see below). */
+/* Réglages : dernière rangée du tiroir (mobile) et du rail (desktop), séparée
+   des onglets par un filet. */
 .bottom-nav-settings {
-  display: none;
-}
-
-.settings-fab {
-  position: fixed;
-  top: calc(1.25rem + env(safe-area-inset-top));
-  left: max(1.25rem, calc((100vw - var(--app-shell-width)) / 2 + 1.25rem));
-  z-index: 60;
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  background: var(--bg-card);
-  border: 0.5px solid var(--rule);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  margin-top: 8px;
+  border-top: 0.5px solid var(--rule);
+  padding-top: 14px;
+  border-radius: 0 0 13px 13px;
 }
 
 /* Shared by every full-screen modal/detail screen (AddTransactionScreen,
@@ -164,6 +249,33 @@
     padding: 20px 16px;
     border-top: none;
     border-right: 0.5px solid var(--rule);
+    /* Rail permanent : on annule l'état « tiroir » mobile. */
+    transform: none;
+    box-shadow: none;
+    overflow-y: auto;
+  }
+
+  /* Éléments propres au tiroir mobile : sans objet sur le rail. */
+  .nav-scrim,
+  .nav-identity,
+  .nav-close,
+  .nav-fab {
+    display: none;
+  }
+  /* Le ☰ des headers porte un style inline (display:flex) → !important pour le
+     neutraliser sur desktop, où le rail latéral est déjà visible. */
+  .nav-menu-btn {
+    display: none !important;
+  }
+
+  /* Réglages : poussé en bas du rail, sans le filet séparateur du tiroir. */
+  .bottom-nav-settings {
+    border-top: none;
+    padding-top: 8px;
+  }
+
+  .bottom-nav-addcol {
+    display: flex;
   }
 
   /* Logo PairWise en tête de la sidebar. */
@@ -244,12 +356,6 @@
   .bottom-nav-tab[data-active="true"] i {
     background: var(--tang);
     color: #fff;
-  }
-
-  /* Settings now lives in the sidebar as a regular tab — the floating
-     button is mobile-only. */
-  .settings-fab {
-    display: none;
   }
 }
 
