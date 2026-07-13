@@ -49,9 +49,6 @@ export default function NavDrawer({ active, onChange, onAddClick, addButtonRef, 
         <div className="nav-identity">
           <div className="nav-identity-name">{coupleLabel}</div>
           {user?.email && <div className="nav-identity-mail">{user.email}</div>}
-          <button className="nav-close" onClick={onClose} aria-label={t("nav_menu_close")}>
-            <i className="ti ti-x" style={{ fontSize: 18 }} aria-hidden="true" />
-          </button>
         </div>
 
         {/* Bouton « Ajouter » : présent dans le rail desktop uniquement
