@@ -37,6 +37,29 @@ import { splitTag } from "../utils/tags";
 const EXPENSE_EXCLUDED = ["income", "investment", "savings"];
 const GROUP_PCT = { essential: 0.5, fun: 0.3, investment: 0.2 };
 
+// Couleurs sémantiques du statut d'un budget — DISTINCTES de la couleur de
+// marque (--tang, réservée à la marque/actions). vert = tranquille, ambre =
+// à surveiller, rouge = dépassement. Le fond teinté sert aux pastilles et à
+// l'encart de projection.
+const STATUS_COLOR = { good: "var(--sage)", warn: "var(--amber)", over: "var(--red)" };
+const STATUS_TINT = {
+  good: "color-mix(in srgb, var(--sage) 13%, transparent)",
+  warn: "color-mix(in srgb, var(--amber) 15%, transparent)",
+  over: "color-mix(in srgb, var(--red) 13%, transparent)",
+};
+const STATUS_ICON = { good: "ti-mood-smile", warn: "ti-alert-triangle", over: "ti-trending-up" };
+
+// Statut = pire cas entre le réel et le projeté : la projection PEUT déclasser
+// un budget dont le % actuel est bas mais dont le rythme est trop rapide.
+function budgetLevel(p) {
+  const denom = p.effectiveAmount > 0 ? p.effectiveAmount : p.amountInBase;
+  const threshold = p.budget.alertThreshold ?? 80;
+  const projPct = p.projected != null && denom > 0 ? (p.projected / denom) * 100 : p.pct;
+  if (p.pct >= 100 || projPct >= 110) return "over";
+  if (p.pct >= threshold || projPct >= 100) return "warn";
+  return "good";
+}
+
 // Enveloppe sortable (render-prop) : fournit ref/style + les props de la
 // poignée de glissement, sans dupliquer le markup de la carte budget.
 function SortableBudget({ id, children }) {
@@ -109,6 +132,7 @@ export default function BudgetScreen({ openSignal, onOpenSettings }) {
   const [alertThreshold, setAlertThreshold] = useState("80");
   const [memberUid, setMemberUid] = useState("couple");
   const [editMode, setEditMode] = useState(false);
+  const [menuId, setMenuId] = useState(null); // carte dont le menu ⋯ est ouvert
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
   const currencyButtonRef = useRef(null);
   const { widgets, saveWidgets } = useBudgetPrefs();
@@ -422,6 +446,63 @@ export default function BudgetScreen({ openSignal, onOpenSettings }) {
     return t("budget_period_monthly");
   }
 
+  const locale = language === "en" ? "en-US" : "fr-FR";
+  const money = (n) => `${Math.round(n).toLocaleString(locale)} ${displayCurrency}`;
+
+  // Puce catégorie repliée : icône + libellé principal + nombre de catégories
+  // restantes ("+N"). Jamais la liste complète en toutes lettres.
+  function budgetChip(b) {
+    if (b.scope === "global") return { icon: "ti-wallet", main: t("budget_scope_global"), extra: 0 };
+    if (b.scope === "tag") {
+      const tags = b.tagKeys || [];
+      const first = tags[0] ? splitTag(tags[0]) : null;
+      const main = first ? (first.emoji ? `${first.emoji} ${first.text}` : `#${first.text}`) : t("budget_scope_tag");
+      return { icon: "ti-tag", main, extra: Math.max(0, tags.length - 1) };
+    }
+    const items = [];
+    for (const id of b.categoryIds || []) {
+      const c = categories.find((c) => c.id === id);
+      if (c) items.push({ name: catName(c), icon: c.icon });
+    }
+    for (const key of b.subcategoryKeys || []) {
+      const [catId, sub] = key.split("::");
+      const c = categories.find((c) => c.id === catId);
+      items.push({ name: subName(sub, catId), icon: c?.icon || "ti-tag" });
+    }
+    if (items.length === 0) return { icon: "ti-tag", main: t("budget_scope_category"), extra: 0 };
+    return { icon: items[0].icon || "ti-tag", main: items[0].name, extra: items.length - 1 };
+  }
+
+  // Encart de projection au ton chaleureux. Reformulé positivement quand tout
+  // va bien (le reliquat comme un gain), honnête mais posé en cas de dépassement.
+  function forecastNode(level, denom, projected) {
+    if (projected == null) {
+      return {
+        icon: "ti-hourglass-low",
+        bg: "var(--bg)",
+        node: <span style={{ color: "var(--ink-3)" }}>{t("budget_forecast_early")}</span>,
+      };
+    }
+    const c = STATUS_COLOR[level];
+    if (level === "good" || level === "warn") {
+      const key = level === "good" ? "budget_forecast_good" : "budget_forecast_warn";
+      const [pre, post] = t(key).split("{amount}");
+      return {
+        icon: STATUS_ICON[level], bg: STATUS_TINT[level],
+        node: <>{pre}<b style={{ color: c, fontWeight: 600 }}>{money(Math.max(0, denom - projected))}</b>{post}</>,
+      };
+    }
+    const [pre, post] = t("budget_forecast_over").split("{amount}");
+    const [tpre, tpost] = t("budget_forecast_over_tail").split("{over}");
+    return {
+      icon: STATUS_ICON.over, bg: STATUS_TINT.over,
+      node: (
+        <>{pre}<b style={{ color: c, fontWeight: 600 }}>{money(projected)}</b>{post}
+          {tpre}<b style={{ color: c, fontWeight: 600 }}>{money(projected - denom)}</b>{tpost}</>
+      ),
+    };
+  }
+
   // Contenu d'un widget de l'onglet Budget pour WidgetCanvas (renvoie null
   // quand il n'y a rien à montrer → placeholder en mode édition).
   function renderBudgetWidget(id) {
@@ -431,26 +512,42 @@ export default function BudgetScreen({ openSignal, onOpenSettings }) {
       const active = progress.filter(({ budget }) => budget.active !== false);
       const totalBudget = active.reduce((s, p) => s + p.effectiveAmount, 0);
       const totalSpent = active.reduce((s, p) => s + p.spent, 0);
-      const overCount = active.filter((p) => p.pct >= 100).length;
+      const remaining = totalBudget - totalSpent;
+      const calmCount = active.filter((p) => budgetLevel(p) === "good").length;
+      const watchCount = active.length - calmCount;
       const pct = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
-      const barColor = pct >= 100 ? "var(--red)" : pct >= 80 ? "var(--amber)" : "var(--sky)";
+      // Barre agrégée : verte tant que le couple est globalement sous contrôle,
+      // ambre/rouge sinon (statut sémantique, jamais la couleur de marque).
+      const barColor = pct >= 100 ? "var(--red)" : watchCount > calmCount ? "var(--amber)" : "var(--sage)";
       return (
         <WidgetCard icon="ti-gauge" accent="amber" title={t("budget_widget_overview")}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
-            <span className="pw-num" style={{ fontSize: 24, fontWeight: 700 }}>
-              {Math.round(totalSpent).toLocaleString("fr-FR")}
-              <span style={{ fontSize: 13, color: "var(--ink-3)", fontWeight: 400 }}> / {Math.round(totalBudget).toLocaleString("fr-FR")} {displayCurrency}</span>
+          {/* Héros : on mène avec le RESTE (plus rassurant et actionnable que
+              le dépensé), pas avec la fraction consommée. */}
+          <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+            {remaining < 0 && <span style={{ fontSize: 12.5, color: "var(--red)" }}>{t("budget_over_by")}</span>}
+            <span className="pw-num" style={{ fontFamily: "var(--font-display)", fontSize: 30, fontWeight: 700, letterSpacing: "-0.01em", color: remaining >= 0 ? "var(--ink)" : "var(--red)" }}>
+              {money(Math.abs(remaining))}
             </span>
-            <span style={{ fontSize: 20, fontWeight: 700, color: barColor }}>{Math.round(pct)}%</span>
+            {remaining >= 0 && <span style={{ fontSize: 12.5, color: "var(--ink-3)" }}>{t("budget_available")}</span>}
           </div>
-          <div style={{ height: 6, borderRadius: 3, background: "var(--rule)", overflow: "hidden" }}>
-            <div style={{ height: "100%", width: `${Math.min(pct, 100)}%`, background: barColor, borderRadius: 3 }} />
-          </div>
-          <p style={{ fontSize: 11, color: overCount > 0 ? "var(--red)" : "var(--ink-3)", marginTop: 6 }}>
-            {overCount > 0
-              ? t("budget_overview_over").replace("{n}", overCount)
-              : t("budget_overview_ok").replace("{n}", active.length)}
+          <p className="pw-num" style={{ fontSize: 12, color: "var(--ink-3)", marginTop: 2, marginBottom: 10 }}>
+            {t("budget_spent_of").replace("{spent}", money(totalSpent)).replace("{limit}", money(totalBudget))}
           </p>
+          <div style={{ height: 8, borderRadius: 99, background: "var(--rule)", overflow: "hidden" }}>
+            <div style={{ height: "100%", width: `${Math.min(pct, 100)}%`, background: barColor, borderRadius: 99, transition: "width .4s ease" }} />
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 16, marginTop: 11, fontSize: 12.5 }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "var(--ink-2)" }}>
+              <span style={{ width: 7, height: 7, borderRadius: 99, background: "var(--sage)" }} />
+              {t("budget_count_calm").replace("{n}", calmCount)}
+            </span>
+            {watchCount > 0 && (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "var(--ink-2)" }}>
+                <span style={{ width: 7, height: 7, borderRadius: 99, background: "var(--amber)" }} />
+                {t("budget_count_watch").replace("{n}", watchCount)}
+              </span>
+            )}
+          </div>
         </WidgetCard>
       );
     }
@@ -460,12 +557,23 @@ export default function BudgetScreen({ openSignal, onOpenSettings }) {
         <DndContext sensors={budgetSensors} collisionDetection={closestCenter} onDragEnd={handleBudgetDragEnd}>
           <SortableContext items={progress.map((p) => p.budget.id)} strategy={verticalListSortingStrategy}>
             <div>
-              {progress.map(({ budget, spent, amountInBase, effectiveAmount, carried, pct, projected, projectedOver }) => {
+              {progress.map((p) => {
+                const { budget, spent, amountInBase, effectiveAmount, carried, pct, projected } = p;
                 const isInactive = budget.active === false;
-                const over = pct >= 100;
-                const warn = pct >= (budget.alertThreshold ?? 80);
-                const barColor = over ? "var(--red)" : warn ? "var(--amber)" : "var(--sky)";
-                const topColor = AVATAR_COLOR_PALETTE.find((c) => c.key === budget.color)?.text || "var(--amber)";
+                const level = budgetLevel(p);
+                const color = STATUS_COLOR[level];
+                const tint = STATUS_TINT[level];
+                const denom = effectiveAmount > 0 ? effectiveAmount : amountInBase;
+                const remaining = denom - spent;
+                const chip = budgetChip(budget);
+                const isCouple = !budget.memberUid || budget.memberUid === "couple";
+                // Barre : remplissage = dépensé ; segment fantôme translucide =
+                // là où le rythme actuel nous fait atterrir (projection).
+                const projPct = projected != null && denom > 0 ? (projected / denom) * 100 : pct;
+                const fillW = Math.min(pct, 100);
+                const ghostW = Math.max(0, Math.min(projPct, 100) - fillW);
+                const fc = isInactive ? null : forecastNode(level, denom, projected);
+                const menuOpen = menuId === budget.id;
                 return (
                   <SortableBudget key={budget.id} id={budget.id}>
                     {({ setNodeRef, style, handleProps }) => (
@@ -474,76 +582,122 @@ export default function BudgetScreen({ openSignal, onOpenSettings }) {
                         onClick={() => openEdit(budget)}
                         style={{
                           ...style,
+                          position: "relative",
                           background: "var(--bg-card)",
                           borderRadius: "var(--radius-lg)",
                           border: "0.5px solid var(--rule)",
-                          overflow: "hidden",
-                          marginBottom: 8,
+                          boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                          padding: "15px 16px 14px",
+                          marginBottom: 12,
                           cursor: "pointer",
-                          opacity: isInactive ? 0.5 : (style.opacity ?? 1),
+                          opacity: isInactive ? 0.55 : (style.opacity ?? 1),
                         }}
                       >
-                        {/* Barre de couleur en haut de la carte pour différencier
-                            les budgets d'un coup d'œil. */}
-                        <div style={{ height: 5, background: topColor }} />
-                        <div style={{ padding: "12px 14px" }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                        {/* En-tête : pastille d'icône teintée statut · nom + périmètre
+                            · pastille de statut en toutes lettres · grip + kebab. */}
+                        <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                          <span style={{ width: 36, height: 36, borderRadius: 11, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: tint }}>
+                            <i className={`ti ${chip.icon}`} style={{ fontSize: 18, color }} aria-hidden="true" />
+                          </span>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <p style={{ fontFamily: "var(--font-display)", fontSize: 15.5, fontWeight: 600, lineHeight: 1.15, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                              {budgetLabel(budget)}
+                            </p>
+                            {members.length > 0 && (
+                              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, marginTop: 2, fontSize: 11.5, color: "var(--ink-3)" }}>
+                                <i className={`ti ${isCouple ? "ti-heart-filled" : "ti-user"}`} style={{ fontSize: 12, color: isCouple ? "var(--tang)" : "var(--ink-3)" }} aria-hidden="true" />
+                                {memberLabel(budget)}
+                              </span>
+                            )}
+                          </div>
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: 5, flexShrink: 0, padding: "4px 9px", borderRadius: 99, background: tint, fontSize: 11, fontWeight: 600, color }}>
+                            <span style={{ width: 6, height: 6, borderRadius: 99, background: color }} />
+                            {t(`budget_status_${level}`)}
+                          </span>
+                          <button
+                            {...handleProps}
+                            onClick={(e) => e.stopPropagation()}
+                            aria-label={t("categories_drag_hint")}
+                            style={{ background: "none", border: "none", color: "var(--ink-3)", opacity: 0.4, cursor: "grab", touchAction: "none", display: "flex", flexShrink: 0, padding: 0, marginTop: 2 }}
+                          >
+                            <i className="ti ti-grip-vertical" style={{ fontSize: 15 }} aria-hidden="true" />
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setMenuId(menuOpen ? null : budget.id); }}
+                            aria-label="Options"
+                            style={{ background: "none", border: "none", color: "var(--ink-3)", display: "flex", flexShrink: 0, padding: 0, marginTop: 2 }}
+                          >
+                            <i className="ti ti-dots" style={{ fontSize: 16 }} aria-hidden="true" />
+                          </button>
+                        </div>
+
+                        {/* Menu discret d'actions (pause / supprimer). */}
+                        {menuOpen && (
+                          <div
+                            onClick={(e) => e.stopPropagation()}
+                            style={{ position: "absolute", top: 44, right: 12, zIndex: 5, background: "var(--bg-card)", border: "0.5px solid var(--rule)", borderRadius: "var(--radius-md)", boxShadow: "0 8px 24px rgba(0,0,0,0.14)", overflow: "hidden", minWidth: 150 }}
+                          >
                             <button
-                              {...handleProps}
-                              onClick={(e) => e.stopPropagation()}
-                              aria-label={t("categories_drag_hint")}
-                              style={{ background: "none", border: "none", color: "var(--ink-3)", cursor: "grab", touchAction: "none", display: "flex", flexShrink: 0, padding: 0 }}
+                              onClick={() => { toggleActive(budget); setMenuId(null); }}
+                              style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "10px 12px", background: "none", border: "none", fontSize: 13, color: "var(--ink)", textAlign: "left" }}
                             >
-                              <i className="ti ti-grip-vertical" style={{ fontSize: 16 }} aria-hidden="true" />
+                              <i className={`ti ${isInactive ? "ti-player-play" : "ti-player-pause"}`} style={{ fontSize: 15, color: "var(--ink-3)" }} aria-hidden="true" />
+                              {isInactive ? t("recurring_resume") : t("recurring_pause")}
                             </button>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <p style={{ fontSize: 14, fontWeight: 700 }}>
-                                {budgetLabel(budget)}
-                                {members.length > 0 && (
-                                  <span style={{ fontSize: 11, fontWeight: 400, color: "var(--sky)", marginLeft: 6 }}>· {memberLabel(budget)}</span>
-                                )}
-                              </p>
-                              {budget.name && (
-                                <p style={{ fontSize: 11, color: "var(--ink-3)" }}>{categoryNames(budget)}</p>
-                              )}
-                              <p className="pw-num" style={{ fontSize: 13, fontWeight: 600, marginTop: 1 }}>
-                                {Math.round(spent).toLocaleString("fr-FR")}
-                                <span style={{ color: "var(--ink-3)", fontWeight: 400 }}> / {Math.round(effectiveAmount).toLocaleString("fr-FR")} {displayCurrency}</span>
-                                <span style={{ color: "var(--ink-3)", fontWeight: 400 }}> · {periodLabel(budget)}</span>
-                              </p>
-                              {budget.rollover && Math.round(carried) !== 0 && (
-                                <p style={{ fontSize: 10.5, color: carried >= 0 ? "var(--sage)" : "var(--tang)", marginTop: 1 }}>
-                                  {carried >= 0 ? "+" : ""}{Math.round(carried).toLocaleString("fr-FR")} {displayCurrency} {t("budget_rollover_carried")}
-                                </p>
-                              )}
+                            <button
+                              onClick={() => { removeBudget(budget.id); setMenuId(null); }}
+                              style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "10px 12px", background: "none", border: "none", borderTop: "0.5px solid var(--rule)", fontSize: 13, color: "var(--red)", textAlign: "left" }}
+                            >
+                              <i className="ti ti-trash" style={{ fontSize: 15 }} aria-hidden="true" />
+                              {t("common_delete")}
+                            </button>
+                          </div>
+                        )}
+
+                        {/* Bloc RESTE (héros) · fraction + période en secondaire discret. */}
+                        <div style={{ marginTop: 14, display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10 }}>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontSize: 11.5, color: "var(--ink-3)" }}>{remaining >= 0 ? t("budget_remaining") : t("budget_over_by")}</div>
+                            <div className="pw-num" style={{ fontFamily: "var(--font-display)", fontSize: 25, fontWeight: 700, letterSpacing: "-0.01em", lineHeight: 1.1 }}>
+                              {money(Math.abs(remaining))}
                             </div>
-                            <p style={{ fontSize: 18, fontWeight: 700, color: barColor }}>
-                              {Math.round(pct)}%
-                            </p>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); toggleActive(budget); }}
-                              aria-label={isInactive ? t("recurring_resume") : t("recurring_pause")}
-                              style={{ background: "none", border: "none", color: "var(--ink-3)" }}
-                            >
-                              <i className={`ti ${isInactive ? "ti-player-play" : "ti-player-pause"}`} style={{ fontSize: 14 }} aria-hidden="true" />
-                            </button>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); removeBudget(budget.id); }}
-                              aria-label={t("common_delete")}
-                              style={{ background: "none", border: "none", color: "var(--ink-3)" }}
-                            >
-                              <i className="ti ti-trash" style={{ fontSize: 14 }} aria-hidden="true" />
-                            </button>
                           </div>
-                          <div style={{ height: 6, borderRadius: 3, background: "var(--rule)", overflow: "hidden" }}>
-                            <div style={{ height: "100%", width: `${Math.min(pct, 100)}%`, background: barColor, borderRadius: 3 }} />
+                          <div className="pw-num" style={{ textAlign: "right", fontSize: 11.5, color: "var(--ink-3)", flexShrink: 0 }}>
+                            {money(spent)} / {money(denom)}<br />{periodLabel(budget)}
                           </div>
-                          {!isInactive && projected !== null && pct < 100 && (
-                            <p style={{ fontSize: 11, color: projectedOver ? "var(--amber)" : "var(--ink-3)", marginTop: 6 }}>
-                              {t("budget_projection").replace("{amount}", `${Math.round(projected).toLocaleString("fr-FR")} ${displayCurrency}`)}
-                              {projectedOver &&
-                                ` (${t("budget_projection_over").replace("{over}", `${Math.round(projected - amountInBase).toLocaleString("fr-FR")} ${displayCurrency}`)})`}
-                            </p>
+                        </div>
+
+                        {budget.rollover && Math.round(carried) !== 0 && (
+                          <p className="pw-num" style={{ fontSize: 10.5, color: carried >= 0 ? "var(--sage)" : "var(--red)", marginTop: 3 }}>
+                            {carried >= 0 ? "+" : ""}{money(carried)} {t("budget_rollover_carried")}
+                          </p>
+                        )}
+
+                        {/* Barre + segment fantôme de projection. */}
+                        <div role="progressbar" aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100}
+                          style={{ marginTop: 11, position: "relative", height: 9, borderRadius: 99, background: "var(--rule)", overflow: "hidden" }}>
+                          {ghostW > 0 && (
+                            <div style={{ position: "absolute", top: 0, bottom: 0, left: `${fillW}%`, width: `${ghostW}%`, background: color, opacity: 0.28 }} />
+                          )}
+                          <div style={{ position: "absolute", top: 0, bottom: 0, left: 0, width: `${fillW}%`, borderRadius: 99, background: color, transition: "width .4s ease" }} />
+                        </div>
+
+                        {/* Encart projection au ton chaleureux. */}
+                        {fc && (
+                          <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 9, padding: "9px 11px", borderRadius: "var(--radius-md)", background: fc.bg }}>
+                            <i className={`ti ${fc.icon}`} style={{ fontSize: 16, color: projected == null ? "var(--ink-3)" : color, flexShrink: 0 }} aria-hidden="true" />
+                            <div className="pw-num" style={{ fontSize: 12.5, color: "var(--ink-2)", lineHeight: 1.35 }}>{fc.node}</div>
+                          </div>
+                        )}
+
+                        {/* Catégories repliées : puce principale + "+N". */}
+                        <div style={{ marginTop: 11, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 8px", borderRadius: 99, border: "0.5px solid var(--rule)", fontSize: 11, color: "var(--ink-2)", maxWidth: "100%", overflow: "hidden" }}>
+                            <i className={`ti ${chip.icon}`} style={{ fontSize: 12, color: "var(--ink-3)", flexShrink: 0 }} aria-hidden="true" />
+                            <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{chip.main}</span>
+                          </span>
+                          {chip.extra > 0 && (
+                            <span style={{ fontSize: 11, color: "var(--ink-3)" }}>{t("budget_cats_more").replace("{n}", chip.extra)}</span>
                           )}
                         </div>
                       </div>
