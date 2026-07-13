@@ -406,6 +406,23 @@ export const TRANSLATIONS = {
     reports_previous: "Période précédente",
     reports_net_worth_evolution: "Évolution du patrimoine net",
 
+    // Insights (bande "Pour toi" du Dashboard)
+    insight_strip_title: "Pour toi",
+    insight_dismiss: "Masquer cet insight",
+    insight_emergency_good: "Ton coussin couvre {n} mois de dépenses. 🛟",
+    insight_emergency_mid: "Coussin de {n} mois — vise 6 pour voir venir sereinement.",
+    insight_emergency_low: "Coussin sous 3 mois ({n}) — pense à renforcer ton épargne de précaution.",
+    insight_savings_good: "Tu épargnes {pct} de tes revenus ce trimestre. 💰",
+    insight_savings_mid: "Taux d'épargne à {pct} — un petit effort et tu passes la barre des 10 %.",
+    insight_savings_neg: "Tu dépenses un peu plus que tes revenus ce trimestre.",
+    insight_recurring_high: "Tes charges fixes pèsent {pct} de tes revenus — l'idéal reste sous 50 %.",
+    insight_networth_up: "Patrimoine net en hausse de {pct} sur 3 mois. 📈",
+    insight_networth_down: "Patrimoine net en baisse de {pct} sur 3 mois.",
+    insight_networth_record: "Nouveau record de patrimoine net ce mois-ci ! 🎉",
+    insight_subscription: "Abonnement probable repéré : {desc}. À ajouter en récurrence ?",
+    insight_budget_over: "{n} budget(s) déjà dépassé(s) ce mois-ci.",
+    insight_balance_good: "Ta répartition 50/30/20 est bien tenue. ⚖️",
+
     // Budget
     budget_title: "Budget",
     budget_widget_overview: "Vue d'ensemble",
@@ -939,6 +956,23 @@ export const TRANSLATIONS = {
     reports_totals_title: "Total incomes & expenses",
     reports_previous: "Previous period",
     reports_net_worth_evolution: "Net Worth Evolution",
+
+    // Insights ("For you" strip on the Dashboard)
+    insight_strip_title: "For you",
+    insight_dismiss: "Dismiss this insight",
+    insight_emergency_good: "Your cushion covers {n} months of spending. 🛟",
+    insight_emergency_mid: "A {n}-month cushion — aim for 6 to feel at ease.",
+    insight_emergency_low: "Cushion under 3 months ({n}) — consider building up your safety net.",
+    insight_savings_good: "You're saving {pct} of your income this quarter. 💰",
+    insight_savings_mid: "Savings rate at {pct} — a little more and you'd clear the 10% mark.",
+    insight_savings_neg: "You're spending a bit more than you earn this quarter.",
+    insight_recurring_high: "Fixed costs are {pct} of your income — ideally keep it under 50%.",
+    insight_networth_up: "Net worth up {pct} over 3 months. 📈",
+    insight_networth_down: "Net worth down {pct} over 3 months.",
+    insight_networth_record: "New net worth record this month! 🎉",
+    insight_subscription: "Likely subscription spotted: {desc}. Add it as a recurring expense?",
+    insight_budget_over: "{n} budget(s) already over this month.",
+    insight_balance_good: "Your 50/30/20 split is well balanced. ⚖️",
 
     // Budget
     budget_title: "Budget",
