@@ -35,26 +35,32 @@ import { getMemberKey } from "../utils/members";
 import { nextOccurrence, daysUntil } from "../utils/recurrence";
 import { useSubscriptionSuggestion } from "../hooks/useSubscriptionSuggestion";
 import { useMediaQuery } from "../hooks/useMediaQuery";
-import { useMasonryGrid } from "../hooks/useMasonryGrid";
 
-// Largeur « bento » de chaque widget en nombre de colonnes de la grille desktop
-// (2 sur desktop standard, 3 au-delà de 1500px). 1 = tuile étroite (compacte :
-// soldes, jauges, graphiques), 2 = tuile large (cartes riches : tableaux,
-// listes, séries temporelles). Valeur par défaut : 1.
-const BENTO_SPAN = {
-  net_balance: 1,
-  health_score: 1,
-  available_savings: 1,
-  net_worth: 1,
-  debt_tracker: 1,
-  wealth_allocation: 1,
-  budget_tracking: 2,
-  member_breakdown: 2,
-  spending_by_category: 2,
-  transaction_history: 2,
-  recurring: 2,
-  reports_trend: 2,
+// Grille bento desktop à 15 colonnes : chaque taille occupe un nombre de colonnes.
+// petit = 5 (⅓ → 3 par rangée), moyen = 6 (~40%), grand = 9 (~60%).
+// petit×3 = 15, moyen+grand = 15, grand+moyen = 15 → rangées pleines.
+const WIDGET_SIZE_SPAN = { small: 5, medium: 6, large: 9 };
+const WIDGET_SIZES = ["small", "medium", "large"];
+
+// Taille par défaut d'un widget quand les prefs enregistrées n'en portent pas
+// (rétrocompat : anciens utilisateurs dont les prefs datent d'avant le système
+// de tailles). Doit rester cohérent avec DEFAULT_WIDGETS dans useDashboardPrefs.
+const DEFAULT_WIDGET_SIZE = {
+  net_balance: "small",
+  health_score: "small",
+  available_savings: "small",
+  net_worth: "small",
+  debt_tracker: "small",
+  budget_tracking: "medium",
+  member_breakdown: "medium",
+  spending_by_category: "medium",
+  wealth_allocation: "medium",
+  recurring: "medium",
+  transaction_history: "large",
+  reports_trend: "large",
 };
+
+const widgetSize = (w) => w.size || DEFAULT_WIDGET_SIZE[w.id] || "medium";
 
 // Desktop-only widgets pull in recharts, which is deliberately kept out of
 // the eager bundle (Dashboard itself loads eagerly — see CLAUDE.md/
@@ -166,20 +172,10 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
   const [localWidgets, setLocalWidgets] = useState(null);
   const activeWidgets = localWidgets ?? widgets;
 
-  // Grille bento (desktop hors édition) : masonry JS pour tasser les cartes de
-  // largeurs variables (BENTO_SPAN) sans espace mort. Le hook doit être appelé
-  // à chaque rendu (avant tout return anticipé). Le ResizeObserver interne gère
-  // les changements de hauteur de contenu ; on ré-attache quand la liste de
-  // widgets change, quand on (dé)charge, ou quand la devise/langue change.
-  const gridRef = useRef(null);
+  // Grille bento (desktop hors édition) : vraie grille à 15 colonnes où chaque
+  // widget occupe une largeur selon sa taille (WIDGET_SIZE_SPAN). Rangées nettes
+  // et alignées (align-items: stretch + .pw-card height:100%), pas de masonry.
   const bentoEnabled = isDesktop && !editMode;
-  const bentoSignal = activeWidgets.map((w) => `${w.id}:${w.visible}`).join("|");
-
-  useMasonryGrid(
-    gridRef,
-    { enabled: bentoEnabled },
-    [bentoEnabled, bentoSignal, loading, ratesLoading, displayCurrency, language, trendPeriod]
-  );
 
   const debt = useDebtCalculation(transactions, members, displayCurrency, convert, { settlements: debtSettlements });
   const memberColorMap = useMemo(() => buildMemberColorMap(members), [members]);
@@ -351,6 +347,12 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
   function toggleWidget(id) {
     setLocalWidgets((prev) =>
       (prev ?? activeWidgets).map((w) => (w.id === id ? { ...w, visible: !w.visible } : w))
+    );
+  }
+
+  function setWidgetSize(id, size) {
+    setLocalWidgets((prev) =>
+      (prev ?? activeWidgets).map((w) => (w.id === id ? { ...w, size } : w))
     );
   }
 
@@ -981,7 +983,6 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
           desktop pendant la personnalisation ; empilement simple sur mobile.
           rectSortingStrategy gère la réorganisation dans tous les cas. */}
       <div
-        ref={gridRef}
         className={bentoEnabled ? "bento-grid" : ""}
         style={{
           padding: "0 1.25rem",
@@ -1003,9 +1004,9 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                   id={w.id}
                   editMode={editMode}
                   onLongPress={enterEditMode}
-                  outerStyle={bentoEnabled ? { gridColumn: `span ${BENTO_SPAN[w.id] || 1}` } : undefined}
+                  outerStyle={bentoEnabled ? { gridColumn: `span ${WIDGET_SIZE_SPAN[widgetSize(w)]}` } : undefined}
                 >
-                  <div style={{ marginBottom: bentoEnabled ? 0 : 28, position: "relative" }}>
+                  <div style={{ marginBottom: bentoEnabled ? 0 : 28, position: "relative", height: bentoEnabled ? "100%" : undefined }}>
                     {/* Toggle button overlay in edit mode — kept at full opacity/contrast
                         regardless of widget visibility, so it stays obviously tappable
                         even when the widget below it is faded out. */}
@@ -1047,8 +1048,36 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                         opacity: editMode && !w.visible ? 0.4 : 1,
                         paddingLeft: editMode ? 36 : 0,
                         transition: "opacity 0.2s, padding 0.2s",
+                        height: bentoEnabled ? "100%" : undefined,
                       }}
                     >
+                      {/* Sélecteur de taille (P/M/G) — desktop uniquement, car la
+                          taille ne s'applique qu'à la grille bento (ignorée sur
+                          mobile). */}
+                      {editMode && isDesktop && (
+                        <div style={{ display: "flex", gap: 4, justifyContent: "center", marginBottom: 8 }}>
+                          {WIDGET_SIZES.map((sz) => {
+                            const on = widgetSize(w) === sz;
+                            return (
+                              <button
+                                key={sz}
+                                onClick={() => setWidgetSize(w.id, sz)}
+                                style={{
+                                  padding: "3px 10px",
+                                  borderRadius: 99,
+                                  border: on ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
+                                  background: on ? "var(--sky-light)" : "var(--bg-card)",
+                                  color: on ? "var(--sky)" : "var(--ink-3)",
+                                  fontSize: 11,
+                                  fontWeight: on ? 600 : 400,
+                                }}
+                              >
+                                {t(`dashboard_size_${sz}`)}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
                       {content || (
                         <div style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px dashed var(--rule)", padding: "0.75rem 1.25rem" }}>
                           <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center" }}>{WIDGET_LABELS[w.id]}</p>
