@@ -597,22 +597,22 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
       case "net_worth":
         return (
           <WidgetCard icon="ti-diamond" accent="ocean" title={t("widget_net_worth_total")}>
-            <div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: members.length > 0 ? 12 : 0 }}>
-                <span style={{ fontSize: 12, color: "var(--ink-3)" }}>{t("wealth_net_worth")}</span>
-                <span className="pw-num" style={{ fontSize: 19, color: netWorth >= 0 ? "var(--sage)" : "var(--tang)" }}>
+            <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: members.length > 0 ? 14 : 0 }}>
+                <span style={{ fontSize: 13, color: "var(--ink-3)" }}>{t("wealth_net_worth")}</span>
+                <span className="pw-num" style={{ fontSize: 24, color: netWorth >= 0 ? "var(--sage)" : "var(--tang)" }}>
                   {netWorth >= 0 ? "+" : ""}{formatAmount(netWorth)} {currencySymbol}
                 </span>
               </div>
               {members.length > 0 && (
-                <div style={{ borderTop: "0.5px solid var(--rule)", paddingTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
+                <div style={{ borderTop: "0.5px solid var(--rule)", paddingTop: 12, flex: 1, minHeight: 0, display: "flex", flexDirection: "column", justifyContent: "space-evenly", gap: 8 }}>
                   {members.map((m) => (
                     <div key={getMemberKey(m)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                        <Avatar member={m} colorMap={memberColorMap} size={16} />
-                        <span style={{ fontSize: 11, color: "var(--ink-2)" }}>{m.name}</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                        <Avatar member={m} colorMap={memberColorMap} size={20} />
+                        <span style={{ fontSize: 12.5, color: "var(--ink-2)" }}>{m.name}</span>
                       </div>
-                      <span style={{ fontSize: 14, fontWeight: 600, color: (netWorthByMember[getMemberKey(m)] || 0) >= 0 ? "var(--sage)" : "var(--tang)" }}>
+                      <span style={{ fontSize: 15, fontWeight: 600, color: (netWorthByMember[getMemberKey(m)] || 0) >= 0 ? "var(--sage)" : "var(--tang)" }}>
                         {formatAmount(netWorthByMember[getMemberKey(m)] || 0)} {currencySymbol}
                       </span>
                     </div>
@@ -632,25 +632,25 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                 évite la carte dans la carte). */}
             <div
               onClick={!editMode ? onOpenDebt : undefined}
-              style={{ display: "flex", alignItems: "center", gap: 12, cursor: editMode ? "default" : "pointer" }}
+              style={{ display: "flex", alignItems: "center", gap: 14, cursor: editMode ? "default" : "pointer", height: "100%" }}
             >
               <div style={{ display: "flex" }}>
-                <div style={{ marginRight: -8, border: "2px solid var(--bg-card)", borderRadius: "50%" }}>
-                  <Avatar member={debt.a} colorMap={memberColorMap} size={32} />
+                <div style={{ marginRight: -10, border: "2px solid var(--bg-card)", borderRadius: "50%" }}>
+                  <Avatar member={debt.a} colorMap={memberColorMap} size={44} />
                 </div>
                 <div style={{ border: "2px solid var(--bg-card)", borderRadius: "50%" }}>
-                  <Avatar member={debt.b} colorMap={memberColorMap} size={32} />
+                  <Avatar member={debt.b} colorMap={memberColorMap} size={44} />
                 </div>
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: 12, color: "var(--ink-2)" }}>
+                <p style={{ fontSize: 13, color: "var(--ink-2)", marginBottom: 4 }}>
                   {t("debt_owes").replace("{from}", debt.owesFromName).replace("{to}", debt.owesToName)}
                 </p>
-                <p className="pw-num" style={{ fontSize: 18, color: "var(--sky)" }}>
+                <p className="pw-num" style={{ fontSize: 26, color: "var(--sky)" }}>
                   {Math.round(debt.owesAmount).toLocaleString("fr-FR")} {displayCurrency}
                 </p>
               </div>
-              {!editMode && <i className="ti ti-chevron-right" style={{ fontSize: 16, color: "var(--ink-3)" }} aria-hidden="true" />}
+              {!editMode && <i className="ti ti-chevron-right" style={{ fontSize: 18, color: "var(--ink-3)" }} aria-hidden="true" />}
             </div>
           </WidgetCard>
         );
@@ -755,9 +755,9 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
       case "wealth_allocation":
         if (totalAssets <= 0) return null;
         return (
-          <WidgetCard icon="ti-chart-donut" accent="amber" title={t("widget_wealth_allocation")}>
+          <WidgetCard icon="ti-chart-donut" accent="amber" title={t("widget_wealth_allocation")} bodyStyle={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
             <Suspense fallback={<div className="skeleton" style={{ height: 110 }} />}>
-              <AllocationChart totalsByType={totalsByType} totalAssets={totalAssets} />
+              <AllocationChart totalsByType={totalsByType} totalAssets={totalAssets} fill={isDesktop} />
             </Suspense>
           </WidgetCard>
         );
