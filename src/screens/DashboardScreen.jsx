@@ -40,10 +40,12 @@ import { useMediaQuery } from "../hooks/useMediaQuery";
 // petit = 5 (⅓ → 3 par rangée), moyen = 6 (~40%), grand = 9 (~60%), plein = 15.
 // petit×3 = 15, moyen+grand = 15, grand+moyen = 15 → rangées pleines.
 const WIDGET_SIZE_SPAN = { small: 5, medium: 6, large: 9, full: 15 };
-// Hauteur minimale par taille : moyen/grand/plein sont un peu plus hauts que les
-// petites tuiles stat (align-items: stretch égalise ensuite les cartes d'une
-// même rangée sur la plus haute).
-const WIDGET_SIZE_MINHEIGHT = { medium: 240, large: 240, full: 240 };
+// Hauteur FIXE des emplacements moyen/grand/plein — identique pour tous, pour que
+// toutes les rangées à 2 colonnes aient la même hauteur (une carte au contenu
+// long, ex. Suivi budget, ne fait plus exploser sa rangée : elle défile en
+// interne, cf. `.bento-grid .pw-card { overflow-y: auto }`). Les petites tuiles
+// gardent leur hauteur naturelle (plus basses).
+const WIDGET_SIZE_HEIGHT = { medium: 320, large: 320, full: 320 };
 
 // Le LAYOUT est FIXE : la taille d'un widget découle de sa POSITION dans la liste
 // visible, pas d'un réglage par widget. L'utilisateur ne fait que glisser-déposer
@@ -1000,7 +1002,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                 onLongPress={enterEditMode}
                 outerStyle={
                   bentoEnabled
-                    ? { gridColumn: `span ${WIDGET_SIZE_SPAN[size]}`, minHeight: WIDGET_SIZE_MINHEIGHT[size] }
+                    ? { gridColumn: `span ${WIDGET_SIZE_SPAN[size]}`, height: WIDGET_SIZE_HEIGHT[size] }
                     : undefined
                 }
               >

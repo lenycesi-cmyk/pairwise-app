@@ -422,10 +422,13 @@
   row-gap: 24px;
 }
 
-/* Les cartes s'étirent à la hauteur de leur rangée. La chaîne d'enveloppes
-   (cellule de grille → wrapper → wrapper opacité) est mise à 100% en inline
-   dans DashboardScreen ; ici on termine la chaîne sur la carte elle-même. */
+/* Les cartes s'étirent à la hauteur (fixe) de leur cellule. La chaîne
+   d'enveloppes (cellule de grille → wrapper → wrapper opacité) est mise à 100%
+   en inline dans DashboardScreen ; ici on termine la chaîne sur la carte. Le
+   contenu qui dépasse défile en interne (overflow-y) plutôt que d'agrandir la
+   rangée — !important car WidgetCard pose `overflow: hidden` en inline. */
 .bento-grid .pw-card {
   height: 100%;
+  overflow-y: auto !important;
 }
 
