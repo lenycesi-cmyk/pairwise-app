@@ -3,29 +3,26 @@ import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import { useAuth } from "../context/AuthContext";
 
-// `size` (petit/moyen/grand) ne sert qu'à la grille bento desktop : petit = tuile
-// stat au tiers, moyen ~40%, grand ~60% (cf. WIDGET_SIZE_SPAN dans
-// DashboardScreen). Ignoré sur mobile (empilement pleine largeur). Rétrocompatible :
-// les prefs enregistrées sans `size` retombent sur DEFAULT_WIDGET_SIZE.
-// L'ordre par défaut reproduit la maquette : 3 petits en haut, puis moyen+grand,
-// puis grand+moyen.
+// Le layout bento desktop est FIXE : la taille d'un widget découle de sa POSITION
+// parmi les widgets visibles (cf. slotSize dans DashboardScreen), pas d'un réglage.
+// L'ordre par défaut reproduit donc la maquette : 3 petits en haut, puis
+// moyen+grand, puis grand+moyen. Sur mobile, l'ordre n'affecte que l'empilement.
 export const DEFAULT_WIDGETS = [
-  { id: "net_balance", visible: true, size: "small" },
-  { id: "health_score", visible: true, size: "small" },
-  // Visible par défaut pour compléter la rangée de 3 tuiles stat en haut de la
-  // grille bento desktop (sur mobile, l'ordre importe peu — simple empilement).
-  { id: "available_savings", visible: true, size: "small" },
-  { id: "budget_tracking", visible: true, size: "medium" },
+  { id: "net_balance", visible: true },
+  { id: "health_score", visible: true },
+  // Visible par défaut pour compléter la rangée de 3 tuiles stat en haut.
+  { id: "available_savings", visible: true },
+  { id: "budget_tracking", visible: true },
   // Desktop-only — DashboardScreen filters these out entirely on mobile
   // regardless of this "visible" flag, see DESKTOP_ONLY_WIDGETS.
-  { id: "reports_trend", visible: true, size: "large" },
-  { id: "transaction_history", visible: true, size: "large" },
-  { id: "member_breakdown", visible: true, size: "medium" },
-  { id: "spending_by_category", visible: true, size: "medium" },
-  { id: "wealth_allocation", visible: true, size: "medium" },
-  { id: "net_worth", visible: false, size: "small" },
-  { id: "debt_tracker", visible: false, size: "small" },
-  { id: "recurring", visible: false, size: "medium" },
+  { id: "reports_trend", visible: true },
+  { id: "transaction_history", visible: true },
+  { id: "member_breakdown", visible: true },
+  { id: "spending_by_category", visible: true },
+  { id: "wealth_allocation", visible: true },
+  { id: "net_worth", visible: false },
+  { id: "debt_tracker", visible: false },
+  { id: "recurring", visible: false },
 ];
 
 // Ordre + visibilité par défaut des cartes de l'onglet Rapports (toutes
