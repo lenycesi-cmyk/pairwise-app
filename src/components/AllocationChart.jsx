@@ -13,7 +13,7 @@ const COLOR_HEX = {
   red: "#E24B4A",
 };
 
-export default function AllocationChart({ totalsByType, totalAssets }) {
+export default function AllocationChart({ totalsByType, totalAssets, fill = false }) {
   const { language } = useFinance();
   const data = ASSET_TYPES.filter((t) => !t.isLiability && (totalsByType[t.id] || 0) > 0).map(
     (t) => ({
@@ -44,16 +44,19 @@ export default function AllocationChart({ totalsByType, totalAssets }) {
 
   if (data.length === 0) return null;
 
+  // En mode `fill` (box bento à hauteur fixe), on centre verticalement et on
+  // agrandit le donut pour occuper l'espace disponible.
+  const donut = fill ? 150 : 110;
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-      <div style={{ width: 110, height: 110, flexShrink: 0 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 16, height: fill ? "100%" : undefined }}>
+      <div style={{ width: donut, height: donut, flexShrink: 0 }}>
         <ResponsiveContainer>
           <PieChart>
             <Pie
               data={data}
               dataKey="value"
-              innerRadius={32}
-              outerRadius={52}
+              innerRadius={fill ? 44 : 32}
+              outerRadius={fill ? 72 : 52}
               paddingAngle={2}
               stroke="none"
             >
