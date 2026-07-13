@@ -17,6 +17,7 @@ import OnboardingFlowPreCouple from "./screens/OnboardingFlowPreCouple";
 import OnboardingFlowPostCouple from "./screens/OnboardingFlowPostCouple";
 import DashboardScreen from "./screens/DashboardScreen";
 import BottomNav from "./components/BottomNav";
+import HeaderMenuButton from "./components/HeaderMenuButton";
 
 const TransactionsScreen = lazy(() => import("./screens/TransactionsScreen"));
 const SettingsScreen = lazy(() => import("./screens/SettingsScreen"));
@@ -83,6 +84,18 @@ function TranslatedTitle({ k }) {
   return t(k);
 }
 
+// FAB « Ajouter » flottant (mobile). Rendu sous FinanceProvider pour accéder à
+// la traduction ; masqué en CSS sur desktop (le rail latéral porte l'ajout).
+function AddFab({ onClick }) {
+  const t = useTranslation();
+  return (
+    <button className="nav-fab" onClick={onClick} aria-label={t("nav_add")}>
+      <i className="ti ti-plus" aria-hidden="true" />
+      <span>{t("nav_add")}</span>
+    </button>
+  );
+}
+
 function ModalWrapper({ onClose, title, children }) {
   return (
     <div className="app-modal">
@@ -115,9 +128,38 @@ function ModalWrapper({ onClose, title, children }) {
   );
 }
 
+// Écran neutre pour un onglet dont le contenu n'est pas encore construit
+// (Flux, Objectifs). Rend le même sticky header que les vrais écrans — avec le
+// bouton ☰ — pour qu'on puisse toujours rouvrir le menu (il n'y a plus de barre
+// du bas). Volontairement sobre : juste le titre, pas de « bientôt ».
+function PlaceholderScreen({ titleKey, icon, onOpenMenu }) {
+  const t = useTranslation();
+  const title = t(titleKey);
+  return (
+    <div style={{ minHeight: "100dvh", paddingBottom: "6rem" }}>
+      <div
+        style={{
+          position: "sticky", top: 0, zIndex: 10, background: "var(--bg)",
+          display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center",
+          gap: 8, padding: "1rem 1.25rem",
+        }}
+      >
+        <div style={{ justifySelf: "start" }}><HeaderMenuButton onClick={onOpenMenu} /></div>
+        <h1 style={{ fontSize: 18, margin: 0, whiteSpace: "nowrap" }}>{title}</h1>
+        <div />
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, padding: "22vh 2rem 0", color: "var(--ink-3)", textAlign: "center" }}>
+        <i className={`ti ${icon}`} style={{ fontSize: 42, opacity: 0.5 }} aria-hidden="true" />
+        <p style={{ fontSize: 15, fontWeight: 600, color: "var(--ink-2)", margin: 0 }}>{title}</p>
+      </div>
+    </div>
+  );
+}
+
 function AppContent() {
   const { user, coupleId, onboardingComplete, loading } = useAuth();
   const [tab, setTab] = useState("dashboard");
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [editingTx, setEditingTx] = useState(null);
   const [editReturnTo, setEditReturnTo] = useState(null);
@@ -163,13 +205,14 @@ function AppContent() {
   useBackGuard(showTags, () => setShowTags(false));
   useBackGuard(showTheme, () => setShowTheme(false));
   useBackGuard(showLanguage, () => setShowLanguage(false));
+  useBackGuard(drawerOpen, () => setDrawerOpen(false));
 
   // Swipe horizontal entre onglets (mobile). Coupé quand un overlay/modale est
   // ouvert (on met à jour le ref à chaque rendu sans réattacher les écouteurs).
   const anyOverlay =
     showAdd || showAddAsset || showBreakdown || showCalculator || showDebt ||
     showTransactions || showSettings || showRecurring || showCategories ||
-    showTags || showTheme || showLanguage || showLogin;
+    showTags || showTheme || showLanguage || showLogin || drawerOpen;
   const swipeEnabledRef = useRef(true);
   swipeEnabledRef.current = !anyOverlay;
   useTabSwipe({ order: TAB_SWIPE_ORDER, active: tab, onChange: setTab, enabledRef: swipeEnabledRef });
@@ -266,10 +309,16 @@ function AppContent() {
           onSharedMonthChange={setSharedMonth}
           addButtonRef={addButtonRef}
           settingsButtonRef={settingsButtonRef}
-          onOpenSettings={() => setShowSettings(true)}
+          onOpenMenu={() => setDrawerOpen(true)}
           onOpenRecurring={openRecurring}
           onOpenBudget={() => setTab("budget")}
         />
+      )}
+      {tab === "flux" && (
+        <PlaceholderScreen titleKey="nav_flux" icon="ti-arrows-exchange" onOpenMenu={() => setDrawerOpen(true)} />
+      )}
+      {tab === "goals" && (
+        <PlaceholderScreen titleKey="nav_goals" icon="ti-target" onOpenMenu={() => setDrawerOpen(true)} />
       )}
       {tab === "reports" && (
         <Suspense fallback={null}>
@@ -277,21 +326,25 @@ function AppContent() {
             onOpenBreakdown={() => setShowBreakdown(true)}
             sharedMonth={sharedMonth}
             onSharedMonthChange={setSharedMonth}
-            onOpenSettings={() => setShowSettings(true)}
+            onOpenMenu={() => setDrawerOpen(true)}
           />
         </Suspense>
       )}
       {tab === "wealth" && (
         <Suspense fallback={null}>
-          <WealthScreen onOpenCalculator={() => setShowCalculator(true)} addButtonRef={addButtonRef} onOpenSettings={() => setShowSettings(true)} />
+          <WealthScreen onOpenCalculator={() => setShowCalculator(true)} addButtonRef={addButtonRef} onOpenMenu={() => setDrawerOpen(true)} />
         </Suspense>
       )}
       {tab === "budget" && (
         <Suspense fallback={null}>
-          <BudgetScreen openSignal={budgetAddSignal} onOpenSettings={() => setShowSettings(true)} />
+          <BudgetScreen openSignal={budgetAddSignal} onOpenMenu={() => setDrawerOpen(true)} />
         </Suspense>
       )}
       </div>
+
+      {/* FAB « Ajouter » flottant (mobile) — masqué en CSS sur desktop, où le
+          bouton d'ajout vit dans le rail latéral. */}
+      <AddFab onClick={() => handleCentralAdd(tab)} />
 
       <BottomNav
         active={tab}
@@ -300,6 +353,8 @@ function AppContent() {
         addButtonRef={addButtonRef}
         onSettingsClick={() => setShowSettings(true)}
         settingsOpen={showSettings}
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
       />
 
       <Suspense fallback={null}>

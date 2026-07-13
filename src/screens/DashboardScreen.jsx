@@ -136,7 +136,7 @@ function SortableWidget({ id, editMode, onLongPress, outerStyle, children }) {
 }
 
 // ── Main component ───────────────────────────────────────────────────────────
-export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTransactions, onEditTransaction, sharedMonth, onSharedMonthChange, addButtonRef, settingsButtonRef, onOpenSettings, onOpenRecurring, onOpenBudget }) {
+export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTransactions, onEditTransaction, sharedMonth, onSharedMonthChange, addButtonRef, settingsButtonRef, onOpenMenu, onOpenRecurring, onOpenBudget }) {
   const t = useTranslation();
   const {
     transactions, categories, members, assets, recurringTx, coupleName, debtSettlements,
@@ -922,11 +922,12 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
             <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", gap: 8, marginBottom: 10 }}>
               <button
                 ref={settingsButtonRef}
-                onClick={onOpenSettings}
-                aria-label={t("nav_settings")}
+                onClick={onOpenMenu}
+                aria-label={t("nav_menu")}
+                className="nav-menu-btn"
                 style={navBtnStyle}
               >
-                <i className="ti ti-settings" style={{ fontSize: 15 }} aria-hidden="true" />
+                <i className="ti ti-menu-2" style={{ fontSize: 16 }} aria-hidden="true" />
               </button>
               {monthNav}
               {actions}

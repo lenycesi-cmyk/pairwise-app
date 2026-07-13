@@ -55,6 +55,11 @@ export const TRANSLATIONS = {
     nav_settings: "Réglages",
     nav_reports: "Rapports",
     nav_budget: "Budget",
+    nav_flux: "Flux",
+    nav_goals: "Objectifs",
+    nav_menu: "Menu",
+    nav_menu_close: "Fermer le menu",
+    nav_soon: "Bientôt disponible",
 
     // Dashboard
     dashboard_net_balance: "Solde net",
@@ -606,6 +611,11 @@ export const TRANSLATIONS = {
     nav_settings: "Settings",
     nav_reports: "Reports",
     nav_budget: "Budget",
+    nav_flux: "Flow",
+    nav_goals: "Goals",
+    nav_menu: "Menu",
+    nav_menu_close: "Close menu",
+    nav_soon: "Coming soon",
 
     // Dashboard
     dashboard_net_balance: "Net balance",

@@ -19,7 +19,7 @@ import CurrencyPicker from "../components/CurrencyPicker";
 import { useTranslation } from "../hooks/useTranslation";
 import SpotlightHint from "../components/SpotlightHint";
 import GreetingHeader from "../components/GreetingHeader";
-import HeaderSettingsButton from "../components/HeaderSettingsButton";
+import HeaderMenuButton from "../components/HeaderMenuButton";
 import { getMemberKey } from "../utils/members";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 import { tagColor } from "../utils/tags";
@@ -202,7 +202,7 @@ function shiftAnchor(periodType, anchor, delta) {
   return d;
 }
 
-export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMonthChange, onOpenSettings }) {
+export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMonthChange, onOpenMenu }) {
   const t = useTranslation();
   const { transactions, categories, members, defaultCurrency, dashboardDisplayCurrency, updateDashboardDisplayCurrency, netWorthHistory, language } = useFinance();
   const locale = language === "en" ? "en-US" : "fr-FR";
@@ -766,7 +766,7 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
               {/* Ligne 1 : [Réglages | nav période centrée | devise/personnaliser],
                   colonnes latérales égales (1fr) pour centrer la période, comme l'accueil. */}
               <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                <div style={{ justifySelf: "start" }}><HeaderSettingsButton onClick={onOpenSettings} /></div>
+                <div style={{ justifySelf: "start" }}><HeaderMenuButton onClick={onOpenMenu} /></div>
                 {editMode ? <span /> : periodNav}
                 <div style={{ justifySelf: "end" }}>{actions}</div>
               </div>
