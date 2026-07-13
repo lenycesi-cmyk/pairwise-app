@@ -29,6 +29,7 @@ const TagsScreen = lazy(() => import("./screens/TagsScreen"));
 const AddTransactionScreen = lazy(() => import("./screens/AddTransactionScreen"));
 const RecurringScreen = lazy(() => import("./screens/RecurringScreen"));
 const WealthScreen = lazy(() => import("./screens/WealthScreen"));
+const FluxScreen = lazy(() => import("./screens/FluxScreen"));
 const AddAssetScreen = lazy(() => import("./screens/AddAssetScreen"));
 const MemberBreakdownScreen = lazy(() => import("./screens/MemberBreakdownScreen"));
 const InvestmentCalculatorScreen = lazy(() => import("./screens/InvestmentCalculatorScreen"));
@@ -315,7 +316,14 @@ function AppContent() {
         />
       )}
       {tab === "flux" && (
-        <PlaceholderScreen titleKey="nav_flux" icon="ti-arrows-exchange" onOpenMenu={() => setDrawerOpen(true)} />
+        <Suspense fallback={null}>
+          <FluxScreen
+            onOpenMenu={() => setDrawerOpen(true)}
+            onOpenTransactions={() => setShowTransactions(true)}
+            onOpenRecurring={openRecurring}
+            onEditTransaction={openEdit}
+          />
+        </Suspense>
       )}
       {tab === "goals" && (
         <PlaceholderScreen titleKey="nav_goals" icon="ti-target" onOpenMenu={() => setDrawerOpen(true)} />
