@@ -19,6 +19,7 @@ import { useExchangeRates } from "../hooks/useExchangeRates";
 import { useDebtCalculation } from "../hooks/useDebtCalculation";
 import { useBudgetProgress } from "../hooks/useBudgetProgress";
 import BudgetCard from "../components/BudgetCard";
+import InsightStrip from "../components/InsightStrip";
 import { useDashboardPrefs } from "../hooks/useDashboardPrefs";
 import { useNetWorth } from "../hooks/useNetWorth";
 import CategoryRow from "../components/CategoryRow";
@@ -965,6 +966,14 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
         </div>
       )}
       </div>
+
+      {/* Bande « Pour toi » : insights dérivés des données du couple, sous
+          l'en-tête et au-dessus des widgets. Masquée en mode édition. */}
+      {!editMode && (
+        <div style={{ padding: "0 1.25rem" }}>
+          <InsightStrip displayCurrency={displayCurrency} />
+        </div>
+      )}
 
       {/* Widgets — sortable in edit mode. « Bento » (grille masonry à tuiles de
           largeurs variables) sur desktop hors édition ; grille 2 colonnes sur
