@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useFinance } from "../context/FinanceContext";
 import { useTranslation } from "../hooks/useTranslation";
 import { useExchangeRates } from "../hooks/useExchangeRates";
@@ -19,8 +19,9 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
   const { transactions, categories, recurringTx, defaultCurrency, dashboardDisplayCurrency, language } = useFinance();
   const displayCurrency = dashboardDisplayCurrency || defaultCurrency;
   const { convert } = useExchangeRates(displayCurrency);
-  const { monthlyTotal: fixedMonthly, count: fixedCount } = useFixedExpenses(displayCurrency);
+  const { monthlyTotal: fixedMonthly, count: fixedCount, items: fixedItems } = useFixedExpenses(displayCurrency);
   const { suggestion, accept, dismiss } = useSubscriptionSuggestion();
+  const [fixedDetailOpen, setFixedDetailOpen] = useState(false);
 
   const locale = language === "en" ? "en-US" : "fr-FR";
   const symbol = currencySymbol(displayCurrency);
@@ -147,6 +148,38 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
             <p style={{ fontSize: 11.5, color: "var(--ink-3)", marginTop: 8 }}>
               {t("flux_fixed_share").replace("{pct}", Math.round((fixedMonthly / monthFlow.income) * 100))}
             </p>
+          )}
+          {fixedCount > 0 && (
+            <>
+              <button
+                onClick={() => setFixedDetailOpen((v) => !v)}
+                style={{ marginTop: 12, background: "none", border: "none", color: "var(--sky)", fontSize: 12, display: "flex", alignItems: "center", gap: 4, padding: 0 }}
+              >
+                {t("flux_fixed_detail")}
+                <i className={`ti ti-chevron-${fixedDetailOpen ? "up" : "down"}`} style={{ fontSize: 13 }} aria-hidden="true" />
+              </button>
+              {fixedDetailOpen && (
+                <div style={{ marginTop: 10, borderTop: "0.5px solid var(--rule)" }}>
+                  {fixedItems.map(({ rule, monthly }, i) => {
+                    const cat = categories.find((c) => c.id === rule.categoryId);
+                    return (
+                      <div
+                        key={rule.id}
+                        onClick={() => onOpenRecurring?.(rule.id)}
+                        style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 0", borderBottom: i === fixedItems.length - 1 ? "none" : "0.5px solid var(--rule)", cursor: "pointer" }}
+                      >
+                        <i className={`ti ${cat?.icon || "ti-refresh"}`} style={{ fontSize: 15, color: "var(--ink-3)" }} aria-hidden="true" />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontSize: 12.5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{rule.description || cat?.name}</p>
+                          <p style={{ fontSize: 10.5, color: "var(--ink-3)" }}>{t(`flux_freq_${rule.frequency}`)}</p>
+                        </div>
+                        <p className="pw-num" style={{ fontSize: 12.5, fontWeight: 600 }}>{fmt(monthly)} {symbol}<span style={{ fontSize: 10, color: "var(--ink-3)", fontWeight: 400 }}>/{t("flux_freq_per_month")}</span></p>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </>
           )}
         </WidgetCard>
 

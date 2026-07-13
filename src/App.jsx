@@ -17,7 +17,6 @@ import OnboardingFlowPreCouple from "./screens/OnboardingFlowPreCouple";
 import OnboardingFlowPostCouple from "./screens/OnboardingFlowPostCouple";
 import DashboardScreen from "./screens/DashboardScreen";
 import BottomNav from "./components/BottomNav";
-import HeaderMenuButton from "./components/HeaderMenuButton";
 
 const TransactionsScreen = lazy(() => import("./screens/TransactionsScreen"));
 const SettingsScreen = lazy(() => import("./screens/SettingsScreen"));
@@ -30,6 +29,7 @@ const AddTransactionScreen = lazy(() => import("./screens/AddTransactionScreen")
 const RecurringScreen = lazy(() => import("./screens/RecurringScreen"));
 const WealthScreen = lazy(() => import("./screens/WealthScreen"));
 const FluxScreen = lazy(() => import("./screens/FluxScreen"));
+const GoalsScreen = lazy(() => import("./screens/GoalsScreen"));
 const AddAssetScreen = lazy(() => import("./screens/AddAssetScreen"));
 const MemberBreakdownScreen = lazy(() => import("./screens/MemberBreakdownScreen"));
 const InvestmentCalculatorScreen = lazy(() => import("./screens/InvestmentCalculatorScreen"));
@@ -129,34 +129,6 @@ function ModalWrapper({ onClose, title, children }) {
   );
 }
 
-// Écran neutre pour un onglet dont le contenu n'est pas encore construit
-// (Flux, Objectifs). Rend le même sticky header que les vrais écrans — avec le
-// bouton ☰ — pour qu'on puisse toujours rouvrir le menu (il n'y a plus de barre
-// du bas). Volontairement sobre : juste le titre, pas de « bientôt ».
-function PlaceholderScreen({ titleKey, icon, onOpenMenu }) {
-  const t = useTranslation();
-  const title = t(titleKey);
-  return (
-    <div style={{ minHeight: "100dvh", paddingBottom: "6rem" }}>
-      <div
-        style={{
-          position: "sticky", top: 0, zIndex: 10, background: "var(--bg)",
-          display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center",
-          gap: 8, padding: "1rem 1.25rem",
-        }}
-      >
-        <div style={{ justifySelf: "start" }}><HeaderMenuButton onClick={onOpenMenu} /></div>
-        <h1 style={{ fontSize: 18, margin: 0, whiteSpace: "nowrap" }}>{title}</h1>
-        <div />
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, padding: "22vh 2rem 0", color: "var(--ink-3)", textAlign: "center" }}>
-        <i className={`ti ${icon}`} style={{ fontSize: 42, opacity: 0.5 }} aria-hidden="true" />
-        <p style={{ fontSize: 15, fontWeight: 600, color: "var(--ink-2)", margin: 0 }}>{title}</p>
-      </div>
-    </div>
-  );
-}
-
 function AppContent() {
   const { user, coupleId, onboardingComplete, loading } = useAuth();
   const [tab, setTab] = useState("dashboard");
@@ -186,6 +158,7 @@ function AppContent() {
   const now = new Date();
   const [sharedMonth, setSharedMonth] = useState({ month: now.getMonth(), year: now.getFullYear() });
   const [budgetAddSignal, setBudgetAddSignal] = useState(0);
+  const [goalsAddSignal, setGoalsAddSignal] = useState(0);
   const addButtonRef = useRef(null);
   const settingsButtonRef = useRef(null);
 
@@ -275,6 +248,8 @@ function AppContent() {
       setShowAddAsset(true);
     } else if (currentTab === "budget") {
       setBudgetAddSignal((s) => s + 1);
+    } else if (currentTab === "goals") {
+      setGoalsAddSignal((s) => s + 1);
     } else {
       setShowAdd(true);
     }
@@ -326,7 +301,9 @@ function AppContent() {
         </Suspense>
       )}
       {tab === "goals" && (
-        <PlaceholderScreen titleKey="nav_goals" icon="ti-target" onOpenMenu={() => setDrawerOpen(true)} />
+        <Suspense fallback={null}>
+          <GoalsScreen onOpenMenu={() => setDrawerOpen(true)} openSignal={goalsAddSignal} />
+        </Suspense>
       )}
       {tab === "reports" && (
         <Suspense fallback={null}>
