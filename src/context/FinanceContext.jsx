@@ -43,6 +43,7 @@ export function FinanceProvider({ children }) {
   const [lastUsedCurrency, setLastUsedCurrency] = useState("EUR");
   const [recurringTx, setRecurringTx] = useState([]);
   const [budgets, setBudgets] = useState([]);
+  const [goals, setGoals] = useState([]);
   const [budgetHistory, setBudgetHistory] = useState({});
   const [incomeAccountLinks, setIncomeAccountLinksState] = useState({});
   const [assets, setAssets] = useState([]);
@@ -114,6 +115,7 @@ export function FinanceProvider({ children }) {
         // gardent chacun leur dernière devise. Chargé dans l'effet dédié.
         if (data.recurringTx) setRecurringTx(data.recurringTx);
         if (data.budgets) setBudgets(data.budgets);
+        if (data.goals) setGoals(data.goals);
         if (data.budgetHistory) setBudgetHistory(data.budgetHistory);
         if (data.incomeAccountLinks) setIncomeAccountLinksState(data.incomeAccountLinks);
         if (data.assets) setAssets(data.assets);
@@ -434,6 +436,33 @@ export function FinanceProvider({ children }) {
     await setDoc(doc(db, "couples", coupleId), { budgets: updated }, { merge: true });
   }
 
+  // Objectifs d'épargne / patrimoine — même pattern read-modify-merge que les
+  // budgets. La progression est calculée à la lecture (assets liés) par
+  // useGoalProgress, jamais stockée ici.
+  async function addGoal(goal) {
+    if (!coupleId) return;
+    const newGoal = {
+      ...goal,
+      id: `goal_${Date.now()}`,
+      ownership: goal.ownership || "shared",
+      createdAt: Date.now(),
+    };
+    const updated = [...goals, newGoal];
+    await setDoc(doc(db, "couples", coupleId), { goals: updated }, { merge: true });
+  }
+
+  async function updateGoal(id, updates) {
+    if (!coupleId) return;
+    const updated = goals.map((g) => (g.id === id ? { ...g, ...updates } : g));
+    await setDoc(doc(db, "couples", coupleId), { goals: updated }, { merge: true });
+  }
+
+  async function removeGoal(id) {
+    if (!coupleId) return;
+    const updated = goals.filter((g) => g.id !== id);
+    await setDoc(doc(db, "couples", coupleId), { goals: updated }, { merge: true });
+  }
+
   // Réordonne l'ensemble des budgets (drag & drop dans l'onglet Budget). L'ordre
   // du tableau pilote aussi les 3 budgets affichés dans le widget d'Accueil.
   async function reorderBudgets(orderedBudgets) {
@@ -631,6 +660,10 @@ export function FinanceProvider({ children }) {
     reorderBudgets,
     budgetHistory,
     saveBudgetSnapshots,
+    goals,
+    addGoal,
+    updateGoal,
+    removeGoal,
     incomeAccountLinks,
     setIncomeAccountLinks,
     assets,
