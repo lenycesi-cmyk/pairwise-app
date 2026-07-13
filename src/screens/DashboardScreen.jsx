@@ -18,16 +18,16 @@ import { useFinance } from "../context/FinanceContext";
 import { useExchangeRates } from "../hooks/useExchangeRates";
 import { useDebtCalculation } from "../hooks/useDebtCalculation";
 import { useBudgetProgress } from "../hooks/useBudgetProgress";
+import BudgetCard from "../components/BudgetCard";
 import { useDashboardPrefs } from "../hooks/useDashboardPrefs";
 import { useNetWorth } from "../hooks/useNetWorth";
 import CategoryRow from "../components/CategoryRow";
 import WidgetCard from "../components/WidgetCard";
 import Avatar from "../components/Avatar";
-import { buildMemberColorMap, AVATAR_COLOR_PALETTE } from "../utils/memberColors";
+import { buildMemberColorMap } from "../utils/memberColors";
 import { ALL_CURRENCIES } from "../data/categories";
 import CurrencyPicker from "../components/CurrencyPicker";
 import { useTranslation } from "../hooks/useTranslation";
-import { useCategoryName } from "../hooks/useCategoryName";
 import SpotlightHint from "../components/SpotlightHint";
 import GreetingHeader from "../components/GreetingHeader";
 import { getMemberKey } from "../utils/members";
@@ -137,10 +137,10 @@ function SortableWidget({ id, editMode, onLongPress, outerStyle, children }) {
 // ── Main component ───────────────────────────────────────────────────────────
 export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTransactions, onEditTransaction, sharedMonth, onSharedMonthChange, addButtonRef, settingsButtonRef, onOpenSettings, onOpenRecurring, onOpenBudget }) {
   const t = useTranslation();
-  const { catName } = useCategoryName();
   const {
     transactions, categories, members, assets, recurringTx, coupleName, debtSettlements,
     defaultCurrency, dashboardDisplayCurrency, updateDashboardDisplayCurrency, loading, language, financeMode,
+    updateBudget,
   } = useFinance();
   // Noms de mois localisés selon la langue des réglages (l'ancien tableau
   // MONTHS était figé en français).
@@ -155,7 +155,6 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
   const [editMode, setEditMode] = useState(false);
   const customizeButtonRef = useRef(null);
   const currencyButtonRef = useRef(null);
-  const [detailBudgetId, setDetailBudgetId] = useState(null);
   const [trendPeriod, setTrendPeriod] = useState(6);
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const summaryLabel = coupleName
@@ -445,74 +444,17 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
             <div>
               {topBudgets.length === 0 ? (
                 <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", padding: "0.75rem 0" }}>{t("widget_budget_empty")}</p>
-              ) : topBudgets.map(({ budget, pct, spent, scopedTx, amountInBase, effectiveAmount, projected, projectedOver }, i) => {
-                const over = pct >= 100;
-                const warn = pct >= (budget.alertThreshold ?? 80);
-                const barColor = over ? "var(--red)" : warn ? "var(--amber)" : "var(--sky)";
-                const label = budget.name || (budget.scope === "global"
-                  ? t("budget_scope_global")
-                  : (budget.categoryIds || []).map((cid) => { const c = categories.find((c) => c.id === cid); return c ? catName(c) : null; }).filter(Boolean).join(", "));
-                // « Pour qui » : nom du membre pour un budget individuel, sinon le
-                // nom du couple (ex. ❤️ Team T&T ❤️) — toujours affiché, jamais vide.
-                const memberLabel = !budget.memberUid || budget.memberUid === "couple"
-                  ? (coupleName || t("widget_couple_summary_default"))
-                  : members.find((m) => getMemberKey(m) === budget.memberUid)?.name;
-                const isOpen = detailBudgetId === budget.id;
-                const dotColor = AVATAR_COLOR_PALETTE.find((c) => c.key === budget.color)?.text || "var(--amber)";
+              ) : topBudgets.map((p, i) => {
                 const isLast = i === topBudgets.length - 1;
                 return (
-                  <div key={budget.id} style={{ paddingBottom: isLast ? 0 : 14, marginBottom: isLast ? 0 : 14, borderBottom: isLast ? "none" : "0.5px solid var(--rule)" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, marginBottom: 3 }}>
-                      <span style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
-                        <span style={{ width: 10, height: 10, borderRadius: "50%", background: dotColor, flexShrink: 0 }} />
-                        <span style={{ fontSize: 13.5, fontWeight: 700, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                          {label}
-                        </span>
-                      </span>
-                      <span style={{ fontSize: 17, fontWeight: 700, color: barColor, flexShrink: 0 }}>{Math.round(pct)}%</span>
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, marginBottom: 5 }}>
-                      <span style={{ fontSize: 11.5, color: "var(--sky)", minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{memberLabel}</span>
-                      <span className="pw-num" style={{ fontSize: 13, fontWeight: 600, flexShrink: 0 }}>
-                        {formatAmount(spent)} <span style={{ color: "var(--ink-3)", fontWeight: 400 }}>/ {formatAmount(effectiveAmount)} {currencySymbol}</span>
-                      </span>
-                    </div>
-                    <div style={{ height: 7, borderRadius: 4, background: "var(--rule)", overflow: "hidden" }}>
-                      <div style={{ height: "100%", width: `${Math.min(pct, 100)}%`, background: barColor, borderRadius: 4 }} />
-                    </div>
-                    {projected !== null && pct < 100 && (
-                      <p style={{ fontSize: 10.5, color: projectedOver ? "var(--amber)" : "var(--ink-3)", marginTop: 4 }}>
-                        {t("budget_projection")
-                          .replace("{amount}", `${Math.round(projected).toLocaleString("fr-FR")} ${currencySymbol}`)}
-                        {projectedOver &&
-                          ` (${t("budget_projection_over").replace("{over}", `${Math.round(projected - amountInBase).toLocaleString("fr-FR")} ${currencySymbol}`)})`}
-                      </p>
-                    )}
-                    {!editMode && (
-                      <button
-                        onClick={() => setDetailBudgetId(isOpen ? null : budget.id)}
-                        style={{ background: "none", border: "none", color: "var(--sky)", fontSize: 11, padding: "4px 0 0", display: "flex", alignItems: "center", gap: 3 }}
-                      >
-                        {isOpen ? t("dashboard_hide_details") : t("dashboard_show_details")}
-                        <i className={`ti ${isOpen ? "ti-chevron-up" : "ti-chevron-down"}`} style={{ fontSize: 11 }} aria-hidden="true" />
-                      </button>
-                    )}
-                    {isOpen && (
-                      <div style={{ marginTop: 6, borderTop: "0.5px solid var(--rule)", paddingTop: 6 }}>
-                        {scopedTx.length === 0 ? (
-                          <p style={{ fontSize: 11, color: "var(--ink-3)", textAlign: "center", padding: "6px 0" }}>{t("dashboard_no_expenses")}</p>
-                        ) : (
-                          [...scopedTx].sort((a, b) => new Date(b.date) - new Date(a.date)).map((tx) => (
-                            <div key={tx.id} style={{ display: "flex", justifyContent: "space-between", gap: 8, padding: "4px 0" }}>
-                              <span style={{ fontSize: 11, color: "var(--ink-2)", flex: 1, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                                {tx.description}
-                              </span>
-                              <span style={{ fontSize: 11, fontWeight: 500 }}>{Math.round(tx.amount).toLocaleString("fr-FR")} {tx.currency}</span>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    )}
+                  <div key={p.budget.id} style={{ paddingBottom: isLast ? 0 : 14, marginBottom: isLast ? 0 : 14, borderBottom: isLast ? "none" : "0.5px solid var(--rule)" }}>
+                    <BudgetCard
+                      p={p}
+                      displayCurrency={displayCurrency}
+                      variant="embedded"
+                      onEdit={editMode ? undefined : () => onOpenBudget()}
+                      onToggleActive={(b) => updateBudget(b.id, { active: b.active === false ? true : false })}
+                    />
                   </div>
                 );
               })}
