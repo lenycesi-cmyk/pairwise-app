@@ -166,6 +166,11 @@ function AppContent() {
   // l'accueil depuis un autre onglet) au lieu de quitter l'app. Appelés
   // inconditionnellement, avant tout return anticipé, pour garder un ordre de
   // hooks stable. closeAdd/closeRecurring sont hoistés (déclarations function).
+  // Sentinelle persistante (racine) : empêche le bouton "retour" du téléphone de
+  // FERMER l'app depuis l'accueil — il ré-empile une entrée d'historique au lieu
+  // de quitter. Doit être le PREMIER useBackGuard (fond de pile) pour que les
+  // overlays/onglets, empilés au-dessus, soient traités avant.
+  useBackGuard(true, () => {}, { persistent: true });
   useBackGuard(tab !== "dashboard", () => setTab("dashboard"));
   useBackGuard(showAdd, () => closeAdd());
   useBackGuard(showAddAsset, () => setShowAddAsset(false));

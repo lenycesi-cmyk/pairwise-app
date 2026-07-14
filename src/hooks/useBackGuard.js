@@ -26,12 +26,20 @@ function handlePop() {
   }
   const top = stack[stack.length - 1];
   if (top) {
+    // Sentinelle persistante (écran racine) : on ré-empile une entrée pour que
+    // le "retour" ne quitte JAMAIS l'app depuis l'accueil, puis on notifie sans
+    // dépiler la sentinelle.
+    if (top.persistent) {
+      window.history.pushState({ pwGuard: true }, "");
+      top.onBack();
+      return;
+    }
     top.fromPop = true; // marque : fermé par le "retour", pas besoin de rééquilibrer
     top.onBack();
   }
 }
 
-export function useBackGuard(active, onBack) {
+export function useBackGuard(active, onBack, { persistent = false } = {}) {
   const onBackRef = useRef(onBack);
   useEffect(() => {
     onBackRef.current = onBack;
@@ -45,7 +53,7 @@ export function useBackGuard(active, onBack) {
       attached = true;
     }
 
-    const entry = { onBack: () => onBackRef.current(), fromPop: false };
+    const entry = { onBack: () => onBackRef.current(), fromPop: false, persistent };
     stack.push(entry);
     window.history.pushState({ pwGuard: true }, "");
 
@@ -61,5 +69,5 @@ export function useBackGuard(active, onBack) {
         window.history.back();
       }
     };
-  }, [active]);
+  }, [active, persistent]);
 }

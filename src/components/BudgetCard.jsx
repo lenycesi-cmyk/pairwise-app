@@ -143,7 +143,7 @@ export default function BudgetCard({
           </p>
           {members.length > 0 && (
             <span style={{ display: "inline-flex", alignItems: "center", gap: 4, marginTop: 2, fontSize: 11.5, color: "var(--ink-3)" }}>
-              <i className={`ti ${isCouple ? "ti-heart-filled" : "ti-user"}`} style={{ fontSize: 12, color: isCouple ? "var(--tang)" : "var(--ink-3)" }} aria-hidden="true" />
+              <i className={`ti ${isCouple ? "ti-heart" : "ti-user"}`} style={{ fontSize: 12, color: isCouple ? "var(--tang)" : "var(--ink-3)" }} aria-hidden="true" />
               {memberLabel}
             </span>
           )}

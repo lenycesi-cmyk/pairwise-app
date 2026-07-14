@@ -411,7 +411,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
         const heroInsight = insightFor(["savings", "balance", "emergency", "recurring"]);
         return (
           <WidgetCard
-            icon="ti-heart-filled"
+            icon="ti-heart"
             accent="coral"
             title={summaryLabel}
             style={{ background: "var(--hero-bg)", border: "0.5px solid var(--hero-border)" }}
@@ -448,25 +448,23 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
             icon="ti-building-bank"
             accent="mint"
             title={t("widget_available_savings_label")}
-            bodyStyle={{ display: "flex", flexDirection: "column" }}
           >
             {bankAccounts.length === 0 ? (
               <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", padding: "0.5rem 0" }}>{t("widget_no_bank_accounts")}</p>
             ) : (
               <>
-                <div style={{ flex: 1, minHeight: 0 }}>
-                  {/* Hero : le total en gros chiffre en tête, détail des comptes dessous. */}
-                  <p style={{ fontSize: 11.5, color: "var(--ink-3)", marginBottom: 2 }}>{t("dashboard_total")}</p>
-                  <p className="pw-num" style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 30, letterSpacing: "-0.01em", marginBottom: 14, color: "var(--good)" }}>
-                    {formatAmount(scopedTotal)} {currencySymbol}
-                  </p>
-                  {scopedAccounts.map((a, i) => (
-                    <BreakdownRow key={a.id} color={BANK_DOT_COLORS[i % BANK_DOT_COLORS.length]} label={a.name} value={`${formatAmount(convert(a.value, a.currency, displayCurrency))} ${currencySymbol}`} last={i === scopedAccounts.length - 1} />
-                  ))}
-                  {scopedAccounts.length === 0 && (
-                    <p style={{ fontSize: 12.5, color: "var(--ink-3)", textAlign: "center", padding: "0.5rem 0" }}>{t("widget_no_bank_accounts")}</p>
-                  )}
-                </div>
+                {/* Hero : le total en gros chiffre en tête, détail des comptes dessous. */}
+                <p style={{ fontSize: 11.5, color: "var(--ink-3)", marginBottom: 2 }}>{t("dashboard_total")}</p>
+                <p className="pw-num" style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 30, letterSpacing: "-0.01em", marginBottom: 14, color: "var(--good)" }}>
+                  {formatAmount(scopedTotal)} {currencySymbol}
+                </p>
+                {scopedAccounts.map((a, i) => (
+                  <BreakdownRow key={a.id} color={BANK_DOT_COLORS[i % BANK_DOT_COLORS.length]} label={a.name} value={`${formatAmount(convert(a.value, a.currency, displayCurrency))} ${currencySymbol}`} last={i === scopedAccounts.length - 1} />
+                ))}
+                {scopedAccounts.length === 0 && (
+                  <p style={{ fontSize: 12.5, color: "var(--ink-3)", textAlign: "center", padding: "0.5rem 0" }}>{t("widget_no_bank_accounts")}</p>
+                )}
+                {/* Filtres membre juste SOUS la dernière ligne de compte. */}
                 {!editMode && members.length > 1 && (
                   <ScopeFilter members={members} value={liquidScope} onChange={setLiquidScope} coupleLabel={t("health_scope_couple")} />
                 )}
@@ -482,9 +480,9 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
             icon="ti-target"
             accent="amber"
             title={t("dashboard_budget_progress")}
-            action={!editMode && budgetProgress.length > 0 && (
-              <button onClick={onOpenBudget} style={{ background: "none", border: "none", color: "var(--sky)", fontSize: 12, display: "flex", alignItems: "center", gap: 3, flexShrink: 0 }}>
-                {t("dashboard_see_all")} <i className="ti ti-chevron-right" style={{ fontSize: 12 }} aria-hidden="true" />
+            footer={!editMode && topBudgets.length > 0 && (
+              <button onClick={onOpenBudget} style={{ background: "none", border: "none", color: "var(--sky)", fontSize: 12.5, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 3 }}>
+                {t("dashboard_see_all")} <i className="ti ti-chevron-right" style={{ fontSize: 14 }} aria-hidden="true" />
               </button>
             )}
           >
@@ -589,8 +587,13 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
             icon="ti-chart-pie"
             accent="coral"
             title={t("dashboard_spending_by_category")}
-            action={Object.keys(categoryTotals).length > 0 && !editMode && (
-              <p style={{ fontSize: 11, color: "var(--ink-3)", flexShrink: 0 }}>{t("dashboard_tap_category")}</p>
+            footer={Object.keys(categoryTotals).length > 0 && (
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span style={{ fontSize: 12, color: "var(--ink-2)" }}>
+                  {t("dashboard_total")} · <b className="pw-num" style={{ fontWeight: 600, color: "var(--ink)" }}>{formatAmount(totals.expense)} {currencySymbol}</b>
+                </span>
+                {!editMode && <span style={{ fontSize: 11, color: "var(--ink-3)" }}>{t("dashboard_tap_category")}</span>}
+              </div>
             )}
           >
             {Object.keys(categoryTotals).length === 0 ? (
@@ -612,6 +615,11 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
             accent="sky"
             title={<>{t("dashboard_transactions")} <span style={{ color: "var(--ink-3)", fontWeight: 400 }}>· {monthTx.length}</span></>}
             flush
+            action={!editMode && recentTx.length > 0 && (
+              <button onClick={onOpenTransactions} style={{ background: "none", border: "none", color: "var(--sky)", fontSize: 12.5, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 3, flexShrink: 0 }}>
+                {t("dashboard_see_all")} <i className="ti ti-chevron-right" style={{ fontSize: 14 }} aria-hidden="true" />
+              </button>
+            )}
           >
             <div>
               {recentTx.length === 0 ? (
@@ -638,11 +646,6 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                 })
               )}
             </div>
-            {!editMode && recentTx.length > 0 && (
-              <button onClick={onOpenTransactions} style={{ margin: "12px 14px 2px", background: "none", border: "none", color: "var(--sky)", fontSize: 12.5, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 3 }}>
-                {t("dashboard_see_all")} <i className="ti ti-chevron-right" style={{ fontSize: 14 }} aria-hidden="true" />
-              </button>
-            )}
           </WidgetCard>
         );
 
