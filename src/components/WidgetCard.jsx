@@ -35,7 +35,11 @@ export default function WidgetCard({ icon, accent = "coral", title, action, flus
         </span>
         {action}
       </div>
-      <div style={{ padding: flush ? "10px 0 6px" : "12px 18px 16px", flex: 1, minHeight: 0, ...bodyStyle }}>{children}</div>
+      {/* En-tête figé (flexShrink:0 plus haut) + corps défilant : quand la carte
+          est plafonnée en hauteur (grille bento de l'Accueil), le trop-plein
+          défile ici sans pousser l'en-tête. Sur une carte à hauteur auto, il n'y
+          a jamais de débordement → aucun défilement. */}
+      <div style={{ padding: flush ? "10px 0 6px" : "12px 18px 16px", flex: 1, minHeight: 0, overflowY: "auto", ...bodyStyle }}>{children}</div>
     </div>
   );
 }
