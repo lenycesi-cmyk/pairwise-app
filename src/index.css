@@ -35,6 +35,11 @@
   --good: #4fa07c;
   --warn: #de9a34;
   --over: #d9553f;
+
+  /* Fond/bordure du héros « Solde » : couleurs STATIQUES (pas de color-mix sur
+     ce grand aplat, qui provoquait un scintillement au scroll sur mobile). */
+  --hero-bg: #fcf1ee;
+  --hero-border: rgba(233, 103, 63, 0.30);
 }
 
 [data-theme="pairwise-dark"] {
@@ -66,6 +71,9 @@
   --good: #63b98e;
   --warn: #e9a845;
   --over: #e86a54;
+
+  --hero-bg: #26221d;
+  --hero-border: rgba(255, 116, 88, 0.30);
 }
 
 :root {

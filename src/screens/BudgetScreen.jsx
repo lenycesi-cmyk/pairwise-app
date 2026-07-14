@@ -26,7 +26,7 @@ import HeaderMenuButton from "../components/HeaderMenuButton";
 import { getMemberKey } from "../utils/members";
 import { AVATAR_COLOR_PALETTE } from "../utils/memberColors";
 import { useMediaQuery } from "../hooks/useMediaQuery";
-import { useBudgetPrefs } from "../hooks/useDashboardPrefs";
+import { useBudgetPrefs, useHiddenBudgets } from "../hooks/useDashboardPrefs";
 import WidgetCanvas from "../components/WidgetCanvas";
 import CurrencyPicker from "../components/CurrencyPicker";
 import WidgetCard from "../components/WidgetCard";
@@ -72,7 +72,13 @@ export default function BudgetScreen({ openSignal, onOpenMenu }) {
     useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } })
   );
   const displayCurrency = budgetDisplayCurrency || defaultCurrency;
-  const { progress } = useBudgetProgress(undefined, undefined, displayCurrency);
+  const { progress: allProgress } = useBudgetProgress(undefined, undefined, displayCurrency);
+  const { hiddenIds, toggleHidden } = useHiddenBudgets();
+  const [showHidden, setShowHidden] = useState(false);
+  // Budgets visibles pour CET utilisateur (les masqués par lui vont dans une
+  // section repliable en bas ; ils restent visibles pour l'autre partenaire).
+  const progress = allProgress.filter((p) => !hiddenIds.has(p.budget.id));
+  const hiddenProgress = allProgress.filter((p) => hiddenIds.has(p.budget.id));
   const coupleLabel = coupleName || t("budget_for_couple");
   const { convert } = useExchangeRates(defaultCurrency);
   // Liste de tags disponibles pour un budget "tag" : personnalisés du couple,
@@ -382,7 +388,7 @@ export default function BudgetScreen({ openSignal, onOpenMenu }) {
   // Contenu d'un widget de l'onglet Budget pour WidgetCanvas (renvoie null
   // quand il n'y a rien à montrer → placeholder en mode édition).
   function renderBudgetWidget(id) {
-    if (progress.length === 0) return null;
+    if (allProgress.length === 0) return null;
 
     if (id === "overview") {
       const active = progress.filter(({ budget }) => budget.active !== false);
@@ -443,6 +449,7 @@ export default function BudgetScreen({ openSignal, onOpenMenu }) {
                         onEdit={openEdit}
                         onToggleActive={toggleActive}
                         onDelete={removeBudget}
+                        onToggleHidden={toggleHidden}
                         dragHandleProps={handleProps}
                       />
                     </div>
@@ -451,6 +458,32 @@ export default function BudgetScreen({ openSignal, onOpenMenu }) {
               ))}
             </div>
           </SortableContext>
+          {/* Budgets masqués pour cet utilisateur — repliés, réaffichables. */}
+          {hiddenProgress.length > 0 && (
+            <div style={{ marginTop: 4 }}>
+              <button
+                onClick={() => setShowHidden((v) => !v)}
+                style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "10px 2px", background: "none", border: "none", fontSize: 13, color: "var(--ink-2)", textAlign: "left" }}
+              >
+                <i className="ti ti-eye-off" style={{ fontSize: 15, color: "var(--ink-3)" }} aria-hidden="true" />
+                {t("budget_hidden_count").replace("{n}", hiddenProgress.length)}
+                <i className={`ti ${showHidden ? "ti-chevron-up" : "ti-chevron-down"}`} style={{ fontSize: 14, marginLeft: "auto", color: "var(--ink-3)" }} aria-hidden="true" />
+              </button>
+              {showHidden && hiddenProgress.map((p) => (
+                <div key={p.budget.id} style={{ marginBottom: 12, opacity: 0.75 }}>
+                  <BudgetCard
+                    p={p}
+                    displayCurrency={displayCurrency}
+                    onEdit={openEdit}
+                    onToggleActive={toggleActive}
+                    onDelete={removeBudget}
+                    onToggleHidden={toggleHidden}
+                    hidden
+                  />
+                </div>
+              ))}
+            </div>
+          )}
         </DndContext>
       );
     }
