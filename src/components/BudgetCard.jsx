@@ -15,8 +15,6 @@ export default function BudgetCard({
   onEdit,
   onToggleActive,
   onDelete,
-  onToggleHidden,
-  hidden = false,
   dragHandleProps = null,
   variant = "standalone",
 }) {
@@ -160,18 +158,6 @@ export default function BudgetCard({
             style={{ background: "none", border: "none", color: "var(--ink-3)", opacity: 0.4, cursor: "grab", touchAction: "none", display: "flex", flexShrink: 0, padding: 0, marginTop: 2 }}
           >
             <i className="ti ti-grip-vertical" style={{ fontSize: 15 }} aria-hidden="true" />
-          </button>
-        )}
-        {/* Afficher/masquer ce budget POUR MOI (par utilisateur) — bouton visible
-            pour la découvrabilité, en plus de l'entrée du menu. */}
-        {onToggleHidden && (
-          <button
-            onClick={(e) => { e.stopPropagation(); onToggleHidden(budget); }}
-            aria-label={hidden ? t("budget_show_for_me") : t("budget_hide_for_me")}
-            title={hidden ? t("budget_show_for_me") : t("budget_hide_for_me")}
-            style={{ background: "none", border: "none", color: "var(--ink-3)", display: "flex", flexShrink: 0, padding: 0, marginTop: 2 }}
-          >
-            <i className={`ti ${hidden ? "ti-eye-off" : "ti-eye"}`} style={{ fontSize: 16 }} aria-hidden="true" />
           </button>
         )}
         <button
