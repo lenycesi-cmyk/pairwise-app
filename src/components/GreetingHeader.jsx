@@ -35,7 +35,7 @@ export default function GreetingHeader({ subtitleKey, marginLeft = 0, month }) {
 
   return (
     <div style={{ marginLeft }}>
-      <h1 style={{ fontSize: isDesktop ? 22 : 19, margin: 0, fontWeight: 800, lineHeight: 1.15, whiteSpace: "nowrap" }}>
+      <h1 style={{ fontSize: isDesktop ? 26 : 19, margin: 0, fontWeight: isDesktop ? 600 : 800, letterSpacing: isDesktop ? "-0.01em" : 0, fontFamily: isDesktop ? "var(--font-display)" : undefined, lineHeight: 1.15, whiteSpace: "nowrap" }}>
         <span style={{ color: "var(--ink)" }}>{t("greeting_hello")}</span>{" "}
         <span style={{ color: myColor.text }}>{name}</span>
       </h1>
