@@ -20,7 +20,7 @@ import { useDebtCalculation } from "../hooks/useDebtCalculation";
 import { useBudgetProgress } from "../hooks/useBudgetProgress";
 import BudgetCard from "../components/BudgetCard";
 import { useInsights } from "../hooks/useInsights";
-import { useDashboardPrefs } from "../hooks/useDashboardPrefs";
+import { useDashboardPrefs, useHiddenBudgets } from "../hooks/useDashboardPrefs";
 import { useNetWorth } from "../hooks/useNetWorth";
 import CategoryRow from "../components/CategoryRow";
 import WidgetCard from "../components/WidgetCard";
@@ -55,7 +55,7 @@ function slotSpan12(index) {
 // par catégorie…). Le trop-plein défile DANS la carte, en-tête figé (voir
 // WidgetCard : header flexShrink 0 + corps overflow-y auto). Les rangées au
 // contenu plus court restent naturellement plus basses.
-const BENTO_MAX_HEIGHT = 360;
+const BENTO_MAX_HEIGHT = 420;
 
 // Palette cyclique des pastilles de compte (Liquidités) — comme la maquette 1B,
 // chaque banque a une couleur distincte plutôt qu'un vert uniforme.
@@ -213,7 +213,13 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
   const insightFor = (cats) => insights.find((i) => cats.includes(i.category));
   // Les 3 premiers budgets dans l'ordre défini par l'utilisateur (drag & drop
   // dans l'onglet Budget) — l'ordre du tableau, plus trié par % consommé.
-  const topBudgets = useMemo(() => budgetProgress.slice(0, 2), [budgetProgress]);
+  const { hiddenIds: hiddenBudgetIds } = useHiddenBudgets();
+  // Exclut les budgets que CET utilisateur a masqués (partagés mais cachés de
+  // ses vues) avant de prendre les 2 premiers pour le widget.
+  const topBudgets = useMemo(
+    () => budgetProgress.filter((p) => !hiddenBudgetIds.has(p.budget.id)).slice(0, 2),
+    [budgetProgress, hiddenBudgetIds]
+  );
 
   function changeMonth(delta) {
     let m = viewMonth + delta;
@@ -408,7 +414,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
             icon="ti-heart-filled"
             accent="coral"
             title={summaryLabel}
-            style={{ background: "color-mix(in srgb, var(--tang) 9%, var(--bg-card))", border: "0.5px solid color-mix(in srgb, var(--tang) 30%, var(--rule))" }}
+            style={{ background: "var(--hero-bg)", border: "0.5px solid var(--hero-border)" }}
             action={<span style={{ fontSize: 11, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: "0.04em", fontWeight: 600, whiteSpace: "nowrap" }}>{t("dashboard_month_balance")}</span>}
           >
             <p className="pw-num" style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 46, lineHeight: 1, letterSpacing: "-0.02em", marginTop: 4, color: totals.net >= 0 ? "var(--good)" : "var(--over)" }}>
