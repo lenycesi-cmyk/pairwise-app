@@ -39,7 +39,7 @@ export default function WidgetCard({ icon, accent = "coral", title, action, flus
           est plafonnée en hauteur (grille bento de l'Accueil), le trop-plein
           défile ici sans pousser l'en-tête. Sur une carte à hauteur auto, il n'y
           a jamais de débordement → aucun défilement. */}
-      <div style={{ padding: flush ? "4px 0 10px" : "4px 18px 18px", flex: 1, minHeight: 0, overflowY: "auto", ...bodyStyle }}>{children}</div>
+      <div style={{ padding: flush ? "4px 0 16px" : "4px 18px 24px", flex: 1, minHeight: 0, overflowY: "auto", ...bodyStyle }}>{children}</div>
     </div>
   );
 }

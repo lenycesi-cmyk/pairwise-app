@@ -74,11 +74,10 @@ export default function BudgetScreen({ openSignal, onOpenMenu }) {
   const displayCurrency = budgetDisplayCurrency || defaultCurrency;
   const { progress: allProgress } = useBudgetProgress(undefined, undefined, displayCurrency);
   const { hiddenIds, toggleHidden } = useHiddenBudgets();
-  const [showHidden, setShowHidden] = useState(false);
-  // Budgets visibles pour CET utilisateur (les masqués par lui vont dans une
-  // section repliable en bas ; ils restent visibles pour l'autre partenaire).
+  // Budgets visibles pour CET utilisateur hors mode édition (les masqués par lui
+  // restent visibles pour l'autre partenaire). En mode Personnaliser, on montre
+  // TOUS les budgets avec une bascule Affiché/Masqué (cf. renderBudgetWidget).
   const progress = allProgress.filter((p) => !hiddenIds.has(p.budget.id));
-  const hiddenProgress = allProgress.filter((p) => hiddenIds.has(p.budget.id));
   const coupleLabel = coupleName || t("budget_for_couple");
   const { convert } = useExchangeRates(defaultCurrency);
   // Liste de tags disponibles pour un budget "tag" : personnalisés du couple,
@@ -435,6 +434,47 @@ export default function BudgetScreen({ openSignal, onOpenMenu }) {
     }
 
     if (id === "list") {
+      // Mode Personnaliser : chaque budget est traité comme un widget — on montre
+      // TOUS les budgets (visibles + masqués) avec une bascule Affiché/Masqué.
+      // WidgetCanvas neutralise les interactions internes (pointerEvents:none) en
+      // édition ; on ré-active explicitement la bascule (pointerEvents:auto).
+      if (editMode) {
+        return (
+          <div style={{ marginTop: 34 }}>
+            {allProgress.map((p) => {
+              const isHidden = hiddenIds.has(p.budget.id);
+              const label = p.budget.name
+                || (p.budget.scope === "global" ? t("budget_scope_global")
+                  : p.budget.scope === "tag" ? t("budget_scope_tag")
+                  : t("budget_scope_category"));
+              return (
+                <div key={p.budget.id} style={{ marginBottom: 16, pointerEvents: "auto" }}>
+                  <button
+                    onClick={() => toggleHidden(p.budget.id)}
+                    style={{
+                      pointerEvents: "auto", width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
+                      padding: "8px 12px", marginBottom: 6, borderRadius: "var(--radius-md)",
+                      border: isHidden ? "1px solid var(--ink-3)" : "0.5px solid var(--sky)",
+                      background: isHidden ? "var(--bg-card)" : "var(--sky-light)",
+                    }}
+                  >
+                    <span style={{ fontSize: 13, fontWeight: 600, color: isHidden ? "var(--ink-3)" : "var(--sky)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {label}
+                    </span>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 5, flexShrink: 0, fontSize: 11.5, fontWeight: 600, color: isHidden ? "var(--ink-2)" : "var(--sky)" }}>
+                      <i className={`ti ${isHidden ? "ti-eye-off" : "ti-eye"}`} style={{ fontSize: 14 }} aria-hidden="true" />
+                      {isHidden ? t("dashboard_widget_hidden") : t("dashboard_widget_shown")}
+                    </span>
+                  </button>
+                  <div style={{ opacity: isHidden ? 0.45 : 1, pointerEvents: "none", transition: "opacity 0.2s" }}>
+                    <BudgetCard p={p} displayCurrency={displayCurrency} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        );
+      }
       return (
         <DndContext sensors={budgetSensors} collisionDetection={closestCenter} onDragEnd={handleBudgetDragEnd}>
           <SortableContext items={progress.map((p) => p.budget.id)} strategy={verticalListSortingStrategy}>
@@ -449,7 +489,6 @@ export default function BudgetScreen({ openSignal, onOpenMenu }) {
                         onEdit={openEdit}
                         onToggleActive={toggleActive}
                         onDelete={removeBudget}
-                        onToggleHidden={toggleHidden}
                         dragHandleProps={handleProps}
                       />
                     </div>
@@ -458,32 +497,6 @@ export default function BudgetScreen({ openSignal, onOpenMenu }) {
               ))}
             </div>
           </SortableContext>
-          {/* Budgets masqués pour cet utilisateur — repliés, réaffichables. */}
-          {hiddenProgress.length > 0 && (
-            <div style={{ marginTop: 4 }}>
-              <button
-                onClick={() => setShowHidden((v) => !v)}
-                style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "10px 2px", background: "none", border: "none", fontSize: 13, color: "var(--ink-2)", textAlign: "left" }}
-              >
-                <i className="ti ti-eye-off" style={{ fontSize: 15, color: "var(--ink-3)" }} aria-hidden="true" />
-                {t("budget_hidden_count").replace("{n}", hiddenProgress.length)}
-                <i className={`ti ${showHidden ? "ti-chevron-up" : "ti-chevron-down"}`} style={{ fontSize: 14, marginLeft: "auto", color: "var(--ink-3)" }} aria-hidden="true" />
-              </button>
-              {showHidden && hiddenProgress.map((p) => (
-                <div key={p.budget.id} style={{ marginBottom: 12, opacity: 0.75 }}>
-                  <BudgetCard
-                    p={p}
-                    displayCurrency={displayCurrency}
-                    onEdit={openEdit}
-                    onToggleActive={toggleActive}
-                    onDelete={removeBudget}
-                    onToggleHidden={toggleHidden}
-                    hidden
-                  />
-                </div>
-              ))}
-            </div>
-          )}
         </DndContext>
       );
     }
