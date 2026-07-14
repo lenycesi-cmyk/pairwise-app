@@ -211,9 +211,10 @@
        sidebar and some breathing room) up to a 1600px cap, so widgets
        actually use the available space on typical desktop monitors
        instead of leaving most of the screen empty. */
-    /* Capped at 1240px : en 2 colonnes, des cartes plus larges deviennent
-       illisibles (lignes trop longues) — mieux vaut centrer avec de l'air. */
-    --app-shell-width: min(1240px, calc(100vw - var(--sidebar-width) - 4rem));
+    /* Refonte Accueil 1B : plafond relevé à ~1600px pour exploiter la largeur
+       (la grille bento 12 colonnes reste lisible ; l'ancien plafond 1240 laissait
+       de larges gouttières vides sur grand écran). */
+    --app-shell-width: min(1600px, calc(100vw - var(--sidebar-width) - 3rem));
   }
 
   body {
@@ -407,28 +408,30 @@
 }
 
 /* Mise en page « bento » du Dashboard (desktop, hors mode édition) : grille à
-   grille à 15 colonnes (divisible par 3 ET par 5) où chaque widget occupe une
-   largeur selon sa TAILLE : petit = 5 (⅓), moyen = 6 (~40%), grand = 9 (~60%),
-   posé en inline par widget (`grid-column: span`). petit+petit+petit = 15,
-   moyen+grand = 15, grand+moyen = 15 → rangées pleines et alignées. `dense`
-   comble les trous en remontant les tuiles suivantes ; `align-items: stretch`
-   (défaut) + `.pw-card { height: 100% }` égalisent la hauteur des cartes d'une
-   même rangée (rendu « bento » à rangées nettes, pas du masonry Pinterest). */
+   Refonte Accueil 1B : grille à 12 colonnes, gap 14px, `align-items: stretch`
+   (défaut) → les cartes d'une même rangée s'égalisent sur la plus haute. AUCUNE
+   hauteur de rangée fixe : la hauteur découle du contenu (indispensable pour le
+   recompactage quand un insight est fermé). Les spans sont posés en inline par
+   widget (slotSpan12 dans DashboardScreen). */
 .bento-grid {
   display: grid;
-  grid-template-columns: repeat(15, 1fr);
-  grid-auto-flow: row dense;
-  column-gap: 24px;
-  row-gap: 24px;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 14px;
+  align-items: stretch;
 }
 
-/* Les cartes s'étirent à la hauteur (fixe) de leur cellule. La chaîne
-   d'enveloppes (cellule de grille → wrapper → wrapper opacité) est mise à 100%
-   en inline dans DashboardScreen ; ici on termine la chaîne sur la carte. Le
-   contenu qui dépasse défile en interne (overflow-y) plutôt que d'agrandir la
-   rangée — !important car WidgetCard pose `overflow: hidden` en inline. */
+/* La carte remplit la hauteur (étirée) de sa cellule — la chaîne d'enveloppes
+   est mise à 100% en inline dans DashboardScreen ; on termine ici sur la carte. */
 .bento-grid .pw-card {
   height: 100%;
-  overflow-y: auto !important;
+}
+
+/* Chrome NEUTRE limité à l'Accueil (la grille bento n'existe que là) : on retire
+   le liseré coloré décoratif en tête de carte et la bordure de survol teintée.
+   Seule la pastille d'icône garde sa couleur. Les autres écrans conservent le
+   style à liseré. */
+.bento-grid .pw-card::before { content: none; }
+@media (hover: hover) {
+  .bento-grid .pw-card:hover { border-color: var(--rule) !important; }
 }
 

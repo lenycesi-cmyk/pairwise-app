@@ -19,7 +19,7 @@ import { useExchangeRates } from "../hooks/useExchangeRates";
 import { useDebtCalculation } from "../hooks/useDebtCalculation";
 import { useBudgetProgress } from "../hooks/useBudgetProgress";
 import BudgetCard from "../components/BudgetCard";
-import InsightStrip from "../components/InsightStrip";
+import { useInsights } from "../hooks/useInsights";
 import { useDashboardPrefs } from "../hooks/useDashboardPrefs";
 import { useNetWorth } from "../hooks/useNetWorth";
 import CategoryRow from "../components/CategoryRow";
@@ -36,32 +36,26 @@ import { nextOccurrence, daysUntil } from "../utils/recurrence";
 import { useSubscriptionSuggestion } from "../hooks/useSubscriptionSuggestion";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 
-// Grille bento desktop à 15 colonnes : chaque taille occupe un nombre de colonnes.
-// petit = 5 (⅓ → 3 par rangée), moyen = 6 (~40%), grand = 9 (~60%), plein = 15.
-// petit×3 = 15, moyen+grand = 15, grand+moyen = 15 → rangées pleines.
-const WIDGET_SIZE_SPAN = { small: 5, medium: 6, large: 9, full: 15 };
-// Hauteur FIXE des emplacements moyen/grand/plein — identique pour tous, pour que
-// toutes les rangées à 2 colonnes aient la même hauteur (une carte au contenu
-// long, ex. Suivi budget, ne fait plus exploser sa rangée : elle défile en
-// interne, cf. `.bento-grid .pw-card { overflow-y: auto }`). Les petites tuiles
-// gardent leur hauteur naturelle (plus basses).
-const WIDGET_SIZE_HEIGHT = { medium: 320, large: 320, full: 320 };
-
-// Le LAYOUT est FIXE : la taille d'un widget découle de sa POSITION dans la liste
-// visible, pas d'un réglage par widget. L'utilisateur ne fait que glisser-déposer
-// (l'ordre change la taille) et afficher/masquer. Motif :
-//   - index 0,1,2 → 3 petits en haut
-//   - puis des rangées de 2 : moyen+grand, puis grand+moyen, en alternance
-//   - un dernier widget seul sur sa rangée passe pleine largeur (pas de trou)
-function slotSize(index, total) {
-  if (index < 3) return "small";
-  const rel = index - 3;
-  const posInPair = rel % 2; // 0 = gauche, 1 = droite
-  if (posInPair === 0 && index === total - 1) return "full"; // seul sur la rangée
-  const pairIndex = Math.floor(rel / 2);
-  if (pairIndex % 2 === 0) return posInPair === 0 ? "medium" : "large";
-  return posInPair === 0 ? "large" : "medium";
+// Grille bento desktop à 12 colonnes (refonte 1B). Le LAYOUT est FIXE : la largeur
+// d'un widget découle de sa POSITION dans la liste visible, pas d'un réglage. On
+// glisse-dépose (l'ordre change la largeur) et on affiche/masque. Motif de spans
+// par rangée de 3 :
+//   - rangée 1 : 5 · 4 · 3  (héros large, puis deux plus étroits)
+//   - rangées suivantes : 4 · 5 · 3
+// Chaque rangée fait bien 12. Une dernière rangée incomplète laisse des colonnes
+// vides à droite (pas de hauteur fixe → aucun trou vertical).
+function slotSpan12(index) {
+  if (index < 3) return [5, 4, 3][index];
+  return [4, 5, 3][(index - 3) % 3];
 }
+
+// Sens (tonalité insight) → couleur sémantique de la refonte.
+const INSIGHT_TONE_COLOR = {
+  positive: "var(--good)",
+  celebrate: "var(--good)",
+  warning: "var(--warn)",
+  neutral: "var(--sky)",
+};
 
 // Desktop-only widgets pull in recharts, which is deliberately kept out of
 // the eager bundle (Dashboard itself loads eagerly — see CLAUDE.md/
@@ -195,6 +189,13 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
   // month's spend while the rest of the screen is browsing a different one.
   const { progress: budgetProgress } = useBudgetProgress(viewMonth, viewYear, displayCurrency);
   const { suggestion: subscriptionSuggestion, accept: acceptSubscription, dismiss: dismissSubscription } = useSubscriptionSuggestion();
+
+  // Refonte 1B : les insights « Pour toi » ne sont plus un bandeau en haut mais
+  // des encarts fermables POSÉS DANS le widget concerné. On route par catégorie
+  // d'insight vers le widget cible ; `insightFor` renvoie le 1er insight live
+  // d'une des catégories données (déjà filtré des masqués + trié par le moteur).
+  const { insights, dismiss: dismissInsight } = useInsights(displayCurrency);
+  const insightFor = (cats) => insights.find((i) => cats.includes(i.category));
   // Les 3 premiers budgets dans l'ordre défini par l'utilisateur (drag & drop
   // dans l'onglet Budget) — l'ordre du tableau, plus trié par % consommé.
   const topBudgets = useMemo(() => budgetProgress.slice(0, 3), [budgetProgress]);
@@ -387,19 +388,30 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
   // ── Widget renderers ───────────────────────────────────────────────────────
   function renderWidgetContent(id) {
     switch (id) {
-      case "net_balance":
+      case "net_balance": {
+        // Héros « Solde du mois » (refonte 1B) : lavis corail, chiffre géant en
+        // sémantique good/over, 3 cellules Revenus/Dépenses/Investi, puis insight.
+        const heroInsight = insightFor(["savings", "balance", "emergency", "recurring"]);
         return (
-          <WidgetCard icon="ti-wallet" accent="mint" title={summaryLabel}>
-            {/* Hero : le solde net est LE chiffre de l'écran — gros, en display. */}
-            <p style={{ fontSize: 11.5, color: "var(--ink-3)", marginBottom: 2 }}>{t("dashboard_net_balance")}</p>
-            <p className="pw-num" style={{ fontSize: 32, marginBottom: 12, color: totals.net >= 0 ? "var(--sage)" : "var(--tang)" }}>
-              {totals.net >= 0 ? "+" : ""}{formatAmount(totals.net)} {currencySymbol}
+          <WidgetCard
+            icon="ti-heart-filled"
+            accent="coral"
+            title={summaryLabel}
+            style={{ background: "color-mix(in srgb, var(--tang) 9%, var(--bg-card))", border: "0.5px solid color-mix(in srgb, var(--tang) 30%, var(--rule))" }}
+            action={<span style={{ fontSize: 11, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: "0.04em", fontWeight: 600, whiteSpace: "nowrap" }}>{t("dashboard_month_balance")}</span>}
+          >
+            <p className="pw-num" style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 46, lineHeight: 1, letterSpacing: "-0.02em", marginTop: 4, color: totals.net >= 0 ? "var(--good)" : "var(--over)" }}>
+              {totals.net >= 0 ? "+" : "−"}{formatAmount(Math.abs(totals.net))} {currencySymbol}
             </p>
-            <BreakdownRow color="var(--sage)" label={t("dashboard_income")} value={`${formatAmount(totals.income)} ${currencySymbol}`} valueColor="var(--sage)" />
-            <BreakdownRow color="var(--tang)" label={t("dashboard_expenses")} value={`${formatAmount(totals.expense)} ${currencySymbol}`} valueColor="var(--tang)" />
-            <BreakdownRow color="var(--lavi)" label={t("dashboard_invested")} value={`${formatAmount(totals.invested)} ${currencySymbol}`} last />
+            <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
+              <HeroStat dot="var(--good)" label={t("dashboard_income")} value={`${formatAmount(totals.income)} ${currencySymbol}`} />
+              <HeroStat dot="var(--tang)" label={t("dashboard_expenses")} value={`${formatAmount(totals.expense)} ${currencySymbol}`} />
+              <HeroStat dot="var(--sky)" label={t("dashboard_invested")} value={`${formatAmount(totals.invested)} ${currencySymbol}`} />
+            </div>
+            {!editMode && <InsightInline insight={heroInsight} onClose={() => heroInsight && dismissInsight(heroInsight.id)} dismissLabel={t("insight_dismiss")} />}
           </WidgetCard>
         );
+      }
 
       case "health_score":
         return (
@@ -416,8 +428,8 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
             ) : (
               <>
                 {/* Hero : le total en gros chiffre en tête, détail des comptes dessous. */}
-                <p style={{ fontSize: 11.5, color: "var(--ink-3)", marginBottom: 2 }}>Total</p>
-                <p className="pw-num" style={{ fontSize: 32, marginBottom: 12, color: "var(--sage)" }}>
+                <p style={{ fontSize: 11.5, color: "var(--ink-3)", marginBottom: 2 }}>{t("dashboard_total")}</p>
+                <p className="pw-num" style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 30, letterSpacing: "-0.01em", marginBottom: 14, color: "var(--good)" }}>
                   {formatAmount(availableSavings)} {currencySymbol}
                 </p>
                 {bankAccounts.map((a, i) => (
@@ -458,6 +470,10 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                 );
               })}
             </div>
+            {!editMode && (() => {
+              const bi = insightFor(["budget"]);
+              return <InsightInline insight={bi} onClose={() => bi && dismissInsight(bi.id)} dismissLabel={t("insight_dismiss")} />;
+            })()}
           </WidgetCard>
         );
 
@@ -519,7 +535,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                     {mts.map(({ m, mt }, i) => {
                       const bal = mt.income - mt.expense - mt.invested;
                       return (
-                        <span key={getMemberKey(m)} style={{ ...colStyle(i), fontSize: 14, fontWeight: 700, color: bal >= 0 ? "var(--sage)" : "var(--red)" }}>
+                        <span key={getMemberKey(m)} style={{ ...colStyle(i), fontSize: 14, fontWeight: 700, color: bal >= 0 ? "var(--good)" : "var(--over)" }}>
                           {formatAmount(bal)} {currencySymbol}
                         </span>
                       );
@@ -594,34 +610,35 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
           </WidgetCard>
         );
 
-      case "net_worth":
+      case "net_worth": {
+        const patriInsight = insightFor(["networth", "networth_record"]);
         return (
-          <WidgetCard icon="ti-diamond" accent="ocean" title={t("widget_net_worth_total")}>
+          <WidgetCard icon="ti-diamond" accent="mint" title={t("widget_net_worth_total")}>
             <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: members.length > 0 ? 14 : 0 }}>
-                <span style={{ fontSize: 13, color: "var(--ink-3)" }}>{t("wealth_net_worth")}</span>
-                <span className="pw-num" style={{ fontSize: 24, color: netWorth >= 0 ? "var(--sage)" : "var(--tang)" }}>
-                  {netWorth >= 0 ? "+" : ""}{formatAmount(netWorth)} {currencySymbol}
+              <div>
+                <span className="pw-num" style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 30, letterSpacing: "-0.01em", color: netWorth >= 0 ? "var(--good)" : "var(--over)" }}>
+                  {netWorth >= 0 ? "+" : "−"}{formatAmount(Math.abs(netWorth))} {currencySymbol}
                 </span>
+                <div style={{ fontSize: 12, color: "var(--ink-3)", marginTop: 2 }}>{t("dashboard_networth_couple")}</div>
               </div>
               {members.length > 0 && (
-                <div style={{ borderTop: "0.5px solid var(--rule)", paddingTop: 12, flex: 1, minHeight: 0, display: "flex", flexDirection: "column", justifyContent: "space-evenly", gap: 8 }}>
+                <div style={{ marginTop: 16, flex: 1, minHeight: 0, display: "flex", flexDirection: "column", justifyContent: "space-evenly", gap: 12 }}>
                   {members.map((m) => (
-                    <div key={getMemberKey(m)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                        <Avatar member={m} colorMap={memberColorMap} size={20} />
-                        <span style={{ fontSize: 12.5, color: "var(--ink-2)" }}>{m.name}</span>
-                      </div>
-                      <span style={{ fontSize: 15, fontWeight: 600, color: (netWorthByMember[getMemberKey(m)] || 0) >= 0 ? "var(--sage)" : "var(--tang)" }}>
+                    <div key={getMemberKey(m)} style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                      <Avatar member={m} colorMap={memberColorMap} size={20} />
+                      <span style={{ flex: 1, fontSize: 13, color: "var(--ink-2)" }}>{m.name}</span>
+                      <span className="pw-num" style={{ fontSize: 13, fontWeight: 500, color: "var(--ink)" }}>
                         {formatAmount(netWorthByMember[getMemberKey(m)] || 0)} {currencySymbol}
                       </span>
                     </div>
                   ))}
                 </div>
               )}
+              {!editMode && <InsightInline insight={patriInsight} onClose={() => patriInsight && dismissInsight(patriInsight.id)} dismissLabel={t("insight_dismiss")} />}
             </div>
           </WidgetCard>
         );
+      }
 
       case "debt_tracker":
         // Pas de dette entre partenaires en compte commun.
@@ -646,8 +663,8 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                 <p style={{ fontSize: 13, color: "var(--ink-2)", marginBottom: 4 }}>
                   {t("debt_owes").replace("{from}", debt.owesFromName).replace("{to}", debt.owesToName)}
                 </p>
-                <p className="pw-num" style={{ fontSize: 26, color: "var(--sky)" }}>
-                  {Math.round(debt.owesAmount).toLocaleString("fr-FR")} {displayCurrency}
+                <p className="pw-num" style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 26, color: "var(--tang)" }}>
+                  {Math.round(debt.owesAmount).toLocaleString("fr-FR")} {currencySymbol}
                 </p>
               </div>
               {!editMode && <i className="ti ti-chevron-right" style={{ fontSize: 18, color: "var(--ink-3)" }} aria-hidden="true" />}
@@ -970,13 +987,8 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
       )}
       </div>
 
-      {/* Bande « Pour toi » : insights dérivés des données du couple, sous
-          l'en-tête et au-dessus des widgets. Masquée en mode édition. */}
-      {!editMode && (
-        <div style={{ padding: "0 1.25rem" }}>
-          <InsightStrip displayCurrency={displayCurrency} />
-        </div>
-      )}
+      {/* Refonte 1B : plus de bande « Pour toi » ici — les insights sont posés
+          dans leur widget cible (Solde, Budget, Patrimoine) via <InsightInline>. */}
 
       {/* Widgets — LAYOUT FIXE. Seuls les widgets VISIBLES occupent la grille ;
           leur taille découle de leur position (slotSize). Sur desktop c'est la
@@ -993,18 +1005,13 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
           {gridWidgets.map((w, idx) => {
             const content = renderWidgetContent(w.id);
             if (!content && !editMode) return null;
-            const size = bentoEnabled ? slotSize(idx, gridWidgets.length) : "small";
             return (
               <SortableWidget
                 key={w.id}
                 id={w.id}
                 editMode={editMode}
                 onLongPress={enterEditMode}
-                outerStyle={
-                  bentoEnabled
-                    ? { gridColumn: `span ${WIDGET_SIZE_SPAN[size]}`, height: WIDGET_SIZE_HEIGHT[size] }
-                    : undefined
-                }
+                outerStyle={bentoEnabled ? { gridColumn: `span ${slotSpan12(idx)}` } : undefined}
               >
                 <div style={{ marginBottom: bentoEnabled ? 0 : 28, position: "relative", height: bentoEnabled ? "100%" : undefined }}>
                   {/* Bouton masquer en mode édition. */}
@@ -1074,6 +1081,47 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// Encart insight posé DANS un widget (refonte 1B), fermable (persistance gérée
+// par useInsights via localStorage). Couleur = tonalité de l'insight.
+function InsightInline({ insight, onClose, dismissLabel }) {
+  if (!insight) return null;
+  const color = INSIGHT_TONE_COLOR[insight.tone] || "var(--sky)";
+  return (
+    <div
+      style={{
+        display: "flex", alignItems: "flex-start", gap: 9, marginTop: 14,
+        padding: "10px 12px", borderRadius: "var(--radius-md)",
+        background: `color-mix(in srgb, ${color} 11%, transparent)`,
+        border: `0.5px solid color-mix(in srgb, ${color} 26%, transparent)`,
+      }}
+    >
+      <i className={`ti ${insight.icon}`} style={{ fontSize: 16, color, flex: "none", marginTop: 1 }} aria-hidden="true" />
+      <span style={{ flex: "1 1 auto", fontSize: 12, color: "var(--ink-2)", lineHeight: 1.35 }}>{insight.text}</span>
+      <button
+        onClick={onClose}
+        aria-label={dismissLabel}
+        style={{ flex: "none", cursor: "pointer", width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 99, background: "none", border: "none", color: "var(--ink-3)" }}
+      >
+        <i className="ti ti-x" style={{ fontSize: 13 }} aria-hidden="true" />
+      </button>
+    </div>
+  );
+}
+
+// Cellule stat du héros (refonte 1B) : pastille de couleur + libellé + valeur,
+// sur un fond très léger neutre.
+function HeroStat({ dot, label, value }) {
+  return (
+    <div style={{ flex: 1, minWidth: 0, background: "color-mix(in srgb, var(--ink) 5%, transparent)", borderRadius: "var(--radius-md)", padding: "11px 13px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, color: "var(--ink-3)" }}>
+        <span style={{ width: 7, height: 7, borderRadius: 99, background: dot, flexShrink: 0 }} />
+        {label}
+      </div>
+      <div className="pw-num" style={{ marginTop: 5, fontWeight: 600, fontSize: 16, color: "var(--ink)" }}>{value}</div>
     </div>
   );
 }
