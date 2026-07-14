@@ -26,7 +26,7 @@ export default function WidgetCard({ icon, accent = "coral", title, action, flus
       data-accent={accent}
       style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", overflow: "hidden", display: "flex", flexDirection: "column", ...style }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "16px 18px 0", flexShrink: 0 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "17px 18px 11px", flexShrink: 0 }}>
         <span className="pw-chip" style={{ width: 32, height: 32, borderRadius: 10, background: light, "--pw-chip": color, flexShrink: 0 }}>
           <i className={`ti ${icon}`} style={{ fontSize: 16, color }} aria-hidden="true" />
         </span>
@@ -39,7 +39,7 @@ export default function WidgetCard({ icon, accent = "coral", title, action, flus
           est plafonnée en hauteur (grille bento de l'Accueil), le trop-plein
           défile ici sans pousser l'en-tête. Sur une carte à hauteur auto, il n'y
           a jamais de débordement → aucun défilement. */}
-      <div style={{ padding: flush ? "10px 0 6px" : "12px 18px 16px", flex: 1, minHeight: 0, overflowY: "auto", ...bodyStyle }}>{children}</div>
+      <div style={{ padding: flush ? "4px 0 6px" : "4px 18px 16px", flex: 1, minHeight: 0, overflowY: "auto", ...bodyStyle }}>{children}</div>
     </div>
   );
 }

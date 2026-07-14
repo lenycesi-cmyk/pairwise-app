@@ -167,6 +167,9 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
   const { convert, loading: ratesLoading, error: ratesError } = useExchangeRates(displayCurrency);
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
   const [editMode, setEditMode] = useState(false);
+  // Filtre du widget Liquidités : null = couple ; sinon memberKey (comptes de ce
+  // membre + comptes partagés).
+  const [liquidScope, setLiquidScope] = useState(null);
   const customizeButtonRef = useRef(null);
   const currencyButtonRef = useRef(null);
   const [trendPeriod, setTrendPeriod] = useState(6);
@@ -210,7 +213,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
   const insightFor = (cats) => insights.find((i) => cats.includes(i.category));
   // Les 3 premiers budgets dans l'ordre défini par l'utilisateur (drag & drop
   // dans l'onglet Budget) — l'ordre du tableau, plus trié par % consommé.
-  const topBudgets = useMemo(() => budgetProgress.slice(0, 3), [budgetProgress]);
+  const topBudgets = useMemo(() => budgetProgress.slice(0, 2), [budgetProgress]);
 
   function changeMonth(delta) {
     let m = viewMonth + delta;
@@ -336,10 +339,6 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
   );
 
   const bankAccounts = useMemo(() => assets.filter((a) => a.typeId === "account"), [assets]);
-  const availableSavings = useMemo(
-    () => bankAccounts.reduce((sum, a) => sum + convert(a.value ?? 0, a.currency, displayCurrency), 0),
-    [bankAccounts, convert, displayCurrency]
-  );
   const { netWorth, netWorthByMember, totalsByType, totalAssets } = useNetWorth(displayCurrency);
 
   function formatAmount(n) {
@@ -432,25 +431,44 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
           </Suspense>
         );
 
-      case "available_savings":
+      case "available_savings": {
+        // Filtre par membre : couple = tous ; membre = ses comptes + les partagés.
+        const scopedAccounts = liquidScope == null
+          ? bankAccounts
+          : bankAccounts.filter((a) => a.ownership === liquidScope || a.ownership === "shared" || a.ownership == null);
+        const scopedTotal = scopedAccounts.reduce((s, a) => s + convert(a.value ?? 0, a.currency, displayCurrency), 0);
         return (
-          <WidgetCard icon="ti-building-bank" accent="mint" title={t("widget_available_savings_label")}>
+          <WidgetCard
+            icon="ti-building-bank"
+            accent="mint"
+            title={t("widget_available_savings_label")}
+            bodyStyle={{ display: "flex", flexDirection: "column" }}
+          >
             {bankAccounts.length === 0 ? (
               <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", padding: "0.5rem 0" }}>{t("widget_no_bank_accounts")}</p>
             ) : (
               <>
-                {/* Hero : le total en gros chiffre en tête, détail des comptes dessous. */}
-                <p style={{ fontSize: 11.5, color: "var(--ink-3)", marginBottom: 2 }}>{t("dashboard_total")}</p>
-                <p className="pw-num" style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 30, letterSpacing: "-0.01em", marginBottom: 14, color: "var(--good)" }}>
-                  {formatAmount(availableSavings)} {currencySymbol}
-                </p>
-                {bankAccounts.map((a, i) => (
-                  <BreakdownRow key={a.id} color={BANK_DOT_COLORS[i % BANK_DOT_COLORS.length]} label={a.name} value={`${formatAmount(convert(a.value, a.currency, displayCurrency))} ${currencySymbol}`} last={i === bankAccounts.length - 1} />
-                ))}
+                <div style={{ flex: 1, minHeight: 0 }}>
+                  {/* Hero : le total en gros chiffre en tête, détail des comptes dessous. */}
+                  <p style={{ fontSize: 11.5, color: "var(--ink-3)", marginBottom: 2 }}>{t("dashboard_total")}</p>
+                  <p className="pw-num" style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 30, letterSpacing: "-0.01em", marginBottom: 14, color: "var(--good)" }}>
+                    {formatAmount(scopedTotal)} {currencySymbol}
+                  </p>
+                  {scopedAccounts.map((a, i) => (
+                    <BreakdownRow key={a.id} color={BANK_DOT_COLORS[i % BANK_DOT_COLORS.length]} label={a.name} value={`${formatAmount(convert(a.value, a.currency, displayCurrency))} ${currencySymbol}`} last={i === scopedAccounts.length - 1} />
+                  ))}
+                  {scopedAccounts.length === 0 && (
+                    <p style={{ fontSize: 12.5, color: "var(--ink-3)", textAlign: "center", padding: "0.5rem 0" }}>{t("widget_no_bank_accounts")}</p>
+                  )}
+                </div>
+                {!editMode && members.length > 1 && (
+                  <ScopeFilter members={members} value={liquidScope} onChange={setLiquidScope} coupleLabel={t("health_scope_couple")} />
+                )}
               </>
             )}
           </WidgetCard>
         );
+      }
 
       case "budget_tracking":
         return (
@@ -869,11 +887,11 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
           gauche), ligne 2 le bloc « Bonjour … » sur toute la largeur. */}
       {(() => {
         const monthNav = (
-          <div style={{ display: "flex", alignItems: "center", gap: 10, justifySelf: "center" }}>
-            <button onClick={() => changeMonth(-1)} aria-label="Mois précédent" style={navBtnStyle}>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, justifySelf: "center", background: "var(--bg-card)", border: "0.5px solid var(--rule)", borderRadius: 99, padding: "5px 6px" }}>
+            <button onClick={() => changeMonth(-1)} aria-label="Mois précédent" style={pillNavBtnStyle}>
               <i className="ti ti-chevron-left" style={{ fontSize: 16 }} aria-hidden="true" />
             </button>
-            <p style={{ fontSize: 15, fontWeight: 500, whiteSpace: "nowrap" }}>
+            <p style={{ fontSize: 13, fontWeight: 600, whiteSpace: "nowrap", padding: "0 4px" }}>
               {(() => {
                 // Sur mobile, abréger le mois s'il dépasse 4 lettres (Septembre → Sept)
                 // pour que la ligne du sélecteur reste compacte.
@@ -884,19 +902,19 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                 <i className="ti ti-alert-triangle" title="Taux de change approximatifs" style={{ fontSize: 12, color: "var(--amber)", marginLeft: 6 }} aria-hidden="true" />
               )}
             </p>
-            <button onClick={() => changeMonth(1)} aria-label="Mois suivant" style={navBtnStyle}>
+            <button onClick={() => changeMonth(1)} aria-label="Mois suivant" style={pillNavBtnStyle}>
               <i className="ti ti-chevron-right" style={{ fontSize: 16 }} aria-hidden="true" />
             </button>
           </div>
         );
         const actions = (
-          <div style={{ justifySelf: "end", display: "flex", alignItems: "center", gap: 6 }}>
+          <div style={{ justifySelf: "end", display: "flex", alignItems: "center", gap: 8 }}>
             {editMode ? (
               <button
                 onClick={exitEditMode}
                 style={{
-                  background: "var(--ink)", color: "var(--bg)", border: "none",
-                  borderRadius: "var(--radius-md)", padding: "5px 14px", fontSize: 13, fontWeight: 500,
+                  height: 34, padding: "0 16px", background: "var(--ink)", color: "var(--bg)",
+                  border: "none", borderRadius: 99, fontSize: 13, fontWeight: 600,
                 }}
               >
                 {t("dashboard_done")}
@@ -907,23 +925,25 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                   ref={currencyButtonRef}
                   onClick={() => setShowCurrencyPicker(!showCurrencyPicker)}
                   style={{
-                    padding: "4px 10px", borderRadius: "var(--radius-md)", border: "0.5px solid var(--rule)",
-                    background: "var(--bg-card)", fontSize: 12, fontWeight: 500,
-                    display: "flex", alignItems: "center", gap: 4,
+                    height: 34, padding: "0 12px", borderRadius: 99, border: "0.5px solid var(--rule)",
+                    background: "var(--bg-card)", fontSize: 13, fontWeight: 600, color: "var(--ink)",
+                    display: "inline-flex", alignItems: "center", gap: 5,
                   }}
                 >
-                  {ALL_CURRENCIES.find((c) => c.code === displayCurrency)?.symbol || displayCurrency} <i className="ti ti-chevron-down" style={{ fontSize: 11 }} aria-hidden="true" />
+                  {ALL_CURRENCIES.find((c) => c.code === displayCurrency)?.symbol || displayCurrency} <i className="ti ti-chevron-down" style={{ fontSize: 14, color: "var(--ink-3)" }} aria-hidden="true" />
                 </button>
                 <button
                   ref={customizeButtonRef}
                   onClick={enterEditMode}
                   aria-label={t("dashboard_customize")}
                   style={{
-                    width: 30, height: 30, borderRadius: "50%", background: "var(--bg-card)",
-                    border: "0.5px solid var(--rule)", display: "flex", alignItems: "center", justifyContent: "center",
+                    height: 34, padding: isDesktop ? "0 14px" : "0 11px", borderRadius: 99,
+                    background: "var(--tang)", border: "0.5px solid var(--tang)", color: "#fff",
+                    fontSize: 13, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6,
                   }}
                 >
-                  <i className="ti ti-pencil" style={{ fontSize: 14 }} aria-hidden="true" />
+                  <i className="ti ti-pencil" style={{ fontSize: 15 }} aria-hidden="true" />
+                  {isDesktop && t("dashboard_edit_btn")}
                 </button>
               </>
             )}
@@ -1138,6 +1158,31 @@ function HeroStat({ dot, label, value }) {
   );
 }
 
+// Filtres couple / membre en bas de widget (Liquidités, Santé) — chip actif discret.
+function ScopeFilter({ members, value, onChange, coupleLabel }) {
+  const opts = [{ uid: null, label: coupleLabel }, ...members.map((m) => ({ uid: getMemberKey(m), label: m.name }))];
+  return (
+    <div style={{ display: "flex", gap: 6, justifyContent: "center", marginTop: 14, flexShrink: 0 }}>
+      {opts.map((s) => {
+        const on = value === s.uid;
+        return (
+          <button
+            key={s.uid ?? "couple"}
+            onClick={() => onChange(s.uid)}
+            style={{
+              padding: "3px 10px", borderRadius: 99, fontSize: 11.5, border: "none",
+              background: on ? "color-mix(in srgb, var(--ink) 6%, transparent)" : "transparent",
+              color: on ? "var(--ink-2)" : "var(--ink-3)", fontWeight: on ? 600 : 400,
+            }}
+          >
+            {s.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function BreakdownRow({ color, label, value, valueColor = "var(--ink)", last = false }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 0", borderBottom: last ? "none" : "0.5px solid var(--rule)" }}>
@@ -1151,4 +1196,10 @@ function BreakdownRow({ color, label, value, valueColor = "var(--ink)", last = f
 const navBtnStyle = {
   width: 30, height: 30, borderRadius: "50%", background: "var(--bg-card)",
   border: "0.5px solid var(--rule)", display: "flex", alignItems: "center", justifyContent: "center",
+};
+
+// Chevrons du sélecteur de mois DANS la pilule (fond transparent, sans bordure).
+const pillNavBtnStyle = {
+  width: 26, height: 26, borderRadius: "50%", background: "transparent",
+  border: "none", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--ink-3)",
 };

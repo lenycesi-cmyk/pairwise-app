@@ -1,29 +1,33 @@
 :root,
 [data-theme="pairwise"] {
-  --ink: #1d3246;
-  --ink-2: #596b7d;
-  --ink-3: #8f9aa4;
-  --ink-4: #bdc5ce;
-  --bg: #fdf4ec;
-  --bg-card: #fffdf9;
-  --rule: #e9dbd0;
+  /* Palette « 1B Chaleureux » (Claude design) : neutres BRUN CHAUD (au lieu du
+     bleu marine précédent) et accents adoucis/désaturés. Les teintes -light sont
+     dérivées de chaque couleur (mix 15% sur blanc) pour rester cohérentes.
+     Thème sombre inchangé pour l'instant (adopté plus tard). */
+  --ink: #2b2621;
+  --ink-2: #6e665d;
+  --ink-3: #a69c8f;
+  --ink-4: #c9c0b4;
+  --bg: #fbf7f1;
+  --bg-card: #ffffff;
+  --rule: rgba(43, 38, 33, 0.12);
 
-  --tang: #f56346;
-  --tang-light: #fce3d8;
-  --sage: #50a678;
-  --sage-light: #e8ebde;
-  --lavi: #236daa;
-  --lavi-light: #e3e4e4;
-  --sky: #008bc2;
-  --sky-light: #dfe7e7;
-  --amber: #f7ad44;
-  --amber-light: #fcebd8;
-  --mint: #43b2ac;
-  --mint-light: #e7ece4;
-  --blush: #ed537c;
-  --blush-light: #fbe1df;
-  --red: #dd2630;
-  --red-light: #f9dbd5;
+  --tang: #e9673f;
+  --tang-light: color-mix(in srgb, var(--tang) 15%, #fff);
+  --sage: #7fa98a;
+  --sage-light: color-mix(in srgb, var(--sage) 15%, #fff);
+  --lavi: #9c8fc6;
+  --lavi-light: color-mix(in srgb, var(--lavi) 15%, #fff);
+  --sky: #6aa0cc;
+  --sky-light: color-mix(in srgb, var(--sky) 15%, #fff);
+  --amber: #e0952e;
+  --amber-light: color-mix(in srgb, var(--amber) 15%, #fff);
+  --mint: #5fbe97;
+  --mint-light: color-mix(in srgb, var(--mint) 15%, #fff);
+  --blush: #e389a0;
+  --blush-light: color-mix(in srgb, var(--blush) 15%, #fff);
+  --red: #d9553f;
+  --red-light: color-mix(in srgb, var(--red) 15%, #fff);
 
   /* Couleurs SÉMANTIQUES de statut (distinctes de la marque) — refonte Accueil
      1B : réservées aux valeurs financières à surveiller et aux statuts, jamais
