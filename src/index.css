@@ -24,6 +24,13 @@
   --blush-light: #fbe1df;
   --red: #dd2630;
   --red-light: #f9dbd5;
+
+  /* Couleurs SÉMANTIQUES de statut (distinctes de la marque) — refonte Accueil
+     1B : réservées aux valeurs financières à surveiller et aux statuts, jamais
+     décoratives. good = positif/atteint, warn = à surveiller, over = négatif/dépassé. */
+  --good: #4fa07c;
+  --warn: #de9a34;
+  --over: #d9553f;
 }
 
 [data-theme="pairwise-dark"] {
@@ -51,6 +58,10 @@
   --blush-light: #3d2d3e;
   --red: #f75d59;
   --red-light: #3d2b35;
+
+  --good: #63b98e;
+  --warn: #e9a845;
+  --over: #e86a54;
 }
 
 :root {

@@ -102,6 +102,9 @@ export const TRANSLATIONS = {
 
     // Dashboard
     dashboard_net_balance: "Solde net",
+    dashboard_month_balance: "Solde du mois",
+    dashboard_networth_couple: "Patrimoine net du couple",
+    dashboard_total: "Total",
     dashboard_recent_transactions: "Transactions récentes",
     dashboard_transactions: "Transactions",
     dashboard_see_all: "Tout voir",
@@ -699,6 +702,9 @@ export const TRANSLATIONS = {
 
     // Dashboard
     dashboard_net_balance: "Net balance",
+    dashboard_month_balance: "Month balance",
+    dashboard_networth_couple: "Couple's net worth",
+    dashboard_total: "Total",
     dashboard_recent_transactions: "Recent transactions",
     dashboard_transactions: "Transactions",
     dashboard_see_all: "See all",

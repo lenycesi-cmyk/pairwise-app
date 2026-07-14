@@ -8,20 +8,24 @@ import { useAuth } from "../context/AuthContext";
 // L'ordre par défaut reproduit donc la maquette : 3 petits en haut, puis
 // moyen+grand, puis grand+moyen. Sur mobile, l'ordre n'affecte que l'empilement.
 export const DEFAULT_WIDGETS = [
+  // Ordre reproduisant la maquette (refonte 1B) sur la grille 12 colonnes :
+  // rangée 1 : Solde(5) · Par membre(4) · Santé(3)
+  // rangée 2 : Liquidités(4) · Budget(5) · Transactions(3)
+  // rangée 3 : Patrimoine(4) · Répartition(5) · Dettes(3)
+  // rangée 4 : Revenus/Dépenses(4) · Dépenses par catégorie(5) · [récurrences masquées]
   { id: "net_balance", visible: true },
+  { id: "member_breakdown", visible: true },
   { id: "health_score", visible: true },
-  // Visible par défaut pour compléter la rangée de 3 tuiles stat en haut.
   { id: "available_savings", visible: true },
   { id: "budget_tracking", visible: true },
+  { id: "transaction_history", visible: true },
+  { id: "net_worth", visible: true },
   // Desktop-only — DashboardScreen filters these out entirely on mobile
   // regardless of this "visible" flag, see DESKTOP_ONLY_WIDGETS.
-  { id: "reports_trend", visible: true },
-  { id: "transaction_history", visible: true },
-  { id: "member_breakdown", visible: true },
-  { id: "spending_by_category", visible: true },
   { id: "wealth_allocation", visible: true },
-  { id: "net_worth", visible: false },
-  { id: "debt_tracker", visible: false },
+  { id: "debt_tracker", visible: true },
+  { id: "reports_trend", visible: true },
+  { id: "spending_by_category", visible: true },
   { id: "recurring", visible: false },
 ];
 
