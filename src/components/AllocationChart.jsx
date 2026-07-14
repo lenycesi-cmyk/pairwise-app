@@ -44,18 +44,19 @@ export default function AllocationChart({ totalsByType, totalAssets, fill = fals
 
   if (data.length === 0) return null;
 
-  // En mode `fill` (box bento à hauteur fixe), on centre verticalement et on
-  // agrandit le donut pour occuper l'espace disponible.
+  // En mode `fill` (refonte 1B) : donut plus grand avec la 1re catégorie affichée
+  // au centre du trou, et légende sur 2 colonnes. Sinon rendu compact d'origine.
   const donut = fill ? 150 : 110;
+  const top = data.reduce((a, b) => (b.value > a.value ? b : a), data[0]);
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 16, height: fill ? "100%" : undefined }}>
-      <div style={{ width: donut, height: donut, flexShrink: 0 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: fill ? 22 : 16, height: fill ? "100%" : undefined }}>
+      <div style={{ width: donut, height: donut, flexShrink: 0, position: "relative" }}>
         <ResponsiveContainer>
           <PieChart>
             <Pie
               data={data}
               dataKey="value"
-              innerRadius={fill ? 44 : 32}
+              innerRadius={fill ? 46 : 32}
               outerRadius={fill ? 72 : 52}
               paddingAngle={2}
               stroke="none"
@@ -67,13 +68,19 @@ export default function AllocationChart({ totalsByType, totalAssets, fill = fals
             <Tooltip content={<CustomTooltip />} />
           </PieChart>
         </ResponsiveContainer>
+        {fill && top && (
+          <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
+            <span style={{ fontSize: 10, color: "var(--ink-3)", maxWidth: 70, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{top.name}</span>
+            <span style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 18, color: "var(--ink)" }}>{top.pct}%</span>
+          </div>
+        )}
       </div>
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
+      <div style={{ flex: 1, minWidth: 0, display: fill ? "grid" : "flex", gridTemplateColumns: fill ? "minmax(0,1fr) minmax(0,1fr)" : undefined, flexDirection: fill ? undefined : "column", gap: fill ? "9px 14px" : 6 }}>
         {data.map((d, i) => (
-          <div key={i} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <div key={i} style={{ display: "flex", alignItems: "center", gap: 7, minWidth: 0 }}>
             <div style={{ width: 8, height: 8, borderRadius: "50%", background: d.color, flexShrink: 0 }} />
-            <span style={{ fontSize: 12, color: "var(--ink-2)", flex: 1 }}>{d.name}</span>
-            <span style={{ fontSize: 12, fontWeight: 500 }}>{d.pct}%</span>
+            <span style={{ fontSize: 12, color: "var(--ink-2)", flex: 1, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{d.name}</span>
+            <span style={{ fontSize: 12, color: "var(--ink-3)", fontWeight: 500 }}>{d.pct}%</span>
           </div>
         ))}
       </div>

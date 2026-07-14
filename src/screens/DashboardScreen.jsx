@@ -49,6 +49,18 @@ function slotSpan12(index) {
   return [4, 5, 3][(index - 3) % 3];
 }
 
+// Hauteur maximale d'une cellule bento (refonte 1B, calé sur la maquette) : la
+// cellule est plafonnée pour qu'`align-items: stretch` ne puisse pas allonger une
+// rangée au-delà, quand une carte a beaucoup de contenu (Suivi budget, Dépenses
+// par catégorie…). Le trop-plein défile DANS la carte, en-tête figé (voir
+// WidgetCard : header flexShrink 0 + corps overflow-y auto). Les rangées au
+// contenu plus court restent naturellement plus basses.
+const BENTO_MAX_HEIGHT = 360;
+
+// Palette cyclique des pastilles de compte (Liquidités) — comme la maquette 1B,
+// chaque banque a une couleur distincte plutôt qu'un vert uniforme.
+const BANK_DOT_COLORS = ["var(--sage)", "var(--sky)", "var(--lavi)", "var(--amber)", "var(--mint)", "var(--blush)"];
+
 // Sens (tonalité insight) → couleur sémantique de la refonte.
 const INSIGHT_TONE_COLOR = {
   positive: "var(--good)",
@@ -433,7 +445,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                   {formatAmount(availableSavings)} {currencySymbol}
                 </p>
                 {bankAccounts.map((a, i) => (
-                  <BreakdownRow key={a.id} color="var(--sage)" label={a.name} value={`${formatAmount(convert(a.value, a.currency, displayCurrency))} ${currencySymbol}`} last={i === bankAccounts.length - 1} />
+                  <BreakdownRow key={a.id} color={BANK_DOT_COLORS[i % BANK_DOT_COLORS.length]} label={a.name} value={`${formatAmount(convert(a.value, a.currency, displayCurrency))} ${currencySymbol}`} last={i === bankAccounts.length - 1} />
                 ))}
               </>
             )}
@@ -576,11 +588,6 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
             accent="sky"
             title={<>{t("dashboard_transactions")} <span style={{ color: "var(--ink-3)", fontWeight: 400 }}>· {monthTx.length}</span></>}
             flush
-            action={!editMode && (
-              <button onClick={onOpenTransactions} style={{ background: "none", border: "none", color: "var(--sky)", fontSize: 12, display: "flex", alignItems: "center", gap: 3, flexShrink: 0 }}>
-                {t("dashboard_see_all")} <i className="ti ti-chevron-right" style={{ fontSize: 12 }} aria-hidden="true" />
-              </button>
-            )}
           >
             <div>
               {recentTx.length === 0 ? (
@@ -607,6 +614,11 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                 })
               )}
             </div>
+            {!editMode && recentTx.length > 0 && (
+              <button onClick={onOpenTransactions} style={{ margin: "12px 14px 2px", background: "none", border: "none", color: "var(--sky)", fontSize: 12.5, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 3 }}>
+                {t("dashboard_see_all")} <i className="ti ti-chevron-right" style={{ fontSize: 14 }} aria-hidden="true" />
+              </button>
+            )}
           </WidgetCard>
         );
 
@@ -1011,7 +1023,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                 id={w.id}
                 editMode={editMode}
                 onLongPress={enterEditMode}
-                outerStyle={bentoEnabled ? { gridColumn: `span ${slotSpan12(idx)}` } : undefined}
+                outerStyle={bentoEnabled ? { gridColumn: `span ${slotSpan12(idx)}`, maxHeight: BENTO_MAX_HEIGHT } : undefined}
               >
                 <div style={{ marginBottom: bentoEnabled ? 0 : 28, position: "relative", height: bentoEnabled ? "100%" : undefined }}>
                   {/* Bouton masquer en mode édition. */}
