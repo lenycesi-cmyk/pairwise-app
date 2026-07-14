@@ -39,7 +39,11 @@ export default function WidgetCard({ icon, accent = "coral", title, action, flus
           est plafonnée en hauteur (grille bento de l'Accueil), le trop-plein
           défile ici sans pousser l'en-tête. Sur une carte à hauteur auto, il n'y
           a jamais de débordement → aucun défilement. */}
-      <div style={{ padding: flush ? "4px 0 16px" : "4px 18px 24px", flex: 1, minHeight: 0, overflowY: "auto", ...bodyStyle }}>{children}</div>
+      <div style={{ padding: flush ? "4px 0 8px" : "4px 18px 10px", flex: 1, minHeight: 0, overflowY: "auto", ...bodyStyle }}>{children}</div>
+      {/* Pied VISIBLE : bande vide FIGÉE (sans ligne ni contenu) qui reste en bas
+          même quand le corps défile — donne une vraie respiration sous le contenu
+          (sinon la dernière ligne bute sur le bord de la carte). */}
+      <div style={{ flexShrink: 0, height: 18 }} aria-hidden="true" />
     </div>
   );
 }

@@ -1,19 +1,4 @@
-import { useState, useEffect, useRef } from "react";
-import {
-  DndContext,
-  closestCenter,
-  PointerSensor,
-  TouchSensor,
-  useSensor,
-  useSensors,
-} from "@dnd-kit/core";
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-  useSortable,
-  arrayMove,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useFinance } from "../context/FinanceContext";
 import { useTranslation } from "../hooks/useTranslation";
 import { useCategoryName } from "../hooks/useCategoryName";
@@ -26,7 +11,7 @@ import HeaderMenuButton from "../components/HeaderMenuButton";
 import { getMemberKey } from "../utils/members";
 import { AVATAR_COLOR_PALETTE } from "../utils/memberColors";
 import { useMediaQuery } from "../hooks/useMediaQuery";
-import { useBudgetPrefs, useHiddenBudgets } from "../hooks/useDashboardPrefs";
+import { useBudgetLayout } from "../hooks/useDashboardPrefs";
 import WidgetCanvas from "../components/WidgetCanvas";
 import CurrencyPicker from "../components/CurrencyPicker";
 import WidgetCard from "../components/WidgetCard";
@@ -38,20 +23,6 @@ import { budgetLevel } from "../utils/budgetStatus";
 const EXPENSE_EXCLUDED = ["income", "investment", "savings"];
 const GROUP_PCT = { essential: 0.5, fun: 0.3, investment: 0.2 };
 
-// Enveloppe sortable (render-prop) : fournit ref/style + les props de la
-// poignée de glissement, sans dupliquer le markup de la carte budget.
-function SortableBudget({ id, children }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.6 : 1,
-    position: "relative",
-    zIndex: isDragging ? 2 : undefined,
-  };
-  return children({ setNodeRef, style, handleProps: { ...attributes, ...listeners } });
-}
-
 function monthsAgoRange(n) {
   const now = new Date();
   const start = new Date(now.getFullYear(), now.getMonth() - n, 1);
@@ -61,23 +32,36 @@ function monthsAgoRange(n) {
 export default function BudgetScreen({ openSignal, onOpenMenu }) {
   const t = useTranslation();
   const { catName, subName } = useCategoryName();
-  const { categories, transactions, budgets, addBudget, updateBudget, removeBudget, reorderBudgets, defaultCurrency, members, coupleName,
+  const { categories, transactions, budgets, addBudget, updateBudget, removeBudget, defaultCurrency, members, coupleName,
     customTags, budgetDisplayCurrency, updateBudgetDisplayCurrency,
     enabledCurrencies, updateEnabledCurrencies, language } =
     useFinance();
 
-  // Capteurs dnd pour réordonner les budgets (la poignée porte les listeners).
-  const budgetSensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } })
-  );
   const displayCurrency = budgetDisplayCurrency || defaultCurrency;
   const { progress: allProgress } = useBudgetProgress(undefined, undefined, displayCurrency);
-  const { hiddenIds, toggleHidden } = useHiddenBudgets();
-  // Budgets visibles pour CET utilisateur hors mode édition (les masqués par lui
-  // restent visibles pour l'autre partenaire). En mode Personnaliser, on montre
-  // TOUS les budgets avec une bascule Affiché/Masqué (cf. renderBudgetWidget).
-  const progress = allProgress.filter((p) => !hiddenIds.has(p.budget.id));
+
+  // « Un budget = un widget » : la disposition (ordre + afficher/masquer) est
+  // gérée par WidgetCanvas via une liste [overview, ...budgets] propre à chaque
+  // utilisateur. On dérive l'ensemble des budgets MASQUÉS pour la vue d'ensemble.
+  const budgetIds = useMemo(() => allProgress.map((p) => p.budget.id), [allProgress]);
+  const { widgets, saveWidgets } = useBudgetLayout(budgetIds);
+  const hiddenIds = useMemo(
+    () => new Set(widgets.filter((w) => w.id !== "overview" && !w.visible).map((w) => w.id)),
+    [widgets]
+  );
+  const visibleProgress = useMemo(() => allProgress.filter((p) => !hiddenIds.has(p.budget.id)), [allProgress, hiddenIds]);
+  const budgetById = useMemo(() => new Map(allProgress.map((p) => [p.budget.id, p])), [allProgress]);
+  const canvasLabels = useMemo(() => {
+    const m = { overview: t("budget_widget_overview") };
+    for (const p of allProgress) {
+      m[p.budget.id] = p.budget.name
+        || (p.budget.scope === "global" ? t("budget_scope_global")
+          : p.budget.scope === "tag" ? t("budget_scope_tag")
+          : t("budget_scope_category"));
+    }
+    return m;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allProgress, language]);
   const coupleLabel = coupleName || t("budget_for_couple");
   const { convert } = useExchangeRates(defaultCurrency);
   // Liste de tags disponibles pour un budget "tag" : personnalisés du couple,
@@ -117,7 +101,6 @@ export default function BudgetScreen({ openSignal, onOpenMenu }) {
   const [editMode, setEditMode] = useState(false);
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
   const currencyButtonRef = useRef(null);
-  const { widgets, saveWidgets } = useBudgetPrefs();
   const isDesktop = useMediaQuery("(min-width: 1024px)");
 
   const expenseCategories = categories.filter((c) => !EXPENSE_EXCLUDED.includes(c.id));
@@ -367,20 +350,6 @@ export default function BudgetScreen({ openSignal, onOpenMenu }) {
     await updateBudget(b.id, { active: b.active === false ? true : false });
   }
 
-  // Réordonne les budgets visibles (actifs) puis reconstruit le tableau complet
-  // en gardant les budgets en pause à la fin — persiste l'ordre pour le widget.
-  function handleBudgetDragEnd({ active, over }) {
-    if (!over || active.id === over.id) return;
-    const visible = progress.map((p) => p.budget);
-    const ids = visible.map((b) => b.id);
-    const oldIdx = ids.indexOf(active.id);
-    const newIdx = ids.indexOf(over.id);
-    if (oldIdx === -1 || newIdx === -1) return;
-    const reordered = arrayMove(visible, oldIdx, newIdx);
-    const inactive = budgets.filter((b) => !ids.includes(b.id));
-    reorderBudgets([...reordered, ...inactive]);
-  }
-
   const locale = language === "en" ? "en-US" : "fr-FR";
   const money = (n) => `${Math.round(n).toLocaleString(locale)} ${displayCurrency}`;
 
@@ -390,7 +359,7 @@ export default function BudgetScreen({ openSignal, onOpenMenu }) {
     if (allProgress.length === 0) return null;
 
     if (id === "overview") {
-      const active = progress.filter(({ budget }) => budget.active !== false);
+      const active = visibleProgress.filter(({ budget }) => budget.active !== false);
       const totalBudget = active.reduce((s, p) => s + p.effectiveAmount, 0);
       const totalSpent = active.reduce((s, p) => s + p.spent, 0);
       const remaining = totalBudget - totalSpent;
@@ -433,75 +402,20 @@ export default function BudgetScreen({ openSignal, onOpenMenu }) {
       );
     }
 
-    if (id === "list") {
-      // Mode Personnaliser : chaque budget est traité comme un widget — on montre
-      // TOUS les budgets (visibles + masqués) avec une bascule Affiché/Masqué.
-      // WidgetCanvas neutralise les interactions internes (pointerEvents:none) en
-      // édition ; on ré-active explicitement la bascule (pointerEvents:auto).
-      if (editMode) {
-        return (
-          <div style={{ marginTop: 34 }}>
-            {allProgress.map((p) => {
-              const isHidden = hiddenIds.has(p.budget.id);
-              const label = p.budget.name
-                || (p.budget.scope === "global" ? t("budget_scope_global")
-                  : p.budget.scope === "tag" ? t("budget_scope_tag")
-                  : t("budget_scope_category"));
-              return (
-                <div key={p.budget.id} style={{ marginBottom: 16, pointerEvents: "auto" }}>
-                  <button
-                    onClick={() => toggleHidden(p.budget.id)}
-                    style={{
-                      pointerEvents: "auto", width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
-                      padding: "8px 12px", marginBottom: 6, borderRadius: "var(--radius-md)",
-                      border: isHidden ? "1px solid var(--ink-3)" : "0.5px solid var(--sky)",
-                      background: isHidden ? "var(--bg-card)" : "var(--sky-light)",
-                    }}
-                  >
-                    <span style={{ fontSize: 13, fontWeight: 600, color: isHidden ? "var(--ink-3)" : "var(--sky)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                      {label}
-                    </span>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 5, flexShrink: 0, fontSize: 11.5, fontWeight: 600, color: isHidden ? "var(--ink-2)" : "var(--sky)" }}>
-                      <i className={`ti ${isHidden ? "ti-eye-off" : "ti-eye"}`} style={{ fontSize: 14 }} aria-hidden="true" />
-                      {isHidden ? t("dashboard_widget_hidden") : t("dashboard_widget_shown")}
-                    </span>
-                  </button>
-                  <div style={{ opacity: isHidden ? 0.45 : 1, pointerEvents: "none", transition: "opacity 0.2s" }}>
-                    <BudgetCard p={p} displayCurrency={displayCurrency} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        );
-      }
-      return (
-        <DndContext sensors={budgetSensors} collisionDetection={closestCenter} onDragEnd={handleBudgetDragEnd}>
-          <SortableContext items={progress.map((p) => p.budget.id)} strategy={verticalListSortingStrategy}>
-            <div>
-              {progress.map((p) => (
-                <SortableBudget key={p.budget.id} id={p.budget.id}>
-                  {({ setNodeRef, style, handleProps }) => (
-                    <div ref={setNodeRef} style={{ ...style, marginBottom: 12 }}>
-                      <BudgetCard
-                        p={p}
-                        displayCurrency={displayCurrency}
-                        onEdit={openEdit}
-                        onToggleActive={toggleActive}
-                        onDelete={removeBudget}
-                        dragHandleProps={handleProps}
-                      />
-                    </div>
-                  )}
-                </SortableBudget>
-              ))}
-            </div>
-          </SortableContext>
-        </DndContext>
-      );
-    }
-
-    return null;
+    // « Un budget = un widget » : chaque id de budget rend UNE carte. WidgetCanvas
+    // gère la réorganisation (glisser-déposer) et l'afficher/masquer par widget ;
+    // en édition il neutralise les interactions internes de la carte.
+    const p = budgetById.get(id);
+    if (!p) return null;
+    return (
+      <BudgetCard
+        p={p}
+        displayCurrency={displayCurrency}
+        onEdit={openEdit}
+        onToggleActive={toggleActive}
+        onDelete={removeBudget}
+      />
+    );
   }
 
   return (
@@ -1256,7 +1170,7 @@ export default function BudgetScreen({ openSignal, onOpenMenu }) {
           editMode={editMode}
           onEnterEditMode={() => setEditMode(true)}
           renderContent={renderBudgetWidget}
-          labels={{ overview: t("budget_widget_overview"), list: t("budget_widget_list") }}
+          labels={canvasLabels}
           isDesktop={isDesktop}
         />
       )}
