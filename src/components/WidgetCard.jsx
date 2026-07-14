@@ -18,7 +18,7 @@ const WIDGET_ACCENTS = {
 // hauteur (remplissage dynamique) en passant p.ex. `{ justifyContent: "center" }`.
 // Sur une carte à hauteur automatique (mobile, autres écrans), `flex: 1` est sans
 // effet — le corps prend simplement la hauteur de son contenu.
-export default function WidgetCard({ icon, accent = "coral", title, action, footer, flush = false, style, bodyStyle, children }) {
+export default function WidgetCard({ icon, accent = "coral", title, action, flush = false, style, bodyStyle, children }) {
   const [color, light] = WIDGET_ACCENTS[accent] || WIDGET_ACCENTS.coral;
   return (
     <div
@@ -39,12 +39,7 @@ export default function WidgetCard({ icon, accent = "coral", title, action, foot
           est plafonnée en hauteur (grille bento de l'Accueil), le trop-plein
           défile ici sans pousser l'en-tête. Sur une carte à hauteur auto, il n'y
           a jamais de débordement → aucun défilement. */}
-      <div style={{ padding: flush ? "4px 0 6px" : "4px 18px 16px", flex: 1, minHeight: 0, overflowY: "auto", ...bodyStyle }}>{children}</div>
-      {/* Pied FIGÉ (comme l'en-tête) : reste en bas pendant que le corps défile,
-          donne une base propre au widget (lien « Tout voir », indice…). */}
-      {footer && (
-        <div style={{ flexShrink: 0, borderTop: "0.5px solid var(--rule)", padding: "9px 18px" }}>{footer}</div>
-      )}
+      <div style={{ padding: flush ? "4px 0 10px" : "4px 18px 18px", flex: 1, minHeight: 0, overflowY: "auto", ...bodyStyle }}>{children}</div>
     </div>
   );
 }

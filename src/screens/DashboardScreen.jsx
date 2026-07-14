@@ -414,7 +414,6 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
             icon="ti-heart"
             accent="coral"
             title={summaryLabel}
-            style={{ background: "var(--hero-bg)", border: "0.5px solid var(--hero-border)" }}
             action={<span style={{ fontSize: 11, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: "0.04em", fontWeight: 600, whiteSpace: "nowrap" }}>{t("dashboard_month_balance")}</span>}
           >
             <p className="pw-num" style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 46, lineHeight: 1, letterSpacing: "-0.02em", marginTop: 4, color: totals.net >= 0 ? "var(--good)" : "var(--over)" }}>
@@ -480,8 +479,8 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
             icon="ti-target"
             accent="amber"
             title={t("dashboard_budget_progress")}
-            footer={!editMode && topBudgets.length > 0 && (
-              <button onClick={onOpenBudget} style={{ background: "none", border: "none", color: "var(--sky)", fontSize: 12.5, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 3 }}>
+            action={!editMode && topBudgets.length > 0 && (
+              <button onClick={onOpenBudget} style={{ background: "none", border: "none", color: "var(--sky)", fontSize: 12.5, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 3, flexShrink: 0 }}>
                 {t("dashboard_see_all")} <i className="ti ti-chevron-right" style={{ fontSize: 14 }} aria-hidden="true" />
               </button>
             )}
@@ -587,23 +586,19 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
             icon="ti-chart-pie"
             accent="coral"
             title={t("dashboard_spending_by_category")}
-            footer={Object.keys(categoryTotals).length > 0 && (
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                <span style={{ fontSize: 12, color: "var(--ink-2)" }}>
-                  {t("dashboard_total")} · <b className="pw-num" style={{ fontWeight: 600, color: "var(--ink)" }}>{formatAmount(totals.expense)} {currencySymbol}</b>
-                </span>
-                {!editMode && <span style={{ fontSize: 11, color: "var(--ink-3)" }}>{t("dashboard_tap_category")}</span>}
-              </div>
-            )}
           >
             {Object.keys(categoryTotals).length === 0 ? (
               <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", padding: "1rem 0" }}>{t("dashboard_no_expenses")}</p>
             ) : (
-              Object.values(categoryTotals)
+              <>
+              {/* Indice sous l'icône/titre du widget. */}
+              {!editMode && <p style={{ fontSize: 11, color: "var(--ink-3)", marginBottom: 8 }}>{t("dashboard_tap_category")}</p>}
+              {Object.values(categoryTotals)
                 .sort((a, b) => b.total - a.total)
                 .map(({ category, total, subtotals }) => (
                   <CategoryRow key={category.id} category={category} total={total} maxTotal={maxCatTotal} subtotals={subtotals} formatAmount={formatAmount} totalExpenses={totals.expense} currencySymbol={currencySymbol} />
-                ))
+                ))}
+              </>
             )}
           </WidgetCard>
         );
