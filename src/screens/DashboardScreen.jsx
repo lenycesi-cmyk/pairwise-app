@@ -20,7 +20,7 @@ import { useDebtCalculation } from "../hooks/useDebtCalculation";
 import { useBudgetProgress } from "../hooks/useBudgetProgress";
 import BudgetCard from "../components/BudgetCard";
 import { useInsights } from "../hooks/useInsights";
-import { useDashboardPrefs, useHiddenBudgets } from "../hooks/useDashboardPrefs";
+import { useDashboardPrefs, useBudgetHiddenIds } from "../hooks/useDashboardPrefs";
 import { useNetWorth } from "../hooks/useNetWorth";
 import CategoryRow from "../components/CategoryRow";
 import WidgetCard from "../components/WidgetCard";
@@ -213,7 +213,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
   const insightFor = (cats) => insights.find((i) => cats.includes(i.category));
   // Les 3 premiers budgets dans l'ordre défini par l'utilisateur (drag & drop
   // dans l'onglet Budget) — l'ordre du tableau, plus trié par % consommé.
-  const { hiddenIds: hiddenBudgetIds } = useHiddenBudgets();
+  const hiddenBudgetIds = useBudgetHiddenIds();
   // Exclut les budgets que CET utilisateur a masqués (partagés mais cachés de
   // ses vues) avant de prendre les 2 premiers pour le widget.
   const topBudgets = useMemo(

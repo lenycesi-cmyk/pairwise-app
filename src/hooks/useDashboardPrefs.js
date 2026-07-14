@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import { useAuth } from "../context/AuthContext";
@@ -107,41 +107,67 @@ export function useDashboardPrefs() {
   return useWidgetPrefs("dashboardWidgets", DEFAULT_WIDGETS);
 }
 
-// Budgets masqués PAR UTILISATEUR : les budgets vivent sur le doc du couple
-// (partagés), mais chacun peut en cacher certains de SES vues (Accueil + onglet
-// Budget) sans les supprimer pour l'autre. Stocké comme un tableau d'ids sur
-// users/{uid}.hiddenBudgetIds.
-export function useHiddenBudgets() {
+// Layout de l'onglet Budget PAR UTILISATEUR : « un budget = un widget ». La
+// disposition est un widget "overview" + un widget par budget (id = budget.id),
+// avec ordre et visibilité propres à chaque utilisateur (users/{uid}.budgetLayout).
+// On fusionne avec la liste courante des budgets du couple : les nouveaux budgets
+// apparaissent (visibles) à la fin, les budgets supprimés sont retirés. Les
+// budgets restent partagés — seule la disposition/visibilité est personnelle.
+export function useBudgetLayout(budgetIds) {
   const { user } = useAuth();
-  const [hiddenIds, setHiddenIds] = useState(() => new Set());
-  const [loaded, setLoaded] = useState(false);
+  const [saved, setSaved] = useState(null);
 
   useEffect(() => {
     if (!user) return;
     getDoc(doc(db, "users", user.uid)).then((snap) => {
-      if (snap.exists() && Array.isArray(snap.data().hiddenBudgetIds)) {
-        setHiddenIds(new Set(snap.data().hiddenBudgetIds));
-      }
-      setLoaded(true);
+      setSaved(snap.exists() && Array.isArray(snap.data().budgetLayout) ? snap.data().budgetLayout : []);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.uid]);
 
-  const toggleHidden = useCallback(
-    (id) => {
-      setHiddenIds((prev) => {
-        const next = new Set(prev);
-        if (next.has(id)) next.delete(id);
-        else next.add(id);
-        if (user) setDoc(doc(db, "users", user.uid), { hiddenBudgetIds: [...next] }, { merge: true });
-        return next;
-      });
+  const idsKey = budgetIds.join(",");
+  const widgets = useMemo(() => {
+    const base = ["overview", ...budgetIds];
+    const baseSet = new Set(base);
+    const ordered = [];
+    const seen = new Set();
+    for (const w of saved || []) {
+      if (baseSet.has(w.id) && !seen.has(w.id)) {
+        ordered.push({ id: w.id, visible: w.visible !== false });
+        seen.add(w.id);
+      }
+    }
+    for (const id of base) if (!seen.has(id)) ordered.push({ id, visible: true });
+    return ordered;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [saved, idsKey]);
+
+  const saveWidgets = useCallback(
+    (newWidgets) => {
+      setSaved(newWidgets);
+      if (user) setDoc(doc(db, "users", user.uid), { budgetLayout: newWidgets }, { merge: true });
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [user?.uid]
   );
 
-  return { hiddenIds, toggleHidden, loaded };
+  return { widgets, saveWidgets, loaded: saved !== null };
+}
+
+// Ids des budgets masqués par l'utilisateur (visible === false dans budgetLayout)
+// — consommé par le widget budget de l'Accueil pour ne pas les afficher non plus.
+export function useBudgetHiddenIds() {
+  const { user } = useAuth();
+  const [hidden, setHidden] = useState(() => new Set());
+  useEffect(() => {
+    if (!user) return;
+    getDoc(doc(db, "users", user.uid)).then((snap) => {
+      const arr = snap.exists() && Array.isArray(snap.data().budgetLayout) ? snap.data().budgetLayout : [];
+      setHidden(new Set(arr.filter((w) => w.id !== "overview" && w.visible === false).map((w) => w.id)));
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.uid]);
+  return hidden;
 }
 
 export function useReportsPrefs() {
