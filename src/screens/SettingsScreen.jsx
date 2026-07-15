@@ -7,8 +7,9 @@ import { AVATAR_COLOR_PALETTE, buildMemberColorMap, getInitial } from "../utils/
 import { useTranslation } from "../hooks/useTranslation";
 import { getMemberKey } from "../utils/members";
 import { usePushNotifications } from "../hooks/usePushNotifications";
+import HeaderMenuButton from "../components/HeaderMenuButton";
 
-export default function SettingsScreen({ onOpenRecurring, onOpenCategories, onOpenTags, onOpenTheme, onOpenLanguage }) {
+export default function SettingsScreen({ onOpenMenu, onOpenRecurring, onOpenCategories, onOpenTags, onOpenTheme, onOpenLanguage }) {
   const t = useTranslation();
   const { coupleId, logout, user, updateProfilePhoto, updateDisplayName, deleteAccount, resetHints } = useAuth();
   const {
@@ -137,7 +138,21 @@ export default function SettingsScreen({ onOpenRecurring, onOpenCategories, onOp
   }
 
   return (
-    <div style={{ padding: "1.5rem 1.25rem 6rem" }}>
+    <div style={{ minHeight: "100dvh", paddingBottom: "6rem" }}>
+      {/* En-tête d'onglet (Réglages est désormais un onglet plein écran). */}
+      <div
+        style={{
+          position: "sticky", top: 0, zIndex: 10, background: "var(--bg)",
+          display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center",
+          gap: 8, padding: "1rem 1.25rem",
+        }}
+      >
+        <div style={{ justifySelf: "start" }}><HeaderMenuButton onClick={onOpenMenu} /></div>
+        <h1 style={{ fontSize: 18, margin: 0, whiteSpace: "nowrap", fontFamily: "var(--font-display)", fontWeight: 600 }}>{t("settings_title")}</h1>
+        <div style={{ justifySelf: "end" }} />
+      </div>
+
+      <div style={{ padding: "0.5rem 1.25rem", maxWidth: 640, margin: "0 auto" }}>
 
       <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
         <div
@@ -840,6 +855,7 @@ export default function SettingsScreen({ onOpenRecurring, onOpenCategories, onOp
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }
