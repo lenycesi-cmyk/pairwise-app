@@ -105,5 +105,23 @@ export function useNetWorth(displayCurrency) {
     return result;
   }, [assets, livePrices, displayCurrency, members]);
 
-  return { netWorth, netWorthByMember, totalsByType, totalAssets, getAssetValue, livePrices };
+  // Répartition par type re-scopée à la part de PROPRIÉTÉ d'un membre (pour le
+  // filtre membre du widget « Répartition du patrimoine »). `memberKey` null →
+  // couple entier (valeurs globales inchangées). Liabilités exclues (allocation).
+  function totalsByTypeFor(memberKey) {
+    if (!memberKey) return { totalsByType, totalAssets };
+    const tbt = {};
+    for (const type of ASSET_TYPES) tbt[type.id] = 0;
+    let total = 0;
+    for (const asset of assets) {
+      const type = ASSET_TYPES.find((t) => t.id === asset.typeId);
+      if (type?.isLiability) continue;
+      const val = getMemberShare(asset, memberKey);
+      tbt[asset.typeId] = (tbt[asset.typeId] || 0) + val;
+      total += val;
+    }
+    return { totalsByType: tbt, totalAssets: total };
+  }
+
+  return { netWorth, netWorthByMember, totalsByType, totalAssets, totalsByTypeFor, getAssetValue, livePrices };
 }

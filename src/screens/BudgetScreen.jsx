@@ -9,6 +9,7 @@ import { BUDGET_GROUPS, BUDGET_GROUP_KEYS } from "../data/budgetGroups";
 import GreetingHeader from "../components/GreetingHeader";
 import HeaderMenuButton from "../components/HeaderMenuButton";
 import { getMemberKey } from "../utils/members";
+import ScopeFilter from "../components/ScopeFilter";
 import { AVATAR_COLOR_PALETTE } from "../utils/memberColors";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 import { useBudgetLayout } from "../hooks/useDashboardPrefs";
@@ -68,6 +69,7 @@ export default function BudgetScreen({ openSignal, onOpenMenu }) {
   // sinon les tags suggérés par défaut (même source que le TagManager).
   const availableTags = customTags.length > 0 ? customTags : SUGGESTED_TAGS.map((s) => s.key);
 
+  const [overviewScope, setOverviewScope] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [quickMode, setQuickMode] = useState(null); // null | "5030" | "history" | "manual"
   const [editingId, setEditingId] = useState(null);
@@ -360,8 +362,9 @@ export default function BudgetScreen({ openSignal, onOpenMenu }) {
 
     if (id === "overview") {
       const active = visibleProgress.filter(({ budget }) => budget.active !== false);
+      const spentOf = (p) => (overviewScope === null ? p.spent : (p.spentByMember?.[overviewScope] ?? 0));
       const totalBudget = active.reduce((s, p) => s + p.effectiveAmount, 0);
-      const totalSpent = active.reduce((s, p) => s + p.spent, 0);
+      const totalSpent = active.reduce((s, p) => s + spentOf(p), 0);
       const remaining = totalBudget - totalSpent;
       const calmCount = active.filter((p) => budgetLevel(p) === "good").length;
       const watchCount = active.length - calmCount;
@@ -398,6 +401,9 @@ export default function BudgetScreen({ openSignal, onOpenMenu }) {
               </span>
             )}
           </div>
+          {members.length > 1 && (
+            <ScopeFilter members={members} scope={overviewScope} onChange={setOverviewScope} style={{ marginTop: 12 }} />
+          )}
         </WidgetCard>
       );
     }

@@ -148,6 +148,8 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
   // Filtre du widget Liquidités : null = couple ; sinon memberKey (comptes de ce
   // membre + comptes partagés).
   const [liquidScope, setLiquidScope] = useState(null);
+  // Filtre membre du widget « Répartition du patrimoine » (part de propriété).
+  const [allocationScope, setAllocationScope] = useState(null);
   const customizeButtonRef = useRef(null);
   const currencyButtonRef = useRef(null);
   const [trendPeriod, setTrendPeriod] = useState(6);
@@ -323,7 +325,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
   );
 
   const bankAccounts = useMemo(() => assets.filter((a) => a.typeId === "account"), [assets]);
-  const { netWorth, netWorthByMember, totalsByType, totalAssets } = useNetWorth(displayCurrency);
+  const { netWorth, netWorthByMember, totalAssets, totalsByTypeFor } = useNetWorth(displayCurrency);
 
   function formatAmount(n) {
     return Math.round(n).toLocaleString("fr-FR");
@@ -781,15 +783,18 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
         );
       }
 
-      case "wealth_allocation":
+      case "wealth_allocation": {
         if (totalAssets <= 0) return null;
+        const { totalsByType: tbtScoped, totalAssets: taScoped } = totalsByTypeFor(allocationScope);
         return (
           <WidgetCard icon="ti-chart-donut" accent="amber" title={t("widget_wealth_allocation")} bodyStyle={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
+            {members.length > 1 && <ScopeFilter members={members} value={allocationScope} onChange={setAllocationScope} coupleLabel={t("health_scope_couple")} />}
             <Suspense fallback={<div className="skeleton" style={{ height: 110 }} />}>
-              <AllocationChart totalsByType={totalsByType} totalAssets={totalAssets} fill />
+              <AllocationChart totalsByType={tbtScoped} totalAssets={taScoped} fill />
             </Suspense>
           </WidgetCard>
         );
+      }
 
       case "reports_trend":
         return (

@@ -3,6 +3,7 @@ import { useFinance } from "../context/FinanceContext";
 import { useTranslation } from "../hooks/useTranslation";
 import { useCategoryName } from "../hooks/useCategoryName";
 import { getMemberKey } from "../utils/members";
+import ScopeFilter from "./ScopeFilter";
 import { splitTag } from "../utils/tags";
 import { STATUS_COLOR, STATUS_TINT, STATUS_ICON, budgetLevel } from "../utils/budgetStatus";
 
@@ -28,14 +29,22 @@ export default function BudgetCard({
   const locale = language === "en" ? "en-US" : "fr-FR";
   const money = (n) => `${Math.round(n).toLocaleString(locale)} ${cur}`;
 
-  const { budget, spent, amountInBase, effectiveAmount, carried, pct, projected, scopedTx = [] } = p;
+  const { budget, spent: rawSpent, amountInBase, effectiveAmount, carried, pct: rawPct, projected, scopedTx = [], spentByMember = {} } = p;
   const isInactive = budget.active === false;
-  const level = budgetLevel(p);
+  const denom = effectiveAmount > 0 ? effectiveAmount : amountInBase;
+  const isCouple = !budget.memberUid || budget.memberUid === "couple";
+
+  // Filtre membre « pour qui » (Famille / A / B), comme Liquidités en banque —
+  // seulement pour un budget de couple (un budget déjà membre est intrinsèquement
+  // scopé). `spent`/`pct`/`level` suivent le filtre.
+  const [memberScope, setMemberScope] = useState(null);
+  const scope = isCouple ? memberScope : null;
+  const spent = scope === null ? rawSpent : (spentByMember[scope] ?? 0);
+  const pct = scope === null ? rawPct : (denom > 0 ? (spent / denom) * 100 : 0);
+  const level = budgetLevel({ ...p, spent, pct });
   const color = STATUS_COLOR[level];
   const tint = STATUS_TINT[level];
-  const denom = effectiveAmount > 0 ? effectiveAmount : amountInBase;
   const remaining = denom - spent;
-  const isCouple = !budget.memberUid || budget.memberUid === "couple";
 
   // ── Libellés ────────────────────────────────────────────────────────────
   function categoryNames(b) {
@@ -249,6 +258,13 @@ export default function BudgetCard({
           <span style={{ fontSize: 11, color: "var(--ink-3)" }}>{t("budget_cats_more").replace("{n}", chip.extra)}</span>
         )}
       </div>
+
+      {/* Filtre membre « pour qui » (budget de couple uniquement). */}
+      {isCouple && members.length > 1 && (
+        <div onClick={(e) => e.stopPropagation()} style={{ marginTop: 11 }}>
+          <ScopeFilter members={members} scope={memberScope} onChange={setMemberScope} />
+        </div>
+      )}
 
       {/* Détail des transactions (ouvert depuis le menu) */}
       {detailOpen && (
