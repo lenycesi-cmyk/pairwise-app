@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useEffect } from "react";
 import { useFinance } from "../context/FinanceContext";
 import { useAuth } from "../context/AuthContext";
 import { CURRENCIES, ALL_CURRENCIES } from "../data/categories";
@@ -181,6 +181,34 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
   const [receiptPreview, setReceiptPreview] = useState(editingTx?.receiptURL || null);
   const [uploadingReceipt, setUploadingReceipt] = useState(false);
   const receiptInputRef = useRef(null);
+  const bodyRef = useRef(null);
+
+  // Focus tactile des cartes de bord : la première (Montant) et la dernière
+  // (Tags) ne peuvent jamais atteindre la bande centrale de useScrollFocus (rien
+  // au-dessus/en dessous pour les y amener). On les allume donc manuellement —
+  // Montant tant qu'on est en haut, Tags une fois défilé tout en bas — sur mobile
+  // uniquement (sur desktop le survol s'en charge). Les cartes du milieu restent
+  // gérées par useScrollFocus.
+  useEffect(() => {
+    const el = bodyRef.current;
+    if (!el) return;
+    if (window.matchMedia("(hover: hover)").matches) return;
+    const update = () => {
+      const cards = el.querySelectorAll(".pw-lift");
+      if (!cards.length) return;
+      const atTop = el.scrollTop <= 8;
+      const atBottom = el.scrollHeight - el.clientHeight - el.scrollTop <= 8;
+      cards[0].classList.toggle("pw-lift--focus", atTop);
+      if (cards.length > 1) cards[cards.length - 1].classList.toggle("pw-lift--focus", atBottom);
+    };
+    update();
+    el.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    return () => {
+      el.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, [wide, isEditing]);
 
   // Suivent si le montant / la catégorie ont été remplis automatiquement à
   // partir de la description (langage naturel). Tant que c'est le cas, on peut
@@ -1176,7 +1204,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
       </div>
 
       {/* Corps défilant */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "18px 20px 22px", display: "flex", flexDirection: "column", gap: 14 }}>
+      <div ref={bodyRef} style={{ flex: 1, overflowY: "auto", padding: "18px 20px 22px", display: "flex", flexDirection: "column", gap: 14 }}>
         {!isEditing && (
           <QuickAddBar language={language} onApply={applyNaturalLanguage} />
         )}
