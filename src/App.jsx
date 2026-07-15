@@ -80,11 +80,6 @@ function PushRunner() {
 
 // Rend une clé de traduction — utilisable comme `title` de ModalWrapper
 // (doit être rendu sous FinanceProvider, ce qui est le cas des modals).
-function TranslatedTitle({ k }) {
-  const t = useTranslation();
-  return t(k);
-}
-
 // FAB « Ajouter » flottant (mobile). Rendu sous FinanceProvider pour accéder à
 // la traduction ; masqué en CSS sur desktop (le rail latéral porte l'ajout).
 function AddFab({ onClick }) {
@@ -146,7 +141,6 @@ function AppContent() {
   const [showBreakdown, setShowBreakdown] = useState(false);
   const [showTheme, setShowTheme] = useState(false);
   const [showLanguage, setShowLanguage] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
   const [showTransactions, setShowTransactions] = useState(false);
   // Un·e utilisateur·rice existant·e qui clique "Se connecter" depuis l'accueil
   // de l'onboarding : on affiche l'écran de connexion classique au lieu du
@@ -178,7 +172,6 @@ function AppContent() {
   useBackGuard(showCalculator, () => setShowCalculator(false));
   useBackGuard(showDebt, () => setShowDebt(false));
   useBackGuard(showTransactions, () => setShowTransactions(false));
-  useBackGuard(showSettings, () => setShowSettings(false));
   useBackGuard(showRecurring, () => closeRecurring());
   useBackGuard(showCategories, () => setShowCategories(false));
   useBackGuard(showTags, () => setShowTags(false));
@@ -190,7 +183,7 @@ function AppContent() {
   // ouvert (on met à jour le ref à chaque rendu sans réattacher les écouteurs).
   const anyOverlay =
     showAdd || showAddAsset || showBreakdown || showCalculator || showDebt ||
-    showTransactions || showSettings || showRecurring || showCategories ||
+    showTransactions || showRecurring || showCategories ||
     showTags || showTheme || showLanguage || showLogin || drawerOpen;
   const swipeEnabledRef = useRef(true);
   swipeEnabledRef.current = !anyOverlay;
@@ -330,6 +323,18 @@ function AppContent() {
           <BudgetScreen openSignal={budgetAddSignal} onOpenMenu={() => setDrawerOpen(true)} />
         </Suspense>
       )}
+      {tab === "settings" && (
+        <Suspense fallback={null}>
+          <SettingsScreen
+            onOpenMenu={() => setDrawerOpen(true)}
+            onOpenRecurring={() => openRecurring()}
+            onOpenCategories={() => setShowCategories(true)}
+            onOpenTags={() => setShowTags(true)}
+            onOpenTheme={() => setShowTheme(true)}
+            onOpenLanguage={() => setShowLanguage(true)}
+          />
+        </Suspense>
+      )}
       </div>
 
       {/* FAB « Ajouter » flottant (mobile) — masqué en CSS sur desktop, où le
@@ -341,8 +346,8 @@ function AppContent() {
         onChange={setTab}
         onAddClick={handleCentralAdd}
         addButtonRef={addButtonRef}
-        onSettingsClick={() => setShowSettings(true)}
-        settingsOpen={showSettings}
+        onSettingsClick={() => setTab("settings")}
+        settingsOpen={tab === "settings"}
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
       />
@@ -366,17 +371,6 @@ function AppContent() {
                 setShowTransactions(false);
                 openEdit(tx, "transactions");
               }}
-            />
-          </ModalWrapper>
-        )}
-        {showSettings && (
-          <ModalWrapper onClose={() => setShowSettings(false)} title={<TranslatedTitle k="settings_title" />}>
-            <SettingsScreen
-              onOpenRecurring={() => openRecurring()}
-              onOpenCategories={() => setShowCategories(true)}
-              onOpenTags={() => setShowTags(true)}
-              onOpenTheme={() => setShowTheme(true)}
-              onOpenLanguage={() => setShowLanguage(true)}
             />
           </ModalWrapper>
         )}
