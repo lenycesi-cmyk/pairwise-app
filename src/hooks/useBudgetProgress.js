@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useFinance } from "../context/FinanceContext";
 import { useExchangeRates } from "./useExchangeRates";
 import { periodRange, previousPeriodRange, inRange } from "../utils/budgetPeriods";
+import { getMemberKey, memberShareFraction } from "../utils/members";
 
 // Calcule, pour chaque budget actif, le montant dépensé sur sa période de
 // référence et le % consommé — même logique de conversion que DashboardScreen
@@ -12,7 +13,7 @@ import { periodRange, previousPeriodRange, inRange } from "../utils/budgetPeriod
 // fréquences calendaires (Accueil/Rapports navigables) ; hebdo/glissant/
 // événement se basent sur maintenant / leurs dates fixes.
 export function useBudgetProgress(viewMonth, viewYear, displayCurrency) {
-  const { transactions, budgets, defaultCurrency } = useFinance();
+  const { transactions, budgets, members, defaultCurrency } = useFinance();
   const base = displayCurrency || defaultCurrency;
   const { convert, loading: ratesLoading } = useExchangeRates(base);
 
@@ -32,13 +33,10 @@ export function useBudgetProgress(viewMonth, viewYear, displayCurrency) {
     return convert(tx.amount, tx.currency, base);
   }
 
-  // Part d'une transaction attribuable à un membre donné (même logique que
-  // MemberBreakdownScreen).
+  // Part « pour qui » d'une transaction attribuable à un membre (fraction ×
+  // montant), via le helper partagé (gère 50/50, part membre, partage avancé).
   function memberShare(tx, memberUid) {
-    const val = toBase(tx);
-    if (tx.split === "50/50") return val / 2;
-    if (tx.split === memberUid) return val;
-    return 0;
+    return toBase(tx) * memberShareFraction(tx, memberUid, members);
   }
 
   function txMatchesBudget(tx, b) {
@@ -107,10 +105,18 @@ export function useBudgetProgress(viewMonth, viewYear, displayCurrency) {
         }
         const projectedOver = projected !== null && denom > 0 && projected > denom;
 
-        return { budget: b, spent, amountInBase, effectiveAmount, carried, pct, scopedTx, range, projected, projectedOver };
+        // Dépense re-scopée par membre (part « pour qui ») pour le filtre membre
+        // des widgets Budget. Clé = memberKey ; « Famille » = `spent` global.
+        const spentByMember = {};
+        for (const m of members) {
+          const key = getMemberKey(m);
+          spentByMember[key] = scopedTx.reduce((s, tx) => s + memberShare(tx, key), 0);
+        }
+
+        return { budget: b, spent, spentByMember, amountInBase, effectiveAmount, carried, pct, scopedTx, range, projected, projectedOver };
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [budgets, expenseTx, base, convert, year, month]);
+  }, [budgets, expenseTx, base, convert, year, month, members]);
 
   return { progress, loading: ratesLoading };
 }

@@ -20,6 +20,7 @@ import { getMemberKey } from "../utils/members";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 import { useWealthLayout } from "../hooks/useDashboardPrefs";
 import WidgetCanvas from "../components/WidgetCanvas";
+import ScopeFilter from "../components/ScopeFilter";
 
 const COLOR_MAP = {
   tang: { text: "var(--tang)", bg: "var(--tang-light)" },
@@ -62,6 +63,8 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
   // clé d'un membre (part de ce membre). Mémorisé par type d'actif (comptes,
   // assurance vie…) puisque chaque catégorie a son propre filtre.
   const [scopeByType, setScopeByType] = useState({});
+  // Filtre membre du widget « Répartition par type » (part de propriété).
+  const [allocScope, setAllocScope] = useState(null);
   // Ids des types d'actifs réellement présents (chaque catégorie devient un widget
   // déplaçable "asset_<typeId>" dans la grille bento) — mémorisé sur `assets`.
   const assetTypeIds = useMemo(
@@ -285,9 +288,26 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
 
     if (id === "allocation") {
       if (assets.length === 0) return null;
+      const scope = allocScope;
+      // Répartition re-scopée par part de propriété du membre (comme Liquidités).
+      let tbt = totalsByType;
+      let ta = totalAssets;
+      if (scope !== null) {
+        tbt = {};
+        ta = 0;
+        for (const type of ASSET_TYPES) tbt[type.id] = 0;
+        for (const asset of assets) {
+          const type = ASSET_TYPES.find((ty) => ty.id === asset.typeId);
+          if (type?.isLiability) continue;
+          const val = getMemberShare(asset, scope);
+          tbt[asset.typeId] = (tbt[asset.typeId] || 0) + val;
+          ta += val;
+        }
+      }
       return (
         <WidgetCard icon="ti-chart-donut" accent="amber" title={t("wealth_allocation")}>
-          <AllocationChart totalsByType={totalsByType} totalAssets={totalAssets} />
+          {members.length > 1 && <ScopeFilter members={members} scope={scope} onChange={setAllocScope} style={{ marginBottom: 10 }} />}
+          <AllocationChart totalsByType={tbt} totalAssets={ta} />
         </WidgetCard>
       );
     }

@@ -13,7 +13,9 @@ import WidgetCanvas from "../components/WidgetCanvas";
 import HeaderMenuButton from "../components/HeaderMenuButton";
 import CurrencyPicker from "../components/CurrencyPicker";
 import CategoryRow from "../components/CategoryRow";
+import ScopeFilter from "../components/ScopeFilter";
 import IncomeExpenseTrendChart from "../components/IncomeExpenseTrendChart";
+import { memberShareFraction } from "../utils/members";
 
 // Onglet Flux (« ce qui rentre, ce qui sort ») : cash flow du mois, charges
 // fixes, dépenses par catégorie, détection d'abonnement, dernières transactions
@@ -26,6 +28,7 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
     transactions,
     categories,
     recurringTx,
+    members,
     defaultCurrency,
     dashboardDisplayCurrency,
     updateDashboardDisplayCurrency,
@@ -33,7 +36,7 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
   } = useFinance();
   const displayCurrency = dashboardDisplayCurrency || defaultCurrency;
   const { convert } = useExchangeRates(displayCurrency);
-  const { monthlyTotal: fixedMonthly, count: fixedCount, items: fixedItems } = useFixedExpenses(displayCurrency);
+  const { items: fixedItems } = useFixedExpenses(displayCurrency);
   const { suggestion, accept, dismiss } = useSubscriptionSuggestion();
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const { widgets, saveWidgets } = useFluxPrefs();
@@ -41,6 +44,11 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
   const [fixedDetailOpen, setFixedDetailOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
+  // Filtre membre par widget (Famille / A / B), comme Liquidités en banque.
+  const [scopeByWidget, setScopeByWidget] = useState({});
+  const setScope = (id, v) => setScopeByWidget((prev) => ({ ...prev, [id]: v }));
+  // Fraction « pour qui » d'un mouvement pour le membre filtré (1 si Famille).
+  const frac = (tx, scope) => (scope === null ? 1 : memberShareFraction(tx, scope, members));
 
   const locale = language === "en" ? "en-US" : "fr-FR";
   const symbol = currencySymbol(displayCurrency);
@@ -119,17 +127,6 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
     [transactions]
   );
 
-  const upcoming = useMemo(
-    () =>
-      recurringTx
-        .filter((r) => r.active !== false)
-        .map((r) => ({ ...r, nextDate: nextOccurrence(r, now) }))
-        .sort((a, b) => (a.nextDate?.getTime() ?? Infinity) - (b.nextDate?.getTime() ?? Infinity))
-        .slice(0, 3),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [recurringTx]
-  );
-
   const seeAll = (onClick) => (
     <button
       onClick={onClick}
@@ -151,25 +148,54 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
   // Contenu d'un widget Flux (null quand rien à montrer → placeholder en édition).
   function renderFluxWidget(id) {
     if (id === "cashflow") {
+      const scope = scopeByWidget[id] ?? null;
+      // Flux + tendance re-scopés par membre (part « pour qui »).
+      let income = 0, expense = 0;
+      for (const tx of transactions) {
+        const d = new Date(tx.date);
+        if (d.getMonth() !== now.getMonth() || d.getFullYear() !== now.getFullYear()) continue;
+        const f = frac(tx, scope);
+        if (!f) continue;
+        if (tx.type === "income") income += toBase(tx) * f;
+        else if (tx.type === "expense") expense += toBase(tx) * f;
+      }
+      const flow = { income, expense, net: income - expense };
+      const scopedTrend = scope === null
+        ? trend
+        : (() => {
+            const buckets = trend.map((b) => ({ ...b, income: 0, expense: 0 }));
+            const byKey = new Map(buckets.map((b) => [b.key, b]));
+            for (const tx of transactions) {
+              const d = new Date(tx.date);
+              const b = byKey.get(`${d.getFullYear()}-${d.getMonth()}`);
+              if (!b) continue;
+              const f = frac(tx, scope);
+              if (!f) continue;
+              if (tx.type === "income") b.income += toBase(tx) * f;
+              else if (tx.type === "expense") b.expense += toBase(tx) * f;
+            }
+            return buckets;
+          })();
       return (
         <WidgetCard icon="ti-arrows-exchange" accent="sky" title={t("flux_cashflow_title")}>
+          {members.length > 1 && <ScopeFilter members={members} scope={scope} onChange={(v) => setScope(id, v)} style={{ marginBottom: 12 }} />}
           <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
             <div style={{ flex: 1, background: "var(--sage-light)", borderRadius: "var(--radius-md)", padding: "10px 12px" }}>
               <p style={{ fontSize: 11, color: "var(--ink-3)", marginBottom: 3 }}>{t("flux_in")}</p>
-              <p className="pw-num" style={{ fontSize: 16, fontWeight: 700, color: "var(--sage)" }}>{fmt(monthFlow.income)} {symbol}</p>
+              <p className="pw-num" style={{ fontSize: 16, fontWeight: 700, color: "var(--sage)" }}>{fmt(flow.income)} {symbol}</p>
             </div>
             <div style={{ flex: 1, background: "var(--tang-light)", borderRadius: "var(--radius-md)", padding: "10px 12px" }}>
               <p style={{ fontSize: 11, color: "var(--ink-3)", marginBottom: 3 }}>{t("flux_out")}</p>
-              <p className="pw-num" style={{ fontSize: 16, fontWeight: 700, color: "var(--tang)" }}>{fmt(monthFlow.expense)} {symbol}</p>
+              <p className="pw-num" style={{ fontSize: 16, fontWeight: 700, color: "var(--tang)" }}>{fmt(flow.expense)} {symbol}</p>
             </div>
           </div>
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 4 }}>
             <span style={{ fontSize: 12.5, color: "var(--ink-2)" }}>{t("flux_net")}</span>
-            <span className="pw-num" style={{ fontSize: 17, fontWeight: 700, color: monthFlow.net >= 0 ? "var(--sage)" : "var(--red)" }}>
-              {monthFlow.net >= 0 ? "+" : "−"}{fmt(Math.abs(monthFlow.net))} {symbol}
+            <span className="pw-num" style={{ fontSize: 17, fontWeight: 700, color: flow.net >= 0 ? "var(--sage)" : "var(--red)" }}>
+              {flow.net >= 0 ? "+" : "−"}{fmt(Math.abs(flow.net))} {symbol}
             </span>
           </div>
-          <IncomeExpenseTrendChart data={trend} currencySymbol={symbol} />
+          <IncomeExpenseTrendChart data={scopedTrend} currencySymbol={symbol} />
         </WidgetCard>
       );
     }
@@ -203,22 +229,36 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
     }
 
     if (id === "fixed") {
+      const scope = scopeByWidget[id] ?? null;
+      const scopedItems = fixedItems
+        .map(({ rule, monthly }) => ({ rule, monthly: monthly * frac(rule, scope) }))
+        .filter(({ monthly }) => monthly > 0);
+      const scopedMonthly = scopedItems.reduce((s, x) => s + x.monthly, 0);
+      const scopedCount = scopedItems.length;
+      // Revenus du mois re-scopés pour le calcul de la part.
+      let scopedIncome = 0;
+      for (const tx of transactions) {
+        const d = new Date(tx.date);
+        if (d.getMonth() !== now.getMonth() || d.getFullYear() !== now.getFullYear()) continue;
+        if (tx.type === "income") scopedIncome += toBase(tx) * frac(tx, scope);
+      }
       return (
         <WidgetCard icon="ti-calendar-repeat" accent="amber" title={t("flux_fixed_title")}>
+          {members.length > 1 && <ScopeFilter members={members} scope={scope} onChange={(v) => setScope(id, v)} style={{ marginBottom: 12 }} />}
           <p className="pw-num" style={{ fontSize: 26, fontWeight: 800, letterSpacing: "-0.02em", margin: "2px 0 6px" }}>
-            {fmt(fixedMonthly)} {symbol}
+            {fmt(scopedMonthly)} {symbol}
           </p>
           <p style={{ fontSize: 12.5, color: "var(--ink-2)", lineHeight: 1.45 }}>
-            {fixedCount > 0
-              ? t("flux_fixed_need").replace("{count}", fixedCount)
+            {scopedCount > 0
+              ? t("flux_fixed_need").replace("{count}", scopedCount)
               : t("flux_fixed_empty")}
           </p>
-          {monthFlow.income > 0 && fixedMonthly > 0 && (
+          {scopedIncome > 0 && scopedMonthly > 0 && (
             <p style={{ fontSize: 11.5, color: "var(--ink-3)", marginTop: 8 }}>
-              {t("flux_fixed_share").replace("{pct}", Math.round((fixedMonthly / monthFlow.income) * 100))}
+              {t("flux_fixed_share").replace("{pct}", Math.round((scopedMonthly / scopedIncome) * 100))}
             </p>
           )}
-          {fixedCount > 0 && (
+          {scopedCount > 0 && (
             <>
               <button
                 onClick={() => setFixedDetailOpen((v) => !v)}
@@ -229,13 +269,13 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
               </button>
               {fixedDetailOpen && (
                 <div style={{ marginTop: 10, borderTop: "0.5px solid var(--rule)" }}>
-                  {fixedItems.map(({ rule, monthly }, i) => {
+                  {scopedItems.map(({ rule, monthly }, i) => {
                     const cat = categories.find((c) => c.id === rule.categoryId);
                     return (
                       <div
                         key={rule.id}
                         onClick={() => onOpenRecurring?.(rule.id)}
-                        style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 0", borderBottom: i === fixedItems.length - 1 ? "none" : "0.5px solid var(--rule)", cursor: "pointer" }}
+                        style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 0", borderBottom: i === scopedItems.length - 1 ? "none" : "0.5px solid var(--rule)", cursor: "pointer" }}
                       >
                         <i className={`ti ${cat?.icon || "ti-refresh"}`} style={{ fontSize: 15, color: "var(--ink-3)" }} aria-hidden="true" />
                         <div style={{ flex: 1, minWidth: 0 }}>
@@ -308,12 +348,20 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
     }
 
     if (id === "upcoming") {
+      const scope = scopeByWidget[id] ?? null;
+      const scopedUpcoming = recurringTx
+        .filter((r) => r.active !== false)
+        .map((r) => ({ ...r, nextDate: nextOccurrence(r, now), _frac: frac(r, scope) }))
+        .filter((r) => r._frac > 0)
+        .sort((a, b) => (a.nextDate?.getTime() ?? Infinity) - (b.nextDate?.getTime() ?? Infinity))
+        .slice(0, 3);
       return (
         <WidgetCard icon="ti-repeat" accent="pink" title={t("flux_upcoming_title")} flush action={!editMode && seeAll(() => onOpenRecurring?.())}>
-          {upcoming.length === 0 ? (
+          {members.length > 1 && <ScopeFilter members={members} scope={scope} onChange={(v) => setScope(id, v)} style={{ padding: "0 18px 8px" }} />}
+          {scopedUpcoming.length === 0 ? (
             <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", padding: "1.25rem 0" }}>{t("widget_recurring_empty")}</p>
           ) : (
-            upcoming.map((r, i) => {
+            scopedUpcoming.map((r, i) => {
               const cat = categories.find((c) => c.id === r.categoryId);
               const days = r.nextDate ? daysUntil(r.nextDate, now) : null;
               const soon = days != null && days >= 0 && days <= 3;
@@ -321,7 +369,7 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
                 <div
                   key={r.id}
                   onClick={() => onOpenRecurring?.(r.id)}
-                  style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 18px", borderBottom: i === upcoming.length - 1 ? "none" : "0.5px solid var(--rule)", cursor: "pointer" }}
+                  style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 18px", borderBottom: i === scopedUpcoming.length - 1 ? "none" : "0.5px solid var(--rule)", cursor: "pointer" }}
                 >
                   <i className={`ti ${cat?.icon || "ti-refresh"}`} style={{ fontSize: 16, color: "var(--ink-3)" }} aria-hidden="true" />
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -337,7 +385,7 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
                       </p>
                     )}
                   </div>
-                  <p className="pw-num" style={{ fontSize: 13, fontWeight: 600 }}>{fmt(r.amount)} {r.currency}</p>
+                  <p className="pw-num" style={{ fontSize: 13, fontWeight: 600 }}>{fmt(r.amount * r._frac)} {r.currency}</p>
                 </div>
               );
             })
