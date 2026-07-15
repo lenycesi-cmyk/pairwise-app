@@ -1,20 +1,25 @@
 import { useTranslation } from "../hooks/useTranslation";
 import { getMemberKey } from "../utils/members";
 
-// Pills de filtre par membre « Famille / A / B », comme le widget Liquidités en
-// banque. `scope === null` = Famille (couple entier), sinon la clé d'un membre.
-// Ne s'affiche pas quand il y a moins de deux membres (rien à filtrer).
-export default function ScopeFilter({ members, scope, onChange, style }) {
+// Pills de filtre par membre « Famille / A / B ».
+// UI unifiée dans toute l'app (refonte) : chips clairs SANS bordure, centrés,
+// placés EN HAUT du widget — comme le widget « Répartition du patrimoine » de
+// l'Accueil. La chip active a un fond neutre discret.
+//
+// `scope`/`value` (alias) === null = Famille (couple entier), sinon la clé d'un
+// membre. Ne s'affiche pas quand il y a moins de deux membres.
+export default function ScopeFilter({ members, scope, value, onChange, coupleLabel, style }) {
   const t = useTranslation();
   if (!members || members.length < 2) return null;
+  const current = scope !== undefined ? scope : value;
   const scopes = [
-    { key: null, label: t("bank_scope_family") },
+    { key: null, label: coupleLabel ?? t("bank_scope_family") },
     ...members.map((m) => ({ key: getMemberKey(m), label: m.name })),
   ];
   return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, ...style }}>
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "center", marginBottom: 12, ...style }}>
       {scopes.map((s) => {
-        const active = scope === s.key;
+        const active = current === s.key;
         return (
           <button
             key={s.key ?? "family"}
@@ -23,10 +28,10 @@ export default function ScopeFilter({ members, scope, onChange, style }) {
               padding: "3px 11px",
               borderRadius: 99,
               fontSize: 11.5,
-              border: active ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
-              background: active ? "var(--sky-light)" : "var(--bg)",
-              color: active ? "var(--sky)" : "var(--ink-2)",
-              fontWeight: active ? 500 : 400,
+              border: "none",
+              background: active ? "color-mix(in srgb, var(--ink) 6%, transparent)" : "transparent",
+              color: active ? "var(--ink-2)" : "var(--ink-3)",
+              fontWeight: active ? 600 : 400,
             }}
           >
             {s.label}

@@ -19,6 +19,7 @@ import { useExchangeRates } from "../hooks/useExchangeRates";
 import { useDebtCalculation } from "../hooks/useDebtCalculation";
 import { useBudgetProgress } from "../hooks/useBudgetProgress";
 import BudgetCard from "../components/BudgetCard";
+import ScopeFilter from "../components/ScopeFilter";
 import { useInsights } from "../hooks/useInsights";
 import { useDashboardPrefs, useBudgetHiddenIds } from "../hooks/useDashboardPrefs";
 import { useNetWorth } from "../hooks/useNetWorth";
@@ -432,6 +433,10 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
               <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", padding: "0.5rem 0" }}>{t("widget_no_bank_accounts")}</p>
             ) : (
               <>
+                {/* Filtre membre en haut, centré (UI unifiée). */}
+                {!editMode && members.length > 1 && (
+                  <ScopeFilter members={members} value={liquidScope} onChange={setLiquidScope} coupleLabel={t("health_scope_couple")} />
+                )}
                 {/* Hero : le total en gros chiffre en tête, détail des comptes dessous. */}
                 <p style={{ fontSize: 11.5, color: "var(--ink-3)", marginBottom: 2 }}>{t("dashboard_total")}</p>
                 <p className="pw-num" style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 30, letterSpacing: "-0.01em", marginBottom: 14, color: "var(--good)" }}>
@@ -442,10 +447,6 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                 ))}
                 {scopedAccounts.length === 0 && (
                   <p style={{ fontSize: 12.5, color: "var(--ink-3)", textAlign: "center", padding: "0.5rem 0" }}>{t("widget_no_bank_accounts")}</p>
-                )}
-                {/* Filtres membre juste SOUS la dernière ligne de compte. */}
-                {!editMode && members.length > 1 && (
-                  <ScopeFilter members={members} value={liquidScope} onChange={setLiquidScope} coupleLabel={t("health_scope_couple")} />
                 )}
               </>
             )}
@@ -1143,31 +1144,6 @@ function HeroStat({ dot, label, value }) {
         {label}
       </div>
       <div className="pw-num" style={{ marginTop: 5, fontWeight: 600, fontSize: 16, color: "var(--ink)" }}>{value}</div>
-    </div>
-  );
-}
-
-// Filtres couple / membre en bas de widget (Liquidités, Santé) — chip actif discret.
-function ScopeFilter({ members, value, onChange, coupleLabel }) {
-  const opts = [{ uid: null, label: coupleLabel }, ...members.map((m) => ({ uid: getMemberKey(m), label: m.name }))];
-  return (
-    <div style={{ display: "flex", gap: 6, justifyContent: "center", marginTop: 14, flexShrink: 0 }}>
-      {opts.map((s) => {
-        const on = value === s.uid;
-        return (
-          <button
-            key={s.uid ?? "couple"}
-            onClick={() => onChange(s.uid)}
-            style={{
-              padding: "3px 10px", borderRadius: 99, fontSize: 11.5, border: "none",
-              background: on ? "color-mix(in srgb, var(--ink) 6%, transparent)" : "transparent",
-              color: on ? "var(--ink-2)" : "var(--ink-3)", fontWeight: on ? 600 : 400,
-            }}
-          >
-            {s.label}
-          </button>
-        );
-      })}
     </div>
   );
 }

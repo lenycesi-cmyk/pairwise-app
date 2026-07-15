@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useHealthScore } from "../hooks/useHealthScore";
 import { useTranslation } from "../hooks/useTranslation";
 import { useFinance } from "../context/FinanceContext";
-import { getMemberKey } from "../utils/members";
+import ScopeFilter from "./ScopeFilter";
 
 const BAND_COLOR = {
   great: "var(--sage)",
@@ -79,37 +79,26 @@ export default function HealthScoreWidget({ displayCurrency }) {
     </div>
   );
 
-  // Filtres couple / membre en BAS, centrés (chip actif discret) — visibles dès
-  // qu'il y a au moins 2 membres.
+  // Filtre couple / membre EN HAUT, centré (UI unifiée) — visible dès qu'il y a
+  // au moins 2 membres.
   const scopePicker = members.length > 1 && (
-    <div style={{ display: "flex", gap: 6, justifyContent: "center", padding: "12px 18px 16px", flexShrink: 0 }}>
-      {[{ uid: null, label: t("health_scope_couple") }, ...members.map((m) => ({ uid: getMemberKey(m), label: m.name }))].map((s) => {
-        const on = scopeUid === s.uid;
-        return (
-          <button
-            key={s.uid ?? "couple"}
-            onClick={() => setScopeUid(s.uid)}
-            style={{
-              padding: "3px 10px", borderRadius: 99, fontSize: 11.5, border: "none",
-              background: on ? "color-mix(in srgb, var(--ink) 6%, transparent)" : "transparent",
-              color: on ? "var(--ink-2)" : "var(--ink-3)", fontWeight: on ? 600 : 400,
-            }}
-          >
-            {s.label}
-          </button>
-        );
-      })}
-    </div>
+    <ScopeFilter
+      members={members}
+      value={scopeUid}
+      onChange={setScopeUid}
+      coupleLabel={t("health_scope_couple")}
+      style={{ padding: "12px 18px 0", marginBottom: 0 }}
+    />
   );
 
   if (!hasData) {
     return (
       <div className="pw-card pw-chip-host" data-accent="amber" style={cardStyle}>
         {header}
+        {scopePicker}
         <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "12px 18px 16px" }}>
           <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", padding: "0.5rem 0" }}>{t("health_empty")}</p>
         </div>
-        {scopePicker}
       </div>
     );
   }
@@ -120,6 +109,7 @@ export default function HealthScoreWidget({ displayCurrency }) {
   return (
     <div className="pw-card pw-chip-host" data-accent="amber" style={cardStyle}>
       {header}
+      {scopePicker}
       <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "4px 18px 6px" }}>
         {/* Jauge demi-arc plate en couleur de bande, chiffre + libellé au centre. */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
@@ -143,7 +133,6 @@ export default function HealthScoreWidget({ displayCurrency }) {
           </div>
         )}
       </div>
-      {scopePicker}
     </div>
   );
 }

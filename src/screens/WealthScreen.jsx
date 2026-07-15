@@ -377,35 +377,23 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
               else if (a.ownership) owners.add(a.ownership);
             }
             const spansMembers = members.length > 1 && members.filter((m) => owners.has(getMemberKey(m))).length > 1;
-            const scopes = [{ key: null, label: t("bank_scope_family") }, ...members.map((m) => ({ key: getMemberKey(m), label: m.name }))];
             const label = type.id === "account" ? t("bank_total_available") : t("wealth_category_total");
             return (
               <div style={{ padding: "12px 14px", borderBottom: "0.5px solid var(--rule)" }}>
+                {spansMembers && (
+                  <ScopeFilter
+                    members={members}
+                    scope={scope}
+                    onChange={(v) => setScopeByType((prev) => ({ ...prev, [type.id]: v }))}
+                    style={{ marginBottom: 10 }}
+                  />
+                )}
                 <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10 }}>
                   <span style={{ fontSize: 13.5, color: "var(--ink-2)", fontWeight: 600 }}>{label}</span>
                   <span style={{ fontSize: 18, fontWeight: 700, color: type.isLiability ? "var(--red)" : "var(--ink)" }}>
                     {type.isLiability ? "−" : ""}{formatAmount(catTotal)} {currencySymbol}
                   </span>
                 </div>
-                {spansMembers && (
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
-                    {scopes.map((s) => (
-                      <button
-                        key={s.key ?? "family"}
-                        onClick={() => setScopeByType((prev) => ({ ...prev, [type.id]: s.key }))}
-                        style={{
-                          padding: "3px 11px", borderRadius: 99, fontSize: 11.5,
-                          border: scope === s.key ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
-                          background: scope === s.key ? "var(--sky-light)" : "var(--bg)",
-                          color: scope === s.key ? "var(--sky)" : "var(--ink-2)",
-                          fontWeight: scope === s.key ? 500 : 400,
-                        }}
-                      >
-                        {s.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
               </div>
             );
           })()}
