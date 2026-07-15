@@ -207,6 +207,7 @@ export default function CategoriesScreen() {
         onReorder={reorderCategories}
         renderItem={(cat) => (
           <div
+            className="pw-lift"
             style={{
               background: "var(--bg-card)",
               borderRadius: "var(--radius-lg)",
@@ -307,6 +308,7 @@ export default function CategoriesScreen() {
 
       {incomeCategory && (
         <div
+          className="pw-lift"
           style={{
             background: "var(--bg-card)",
             borderRadius: "var(--radius-lg)",

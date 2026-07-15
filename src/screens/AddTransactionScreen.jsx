@@ -24,7 +24,7 @@ import { useMediaQuery } from "../hooks/useMediaQuery";
 function SectionCard({ accent, icon, title, extra, children, style }) {
   return (
     <div
-      className="pw-chip-host"
+      className="pw-chip-host pw-lift"
       style={{ background: "var(--bg-card)", border: "0.5px solid var(--rule)", borderRadius: "var(--radius-lg)", padding: 16, ...style }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>

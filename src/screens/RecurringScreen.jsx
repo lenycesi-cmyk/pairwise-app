@@ -425,6 +425,7 @@ export default function RecurringScreen({ onClose, initialEditId }) {
             <div
               key={r.id}
               onClick={() => openEdit(r)}
+              className="pw-lift"
               style={{
                 background: "var(--bg-card)",
                 borderRadius: "var(--radius-lg)",
