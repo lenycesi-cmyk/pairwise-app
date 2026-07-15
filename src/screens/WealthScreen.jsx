@@ -431,6 +431,7 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
         renderContent={renderWealthWidget}
         labels={wealthWidgetLabels}
         isDesktop={isDesktop}
+        bento
       />
 
       <div className={isDesktop ? "card-columns" : ""}>

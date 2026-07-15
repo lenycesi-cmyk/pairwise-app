@@ -35,27 +35,10 @@ import { getMemberKey } from "../utils/members";
 import { nextOccurrence, daysUntil } from "../utils/recurrence";
 import { useSubscriptionSuggestion } from "../hooks/useSubscriptionSuggestion";
 import { useMediaQuery } from "../hooks/useMediaQuery";
+import { slotSpan12, BENTO_MAX_HEIGHT } from "../utils/bentoLayout";
 
-// Grille bento desktop à 12 colonnes (refonte 1B). Le LAYOUT est FIXE : la largeur
-// d'un widget découle de sa POSITION dans la liste visible, pas d'un réglage. On
-// glisse-dépose (l'ordre change la largeur) et on affiche/masque. Motif de spans
-// par rangée de 3 :
-//   - rangée 1 : 5 · 4 · 3  (héros large, puis deux plus étroits)
-//   - rangées suivantes : 4 · 5 · 3
-// Chaque rangée fait bien 12. Une dernière rangée incomplète laisse des colonnes
-// vides à droite (pas de hauteur fixe → aucun trou vertical).
-function slotSpan12(index) {
-  if (index < 3) return [5, 4, 3][index];
-  return [4, 5, 3][(index - 3) % 3];
-}
-
-// Hauteur maximale d'une cellule bento (refonte 1B, calé sur la maquette) : la
-// cellule est plafonnée pour qu'`align-items: stretch` ne puisse pas allonger une
-// rangée au-delà, quand une carte a beaucoup de contenu (Suivi budget, Dépenses
-// par catégorie…). Le trop-plein défile DANS la carte, en-tête figé (voir
-// WidgetCard : header flexShrink 0 + corps overflow-y auto). Les rangées au
-// contenu plus court restent naturellement plus basses.
-const BENTO_MAX_HEIGHT = 420;
+// Grille bento desktop (12 colonnes, taille selon la position) — factorisée dans
+// utils/bentoLayout pour être partagée avec les autres onglets (Patrimoine…).
 
 // Palette cyclique des pastilles de compte (Liquidités) — comme la maquette 1B,
 // chaque banque a une couleur distincte plutôt qu'un vert uniforme.

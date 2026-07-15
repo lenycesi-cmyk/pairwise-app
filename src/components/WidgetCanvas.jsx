@@ -15,6 +15,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useTranslation } from "../hooks/useTranslation";
+import { slotSpan12, BENTO_MAX_HEIGHT } from "../utils/bentoLayout";
 
 // Moteur d'édition de widgets partagé entre les onglets (Accueil, Rapports,
 // Patrimoine, Budget) : réorganisation par glisser-déposer + afficher/masquer
@@ -28,7 +29,7 @@ import { useTranslation } from "../hooks/useTranslation";
 
 const LONG_PRESS_DELAY = 500;
 
-function SortableWidget({ id, editMode, onLongPress, children }) {
+function SortableWidget({ id, editMode, onLongPress, outerStyle, children }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id, disabled: !editMode });
 
@@ -49,6 +50,7 @@ function SortableWidget({ id, editMode, onLongPress, children }) {
         transition,
         opacity: isDragging ? 0.5 : 1,
         position: "relative",
+        ...outerStyle,
       }}
       onMouseDown={startLongPress}
       onMouseUp={cancelLongPress}
@@ -98,6 +100,11 @@ export default function WidgetCanvas({
   labels = {},
   isDesktop,
   desktopOnly = [],
+  // `bento` : sur desktop, reproduit la grille bento de l'Accueil (12 colonnes,
+  // taille selon la position, hauteur plafonnée) au lieu du masonry. Les widgets
+  // masqués passent dans un tiroir sous la grille (comme l'Accueil), au lieu
+  // d'être affichés grisés en ligne. Sur mobile, empilement 1 colonne (idem).
+  bento = false,
 }) {
   const t = useTranslation();
   const sensors = useSensors(
@@ -105,10 +112,19 @@ export default function WidgetCanvas({
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } })
   );
 
+  const bentoOn = bento && isDesktop;
+
   const displayList = isDesktop
     ? widgets
     : widgets.filter((w) => !desktopOnly.includes(w.id));
-  const visibleIds = displayList.filter((w) => w.visible || editMode).map((w) => w.id);
+  // En bento : seuls les widgets VISIBLES occupent la grille (leur taille dépend
+  // de leur rang) ; les masqués vivent dans un tiroir en mode édition. Hors bento :
+  // les masqués s'affichent grisés en ligne pendant l'édition.
+  const gridWidgets = bentoOn
+    ? displayList.filter((w) => w.visible)
+    : displayList.filter((w) => w.visible || editMode);
+  const hiddenWidgets = displayList.filter((w) => !w.visible);
+  const visibleIds = gridWidgets.map((w) => w.id);
 
   function handleDragEnd({ active, over }) {
     if (!over || active.id === over.id) return;
@@ -123,25 +139,30 @@ export default function WidgetCanvas({
   }
 
   // Deux colonnes en édition sur desktop (demande produit) ; masonry hors
-  // édition ; une seule colonne sur mobile.
-  const twoColEdit = editMode && isDesktop;
-  const containerClass = !editMode && isDesktop ? "card-columns" : "";
+  // édition ; une seule colonne sur mobile. En bento, c'est la grille 12 colonnes.
+  const twoColEdit = !bentoOn && editMode && isDesktop;
+  const containerClass = bentoOn ? "bento-grid" : (!editMode && isDesktop ? "card-columns" : "");
   const containerStyle = twoColEdit
     ? { display: "grid", gridTemplateColumns: "1fr 1fr", columnGap: 20, alignItems: "start" }
     : undefined;
 
   return (
-    <div className={containerClass} style={containerStyle}>
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext items={visibleIds} strategy={rectSortingStrategy}>
-          {displayList
-            .filter((w) => w.visible || editMode)
-            .map((w) => {
+    <>
+      <div className={containerClass} style={containerStyle}>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={visibleIds} strategy={rectSortingStrategy}>
+            {gridWidgets.map((w, idx) => {
               const content = renderContent(w.id);
               if (!content && !editMode) return null;
               return (
-                <SortableWidget key={w.id} id={w.id} editMode={editMode} onLongPress={onEnterEditMode}>
-                  <div style={{ marginBottom: 28, position: "relative" }}>
+                <SortableWidget
+                  key={w.id}
+                  id={w.id}
+                  editMode={editMode}
+                  onLongPress={onEnterEditMode}
+                  outerStyle={bentoOn ? { gridColumn: `span ${slotSpan12(idx)}`, maxHeight: BENTO_MAX_HEIGHT } : undefined}
+                >
+                  <div style={{ marginBottom: bentoOn ? 0 : 28, position: "relative", height: bentoOn ? "100%" : undefined }}>
                     {editMode && (
                       <button
                         onClick={() => toggleWidget(w.id)}
@@ -180,6 +201,7 @@ export default function WidgetCanvas({
                         opacity: editMode && !w.visible ? 0.4 : 1,
                         paddingLeft: editMode ? 36 : 0,
                         transition: "opacity 0.2s, padding 0.2s",
+                        height: bentoOn ? "100%" : undefined,
                         // En édition, on neutralise les interactions internes du
                         // widget (ouverture de détail, boutons) pour ne garder
                         // que le glisser-déposer et le bouton afficher/masquer.
@@ -187,7 +209,7 @@ export default function WidgetCanvas({
                       }}
                     >
                       {content || (
-                        <div style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px dashed var(--rule)", padding: "0.75rem 1.25rem" }}>
+                        <div style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px dashed var(--rule)", padding: "0.75rem 1.25rem", height: bentoOn ? "100%" : undefined }}>
                           <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center" }}>{labels[w.id]}</p>
                         </div>
                       )}
@@ -196,8 +218,35 @@ export default function WidgetCanvas({
                 </SortableWidget>
               );
             })}
-        </SortableContext>
-      </DndContext>
-    </div>
+          </SortableContext>
+        </DndContext>
+      </div>
+
+      {/* Tiroir des widgets masqués (bento + mode édition) — cliquer sur une
+          pastille ré-affiche le widget, qui reprend une place dans la grille
+          selon son rang. Identique à l'Accueil. */}
+      {bentoOn && editMode && hiddenWidgets.length > 0 && (
+        <div style={{ paddingTop: 4 }}>
+          <p style={{ fontSize: 12, color: "var(--ink-3)", marginBottom: 10 }}>{t("dashboard_hidden_widgets")}</p>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {hiddenWidgets.map((w) => (
+              <button
+                key={w.id}
+                onClick={() => toggleWidget(w.id)}
+                style={{
+                  display: "flex", alignItems: "center", gap: 6,
+                  padding: "6px 12px", borderRadius: 99,
+                  border: "0.5px dashed var(--rule)", background: "var(--bg-card)",
+                  fontSize: 12, color: "var(--ink-2)",
+                }}
+              >
+                <i className="ti ti-plus" style={{ fontSize: 13, color: "var(--sky)" }} aria-hidden="true" />
+                {labels[w.id]}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </>
   );
 }
