@@ -16,7 +16,12 @@ export function useScrollFocus() {
     const io = new IntersectionObserver(
       (entries) => {
         for (const e of entries) {
-          e.target.classList.toggle("pw-card--focus", e.isIntersecting);
+          // Les widgets d'onglet portent .pw-card ; les cartes de modale portent
+          // .pw-lift — chacune reçoit sa propre classe de focus (styles distincts).
+          const cls = e.target.classList.contains("pw-card")
+            ? "pw-card--focus"
+            : "pw-lift--focus";
+          e.target.classList.toggle(cls, e.isIntersecting);
         }
       },
       { rootMargin: "-48% 0px -48% 0px", threshold: 0 }
@@ -25,7 +30,7 @@ export function useScrollFocus() {
     const scan = () => {
       // observe() est un no-op sur une cible déjà observée : pas besoin de
       // dédupliquer nous-mêmes.
-      document.querySelectorAll(".pw-card").forEach((el) => io.observe(el));
+      document.querySelectorAll(".pw-card, .pw-lift").forEach((el) => io.observe(el));
     };
     scan();
 

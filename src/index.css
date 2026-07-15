@@ -302,6 +302,37 @@ button[style*="background: var(--ink)"] {
   }
 }
 
+/* Micro-animations des éléments de modale (cartes de section, lignes de liste),
+   calquées sur les widgets des onglets : légère montée au survol (desktop) et
+   équivalent tactile au défilement (.pw-lift--focus, posé par useScrollFocus).
+   La pastille se remplit déjà via .pw-chip-host ; ici on ajoute le mouvement. */
+.pw-lift {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+@media (hover: hover) {
+  .pw-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+  }
+}
+@media (hover: none) {
+  .pw-lift--focus {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+  }
+  .pw-lift--focus .pw-chip {
+    transform: scale(1.06);
+    background: var(--pw-chip, var(--tang)) !important;
+  }
+  .pw-lift--focus .pw-chip i {
+    color: var(--bg) !important;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pw-lift:hover,
+  .pw-lift--focus { transform: none; }
+}
+
 /* Montant "chiffre-clé" : typographie unifiée (display + semi-bold) pour tous
    les montants importants des widgets/cartes. */
 .pw-num {
