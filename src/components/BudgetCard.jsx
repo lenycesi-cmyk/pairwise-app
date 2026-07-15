@@ -212,6 +212,13 @@ export default function BudgetCard({
         </div>
       )}
 
+      {/* Filtre membre « pour qui » EN HAUT, centré (budget de couple uniquement). */}
+      {isCouple && members.length > 1 && (
+        <div onClick={(e) => e.stopPropagation()} style={{ marginTop: 12 }}>
+          <ScopeFilter members={members} scope={memberScope} onChange={setMemberScope} style={{ marginBottom: 0 }} />
+        </div>
+      )}
+
       {/* Bloc RESTE (héros) */}
       <div style={{ marginTop: 14, display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10 }}>
         <div style={{ minWidth: 0 }}>
@@ -258,13 +265,6 @@ export default function BudgetCard({
           <span style={{ fontSize: 11, color: "var(--ink-3)" }}>{t("budget_cats_more").replace("{n}", chip.extra)}</span>
         )}
       </div>
-
-      {/* Filtre membre « pour qui » (budget de couple uniquement). */}
-      {isCouple && members.length > 1 && (
-        <div onClick={(e) => e.stopPropagation()} style={{ marginTop: 11 }}>
-          <ScopeFilter members={members} scope={memberScope} onChange={setMemberScope} />
-        </div>
-      )}
 
       {/* Détail des transactions (ouvert depuis le menu) */}
       {detailOpen && (

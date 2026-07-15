@@ -374,6 +374,9 @@ export default function BudgetScreen({ openSignal, onOpenMenu }) {
       const barColor = pct >= 100 ? "var(--red)" : watchCount > calmCount ? "var(--amber)" : "var(--sage)";
       return (
         <WidgetCard icon="ti-gauge" accent="amber" title={t("budget_widget_overview")}>
+          {members.length > 1 && (
+            <ScopeFilter members={members} scope={overviewScope} onChange={setOverviewScope} />
+          )}
           {/* Héros : on mène avec le RESTE (plus rassurant et actionnable que
               le dépensé), pas avec la fraction consommée. */}
           <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
@@ -401,9 +404,6 @@ export default function BudgetScreen({ openSignal, onOpenMenu }) {
               </span>
             )}
           </div>
-          {members.length > 1 && (
-            <ScopeFilter members={members} scope={overviewScope} onChange={setOverviewScope} style={{ marginTop: 12 }} />
-          )}
         </WidgetCard>
       );
     }
