@@ -25,6 +25,7 @@ function SectionCard({ accent, icon, title, extra, children, style }) {
   return (
     <div
       className="pw-chip-host pw-lift"
+      data-manual-focus="true"
       style={{ background: "var(--bg-card)", border: "0.5px solid var(--rule)", borderRadius: "var(--radius-lg)", padding: 16, ...style }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -183,12 +184,11 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
   const receiptInputRef = useRef(null);
   const bodyRef = useRef(null);
 
-  // Focus tactile des cartes de bord : la première (Montant) et la dernière
-  // (Tags) ne peuvent jamais atteindre la bande centrale de useScrollFocus (rien
-  // au-dessus/en dessous pour les y amener). On les allume donc manuellement —
-  // Montant tant qu'on est en haut, Tags une fois défilé tout en bas — sur mobile
-  // uniquement (sur desktop le survol s'en charge). Les cartes du milieu restent
-  // gérées par useScrollFocus.
+  // Focus tactile mobile : la modale gère elle-même son focus (cartes marquées
+  // [data-manual-focus], exclues de useScrollFocus) pour n'avoir qu'UNE SEULE
+  // carte allumée à la fois. Règle : en haut → Montant (1re), en bas → Tags
+  // (dernière), sinon la carte dont le centre est le plus proche du centre de
+  // l'écran. Sur desktop le survol s'en charge (effet ignoré).
   useEffect(() => {
     const el = bodyRef.current;
     if (!el) return;
@@ -198,8 +198,21 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
       if (!cards.length) return;
       const atTop = el.scrollTop <= 8;
       const atBottom = el.scrollHeight - el.clientHeight - el.scrollTop <= 8;
-      cards[0].classList.toggle("pw-lift--focus", atTop);
-      if (cards.length > 1) cards[cards.length - 1].classList.toggle("pw-lift--focus", atBottom);
+      let active;
+      if (atTop) {
+        active = 0;
+      } else if (atBottom) {
+        active = cards.length - 1;
+      } else {
+        const mid = el.getBoundingClientRect().top + el.clientHeight / 2;
+        let best = Infinity;
+        cards.forEach((c, i) => {
+          const r = c.getBoundingClientRect();
+          const d = Math.abs(r.top + r.height / 2 - mid);
+          if (d < best) { best = d; active = i; }
+        });
+      }
+      cards.forEach((c, i) => c.classList.toggle("pw-lift--focus", i === active));
     };
     update();
     el.addEventListener("scroll", update, { passive: true });

@@ -29,8 +29,11 @@ export function useScrollFocus() {
 
     const scan = () => {
       // observe() est un no-op sur une cible déjà observée : pas besoin de
-      // dédupliquer nous-mêmes.
-      document.querySelectorAll(".pw-card, .pw-lift").forEach((el) => io.observe(el));
+      // dédupliquer nous-mêmes. Les cartes marquées [data-manual-focus] gèrent
+      // elles-mêmes leur focus (ex. modale Transaction) et sont exclues ici.
+      document
+        .querySelectorAll(".pw-card, .pw-lift:not([data-manual-focus])")
+        .forEach((el) => io.observe(el));
     };
     scan();
 
