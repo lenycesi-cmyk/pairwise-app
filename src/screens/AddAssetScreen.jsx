@@ -4,9 +4,47 @@ import { ASSET_TYPES } from "../data/assetTypes";
 import { CURRENCIES } from "../data/categories";
 import { searchCrypto, searchStocks } from "../utils/assetSearch";
 import { useTranslation } from "../hooks/useTranslation";
-import { useCategoryName } from "../hooks/useCategoryName";
 import AdvancedSplitSelector from "../components/AdvancedSplitSelector";
 import { getMemberKey } from "../utils/members";
+
+// Carte de section « 1B Chaleureux » : en-tête pastille (icône teintée + titre),
+// identique à AddTransactionScreen. `accent` est une couleur token.
+function SectionCard({ accent, icon, title, extra, children, style }) {
+  return (
+    <div
+      className="pw-chip-host"
+      style={{ background: "var(--bg-card)", border: "0.5px solid var(--rule)", borderRadius: "var(--radius-lg)", padding: 16, ...style }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+        <span className="pw-chip" style={{ width: 32, height: 32, borderRadius: 10, flexShrink: 0, background: `color-mix(in srgb, ${accent} 15%, transparent)`, "--pw-chip": accent }}>
+          <i className={`ti ${icon}`} style={{ fontSize: 16, color: accent }} aria-hidden="true" />
+        </span>
+        <span style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 13.5, color: "var(--ink)" }}>{title}</span>
+        {extra}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+// Segment/chip sélectionnable (type d'actif, propriété) : bord + fond teinté quand actif.
+function segStyle(selected, accent) {
+  return {
+    display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+    padding: "9px 12px", borderRadius: "var(--radius-md)", cursor: "pointer",
+    border: `0.5px solid ${selected ? accent : "var(--rule)"}`,
+    background: selected ? `color-mix(in srgb, ${accent} 13%, transparent)` : "var(--bg-card)",
+    color: selected ? accent : "var(--ink-3)",
+    fontSize: 13, fontWeight: selected ? 600 : 400,
+    transition: "background-color .18s ease, color .18s ease, border-color .18s ease",
+  };
+}
+
+const bareInput = {
+  width: "100%", padding: "8px 0", border: "none",
+  borderBottom: "0.5px solid var(--rule)", background: "transparent",
+  fontSize: 14, outline: "none", color: "var(--ink)",
+};
 
 export default function AddAssetScreen({ onClose, editingAsset }) {
   const t = useTranslation();
@@ -112,94 +150,81 @@ export default function AddAssetScreen({ onClose, editingAsset }) {
   }
 
   return (
-    <div className="app-modal">
-      <div style={{ padding: "1.5rem 1.25rem 6rem" }}>
-        <div style={{ display: "flex", alignItems: "center", marginBottom: 16 }}>
-          <button onClick={onClose} aria-label="Fermer" style={{ background: "none", border: "none" }}>
-            <i className="ti ti-x" style={{ fontSize: 20 }} aria-hidden="true" />
-          </button>
-          <h1 style={{ fontSize: 18, flex: 1, textAlign: "center" }}>
-            {isEditing ? t("asset_edit_title") : t("asset_new_title")}
-          </h1>
-          <div style={{ width: 20 }} />
-        </div>
-
-        {/* Type d'actif */}
-        <div
-          style={{
-            background: "var(--bg-card)",
-            borderRadius: "var(--radius-lg)",
-            border: "0.5px solid var(--rule)",
-            padding: "1rem 1.25rem",
-            marginBottom: 12,
-          }}
+    <div className="app-modal tx-modal" style={{ display: "flex", flexDirection: "column" }}>
+      {/* En-tête : pastille fermer · titre centré · supprimer (édition) */}
+      <div
+        style={{
+          flexShrink: 0, display: "flex", alignItems: "center", gap: 12,
+          padding: "14px 20px", background: "var(--bg)",
+          borderBottom: "0.5px solid var(--rule)", zIndex: 10,
+        }}
+      >
+        <button
+          onClick={onClose}
+          aria-label="Fermer"
+          style={{ width: 32, height: 32, borderRadius: 99, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "color-mix(in srgb, var(--ink) 6%, transparent)", border: "none", color: "var(--ink-2)", cursor: "pointer" }}
         >
-          <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 8 }}>{t("asset_type_label")}</p>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-            {ASSET_TYPES.map((t) => (
-              <button
-                key={t.id}
-                onClick={() => { setTypeId(t.id); setApiId(""); setApiLabel(""); }}
-                style={{
-                  padding: "6px 10px",
-                  borderRadius: "var(--radius-md)",
-                  border: typeId === t.id ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
-                  background: typeId === t.id ? "var(--sky-light)" : "var(--bg)",
-                  color: typeId === t.id ? "var(--sky)" : "var(--ink)",
-                  fontSize: 12,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 4,
-                }}
-              >
-                <i className={`ti ${t.icon}`} style={{ fontSize: 13 }} aria-hidden="true" />
-                {language === "en" && t.nameEn ? t.nameEn : t.name}
-              </button>
-            ))}
+          <i className="ti ti-x" style={{ fontSize: 17 }} aria-hidden="true" />
+        </button>
+        <h1 style={{ flex: 1, textAlign: "center", margin: 0, fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 16, color: "var(--ink)" }}>
+          {isEditing ? t("asset_edit_title") : t("asset_new_title")}
+        </h1>
+        {isEditing ? (
+          <button
+            onClick={handleDelete}
+            aria-label={t("asset_delete_button")}
+            style={{ width: 32, height: 32, borderRadius: 99, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "color-mix(in srgb, var(--red) 12%, transparent)", border: "none", color: "var(--red)", cursor: "pointer" }}
+          >
+            <i className="ti ti-trash" style={{ fontSize: 17 }} aria-hidden="true" />
+          </button>
+        ) : (
+          <span style={{ width: 32, height: 32, flexShrink: 0 }} />
+        )}
+      </div>
+
+      {/* Corps défilant */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "18px 20px 22px", display: "flex", flexDirection: "column", gap: 14 }}>
+        {/* Type d'actif */}
+        <SectionCard accent="var(--sky)" icon="ti-category-2" title={t("asset_type_label")}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {ASSET_TYPES.map((at) => {
+              const sel = typeId === at.id;
+              return (
+                <button
+                  key={at.id}
+                  onClick={() => { setTypeId(at.id); setApiId(""); setApiLabel(""); }}
+                  style={segStyle(sel, "var(--sky)")}
+                >
+                  <i className={`ti ${at.icon}`} style={{ fontSize: 15 }} aria-hidden="true" />
+                  {language === "en" && at.nameEn ? at.nameEn : at.name}
+                </button>
+              );
+            })}
           </div>
-          <p style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 8 }}>
+          <p style={{ fontSize: 11.5, color: "var(--ink-3)", marginTop: 10, lineHeight: 1.4 }}>
             {language === "en" && selectedType?.descriptionEn ? selectedType.descriptionEn : selectedType?.description}
           </p>
-        </div>
+        </SectionCard>
 
         {/* Nom */}
-        <div
-          style={{
-            background: "var(--bg-card)",
-            borderRadius: "var(--radius-lg)",
-            border: "0.5px solid var(--rule)",
-            padding: "1rem 1.25rem",
-            marginBottom: 12,
-          }}
+        <SectionCard
+          accent="var(--ocean)"
+          icon="ti-tag"
+          title={t("asset_name_label")}
+          extra={<span style={{ fontSize: 11.5, color: "var(--ink-3)", fontWeight: 400 }}>· {t("tx_optional")}</span>}
         >
-          <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>
-            {t("asset_name_label")} <span style={{ color: "var(--ink-3)", fontWeight: 400 }}>· {t("tx_optional")}</span>
-          </p>
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder={typeName || t("asset_name_placeholder")}
-            style={{
-              width: "100%", padding: "8px 0", border: "none",
-              borderBottom: "0.5px solid var(--rule)", background: "transparent",
-              fontSize: 14, outline: "none",
-            }}
+            style={bareInput}
           />
-        </div>
+        </SectionCard>
 
         {/* Valeur (manuel) ou Recherche + Quantité (API) */}
         {!usesApi ? (
-          <div
-            style={{
-              background: "var(--bg-card)",
-              borderRadius: "var(--radius-lg)",
-              border: "0.5px solid var(--rule)",
-              padding: "1rem 1.25rem",
-              marginBottom: 12,
-            }}
-          >
-            <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>{t("asset_value_label")}</p>
+          <SectionCard accent="var(--good)" icon="ti-coin" title={t("asset_value_label")}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <input
                 type="number"
@@ -207,18 +232,14 @@ export default function AddAssetScreen({ onClose, editingAsset }) {
                 value={value}
                 onChange={(e) => setValue(e.target.value)}
                 placeholder="0"
-                style={{
-                  flex: 1, padding: "8px 0", border: "none",
-                  borderBottom: "0.5px solid var(--rule)", background: "transparent",
-                  fontSize: 18, outline: "none",
-                }}
+                style={{ ...bareInput, flex: 1, fontSize: 18 }}
               />
               <select
                 value={currency}
                 onChange={(e) => setCurrency(e.target.value)}
                 style={{
                   padding: "6px 8px", borderRadius: "var(--radius-sm)",
-                  border: "0.5px solid var(--rule)", fontSize: 13, background: "var(--bg)",
+                  border: "0.5px solid var(--rule)", fontSize: 13, background: "var(--bg)", color: "var(--ink)",
                 }}
               >
                 {CURRENCIES.map((c) => (
@@ -226,21 +247,13 @@ export default function AddAssetScreen({ onClose, editingAsset }) {
                 ))}
               </select>
             </div>
-          </div>
+          </SectionCard>
         ) : (
-          <div
-            style={{
-              background: "var(--bg-card)",
-              borderRadius: "var(--radius-lg)",
-              border: "0.5px solid var(--rule)",
-              padding: "1rem 1.25rem",
-              marginBottom: 12,
-            }}
+          <SectionCard
+            accent="var(--lavi)"
+            icon="ti-chart-candle"
+            title={selectedType.priceSource === "crypto" ? "Cryptomonnaie" : "Action / ETF"}
           >
-            <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>
-              {selectedType.priceSource === "crypto" ? "Cryptomonnaie" : "Action / ETF"}
-            </p>
-
             {apiLabel ? (
               <div
                 style={{
@@ -268,11 +281,7 @@ export default function AddAssetScreen({ onClose, editingAsset }) {
                       ? t("asset_search_placeholder_crypto")
                       : t("asset_search_placeholder_stock")
                   }
-                  style={{
-                    width: "100%", padding: "8px 0", border: "none",
-                    borderBottom: "0.5px solid var(--rule)", background: "transparent",
-                    fontSize: 14, outline: "none",
-                  }}
+                  style={bareInput}
                 />
                 {searching && (
                   <i
@@ -317,62 +326,37 @@ export default function AddAssetScreen({ onClose, editingAsset }) {
               </div>
             )}
 
-            <p style={{ fontSize: 12, color: "var(--ink-2)", margin: "12px 0 6px" }}>{t("asset_quantity_label")}</p>
+            <p style={{ fontSize: 12, color: "var(--ink-2)", margin: "14px 0 4px" }}>{t("asset_quantity_label")}</p>
             <input
               type="number"
               inputMode="decimal"
               value={quantity}
               onChange={(e) => setQuantity(e.target.value)}
               placeholder="0"
-              style={{
-                width: "100%", padding: "8px 0", border: "none",
-                borderBottom: "0.5px solid var(--rule)", background: "transparent",
-                fontSize: 18, outline: "none",
-              }}
+              style={{ ...bareInput, fontSize: 18 }}
             />
             <p style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 8 }}>
               <i className="ti ti-info-circle" style={{ fontSize: 12, verticalAlign: -1 }} aria-hidden="true" /> {t("asset_auto_value_hint")}
             </p>
-          </div>
+          </SectionCard>
         )}
 
         {/* Propriété / partage */}
         {members.length > 0 && (
-          <div
-            style={{
-              background: "var(--bg-card)",
-              borderRadius: "var(--radius-lg)",
-              border: "0.5px solid var(--rule)",
-              padding: "1rem 1.25rem",
-              marginBottom: 12,
-            }}
-          >
-            <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 8 }}>{t("asset_ownership_label")}</p>
+          <SectionCard accent="var(--lavi)" icon="ti-users" title={t("asset_ownership_label")}>
             <div style={{ display: "flex", gap: 6, marginBottom: ownership === "shared" ? 14 : 0 }}>
               {members.map((m) => (
                 <button
                   key={getMemberKey(m)}
                   onClick={() => setOwnership(getMemberKey(m))}
-                  style={{
-                    flex: 1, padding: 8, borderRadius: "var(--radius-md)",
-                    border: ownership === getMemberKey(m) ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
-                    background: ownership === getMemberKey(m) ? "var(--sky-light)" : "var(--bg)",
-                    color: ownership === getMemberKey(m) ? "var(--sky)" : "var(--ink)",
-                    fontSize: 13,
-                  }}
+                  style={{ ...segStyle(ownership === getMemberKey(m), "var(--sky)"), flex: 1 }}
                 >
                   {m.name}
                 </button>
               ))}
               <button
                 onClick={() => setOwnership("shared")}
-                style={{
-                  flex: 1, padding: 8, borderRadius: "var(--radius-md)",
-                  border: ownership === "shared" ? "0.5px solid var(--lavi)" : "0.5px solid var(--rule)",
-                  background: ownership === "shared" ? "var(--lavi-light)" : "var(--bg)",
-                  color: ownership === "shared" ? "var(--lavi)" : "var(--ink)",
-                  fontSize: 13,
-                }}
+                style={{ ...segStyle(ownership === "shared", "var(--lavi)"), flex: 1 }}
               >
                 {t("asset_shared")}
               </button>
@@ -403,43 +387,33 @@ export default function AddAssetScreen({ onClose, editingAsset }) {
                 }}
               />
             )}
-          </div>
+          </SectionCard>
         )}
+      </div>
 
+      {/* Enregistrer — collé en bas */}
+      <div
+        style={{
+          flexShrink: 0,
+          padding: "14px 20px calc(14px + env(safe-area-inset-bottom))",
+          background: "var(--bg)",
+          borderTop: "0.5px solid var(--rule)",
+        }}
+      >
         <button
           onClick={handleSave}
           disabled={busy || (!usesApi && !value) || (usesApi && (!quantity || !apiId))}
           style={{
-            width: "100%",
-            background: "var(--ink)",
-            color: "var(--bg)",
-            border: "none",
-            borderRadius: "var(--radius-lg)",
-            padding: 16,
-            fontSize: 15,
-            fontWeight: 500,
-            marginBottom: 10,
-            opacity: busy ? 0.5 : 1,
+            width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+            height: 50, borderRadius: "var(--radius-md)",
+            background: "var(--ink)", color: "var(--bg)", border: "none",
+            fontSize: 14.5, fontWeight: 600, fontFamily: "var(--font-display)", cursor: "pointer",
+            opacity: busy || (!usesApi && !value) || (usesApi && (!quantity || !apiId)) ? 0.5 : 1,
           }}
         >
+          <i className="ti ti-check" style={{ fontSize: 18 }} aria-hidden="true" />
           {busy ? t("tx_saving") : isEditing ? t("asset_update_button") : t("asset_save_button")}
         </button>
-
-        {isEditing && (
-          <button
-            onClick={handleDelete}
-            style={{
-              width: "100%",
-              background: "none",
-              border: "none",
-              color: "var(--red)",
-              fontSize: 14,
-              padding: 10,
-            }}
-          >
-            {t("asset_delete_button")}
-          </button>
-        )}
       </div>
     </div>
   );

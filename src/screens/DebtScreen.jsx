@@ -81,13 +81,12 @@ export default function DebtScreen() {
   }
 
   return (
-    <div style={{ padding: "1.5rem 1.25rem 6rem" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-        <h1 style={{ fontSize: 20 }}>{t("debt_title")}</h1>
+    <div style={{ padding: "1.25rem 1.25rem 6rem", maxWidth: 640, margin: "0 auto" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", marginBottom: 12 }}>
         <button
           onClick={() => setShowCurrencyPicker(!showCurrencyPicker)}
           style={{
-            padding: "4px 10px", borderRadius: "var(--radius-md)",
+            height: 30, padding: "0 10px", borderRadius: "var(--radius-md)",
             border: "0.5px solid var(--rule)", background: "var(--bg-card)",
             fontSize: 12, fontWeight: 500, display: "flex", alignItems: "center", gap: 4,
           }}
