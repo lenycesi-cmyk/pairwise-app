@@ -18,9 +18,8 @@ import GreetingHeader from "../components/GreetingHeader";
 import HeaderMenuButton from "../components/HeaderMenuButton";
 import { getMemberKey } from "../utils/members";
 import { useMediaQuery } from "../hooks/useMediaQuery";
-import { useWealthPrefs } from "../hooks/useDashboardPrefs";
+import { useWealthLayout } from "../hooks/useDashboardPrefs";
 import WidgetCanvas from "../components/WidgetCanvas";
-import { slotSpan12, BENTO_MAX_HEIGHT } from "../utils/bentoLayout";
 
 const COLOR_MAP = {
   tang: { text: "var(--tang)", bg: "var(--tang-light)" },
@@ -63,19 +62,15 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
   // clé d'un membre (part de ce membre). Mémorisé par type d'actif (comptes,
   // assurance vie…) puisque chaque catégorie a son propre filtre.
   const [scopeByType, setScopeByType] = useState({});
-  const { widgets: savedWealthWidgets, saveWidgets } = useWealthPrefs();
-  // « Répartition par membre » a été fusionné dans le widget « Patrimoine net » :
-  // on retire son id de la disposition (anciens layouts enregistrés compris).
-  const widgets = useMemo(
-    () => savedWealthWidgets.filter((w) => w.id !== "member_allocation"),
-    [savedWealthWidgets]
+  // Ids des types d'actifs réellement présents (chaque catégorie devient un widget
+  // déplaçable "asset_<typeId>" dans la grille bento) — mémorisé sur `assets`.
+  const assetTypeIds = useMemo(
+    () => ASSET_TYPES.filter((ty) => assets.some((a) => a.typeId === ty.id)).map((ty) => ty.id),
+    [assets]
   );
+  const { widgets, saveWidgets } = useWealthLayout(assetTypeIds);
 
   const currencySymbol = ALL_CURRENCIES.find((c) => c.code === displayCurrency)?.symbol || displayCurrency;
-
-  // Types d'actifs réellement présents (pour la grille bento : l'index sert au
-  // calcul de la largeur via slotSpan12, donc on filtre les types vides d'abord).
-  const shownAssetTypes = ASSET_TYPES.filter((type) => assets.some((a) => a.typeId === type.id));
 
   async function refreshPrices() {
     setRefreshing(true);
@@ -191,8 +186,11 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
     net_worth: t("wealth_net_worth"),
     evolution: t("wealth_evolution"),
     allocation: t("wealth_allocation"),
-    member_allocation: t("wealth_member_allocation"),
     calculator: t("wealth_calculator_cta"),
+    // Cartes d'actifs par type (widgets déplaçables "asset_<typeId>").
+    ...Object.fromEntries(
+      ASSET_TYPES.map((ty) => [`asset_${ty.id}`, language === "en" && ty.nameEn ? ty.nameEn : ty.name])
+    ),
   };
 
   // Contenu d'un widget personnalisable de l'onglet Patrimoine pour
@@ -318,7 +316,157 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
       );
     }
 
+    if (id.startsWith("asset_")) {
+      const type = ASSET_TYPES.find((ty) => `asset_${ty.id}` === id);
+      return type ? renderAssetTypeCard(type) : null;
+    }
+
     return null;
+  }
+
+  // Carte d'une catégorie d'actifs (Compte en banque, Assurance-vie…), rendue
+  // comme widget déplaçable dans la grille bento (id "asset_<typeId>"). Renvoie
+  // null si la catégorie est vide → le widget disparaît de la grille.
+  function renderAssetTypeCard(type) {
+    const typeAssets = assets.filter((a) => a.typeId === type.id);
+    if (typeAssets.length === 0) return null;
+    const colors = COLOR_MAP[type.color] || COLOR_MAP.sky;
+    return (
+      <WidgetCard
+        icon={type.icon}
+        accent={type.isLiability ? "pink" : "mint"}
+        title={language === "en" && type.nameEn ? type.nameEn : type.name}
+        flush
+      >
+        <div>
+          {/* Total de la catégorie : sur les comptes en banque toujours,
+              et sur toute autre catégorie contenant au moins deux entrées.
+              Filtrable par membre (Famille / A / B) quand la catégorie
+              comporte des entrées pour plus d'un membre. */}
+          {(type.id === "account" || typeAssets.length >= 2) && (() => {
+            const scope = scopeByType[type.id] ?? null;
+            const catTotal = typeAssets.reduce(
+              (s, a) => s + (scope === null ? getAssetValue(a) : getMemberShare(a, scope)),
+              0
+            );
+            // Membres réellement représentés dans la catégorie (un actif
+            // "partagé" compte pour les deux) → pills seulement si >1.
+            const owners = new Set();
+            for (const a of typeAssets) {
+              if (a.ownership === "shared") members.forEach((m) => owners.add(getMemberKey(m)));
+              else if (a.ownership) owners.add(a.ownership);
+            }
+            const spansMembers = members.length > 1 && members.filter((m) => owners.has(getMemberKey(m))).length > 1;
+            const scopes = [{ key: null, label: t("bank_scope_family") }, ...members.map((m) => ({ key: getMemberKey(m), label: m.name }))];
+            const label = type.id === "account" ? t("bank_total_available") : t("wealth_category_total");
+            return (
+              <div style={{ padding: "12px 14px", borderBottom: "0.5px solid var(--rule)" }}>
+                <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10 }}>
+                  <span style={{ fontSize: 13.5, color: "var(--ink-2)", fontWeight: 600 }}>{label}</span>
+                  <span style={{ fontSize: 18, fontWeight: 700, color: type.isLiability ? "var(--red)" : "var(--ink)" }}>
+                    {type.isLiability ? "−" : ""}{formatAmount(catTotal)} {currencySymbol}
+                  </span>
+                </div>
+                {spansMembers && (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
+                    {scopes.map((s) => (
+                      <button
+                        key={s.key ?? "family"}
+                        onClick={() => setScopeByType((prev) => ({ ...prev, [type.id]: s.key }))}
+                        style={{
+                          padding: "3px 11px", borderRadius: 99, fontSize: 11.5,
+                          border: scope === s.key ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
+                          background: scope === s.key ? "var(--sky-light)" : "var(--bg)",
+                          color: scope === s.key ? "var(--sky)" : "var(--ink-2)",
+                          fontWeight: scope === s.key ? 500 : 400,
+                        }}
+                      >
+                        {s.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+          {typeAssets.map((asset, i) => {
+            const val = getAssetValue(asset);
+            // API-priced asset with no live price and no stored value: price couldn't be fetched
+            const priceUnavailable =
+              !!asset.apiId && livePrices[asset.id] === undefined && !Number.isFinite(asset.value);
+            const ownerLabel =
+              asset.ownership === "shared"
+                ? "Partagé"
+                : members.find((m) => getMemberKey(m) === asset.ownership)?.name || "";
+
+            return (
+              <div
+                key={asset.id}
+                style={{ borderBottom: i === typeAssets.length - 1 ? "none" : "0.5px solid var(--rule)" }}
+              >
+                <div
+                  onClick={() => setEditingAsset(asset)}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    padding: "12px 14px",
+                    cursor: "pointer",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 36, height: 36, borderRadius: "var(--radius-md)",
+                      background: colors.bg, display: "flex",
+                      alignItems: "center", justifyContent: "center", flexShrink: 0,
+                    }}
+                  >
+                    <i className={`ti ${type.icon}`} style={{ fontSize: 16, color: colors.text }} aria-hidden="true" />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: 12 }}>{asset.name}</p>
+                    <p style={{ fontSize: 10, color: "var(--ink-3)" }}>
+                      {asset.apiId && `${asset.quantity} ${asset.apiId.toUpperCase()} · `}
+                      {ownerLabel}
+                      {asset.ownership === "shared" && ` (${asset.sharePct ?? 50}/${100 - (asset.sharePct ?? 50)})`}
+                    </p>
+                  </div>
+                  {/* Bouton compact "Connecter" entre le nom et le solde
+                      (seulement tant que la banque n'est pas connectée). */}
+                  {type.id === "account" && !asset.bankConnected && (
+                    <ConnectBankButton asset={asset} compact onSuccess={() => setEditingAsset(null)} />
+                  )}
+                  <div style={{ textAlign: "right" }}>
+                    {priceUnavailable ? (
+                      <p style={{ fontSize: 13, fontWeight: 500, color: "var(--ink-3)" }} title={t("wealth_price_unavailable")}>
+                        {t("wealth_price_unavailable_short")}
+                      </p>
+                    ) : (
+                      <p style={{ fontSize: 12, fontWeight: 500, color: type.isLiability ? "var(--red)" : "var(--ink)" }}>
+                        {type.isLiability ? "−" : ""}{formatAmount(val)} {currencySymbol}
+                      </p>
+                    )}
+                    {liveChanges[asset.id] !== undefined && (
+                      <p style={{ fontSize: 11, color: liveChanges[asset.id] >= 0 ? "var(--sage)" : "var(--tang)", marginTop: 1 }}>
+                        {liveChanges[asset.id] >= 0 ? "+" : ""}{liveChanges[asset.id].toFixed(2)}%
+                      </p>
+                    )}
+                  </div>
+                </div>
+                {type.id === "account" && asset.bankConnected && (
+                  <div style={{ paddingLeft: 46, paddingRight: 14, paddingBottom: 10 }}>
+                    <ConnectBankButton
+                      asset={asset}
+                      onSuccess={() => setEditingAsset(null)}
+                    />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </WidgetCard>
+    );
   }
 
   if (editingAsset) {
@@ -432,154 +580,6 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
         bento
       />
 
-      {/* Liste des actifs par type — même grille bento que les widgets (3 par
-          ligne, taille selon la position) sur desktop ; empilement sur mobile. */}
-      <div className={isDesktop ? "bento-grid" : ""} style={isDesktop ? { marginTop: 14 } : undefined}>
-
-      {shownAssetTypes.map((type, typeIdx) => {
-        const typeAssets = assets.filter((a) => a.typeId === type.id);
-        const colors = COLOR_MAP[type.color] || COLOR_MAP.sky;
-
-        return (
-          <WidgetCard
-            key={type.id}
-            icon={type.icon}
-            accent={type.isLiability ? "pink" : "mint"}
-            title={language === "en" && type.nameEn ? type.nameEn : type.name}
-            flush
-            style={isDesktop ? { gridColumn: `span ${slotSpan12(typeIdx)}`, maxHeight: BENTO_MAX_HEIGHT } : { marginBottom: 16 }}
-          >
-            <div>
-              {/* Total de la catégorie : sur les comptes en banque toujours,
-                  et sur toute autre catégorie contenant au moins deux entrées.
-                  Filtrable par membre (Famille / A / B) quand la catégorie
-                  comporte des entrées pour plus d'un membre. */}
-              {(type.id === "account" || typeAssets.length >= 2) && (() => {
-                const scope = scopeByType[type.id] ?? null;
-                const catTotal = typeAssets.reduce(
-                  (s, a) => s + (scope === null ? getAssetValue(a) : getMemberShare(a, scope)),
-                  0
-                );
-                // Membres réellement représentés dans la catégorie (un actif
-                // "partagé" compte pour les deux) → pills seulement si >1.
-                const owners = new Set();
-                for (const a of typeAssets) {
-                  if (a.ownership === "shared") members.forEach((m) => owners.add(getMemberKey(m)));
-                  else if (a.ownership) owners.add(a.ownership);
-                }
-                const spansMembers = members.length > 1 && members.filter((m) => owners.has(getMemberKey(m))).length > 1;
-                const scopes = [{ key: null, label: t("bank_scope_family") }, ...members.map((m) => ({ key: getMemberKey(m), label: m.name }))];
-                const label = type.id === "account" ? t("bank_total_available") : t("wealth_category_total");
-                return (
-                  <div style={{ padding: "12px 14px", borderBottom: "0.5px solid var(--rule)" }}>
-                    <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10 }}>
-                      <span style={{ fontSize: 13.5, color: "var(--ink-2)", fontWeight: 600 }}>{label}</span>
-                      <span style={{ fontSize: 18, fontWeight: 700, color: type.isLiability ? "var(--red)" : "var(--ink)" }}>
-                        {type.isLiability ? "−" : ""}{formatAmount(catTotal)} {currencySymbol}
-                      </span>
-                    </div>
-                    {spansMembers && (
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
-                        {scopes.map((s) => (
-                          <button
-                            key={s.key ?? "family"}
-                            onClick={() => setScopeByType((prev) => ({ ...prev, [type.id]: s.key }))}
-                            style={{
-                              padding: "3px 11px", borderRadius: 99, fontSize: 11.5,
-                              border: scope === s.key ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
-                              background: scope === s.key ? "var(--sky-light)" : "var(--bg)",
-                              color: scope === s.key ? "var(--sky)" : "var(--ink-2)",
-                              fontWeight: scope === s.key ? 500 : 400,
-                            }}
-                          >
-                            {s.label}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
-              {typeAssets.map((asset, i) => {
-                const val = getAssetValue(asset);
-                // API-priced asset with no live price and no stored value: price couldn't be fetched
-                const priceUnavailable =
-                  !!asset.apiId && livePrices[asset.id] === undefined && !Number.isFinite(asset.value);
-                const ownerLabel =
-                  asset.ownership === "shared"
-                    ? "Partagé"
-                    : members.find((m) => getMemberKey(m) === asset.ownership)?.name || "";
-
-                return (
-                  <div
-                    key={asset.id}
-                    style={{ borderBottom: i === typeAssets.length - 1 ? "none" : "0.5px solid var(--rule)" }}
-                  >
-                    <div
-                      onClick={() => setEditingAsset(asset)}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 10,
-                        padding: "12px 14px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: 36, height: 36, borderRadius: "var(--radius-md)",
-                          background: colors.bg, display: "flex",
-                          alignItems: "center", justifyContent: "center", flexShrink: 0,
-                        }}
-                      >
-                        <i className={`ti ${type.icon}`} style={{ fontSize: 16, color: colors.text }} aria-hidden="true" />
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontSize: 12 }}>{asset.name}</p>
-                        <p style={{ fontSize: 10, color: "var(--ink-3)" }}>
-                          {asset.apiId && `${asset.quantity} ${asset.apiId.toUpperCase()} · `}
-                          {ownerLabel}
-                          {asset.ownership === "shared" && ` (${asset.sharePct ?? 50}/${100 - (asset.sharePct ?? 50)})`}
-                        </p>
-                      </div>
-                      {/* Bouton compact "Connecter" entre le nom et le solde
-                          (seulement tant que la banque n'est pas connectée). */}
-                      {type.id === "account" && !asset.bankConnected && (
-                        <ConnectBankButton asset={asset} compact onSuccess={() => setEditingAsset(null)} />
-                      )}
-                      <div style={{ textAlign: "right" }}>
-                        {priceUnavailable ? (
-                          <p style={{ fontSize: 13, fontWeight: 500, color: "var(--ink-3)" }} title={t("wealth_price_unavailable")}>
-                            {t("wealth_price_unavailable_short")}
-                          </p>
-                        ) : (
-                          <p style={{ fontSize: 12, fontWeight: 500, color: type.isLiability ? "var(--red)" : "var(--ink)" }}>
-                            {type.isLiability ? "−" : ""}{formatAmount(val)} {currencySymbol}
-                          </p>
-                        )}
-                        {liveChanges[asset.id] !== undefined && (
-                          <p style={{ fontSize: 11, color: liveChanges[asset.id] >= 0 ? "var(--sage)" : "var(--tang)", marginTop: 1 }}>
-                            {liveChanges[asset.id] >= 0 ? "+" : ""}{liveChanges[asset.id].toFixed(2)}%
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    {type.id === "account" && asset.bankConnected && (
-                      <div style={{ paddingLeft: 46, paddingRight: 14, paddingBottom: 10 }}>
-                        <ConnectBankButton
-                          asset={asset}
-                          onSuccess={() => setEditingAsset(null)}
-                        />
-                      </div>
-                    )}
-                  </div>
-                );
-            })}
-            </div>
-          </WidgetCard>
-        );
-      })}
-
       {assets.length === 0 && (
         <p style={{ fontSize: 14, color: "var(--ink-3)", textAlign: "center", padding: "3rem 0" }}>
           {t("wealth_no_assets")}
@@ -587,7 +587,6 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
           {t("wealth_add_first_asset")}
         </p>
       )}
-      </div>
     </div>
   );
 }

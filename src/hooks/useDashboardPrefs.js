@@ -179,6 +179,57 @@ export function useWealthPrefs() {
   return useWidgetPrefs("wealthLayout", DEFAULT_WEALTH_WIDGETS);
 }
 
+// Widgets « fixes » de l'onglet Patrimoine (hors cartes d'actifs par type).
+const FIXED_WEALTH_WIDGETS = ["net_worth", "evolution", "allocation", "calculator"];
+
+// Layout de l'onglet Patrimoine PAR UTILISATEUR, incluant les cartes d'actifs par
+// type comme widgets déplaçables/masquables (id = "asset_<typeId>"), au même titre
+// que les widgets fixes. Même mécanique que useBudgetLayout : on compose
+// [widgets fixes, ...cartes d'actifs présentes] et on fusionne avec la disposition
+// enregistrée (users/{uid}.wealthLayout) — nouveaux ids ajoutés (visibles) à la
+// fin, ids disparus retirés. Rétro-compatible avec l'ancien format (mêmes ids
+// pour les widgets fixes ; member_allocation, absent de la base, est ignoré).
+export function useWealthLayout(assetTypeIds) {
+  const { user } = useAuth();
+  const [saved, setSaved] = useState(null);
+
+  useEffect(() => {
+    if (!user) return;
+    getDoc(doc(db, "users", user.uid)).then((snap) => {
+      setSaved(snap.exists() && Array.isArray(snap.data().wealthLayout) ? snap.data().wealthLayout : []);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.uid]);
+
+  const idsKey = assetTypeIds.join(",");
+  const widgets = useMemo(() => {
+    const base = [...FIXED_WEALTH_WIDGETS, ...assetTypeIds.map((id) => `asset_${id}`)];
+    const baseSet = new Set(base);
+    const ordered = [];
+    const seen = new Set();
+    for (const w of saved || []) {
+      if (baseSet.has(w.id) && !seen.has(w.id)) {
+        ordered.push({ id: w.id, visible: w.visible !== false });
+        seen.add(w.id);
+      }
+    }
+    for (const id of base) if (!seen.has(id)) ordered.push({ id, visible: true });
+    return ordered;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [saved, idsKey]);
+
+  const saveWidgets = useCallback(
+    (newWidgets) => {
+      setSaved(newWidgets);
+      if (user) setDoc(doc(db, "users", user.uid), { wealthLayout: newWidgets }, { merge: true });
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [user?.uid]
+  );
+
+  return { widgets, saveWidgets, loaded: saved !== null };
+}
+
 export function useBudgetPrefs() {
   return useWidgetPrefs("budgetLayout", DEFAULT_BUDGET_WIDGETS);
 }
