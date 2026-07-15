@@ -1143,7 +1143,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
       <div
         style={{
           flexShrink: 0, display: "flex", alignItems: "center", gap: 12,
-          padding: "14px 20px", background: "var(--bg-card)",
+          padding: "14px 20px", background: "var(--bg)",
           borderBottom: "0.5px solid var(--rule)", zIndex: 10,
         }}
       >
@@ -1221,7 +1221,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
         style={{
           flexShrink: 0,
           padding: "14px 20px calc(14px + env(safe-area-inset-bottom))",
-          background: "var(--bg-card)",
+          background: "var(--bg)",
           borderTop: "0.5px solid var(--rule)",
         }}
       >

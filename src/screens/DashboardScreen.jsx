@@ -69,18 +69,13 @@ const INSIGHT_TONE_COLOR = {
   neutral: "var(--sky)",
 };
 
-// Desktop-only widgets pull in recharts, which is deliberately kept out of
-// the eager bundle (Dashboard itself loads eagerly — see CLAUDE.md/
-// vite.config.js manualChunks) — lazy-loaded here so mobile users, who
-// never see these widgets, never pay for the recharts chunk either.
+// Recharts-backed widgets are deliberately kept out of the eager bundle
+// (Dashboard itself loads eagerly — see CLAUDE.md/vite.config.js manualChunks)
+// and lazy-loaded here. They now render on mobile too (same widgets as desktop),
+// but stay lazy so the recharts chunk only loads once such a widget is shown.
 const AllocationChart = lazy(() => import("../components/AllocationChart"));
 const IncomeExpenseTrendChart = lazy(() => import("../components/IncomeExpenseTrendChart"));
 const HealthScoreWidget = lazy(() => import("../components/HealthScoreWidget"));
-
-// Widgets that only make sense with more screen room — hidden entirely on
-// mobile (not offered in the customize picker there either), shown by
-// default on desktop.
-const DESKTOP_ONLY_WIDGETS = ["wealth_allocation", "reports_trend"];
 
 const LONG_PRESS_DELAY = 500;
 
@@ -808,7 +803,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
         return (
           <WidgetCard icon="ti-chart-donut" accent="amber" title={t("widget_wealth_allocation")} bodyStyle={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
             <Suspense fallback={<div className="skeleton" style={{ height: 110 }} />}>
-              <AllocationChart totalsByType={totalsByType} totalAssets={totalAssets} fill={isDesktop} />
+              <AllocationChart totalsByType={totalsByType} totalAssets={totalAssets} fill />
             </Suspense>
           </WidgetCard>
         );
@@ -863,9 +858,11 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
     );
   }
 
-  const displayList = isDesktop
-    ? activeWidgets
-    : activeWidgets.filter((w) => !DESKTOP_ONLY_WIDGETS.includes(w.id));
+  // Parité mobile/desktop : mêmes widgets partout (mobile inclus). Le layout
+  // reste un empilement 1 colonne sur mobile (pas de bento — cf. bentoEnabled),
+  // mais l'Accueil montre désormais exactement les mêmes cartes que le desktop,
+  // y compris Répartition du patrimoine et Tendance (anciennement desktop-only).
+  const displayList = activeWidgets;
   // Seuls les widgets visibles occupent la grille (et donc un emplacement dont
   // la taille dépend du rang) ; les masqués passent dans le tiroir d'édition.
   const gridWidgets = displayList.filter((w) => w.visible);
