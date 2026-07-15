@@ -16,6 +16,42 @@ import TagManager from "../components/TagManager";
 import { dedupeTags, extractTagsFromText, usedTags } from "../utils/tags";
 import { parseNaturalTransaction } from "../utils/parseNaturalTransaction";
 import QuickAddBar from "../components/QuickAddBar";
+import { useMediaQuery } from "../hooks/useMediaQuery";
+
+// Carte de section « 1B Chaleureux » : en-tête pastille (icône teintée + titre),
+// identique au WidgetCard du Dashboard. `accent` est une couleur token
+// (ex. "var(--tang)"). La pastille se remplit au survol via .pw-chip/.pw-chip-host.
+function SectionCard({ accent, icon, title, extra, children, style }) {
+  return (
+    <div
+      className="pw-chip-host"
+      style={{ background: "var(--bg-card)", border: "0.5px solid var(--rule)", borderRadius: "var(--radius-lg)", padding: 16, ...style }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <span className="pw-chip" style={{ width: 32, height: 32, borderRadius: 10, flexShrink: 0, background: `color-mix(in srgb, ${accent} 15%, transparent)`, "--pw-chip": accent }}>
+          <i className={`ti ${icon}`} style={{ fontSize: 16, color: accent }} aria-hidden="true" />
+        </span>
+        <span style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 13.5, color: "var(--ink)" }}>{title}</span>
+        {extra}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+// Style partagé des boutons de segment (type, membres, split, fréquence) :
+// bord 0.5px, fond teinté + texte couleur d'accent quand sélectionné, neutre sinon.
+function segStyle(selected, accent) {
+  return {
+    display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+    height: 40, borderRadius: "var(--radius-md)", cursor: "pointer",
+    border: `0.5px solid ${selected ? accent : "var(--rule)"}`,
+    background: selected ? `color-mix(in srgb, ${accent} 13%, transparent)` : "var(--bg-card)",
+    color: selected ? accent : "var(--ink-3)",
+    fontSize: 13, fontWeight: selected ? 600 : 400,
+    transition: "background-color .18s ease, color .18s ease, border-color .18s ease",
+  };
+}
 
 function todayISO() {
   const d = new Date();
@@ -51,6 +87,8 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
     language,
   } = useFinance();
   const { user } = useAuth();
+  // Desktop large → corps en 2 colonnes (même breakpoint que le modal élargi).
+  const wide = useMediaQuery("(min-width: 1024px)");
 
   const isEditing = !!editingTx;
   const initialCurrency = isEditing
@@ -425,30 +463,698 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
     }
   }
 
-  return (
-    <div
-      className="app-modal"
-      style={{
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
-      {/* En-tête sticky : fermer sans remonter tout en haut */}
-      <div
+  // ── Cartes de section (motif « en-tête pastille » du Dashboard) ──────────
+  const montantCard = (
+    <SectionCard accent="var(--tang)" icon="ti-coin" title={t("tx_amount")} style={wide ? { minHeight: 150 } : undefined}>
+      <div style={{ marginTop: 14, display: "flex", alignItems: "center", gap: 10 }}>
+        <input
+          type="number"
+          inputMode="decimal"
+          placeholder="0"
+          value={amount}
+          onChange={(e) => { amountAutoRef.current = false; setAmount(e.target.value); }}
+          style={{
+            flex: 1, minWidth: 0, width: "100%", border: "none", outline: "none", background: "transparent",
+            fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 38, lineHeight: 1, letterSpacing: "-0.02em",
+            color: amount ? "var(--ink)" : "var(--ink-3)", fontVariantNumeric: "tabular-nums",
+          }}
+        />
+        <button
+          onClick={() => { setShowCurrencyPicker(!showCurrencyPicker); setManageCurrencies(false); setAddingCurrency(false); setCurrencySearch(""); }}
+          style={{
+            flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 4, height: 34, padding: "0 12px", borderRadius: 99,
+            background: "color-mix(in srgb, var(--tang) 12%, transparent)", border: "0.5px solid color-mix(in srgb, var(--tang) 30%, transparent)",
+            fontSize: 13, fontWeight: 600, color: "var(--tang)", cursor: "pointer",
+          }}
+        >
+          {currency} <i className="ti ti-chevron-down" style={{ fontSize: 14 }} aria-hidden="true" />
+        </button>
+        {receiptPreview ? (
+          <div style={{ position: "relative", flexShrink: 0 }}>
+            <img
+              src={receiptPreview}
+              alt={t("tx_receipt")}
+              style={{ width: 34, height: 34, objectFit: "cover", borderRadius: 10, border: "0.5px solid var(--rule)", display: "block" }}
+            />
+            <button
+              onClick={removeReceipt}
+              aria-label="Retirer le reçu"
+              style={{ position: "absolute", top: -6, right: -6, width: 18, height: 18, borderRadius: "50%", background: "var(--ink)", border: "2px solid var(--bg-card)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+            >
+              <i className="ti ti-x" style={{ fontSize: 9, color: "var(--bg)" }} aria-hidden="true" />
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => receiptInputRef.current?.click()}
+            title={t("tx_receipt")}
+            aria-label={t("tx_add_photo")}
+            style={{ flexShrink: 0, width: 34, height: 34, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", background: "color-mix(in srgb, var(--ink) 6%, transparent)", border: "none", color: "var(--ink-3)", cursor: "pointer" }}
+          >
+            <i className="ti ti-camera" style={{ fontSize: 17 }} aria-hidden="true" />
+          </button>
+        )}
+        <input
+          ref={receiptInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={handleReceiptSelect}
+          style={{ display: "none" }}
+        />
+      </div>
+
+      {showCurrencyPicker && !manageCurrencies && (
+        <div style={{ marginTop: 12, display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "center", alignItems: "center" }}>
+          {currencyList.map((c) => (
+            <button
+              key={c.code}
+              onClick={() => { setCurrency(c.code); setShowCurrencyPicker(false); }}
+              style={{
+                padding: "6px 10px",
+                borderRadius: "var(--radius-md)",
+                border: currency === c.code ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
+                background: currency === c.code ? "var(--sky-light)" : "var(--bg)",
+                color: currency === c.code ? "var(--sky)" : "var(--ink)",
+                fontSize: 12,
+              }}
+            >
+              {c.code}
+            </button>
+          ))}
+          <button
+            onClick={() => setManageCurrencies(true)}
+            aria-label={t("tx_manage_currencies")}
+            style={{
+              padding: "6px 10px",
+              borderRadius: "var(--radius-md)",
+              border: "0.5px dashed var(--rule)",
+              background: "var(--bg)",
+              color: "var(--ink-3)",
+              fontSize: 12,
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+            }}
+          >
+            <i className="ti ti-adjustments" style={{ fontSize: 13 }} aria-hidden="true" />
+            {t("tx_manage_currencies")}
+          </button>
+        </div>
+      )}
+
+      {showCurrencyPicker && manageCurrencies && (
+        <div style={{ marginTop: 12 }}>
+          <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 8, textAlign: "center" }}>
+            {t("tx_manage_currencies_hint")}
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {offeredCurrencies.map((c) => {
+              const isDefault = c.code === defaultCurrency;
+              return (
+                <div
+                  key={c.code}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 8,
+                    padding: "10px 12px",
+                    borderRadius: "var(--radius-md)",
+                    border: "0.5px solid var(--rule)",
+                    background: "var(--bg)",
+                  }}
+                >
+                  <span style={{ fontSize: 13, color: "var(--ink)", textAlign: "left" }}>
+                    {c.symbol} {c.code} · {c.name}
+                  </span>
+                  {isDefault ? (
+                    <span style={{ fontSize: 11, color: "var(--ink-3)", flexShrink: 0 }}>{t("tx_currency_default")}</span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => toggleEnabledCurrency(c.code)}
+                      aria-label={t("common_delete")}
+                      style={{ background: "none", border: "none", color: "var(--ink-3)", display: "flex", alignItems: "center", flexShrink: 0 }}
+                    >
+                      <i className="ti ti-x" style={{ fontSize: 15 }} aria-hidden="true" />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {!addingCurrency ? (
+            <button
+              type="button"
+              onClick={() => { setAddingCurrency(true); setCurrencySearch(""); }}
+              style={{
+                marginTop: 8, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                padding: "10px 12px", borderRadius: "var(--radius-md)", border: "0.5px dashed var(--sky)",
+                background: "var(--bg)", color: "var(--sky)", fontSize: 13, fontWeight: 500,
+              }}
+            >
+              <i className="ti ti-plus" style={{ fontSize: 14 }} aria-hidden="true" />
+              {t("tx_add_currency")}
+            </button>
+          ) : (
+            <div style={{ marginTop: 8 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                <input
+                  autoFocus
+                  type="text"
+                  value={currencySearch}
+                  onChange={(e) => setCurrencySearch(e.target.value)}
+                  placeholder={t("tx_search_currency")}
+                  style={{
+                    flex: 1, padding: "10px 12px", borderRadius: "var(--radius-md)",
+                    border: "0.5px solid var(--rule)", fontSize: 13, outline: "none",
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => { setAddingCurrency(false); setCurrencySearch(""); }}
+                  aria-label={t("common_cancel")}
+                  style={{
+                    flexShrink: 0, width: 34, height: 34, borderRadius: "var(--radius-md)",
+                    border: "0.5px solid var(--rule)", background: "var(--bg)", color: "var(--ink-3)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                  }}
+                >
+                  <i className="ti ti-x" style={{ fontSize: 15 }} aria-hidden="true" />
+                </button>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 220, overflowY: "auto" }}>
+                {addableCurrencies.map((c) => (
+                  <button
+                    type="button"
+                    key={c.code}
+                    onClick={() => toggleEnabledCurrency(c.code)}
+                    style={{
+                      display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
+                      padding: "10px 12px", borderRadius: "var(--radius-md)", border: "0.5px solid var(--rule)",
+                      background: "var(--bg)", cursor: "pointer",
+                    }}
+                  >
+                    <span style={{ fontSize: 13, color: "var(--ink)", textAlign: "left" }}>
+                      {c.symbol} {c.code} · {c.name}
+                    </span>
+                    <i className="ti ti-plus" style={{ fontSize: 14, color: "var(--sky)" }} aria-hidden="true" />
+                  </button>
+                ))}
+                {addableCurrencies.length === 0 && (
+                  <p style={{ fontSize: 12, color: "var(--ink-3)", textAlign: "center", padding: "8px 0" }}>
+                    {t("tx_no_currency_found")}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+          <div style={{ display: "flex", justifyContent: "center", marginTop: 10 }}>
+            <button
+              onClick={() => { setManageCurrencies(false); setAddingCurrency(false); setCurrencySearch(""); }}
+              style={{
+                background: "var(--ink)", color: "var(--bg)", border: "none",
+                borderRadius: "var(--radius-md)", padding: "6px 16px", fontSize: 13, fontWeight: 500,
+              }}
+            >
+              {t("dashboard_done")}
+            </button>
+          </div>
+        </div>
+      )}
+    </SectionCard>
+  );
+
+  const descriptionCard = (
+    <SectionCard accent="var(--sage)" icon="ti-align-left" title={t("tx_description")}>
+      <input
+        type="text"
+        value={description}
+        onChange={(e) => handleDescriptionChange(e.target.value)}
+        onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+        placeholder={t("tx_description_optional")}
         style={{
-          flexShrink: 0,
-          display: "flex",
-          alignItems: "center",
-          padding: "1rem 1.25rem",
-          background: "var(--bg)",
-          borderBottom: "0.5px solid var(--rule)",
-          zIndex: 10,
+          width: "100%", marginTop: 12, padding: "8px 0", border: "none",
+          borderBottom: "0.5px solid var(--rule)", background: "transparent",
+          fontSize: 14, outline: "none",
+        }}
+      />
+      {suggestions.length > 0 && (
+        <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 2 }}>
+          {suggestions.map((s) => {
+            const cat = categories.find((c) => c.id === s.categoryId);
+            return (
+              <button
+                key={s.description}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => pickSuggestion(s)}
+                style={{
+                  display: "flex", alignItems: "center", gap: 8,
+                  padding: "8px 6px", borderRadius: "var(--radius-sm)",
+                  border: "none", background: "var(--bg)",
+                  textAlign: "left", cursor: "pointer",
+                }}
+              >
+                <i className="ti ti-history" style={{ fontSize: 14, color: "var(--ink-3)", flexShrink: 0 }} aria-hidden="true" />
+                <span style={{ fontSize: 13, flex: 1, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  {s.description}
+                </span>
+                {cat && (
+                  <span style={{ fontSize: 11, color: "var(--ink-3)", display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+                    <i className={`ti ${cat.icon}`} style={{ fontSize: 13 }} aria-hidden="true" />
+                    {catName(cat)}{s.subcategory ? ` · ${tSubName(s.subcategory, cat.id)}` : ""}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </SectionCard>
+  );
+
+  const categoryCard = (
+    <SectionCard accent="var(--sky)" icon="ti-category" title={t("tx_category")}>
+      {/* Champ sélectionné (trigger) */}
+      <div
+        onClick={() => setShowCatPicker(!showCatPicker)}
+        style={{
+          marginTop: 12, display: "flex", alignItems: "center", gap: 9, height: 44, padding: "0 13px",
+          borderRadius: "var(--radius-md)", cursor: "pointer",
+          background: selectedCategory ? "color-mix(in srgb, var(--sky) 12%, transparent)" : "var(--bg-card)",
+          border: `0.5px solid ${selectedCategory ? "var(--sky)" : "var(--rule)"}`,
         }}
       >
-        <button onClick={onClose} aria-label="Fermer" style={{ background: "none", border: "none", display: "flex" }}>
-          <i className="ti ti-x" style={{ fontSize: 20 }} aria-hidden="true" />
+        {selectedCategory ? (
+          <>
+            <i className={`ti ${selectedCategory.icon}`} style={{ fontSize: 17, color: "var(--sky)", flexShrink: 0 }} aria-hidden="true" />
+            <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, color: "var(--sky)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              {catName(selectedCategory)}
+            </span>
+          </>
+        ) : (
+          <span style={{ flex: 1, fontSize: 14, color: "var(--ink-3)" }}>{t("tx_choose_category")}</span>
+        )}
+        <i className={`ti ti-chevron-${showCatPicker ? "up" : "down"}`} style={{ fontSize: 16, color: selectedCategory ? "var(--sky)" : "var(--ink-3)", flexShrink: 0 }} aria-hidden="true" />
+      </div>
+
+      {showCatPicker && (
+        <div style={{ marginTop: 8, border: "0.5px solid var(--rule)", borderRadius: "var(--radius-md)", padding: 6, background: "var(--bg-card)" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2, maxHeight: 320, overflowY: "auto" }}>
+            {availableCategories.map((cat) => {
+              const sel = cat.id === categoryId;
+              return (
+                <div
+                  key={cat.id}
+                  onClick={() => selectCategory(cat)}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 9, height: 40, padding: "0 11px", cursor: "pointer",
+                    borderRadius: 8, minWidth: 0,
+                    background: sel ? "color-mix(in srgb, var(--sky) 12%, transparent)" : "transparent",
+                  }}
+                >
+                  <i className={`ti ${cat.icon}`} style={{ fontSize: 15, flexShrink: 0, color: sel ? "var(--sky)" : "var(--ink-3)" }} aria-hidden="true" />
+                  <span
+                    style={{
+                      fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                      color: sel ? "var(--sky)" : "var(--ink-2)", fontWeight: sel ? 600 : 400,
+                    }}
+                  >
+                    {catName(cat)}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+
+          {type === "expense" && (
+            !showNewCat ? (
+              <button
+                onClick={() => setShowNewCat(true)}
+                style={{
+                  marginTop: 6, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                  height: 40, borderRadius: "var(--radius-md)",
+                  background: "color-mix(in srgb, var(--sky) 10%, transparent)", border: "0.5px solid color-mix(in srgb, var(--sky) 30%, transparent)",
+                  fontSize: 13, fontWeight: 600, color: "var(--sky)", cursor: "pointer",
+                }}
+              >
+                <i className="ti ti-plus" style={{ fontSize: 16 }} aria-hidden="true" />
+                {t("tx_new_category")}
+              </button>
+            ) : (
+              <div style={{ padding: "8px 4px" }}>
+                <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 8 }}>
+                  <button
+                    onClick={() => setShowIconPicker(!showIconPicker)}
+                    aria-label="Choisir une icône et une couleur"
+                    style={{
+                      width: 36, height: 36, borderRadius: "var(--radius-md)",
+                      border: "0.5px solid var(--rule)",
+                      background: AVATAR_COLOR_PALETTE.find((c) => c.key === newCatColor)?.bg || "var(--bg)",
+                      color: AVATAR_COLOR_PALETTE.find((c) => c.key === newCatColor)?.text || "var(--ink)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <i className={`ti ${newCatIcon}`} style={{ fontSize: 16 }} aria-hidden="true" />
+                  </button>
+                  <input
+                    type="text"
+                    autoFocus
+                    placeholder="Nom de la catégorie"
+                    value={newCatName}
+                    onChange={(e) => setNewCatName(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleCreateCategory()}
+                    style={{
+                      flex: 1, border: "none", borderBottom: "0.5px solid var(--rule)",
+                      outline: "none", fontSize: 13, background: "transparent",
+                    }}
+                  />
+                  <button
+                    onClick={handleCreateCategory}
+                    style={{ background: "var(--ink)", color: "var(--bg)", border: "none", borderRadius: "var(--radius-sm)", padding: "4px 10px", fontSize: 12, flexShrink: 0 }}
+                  >
+                    OK
+                  </button>
+                </div>
+
+                {showIconPicker && (
+                  <>
+                    <div style={{ display: "flex", gap: 5, marginBottom: 8, flexWrap: "wrap" }}>
+                      {AVATAR_COLOR_PALETTE.map((c) => (
+                        <button
+                          key={c.key}
+                          onClick={() => setNewCatColor(c.key)}
+                          aria-label={c.key}
+                          style={{
+                            width: 22, height: 22, borderRadius: "50%",
+                            background: c.bg,
+                            border: newCatColor === c.key ? `2px solid ${c.text}` : "2px solid transparent",
+                          }}
+                        />
+                      ))}
+                    </div>
+                    <IconPicker
+                      selectedIcon={newCatIcon}
+                      onSelect={setNewCatIcon}
+                    />
+                  </>
+                )}
+              </div>
+            )
+          )}
+        </div>
+      )}
+
+      {/* Sous-catégorie — UI identique au menu Catégorie */}
+      {selectedCategory && (
+        <>
+          <div style={{ marginTop: 14, marginBottom: 8, fontSize: 11.5, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: "0.04em", fontWeight: 600 }}>
+            {t("tx_subcategory")}
+          </div>
+          <div
+            onClick={() => setShowSubPicker(!showSubPicker)}
+            style={{
+              display: "flex", alignItems: "center", gap: 9, height: 44, padding: "0 13px",
+              borderRadius: "var(--radius-md)", cursor: "pointer",
+              background: subcategory ? "color-mix(in srgb, var(--sky) 12%, transparent)" : "var(--bg-card)",
+              border: `0.5px solid ${subcategory ? "var(--sky)" : "var(--rule)"}`,
+            }}
+          >
+            <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: subcategory ? 600 : 400, color: subcategory ? "var(--sky)" : "var(--ink-3)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              {subcategory ? tSubName(subcategory, selectedCategory.id) : t("tx_choose_subcategory")}
+            </span>
+            <i className={`ti ti-chevron-${showSubPicker ? "up" : "down"}`} style={{ fontSize: 16, color: subcategory ? "var(--sky)" : "var(--ink-3)", flexShrink: 0 }} aria-hidden="true" />
+          </div>
+
+          {showSubPicker && (
+            <div style={{ marginTop: 8, border: "0.5px solid var(--rule)", borderRadius: "var(--radius-md)", padding: 6, background: "var(--bg-card)" }}>
+              {selectedCategory.subcategories.length > 0 && (
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2, maxHeight: 320, overflowY: "auto" }}>
+                  {selectedCategory.subcategories.map((s) => {
+                    const sel = subcategory === s;
+                    return (
+                      <div
+                        key={s}
+                        onClick={() => selectSubcategory(s)}
+                        style={{
+                          display: "flex", alignItems: "center", gap: 9, height: 40, padding: "0 11px", cursor: "pointer",
+                          borderRadius: 8, minWidth: 0,
+                          background: sel ? "color-mix(in srgb, var(--sky) 12%, transparent)" : "transparent",
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                            color: sel ? "var(--sky)" : "var(--ink-2)", fontWeight: sel ? 600 : 400,
+                          }}
+                        >
+                          {tSubName(s, selectedCategory.id)}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {!showNewSub ? (
+                <button
+                  onClick={() => setShowNewSub(true)}
+                  style={{
+                    marginTop: 6, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                    height: 40, borderRadius: "var(--radius-md)",
+                    background: "color-mix(in srgb, var(--sky) 10%, transparent)", border: "0.5px solid color-mix(in srgb, var(--sky) 30%, transparent)",
+                    fontSize: 13, fontWeight: 600, color: "var(--sky)", cursor: "pointer",
+                  }}
+                >
+                  <i className="ti ti-plus" style={{ fontSize: 16 }} aria-hidden="true" />
+                  {t("tx_new_subcategory")}
+                </button>
+              ) : (
+                <div style={{ display: "flex", gap: 6, padding: "8px 4px 4px" }}>
+                  <input
+                    type="text"
+                    autoFocus
+                    placeholder={t("tx_subcategory_name")}
+                    value={newSubName}
+                    onChange={(e) => setNewSubName(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleCreateSubcategory()}
+                    style={{
+                      flex: 1, border: "none", borderBottom: "0.5px solid var(--rule)",
+                      outline: "none", fontSize: 13, background: "transparent",
+                    }}
+                  />
+                  <button
+                    onClick={handleCreateSubcategory}
+                    style={{ background: "var(--ink)", color: "var(--bg)", border: "none", borderRadius: "var(--radius-sm)", padding: "4px 10px", fontSize: 12 }}
+                  >
+                    OK
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </>
+      )}
+    </SectionCard>
+  );
+
+  const dateCard = (
+    <SectionCard accent="var(--lavi)" icon="ti-calendar" title={t("tx_date_recurrence")} style={wide ? { minHeight: 150 } : undefined}>
+      <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 8, height: 40, padding: "0 12px", borderRadius: "var(--radius-md)", background: "color-mix(in srgb, var(--ink) 4%, transparent)" }}>
+        <i className="ti ti-clock" style={{ fontSize: 16, color: "var(--ink-3)", flexShrink: 0 }} aria-hidden="true" />
+        <input
+          type="datetime-local"
+          value={dateTime}
+          onChange={(e) => setDateTime(e.target.value)}
+          style={{
+            flex: 1, minWidth: 0, border: "none", background: "transparent",
+            fontSize: 14, outline: "none", color: "var(--ink)", fontVariantNumeric: "tabular-nums",
+          }}
+        />
+      </div>
+
+      {!isEditing && (
+        <div style={{ marginTop: 12 }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 9, cursor: "pointer" }}>
+            <input
+              type="checkbox"
+              checked={makeRecurring}
+              onChange={(e) => setMakeRecurring(e.target.checked)}
+              style={{ width: 18, height: 18 }}
+            />
+            <span style={{ flex: 1, fontSize: 13, color: "var(--ink-2)" }}>{t("tx_make_recurring")}</span>
+            <i className="ti ti-repeat" style={{ fontSize: 16, color: "var(--lavi)" }} aria-hidden="true" />
+          </label>
+
+          {makeRecurring && (
+            <div style={{ marginTop: 12 }}>
+              <div style={{ fontSize: 11.5, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: "0.04em", fontWeight: 600, marginBottom: 8 }}>{t("recurring_frequency")}</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 10 }}>
+                {[
+                  { key: "monthly", label: t("recurring_freq_monthly") },
+                  { key: "weekly", label: t("recurring_freq_weekly") },
+                  { key: "yearly", label: t("recurring_freq_yearly") },
+                ].map((f) => (
+                  <button key={f.key} onClick={() => setRecurringFrequency(f.key)} style={segStyle(recurringFrequency === f.key, "var(--lavi)")}>
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+              {recurringFrequency === "monthly" && (
+                <>
+                  <div style={{ fontSize: 11.5, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: "0.04em", fontWeight: 600, marginBottom: 8 }}>{t("recurring_day_of_month")}</div>
+                  <input
+                    type="number"
+                    min="1"
+                    max="31"
+                    value={recurringDayOfMonth}
+                    onChange={(e) => setRecurringDayOfMonth(e.target.value)}
+                    style={{
+                      width: "100%", padding: "10px 12px", borderRadius: "var(--radius-md)",
+                      border: "0.5px solid var(--rule)", fontSize: 14, outline: "none",
+                    }}
+                  />
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </SectionCard>
+  );
+
+  const attributionCard = members.length > 0 && (
+    <SectionCard accent="var(--mint)" icon="ti-users" title={t("tx_paid_for")}>
+      <div style={{ marginTop: 14, fontSize: 11.5, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: "0.04em", fontWeight: 600 }}>
+        {needsMemberAttribution ? t("tx_received_by") : t("tx_paid_by")}
+      </div>
+      <div style={{ marginTop: 8, display: "grid", gridTemplateColumns: `repeat(${members.length}, 1fr)`, gap: 8 }}>
+        {members.map((m) => {
+          const sel = paidBy === getMemberKey(m);
+          return (
+            <button key={getMemberKey(m)} onClick={() => setPaidBy(getMemberKey(m))} style={segStyle(sel, "var(--mint)")}>
+              {m.name}
+            </button>
+          );
+        })}
+      </div>
+
+      <div style={{ marginTop: 14, fontSize: 11.5, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: "0.04em", fontWeight: 600 }}>
+        {financeMode === "common" ? t("tx_beneficiary") : t("tx_for")}
+      </div>
+      <div style={{ marginTop: 8, display: "flex", gap: 8 }}>
+        {financeMode === "common" && (
+          <button
+            onClick={() => { setSplit("50/50"); setSplitMode("simple"); setSplitDetails(null); }}
+            style={{ ...segStyle(split === "50/50" && splitMode === "simple", "var(--mint)"), flex: 1 }}
+          >
+            {t("tx_common")}
+          </button>
+        )}
+        {members.map((m) => {
+          const sel = split === getMemberKey(m) && splitMode === "simple";
+          return (
+            <button
+              key={getMemberKey(m)}
+              onClick={() => { setSplit(getMemberKey(m)); setSplitMode("simple"); }}
+              style={{ ...segStyle(sel, "var(--mint)"), flex: 1 }}
+            >
+              {m.name}
+            </button>
+          );
+        })}
+        {financeMode !== "common" && members.length === 2 && (
+          <button
+            onClick={() => {
+              setSplit("50/50");
+              setSplitMode("advanced");
+              if (!splitDetails) {
+                setSplitDetails({ mode: "custom", unit: "percent", a: 50, b: 50 });
+              }
+            }}
+            aria-label={t("tx_split_share")}
+            style={{ ...segStyle(splitMode === "advanced", "var(--mint)"), flex: 1 }}
+          >
+            <i className="ti ti-arrows-split" style={{ fontSize: 15 }} aria-hidden="true" />
+            {t("tx_split_share")}
+          </button>
+        )}
+      </div>
+
+      {financeMode !== "common" && splitMode === "advanced" && members.length === 2 && (
+        <div style={{ marginTop: 10 }}>
+          <AdvancedSplitSelector
+            members={members}
+            totalAmount={parseFloat(amount) || 0}
+            value={splitDetails}
+            onChange={setSplitDetails}
+          />
+        </div>
+      )}
+    </SectionCard>
+  );
+
+  const tagsCard = (
+    <SectionCard
+      accent="var(--amber)"
+      icon="ti-tag"
+      title={t("tx_tags")}
+      extra={
+        <>
+          <span style={{ fontSize: 11, color: "var(--ink-3)" }}>· {t("tx_optional")}</span>
+          <span style={{ flex: 1 }} />
+          <button
+            onClick={() => setShowTagManager((v) => !v)}
+            aria-label={t("dashboard_customize")}
+            title={t("dashboard_customize")}
+            style={{
+              display: "inline-flex", alignItems: "center", justifyContent: "center", width: 28, height: 28, borderRadius: 99,
+              background: showTagManager ? "color-mix(in srgb, var(--sky) 12%, transparent)" : "var(--bg-card)",
+              border: `0.5px solid ${showTagManager ? "var(--sky)" : "var(--rule)"}`,
+              color: "var(--sky)", cursor: "pointer", flexShrink: 0,
+            }}
+          >
+            <i className="ti ti-pencil" style={{ fontSize: 14 }} aria-hidden="true" />
+          </button>
+        </>
+      }
+    >
+      <div style={{ marginTop: 12 }}>
+        <TagInput value={tags} onChange={setTags} />
+      </div>
+      {showTagManager && (
+        <div style={{ marginTop: 12, borderTop: "0.5px solid var(--rule)", paddingTop: 10 }}>
+          <p style={{ fontSize: 11, color: "var(--ink-3)", marginBottom: 8 }}>
+            <i className="ti ti-grip-vertical" style={{ fontSize: 12, verticalAlign: -2 }} aria-hidden="true" />
+            {" "}{t("categories_drag_hint")}
+          </p>
+          <TagManager />
+        </div>
+      )}
+    </SectionCard>
+  );
+
+  return (
+    <div className="app-modal tx-modal" style={{ display: "flex", flexDirection: "column" }}>
+      {/* En-tête : pastille fermer · titre centré · supprimer (édition) */}
+      <div
+        style={{
+          flexShrink: 0, display: "flex", alignItems: "center", gap: 12,
+          padding: "14px 20px", background: "var(--bg-card)",
+          borderBottom: "0.5px solid var(--rule)", zIndex: 10,
+        }}
+      >
+        <button
+          onClick={onClose}
+          aria-label="Fermer"
+          style={{ width: 32, height: 32, borderRadius: 99, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "color-mix(in srgb, var(--ink) 6%, transparent)", border: "none", color: "var(--ink-2)", cursor: "pointer" }}
+        >
+          <i className="ti ti-x" style={{ fontSize: 17 }} aria-hidden="true" />
         </button>
-        <h1 style={{ fontSize: 17, flex: 1, textAlign: "center", margin: 0 }}>
+        <h1 style={{ flex: 1, textAlign: "center", margin: 0, fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 16, color: "var(--ink)" }}>
           {isEditing ? t("tx_edit") : t("tx_new")}
         </h1>
         {isEditing ? (
@@ -460,852 +1166,62 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
               }
             }}
             aria-label={t("tx_delete")}
-            style={{ background: "none", border: "none", display: "flex", color: "var(--tang)", cursor: "pointer" }}
+            style={{ width: 32, height: 32, borderRadius: 99, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "color-mix(in srgb, var(--over) 12%, transparent)", border: "none", color: "var(--over)", cursor: "pointer" }}
           >
-            <i className="ti ti-trash" style={{ fontSize: 20 }} aria-hidden="true" />
+            <i className="ti ti-trash" style={{ fontSize: 17 }} aria-hidden="true" />
           </button>
         ) : (
-          <div style={{ width: 20 }} />
+          <span style={{ width: 32, height: 32, flexShrink: 0 }} />
         )}
       </div>
 
-      <div style={{ flex: 1, overflowY: "auto", padding: "1rem 1.25rem" }}>
+      {/* Corps défilant */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "18px 20px 22px", display: "flex", flexDirection: "column", gap: 14 }}>
         {!isEditing && (
           <QuickAddBar language={language} onApply={applyNaturalLanguage} />
         )}
-        {/* Type : pastilles colorées (dépense=coral, revenu=vert, invest=bleu).
-            Sélectionné = fond plein + texte clair ; non sélectionné = fond
-            teinté + texte de la couleur, comme les icônes du menu de gauche. */}
-        <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
+
+        {/* Type — segments à code sémantique (dépense/revenu/invest.) */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
           {[
-            { key: "expense", label: t("tx_expense"), color: "tang", icon: "ti-arrow-down-right" },
-            { key: "income", label: t("tx_income"), color: "sage", icon: "ti-arrow-up-right" },
-            { key: "investment", label: t("tx_investment"), color: "lavi", icon: "ti-trending-up" },
+            { key: "expense", label: t("tx_expense"), color: "var(--tang)", icon: "ti-arrow-down-left" },
+            { key: "income", label: t("tx_income"), color: "var(--good)", icon: "ti-arrow-up-right" },
+            { key: "investment", label: t("tx_investment"), color: "var(--lavi)", icon: "ti-trending-up" },
           ].map((opt) => {
             const sel = type === opt.key;
             return (
-              <button
-                key={opt.key}
-                onClick={() => handleTypeChange(opt.key)}
-                style={{
-                  flex: 1,
-                  padding: 10,
-                  borderRadius: "var(--radius-md)",
-                  border: `0.5px solid ${sel ? `var(--${opt.color})` : "var(--rule)"}`,
-                  background: sel ? `var(--${opt.color})` : `var(--${opt.color}-light)`,
-                  color: sel ? `var(--${opt.color}-light)` : `var(--${opt.color})`,
-                  fontSize: 13,
-                  fontWeight: 600,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 6,
-                  transition: "background-color .18s ease, color .18s ease, border-color .18s ease",
-                }}
-              >
-                <i className={`ti ${opt.icon}`} style={{ fontSize: 15 }} aria-hidden="true" />
+              <button key={opt.key} onClick={() => handleTypeChange(opt.key)} style={{ ...segStyle(sel, opt.color), height: 42, fontSize: 13.5 }}>
+                <i className={`ti ${opt.icon}`} style={{ fontSize: 16 }} aria-hidden="true" />
                 {opt.label}
               </button>
             );
           })}
         </div>
 
-        {/* Montant + devise, avec le reçu (optionnel) à droite dans la même
-            carte — essai de compacité pour libérer de la place plus bas. */}
-        <div
-          style={{
-            background: "var(--bg-card)",
-            borderRadius: "var(--radius-lg)",
-            border: "0.5px solid var(--rule)",
-            padding: "1.25rem",
-            marginBottom: 12,
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 8 }}>
-              <input
-                type="number"
-                inputMode="decimal"
-                placeholder="0"
-                value={amount}
-                onChange={(e) => { amountAutoRef.current = false; setAmount(e.target.value); }}
-                style={{
-                  fontSize: 30,
-                  fontWeight: 500,
-                  border: "none",
-                  outline: "none",
-                  background: "transparent",
-                  flex: 1,
-                  minWidth: 0,
-                  width: "100%",
-                }}
-              />
-              <button
-                onClick={() => { setShowCurrencyPicker(!showCurrencyPicker); setManageCurrencies(false); setAddingCurrency(false); setCurrencySearch(""); }}
-                style={{
-                  padding: "4px 10px",
-                  borderRadius: "var(--radius-md)",
-                  border: "0.5px solid var(--rule)",
-                  background: "var(--bg)",
-                  fontSize: 13,
-                  fontWeight: 500,
-                  flexShrink: 0,
-                }}
-              >
-                {currency} <i className="ti ti-chevron-down" style={{ fontSize: 12 }} aria-hidden="true" />
-              </button>
-            </div>
-
-            {/* Reçu (optionnel) */}
-            <div style={{ flexShrink: 0, textAlign: "center" }}>
-              {receiptPreview ? (
-                <div style={{ position: "relative", display: "inline-block" }}>
-                  <img
-                    src={receiptPreview}
-                    alt="Reçu"
-                    style={{ width: 60, height: 60, objectFit: "cover", borderRadius: "var(--radius-md)", border: "0.5px solid var(--rule)", display: "block" }}
-                  />
-                  <button
-                    onClick={removeReceipt}
-                    aria-label="Retirer le reçu"
-                    style={{ position: "absolute", top: -6, right: -6, width: 20, height: 20, borderRadius: "50%", background: "var(--ink)", border: "2px solid var(--bg-card)", display: "flex", alignItems: "center", justifyContent: "center" }}
-                  >
-                    <i className="ti ti-x" style={{ fontSize: 10, color: "var(--bg)" }} aria-hidden="true" />
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => receiptInputRef.current?.click()}
-                  aria-label={t("tx_add_photo")}
-                  style={{ width: 60, height: 60, borderRadius: "var(--radius-md)", border: "0.5px dashed var(--rule)", background: "var(--bg)", color: "var(--ink-3)", display: "flex", alignItems: "center", justifyContent: "center" }}
-                >
-                  <i className="ti ti-camera-plus" style={{ fontSize: 18 }} aria-hidden="true" />
-                </button>
-              )}
-              <p style={{ fontSize: 9.5, color: "var(--ink-3)", marginTop: 3, whiteSpace: "nowrap" }}>{t("tx_receipt_optional")}</p>
-              <input
-                ref={receiptInputRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                onChange={handleReceiptSelect}
-                style={{ display: "none" }}
-              />
-            </div>
+        {/* Colonnes (2 sur desktop large, empilées sinon) */}
+        <div style={wide ? { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, alignItems: "start" } : { display: "flex", flexDirection: "column", gap: 14 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 14, minWidth: 0 }}>
+            {montantCard}
+            {descriptionCard}
+            {categoryCard}
           </div>
-
-          {showCurrencyPicker && !manageCurrencies && (
-            <div style={{ marginTop: 12, display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "center", alignItems: "center" }}>
-              {currencyList.map((c) => (
-                <button
-                  key={c.code}
-                  onClick={() => { setCurrency(c.code); setShowCurrencyPicker(false); }}
-                  style={{
-                    padding: "6px 10px",
-                    borderRadius: "var(--radius-md)",
-                    border: currency === c.code ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
-                    background: currency === c.code ? "var(--sky-light)" : "var(--bg)",
-                    color: currency === c.code ? "var(--sky)" : "var(--ink)",
-                    fontSize: 12,
-                  }}
-                >
-                  {c.code}
-                </button>
-              ))}
-              <button
-                onClick={() => setManageCurrencies(true)}
-                aria-label={t("tx_manage_currencies")}
-                style={{
-                  padding: "6px 10px",
-                  borderRadius: "var(--radius-md)",
-                  border: "0.5px dashed var(--rule)",
-                  background: "var(--bg)",
-                  color: "var(--ink-3)",
-                  fontSize: 12,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 4,
-                }}
-              >
-                <i className="ti ti-adjustments" style={{ fontSize: 13 }} aria-hidden="true" />
-                {t("tx_manage_currencies")}
-              </button>
-            </div>
-          )}
-
-          {showCurrencyPicker && manageCurrencies && (
-            <div style={{ marginTop: 12 }}>
-              <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 8, textAlign: "center" }}>
-                {t("tx_manage_currencies_hint")}
-              </p>
-              {/* Devises actuellement proposées — retirables (sauf la devise
-                  par défaut). */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                {offeredCurrencies.map((c) => {
-                  const isDefault = c.code === defaultCurrency;
-                  return (
-                    <div
-                      key={c.code}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        gap: 8,
-                        padding: "10px 12px",
-                        borderRadius: "var(--radius-md)",
-                        border: "0.5px solid var(--rule)",
-                        background: "var(--bg)",
-                      }}
-                    >
-                      <span style={{ fontSize: 13, color: "var(--ink)", textAlign: "left" }}>
-                        {c.symbol} {c.code} · {c.name}
-                      </span>
-                      {isDefault ? (
-                        <span style={{ fontSize: 11, color: "var(--ink-3)", flexShrink: 0 }}>{t("tx_currency_default")}</span>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => toggleEnabledCurrency(c.code)}
-                          aria-label={t("common_delete")}
-                          style={{ background: "none", border: "none", color: "var(--ink-3)", display: "flex", alignItems: "center", flexShrink: 0 }}
-                        >
-                          <i className="ti ti-x" style={{ fontSize: 15 }} aria-hidden="true" />
-                        </button>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Ajouter une devise depuis le catalogue, avec recherche. */}
-              {!addingCurrency ? (
-                <button
-                  type="button"
-                  onClick={() => { setAddingCurrency(true); setCurrencySearch(""); }}
-                  style={{
-                    marginTop: 8, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                    padding: "10px 12px", borderRadius: "var(--radius-md)", border: "0.5px dashed var(--sky)",
-                    background: "var(--bg)", color: "var(--sky)", fontSize: 13, fontWeight: 500,
-                  }}
-                >
-                  <i className="ti ti-plus" style={{ fontSize: 14 }} aria-hidden="true" />
-                  {t("tx_add_currency")}
-                </button>
-              ) : (
-                <div style={{ marginTop: 8 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
-                    <input
-                      autoFocus
-                      type="text"
-                      value={currencySearch}
-                      onChange={(e) => setCurrencySearch(e.target.value)}
-                      placeholder={t("tx_search_currency")}
-                      style={{
-                        flex: 1, padding: "10px 12px", borderRadius: "var(--radius-md)",
-                        border: "0.5px solid var(--rule)", fontSize: 13, outline: "none",
-                      }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => { setAddingCurrency(false); setCurrencySearch(""); }}
-                      aria-label={t("common_cancel")}
-                      style={{
-                        flexShrink: 0, width: 34, height: 34, borderRadius: "var(--radius-md)",
-                        border: "0.5px solid var(--rule)", background: "var(--bg)", color: "var(--ink-3)",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                      }}
-                    >
-                      <i className="ti ti-x" style={{ fontSize: 15 }} aria-hidden="true" />
-                    </button>
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 220, overflowY: "auto" }}>
-                    {addableCurrencies.map((c) => (
-                      <button
-                        type="button"
-                        key={c.code}
-                        onClick={() => toggleEnabledCurrency(c.code)}
-                        style={{
-                          display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
-                          padding: "10px 12px", borderRadius: "var(--radius-md)", border: "0.5px solid var(--rule)",
-                          background: "var(--bg)", cursor: "pointer",
-                        }}
-                      >
-                        <span style={{ fontSize: 13, color: "var(--ink)", textAlign: "left" }}>
-                          {c.symbol} {c.code} · {c.name}
-                        </span>
-                        <i className="ti ti-plus" style={{ fontSize: 14, color: "var(--sky)" }} aria-hidden="true" />
-                      </button>
-                    ))}
-                    {addableCurrencies.length === 0 && (
-                      <p style={{ fontSize: 12, color: "var(--ink-3)", textAlign: "center", padding: "8px 0" }}>
-                        {t("tx_no_currency_found")}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              )}
-              <div style={{ display: "flex", justifyContent: "center", marginTop: 10 }}>
-                <button
-                  onClick={() => { setManageCurrencies(false); setAddingCurrency(false); setCurrencySearch(""); }}
-                  style={{
-                    background: "var(--ink)", color: "var(--bg)", border: "none",
-                    borderRadius: "var(--radius-md)", padding: "6px 16px", fontSize: 13, fontWeight: 500,
-                  }}
-                >
-                  {t("dashboard_done")}
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Description — placée juste sous le montant : la saisie déclenche
-            l'auto-remplissage (catégorie / sous-catégorie, et montant si vide)
-            à la façon de l'onboarding, tant que rien n'a été choisi à la main. */}
-        <div
-          style={{
-            background: "var(--bg-card)",
-            borderRadius: "var(--radius-lg)",
-            border: "0.5px solid var(--rule)",
-            padding: "1rem 1.25rem",
-            marginBottom: 12,
-          }}
-        >
-          <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>{t("tx_description")}</p>
-          <input
-            type="text"
-            value={description}
-            onChange={(e) => handleDescriptionChange(e.target.value)}
-            onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
-            placeholder={t("tx_description_optional")}
-            style={{
-              width: "100%", padding: "8px 0", border: "none",
-              borderBottom: "0.5px solid var(--rule)", background: "transparent",
-              fontSize: 14, outline: "none",
-            }}
-          />
-          {suggestions.length > 0 && (
-            <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 2 }}>
-              {suggestions.map((s) => {
-                const cat = categories.find((c) => c.id === s.categoryId);
-                return (
-                  <button
-                    key={s.description}
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => pickSuggestion(s)}
-                    style={{
-                      display: "flex", alignItems: "center", gap: 8,
-                      padding: "8px 6px", borderRadius: "var(--radius-sm)",
-                      border: "none", background: "var(--bg)",
-                      textAlign: "left", cursor: "pointer",
-                    }}
-                  >
-                    <i className="ti ti-history" style={{ fontSize: 14, color: "var(--ink-3)", flexShrink: 0 }} aria-hidden="true" />
-                    <span style={{ fontSize: 13, flex: 1, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                      {s.description}
-                    </span>
-                    {cat && (
-                      <span style={{ fontSize: 11, color: "var(--ink-3)", display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
-                        <i className={`ti ${cat.icon}`} style={{ fontSize: 13 }} aria-hidden="true" />
-                        {catName(cat)}{s.subcategory ? ` · ${tSubName(s.subcategory, cat.id)}` : ""}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Catégorie / sous-catégorie */}
-        <div
-          style={{
-            background: "var(--bg-card)",
-            borderRadius: "var(--radius-lg)",
-            border: "0.5px solid var(--rule)",
-            padding: "1rem 1.25rem",
-            marginBottom: 12,
-          }}
-        >
-          <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>{t("tx_category")}</p>
-          <div
-            onClick={() => setShowCatPicker(!showCatPicker)}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              padding: "8px 0",
-              borderBottom: "0.5px solid var(--rule)",
-              cursor: "pointer",
-            }}
-          >
-            {selectedCategory ? (
-              <>
-                <i className={`ti ${selectedCategory.icon}`} style={{ fontSize: 16 }} aria-hidden="true" />
-                <span style={{ fontSize: 14, flex: 1 }}>{selectedCategory.name}</span>
-              </>
-            ) : (
-              <span style={{ fontSize: 14, flex: 1, color: "var(--ink-3)" }}>{t("tx_choose_category")}</span>
-            )}
-            <i className="ti ti-chevron-down" style={{ fontSize: 14, color: "var(--ink-3)" }} aria-hidden="true" />
+          <div style={{ display: "flex", flexDirection: "column", gap: 14, minWidth: 0 }}>
+            {dateCard}
+            {attributionCard}
+            {tagsCard}
           </div>
-
-          {showCatPicker && (
-            <div style={{ marginTop: 8 }}>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: 4,
-                  maxHeight: 320,
-                  overflowY: "auto",
-                }}
-              >
-                {availableCategories.map((cat) => (
-                  <div
-                    key={cat.id}
-                    onClick={() => selectCategory(cat)}
-                    style={{
-                      display: "flex", alignItems: "center", gap: 6,
-                      padding: "8px 6px", cursor: "pointer",
-                      borderRadius: "var(--radius-sm)",
-                      minWidth: 0,
-                    }}
-                  >
-                    <i className={`ti ${cat.icon}`} style={{ fontSize: 15, flexShrink: 0 }} aria-hidden="true" />
-                    <span
-                      style={{
-                        fontSize: 12.5,
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                      }}
-                    >
-                      {catName(cat)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-
-              {type === "expense" && (
-                <>
-                  {!showNewCat ? (
-                    <button
-                      onClick={() => setShowNewCat(true)}
-                      style={{
-                        display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                        width: "100%", marginTop: 8,
-                        background: "var(--sky-light)", border: "0.5px solid var(--sky)",
-                        borderRadius: "var(--radius-md)", color: "var(--sky)",
-                        fontSize: 13, fontWeight: 500, padding: "10px",
-                      }}
-                    >
-                      <i className="ti ti-plus" style={{ fontSize: 15 }} aria-hidden="true" />
-                      {t("tx_new_category")}
-                    </button>
-                  ) : (
-                    <div style={{ padding: "8px 4px" }}>
-                      <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 8 }}>
-                        <button
-                          onClick={() => setShowIconPicker(!showIconPicker)}
-                          aria-label="Choisir une icône et une couleur"
-                          style={{
-                            width: 36, height: 36, borderRadius: "var(--radius-md)",
-                            border: "0.5px solid var(--rule)",
-                            background: AVATAR_COLOR_PALETTE.find((c) => c.key === newCatColor)?.bg || "var(--bg)",
-                            color: AVATAR_COLOR_PALETTE.find((c) => c.key === newCatColor)?.text || "var(--ink)",
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            flexShrink: 0,
-                          }}
-                        >
-                          <i className={`ti ${newCatIcon}`} style={{ fontSize: 16 }} aria-hidden="true" />
-                        </button>
-                        <input
-                          type="text"
-                          autoFocus
-                          placeholder="Nom de la catégorie"
-                          value={newCatName}
-                          onChange={(e) => setNewCatName(e.target.value)}
-                          onKeyDown={(e) => e.key === "Enter" && handleCreateCategory()}
-                          style={{
-                            flex: 1, border: "none", borderBottom: "0.5px solid var(--rule)",
-                            outline: "none", fontSize: 13, background: "transparent",
-                          }}
-                        />
-                        <button
-                          onClick={handleCreateCategory}
-                          style={{ background: "var(--ink)", color: "var(--bg)", border: "none", borderRadius: "var(--radius-sm)", padding: "4px 10px", fontSize: 12, flexShrink: 0 }}
-                        >
-                          OK
-                        </button>
-                      </div>
-
-                      {showIconPicker && (
-                        <>
-                          <div style={{ display: "flex", gap: 5, marginBottom: 8, flexWrap: "wrap" }}>
-                            {AVATAR_COLOR_PALETTE.map((c) => (
-                              <button
-                                key={c.key}
-                                onClick={() => setNewCatColor(c.key)}
-                                aria-label={c.key}
-                                style={{
-                                  width: 22, height: 22, borderRadius: "50%",
-                                  background: c.bg,
-                                  border: newCatColor === c.key ? `2px solid ${c.text}` : "2px solid transparent",
-                                }}
-                              />
-                            ))}
-                          </div>
-                          <IconPicker
-                            selectedIcon={newCatIcon}
-                            onSelect={setNewCatIcon}
-                          />
-                        </>
-                      )}
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          )}
-
-          {selectedCategory && (
-            <>
-              <p style={{ fontSize: 12, color: "var(--ink-2)", margin: "12px 0 6px" }}>{t("tx_subcategory")}</p>
-              {/* Sélecteur custom identique aux catégories (remplace le <select>
-                  natif) : ligne cliquable + panneau en grille, avec l'ajout de
-                  sous-catégorie déplacé ici. */}
-              <div
-                onClick={() => setShowSubPicker(!showSubPicker)}
-                style={{
-                  display: "flex", alignItems: "center", gap: 8,
-                  padding: "8px 0", borderBottom: "0.5px solid var(--rule)", cursor: "pointer",
-                }}
-              >
-                {subcategory ? (
-                  <span style={{ fontSize: 14, flex: 1 }}>{tSubName(subcategory, selectedCategory.id)}</span>
-                ) : (
-                  <span style={{ fontSize: 14, flex: 1, color: "var(--ink-3)" }}>{t("tx_choose_subcategory")}</span>
-                )}
-                <i className="ti ti-chevron-down" style={{ fontSize: 14, color: "var(--ink-3)" }} aria-hidden="true" />
-              </div>
-
-              {showSubPicker && (
-                <div style={{ marginTop: 8 }}>
-                  {selectedCategory.subcategories.length > 0 && (
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4, maxHeight: 320, overflowY: "auto" }}>
-                      {selectedCategory.subcategories.map((s) => (
-                        <div
-                          key={s}
-                          onClick={() => selectSubcategory(s)}
-                          style={{
-                            display: "flex", alignItems: "center", gap: 6,
-                            padding: "8px 6px", cursor: "pointer",
-                            borderRadius: "var(--radius-sm)", minWidth: 0,
-                            background: subcategory === s ? "var(--sky-light)" : "transparent",
-                          }}
-                        >
-                          <span
-                            style={{
-                              fontSize: 12.5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-                              color: subcategory === s ? "var(--sky)" : "var(--ink)",
-                              fontWeight: subcategory === s ? 500 : 400,
-                            }}
-                          >
-                            {tSubName(s, selectedCategory.id)}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {!showNewSub ? (
-                    <button
-                      onClick={() => setShowNewSub(true)}
-                      style={{
-                        display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                        width: "100%", marginTop: 8,
-                        background: "var(--sky-light)", border: "0.5px solid var(--sky)",
-                        borderRadius: "var(--radius-md)", color: "var(--sky)",
-                        fontSize: 13, fontWeight: 500, padding: "10px",
-                      }}
-                    >
-                      <i className="ti ti-plus" style={{ fontSize: 15 }} aria-hidden="true" />
-                      {t("tx_new_subcategory")}
-                    </button>
-                  ) : (
-                    <div style={{ display: "flex", gap: 6, paddingTop: 8 }}>
-                      <input
-                        type="text"
-                        autoFocus
-                        placeholder={t("tx_subcategory_name")}
-                        value={newSubName}
-                        onChange={(e) => setNewSubName(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && handleCreateSubcategory()}
-                        style={{
-                          flex: 1, border: "none", borderBottom: "0.5px solid var(--rule)",
-                          outline: "none", fontSize: 13, background: "transparent",
-                        }}
-                      />
-                      <button
-                        onClick={handleCreateSubcategory}
-                        style={{ background: "var(--ink)", color: "var(--bg)", border: "none", borderRadius: "var(--radius-sm)", padding: "4px 10px", fontSize: 12 }}
-                      >
-                        OK
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-            </>
-          )}
-
-        </div>
-
-        {/* Date */}
-        <div
-          style={{
-            background: "var(--bg-card)",
-            borderRadius: "var(--radius-lg)",
-            border: "0.5px solid var(--rule)",
-            padding: "1rem 1.25rem",
-            marginBottom: 12,
-          }}
-        >
-          <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>{t("tx_date")}</p>
-          <input
-            type="datetime-local"
-            value={dateTime}
-            onChange={(e) => setDateTime(e.target.value)}
-            style={{
-              width: "100%",
-              padding: "8px 0",
-              border: "none",
-              borderBottom: "0.5px solid var(--rule)",
-              background: "transparent",
-              fontSize: 14,
-              outline: "none",
-              color: "var(--ink)",
-            }}
-          />
-
-          {!isEditing && (
-            <div style={{ marginTop: 14 }}>
-              <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
-                <input
-                  type="checkbox"
-                  checked={makeRecurring}
-                  onChange={(e) => setMakeRecurring(e.target.checked)}
-                  style={{ width: 18, height: 18 }}
-                />
-                <span style={{ fontSize: 14, flex: 1 }}>{t("tx_make_recurring")}</span>
-                <i className="ti ti-repeat" style={{ fontSize: 16, color: "var(--lavi)" }} aria-hidden="true" />
-              </label>
-
-              {makeRecurring && (
-                <div style={{ marginTop: 12 }}>
-                  <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>{t("recurring_frequency")}</p>
-                  <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
-                    {[
-                      { key: "monthly", label: t("recurring_freq_monthly") },
-                      { key: "weekly", label: t("recurring_freq_weekly") },
-                      { key: "yearly", label: t("recurring_freq_yearly") },
-                    ].map((f) => (
-                      <button
-                        key={f.key}
-                        onClick={() => setRecurringFrequency(f.key)}
-                        style={{
-                          flex: 1, padding: 8, borderRadius: "var(--radius-md)",
-                          border: recurringFrequency === f.key ? "0.5px solid var(--lavi)" : "0.5px solid var(--rule)",
-                          background: recurringFrequency === f.key ? "var(--lavi-light)" : "var(--bg)",
-                          color: recurringFrequency === f.key ? "var(--lavi)" : "var(--ink)",
-                          fontSize: 12,
-                        }}
-                      >
-                        {f.label}
-                      </button>
-                    ))}
-                  </div>
-                  {recurringFrequency === "monthly" && (
-                    <>
-                      <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>{t("recurring_day_of_month")}</p>
-                      <input
-                        type="number"
-                        min="1"
-                        max="31"
-                        value={recurringDayOfMonth}
-                        onChange={(e) => setRecurringDayOfMonth(e.target.value)}
-                        style={{
-                          width: "100%", padding: "10px 12px", borderRadius: "var(--radius-md)",
-                          border: "0.5px solid var(--rule)", fontSize: 14, outline: "none",
-                        }}
-                      />
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Attribution membre — pour Expense (Payé par / Pour) ET Income/Investment (juste Payé par/Pour aussi) */}
-        {members.length > 0 && (
-          <div
-            style={{
-              background: "var(--bg-card)",
-              borderRadius: "var(--radius-lg)",
-              border: "0.5px solid var(--rule)",
-              padding: "1rem 1.25rem",
-              marginBottom: 12,
-            }}
-          >
-            <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 8 }}>
-              {needsMemberAttribution ? t("tx_received_by") : t("tx_paid_by")}
-            </p>
-            <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
-              {members.map((m) => (
-                <button
-                  key={getMemberKey(m)}
-                  onClick={() => setPaidBy(getMemberKey(m))}
-                  style={{
-                    flex: 1, padding: 8, borderRadius: "var(--radius-md)",
-                    border: paidBy === getMemberKey(m) ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
-                    background: paidBy === getMemberKey(m) ? "var(--sky-light)" : "var(--bg-card)",
-                    color: paidBy === getMemberKey(m) ? "var(--sky)" : "var(--ink)",
-                    fontSize: 13, fontWeight: paidBy === getMemberKey(m) ? 500 : 400,
-                  }}
-                >
-                  {m.name}
-                </button>
-              ))}
-            </div>
-
-            <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 8 }}>
-              {financeMode === "common" ? t("tx_beneficiary") : t("tx_for")}
-            </p>
-
-            <div style={{ display: "flex", gap: 6 }}>
-              {/* En compte commun : un bouton "Commun" (50/50, sans partage
-                  avancé) sert d'attribution bénéficiaire "commun". */}
-              {financeMode === "common" && (
-                <button
-                  onClick={() => { setSplit("50/50"); setSplitMode("simple"); setSplitDetails(null); }}
-                  style={{
-                    flex: 1, padding: 8, borderRadius: "var(--radius-md)",
-                    border: split === "50/50" && splitMode === "simple" ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
-                    background: split === "50/50" && splitMode === "simple" ? "var(--sky-light)" : "var(--bg-card)",
-                    color: split === "50/50" && splitMode === "simple" ? "var(--sky)" : "var(--ink)",
-                    fontSize: 13,
-                  }}
-                >
-                  {t("tx_common")}
-                </button>
-              )}
-              {members.map((m) => (
-                <button
-                  key={getMemberKey(m)}
-                  onClick={() => { setSplit(getMemberKey(m)); setSplitMode("simple"); }}
-                  style={{
-                    flex: 1, padding: 8, borderRadius: "var(--radius-md)",
-                    border: split === getMemberKey(m) && splitMode === "simple" ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
-                    background: split === getMemberKey(m) && splitMode === "simple" ? "var(--sky-light)" : "var(--bg-card)",
-                    color: split === getMemberKey(m) && splitMode === "simple" ? "var(--sky)" : "var(--ink)",
-                    fontSize: 13,
-                  }}
-                >
-                  {m.name}
-                </button>
-              ))}
-              {/* Partage avancé (montant/pourcentage précis) — uniquement en
-                  mode "finances partagées" (sans objet en compte commun). */}
-              {financeMode !== "common" && members.length === 2 && (
-                <button
-                  onClick={() => {
-                    setSplit("50/50");
-                    setSplitMode("advanced");
-                    if (!splitDetails) {
-                      setSplitDetails({ mode: "custom", unit: "percent", a: 50, b: 50 });
-                    }
-                  }}
-                  aria-label={t("tx_split_share")}
-                  style={{
-                    flex: 1, padding: 8, borderRadius: "var(--radius-md)",
-                    display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                    border: splitMode === "advanced" ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
-                    background: splitMode === "advanced" ? "var(--sky-light)" : "var(--bg-card)",
-                    color: splitMode === "advanced" ? "var(--sky)" : "var(--ink)",
-                    fontSize: 13, fontWeight: splitMode === "advanced" ? 500 : 400,
-                  }}
-                >
-                  <i className="ti ti-arrows-split-2" style={{ fontSize: 15 }} aria-hidden="true" />
-                  {t("tx_split_share")}
-                </button>
-              )}
-            </div>
-
-            {financeMode !== "common" && splitMode === "advanced" && members.length === 2 && (
-              <div style={{ marginTop: 10 }}>
-                <AdvancedSplitSelector
-                  members={members}
-                  totalAmount={parseFloat(amount) || 0}
-                  value={splitDetails}
-                  onChange={setSplitDetails}
-                />
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Tags — optionnels, placés tout en bas (transversaux aux catégories) */}
-        <div
-          style={{
-            background: "var(--bg-card)",
-            borderRadius: "var(--radius-lg)",
-            border: "0.5px solid var(--rule)",
-            padding: "1rem 1.25rem",
-            marginBottom: 12,
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-            <p style={{ fontSize: 12, color: "var(--ink-2)" }}>
-              {t("tx_tags")} <span style={{ color: "var(--ink-3)", fontWeight: 400 }}>· {t("tx_optional")}</span>
-            </p>
-            {/* Bouton personnaliser : gérer la liste de tags (ajouter / réordonner
-                / supprimer) sans quitter l'écran, aligné avec le libellé "Tags". */}
-            <button
-              onClick={() => setShowTagManager((v) => !v)}
-              aria-label={t("dashboard_customize")}
-              style={{
-                width: 28, height: 28, borderRadius: "50%",
-                background: showTagManager ? "var(--sky-light)" : "var(--bg)",
-                border: showTagManager ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
-                display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-              }}
-            >
-              <i className="ti ti-pencil" style={{ fontSize: 13, color: showTagManager ? "var(--sky)" : "var(--ink-2)" }} aria-hidden="true" />
-            </button>
-          </div>
-          <TagInput value={tags} onChange={setTags} />
-          {showTagManager && (
-            <div style={{ marginTop: 12, borderTop: "0.5px solid var(--rule)", paddingTop: 10 }}>
-              <p style={{ fontSize: 11, color: "var(--ink-3)", marginBottom: 8 }}>
-                <i className="ti ti-grip-vertical" style={{ fontSize: 12, verticalAlign: -2 }} aria-hidden="true" />
-                {" "}{t("categories_drag_hint")}
-              </p>
-              <TagManager />
-            </div>
-          )}
         </div>
 
         {/* Fil de discussion — seulement sur une transaction existante */}
         {isEditing && <TransactionComments txId={editingTx.id} />}
       </div>
 
+      {/* Enregistrer — collé en bas */}
       <div
         style={{
           flexShrink: 0,
-          padding: "0.75rem 1.25rem calc(0.75rem + env(safe-area-inset-bottom))",
-          background: "var(--bg)",
+          padding: "14px 20px calc(14px + env(safe-area-inset-bottom))",
+          background: "var(--bg-card)",
           borderTop: "0.5px solid var(--rule)",
         }}
       >
@@ -1313,17 +1229,14 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
           onClick={handleSave}
           disabled={!amount || !categoryId || busy}
           style={{
-            width: "100%",
-            background: "var(--ink)",
-            color: "var(--bg)",
-            border: "none",
-            borderRadius: "var(--radius-lg)",
-            padding: 16,
-            fontSize: 15,
-            fontWeight: 500,
+            width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+            height: 50, borderRadius: "var(--radius-md)",
+            background: "var(--ink)", color: "var(--bg)", border: "none",
+            fontSize: 14.5, fontWeight: 600, fontFamily: "var(--font-display)", cursor: "pointer",
             opacity: !amount || !categoryId || busy ? 0.5 : 1,
           }}
         >
+          <i className="ti ti-check" style={{ fontSize: 18 }} aria-hidden="true" />
           {uploadingReceipt ? t("tx_uploading_receipt") : busy ? t("tx_saving") : isEditing ? t("tx_update") : t("tx_save")}
         </button>
       </div>

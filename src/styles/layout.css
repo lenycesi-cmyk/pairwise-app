@@ -197,6 +197,13 @@
        SpotlightHint already uses). */
     box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.4), var(--shadow-lg);
   }
+
+  /* Le modal « Nouvelle transaction » passe en 2 colonnes sur desktop large :
+     on l'élargit (~840px) pour laisser respirer les deux colonnes de cartes. */
+  .app-modal.tx-modal {
+    width: min(840px, 94vw);
+    max-width: min(840px, 94vw);
+  }
 }
 
 /* Desktop: the bottom tab bar becomes a left sidebar rail instead — same
