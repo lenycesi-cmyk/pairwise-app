@@ -55,6 +55,18 @@ export const DEFAULT_WEALTH_WIDGETS = [
   { id: "calculator", visible: true },
 ];
 
+// Ordre + visibilité par défaut des widgets de l'onglet Flux (grille bento).
+// `subscription` reste dans la liste mais ne s'affiche que si une suggestion
+// d'abonnement est détectée (renderContent renvoie null sinon).
+export const DEFAULT_FLUX_WIDGETS = [
+  { id: "cashflow", visible: true },
+  { id: "spending_by_category", visible: true },
+  { id: "fixed", visible: true },
+  { id: "recent", visible: true },
+  { id: "upcoming", visible: true },
+  { id: "subscription", visible: true },
+];
+
 // Ordre + visibilité par défaut des cartes de l'onglet Budget.
 export const DEFAULT_BUDGET_WIDGETS = [
   { id: "overview", visible: true },
@@ -232,4 +244,8 @@ export function useWealthLayout(assetTypeIds) {
 
 export function useBudgetPrefs() {
   return useWidgetPrefs("budgetLayout", DEFAULT_BUDGET_WIDGETS);
+}
+
+export function useFluxPrefs() {
+  return useWidgetPrefs("fluxLayout", DEFAULT_FLUX_WIDGETS);
 }
