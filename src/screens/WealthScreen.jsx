@@ -20,6 +20,7 @@ import { getMemberKey } from "../utils/members";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 import { useWealthPrefs } from "../hooks/useDashboardPrefs";
 import WidgetCanvas from "../components/WidgetCanvas";
+import { slotSpan12, BENTO_MAX_HEIGHT } from "../utils/bentoLayout";
 
 const COLOR_MAP = {
   tang: { text: "var(--tang)", bg: "var(--tang-light)" },
@@ -62,9 +63,19 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
   // clé d'un membre (part de ce membre). Mémorisé par type d'actif (comptes,
   // assurance vie…) puisque chaque catégorie a son propre filtre.
   const [scopeByType, setScopeByType] = useState({});
-  const { widgets, saveWidgets } = useWealthPrefs();
+  const { widgets: savedWealthWidgets, saveWidgets } = useWealthPrefs();
+  // « Répartition par membre » a été fusionné dans le widget « Patrimoine net » :
+  // on retire son id de la disposition (anciens layouts enregistrés compris).
+  const widgets = useMemo(
+    () => savedWealthWidgets.filter((w) => w.id !== "member_allocation"),
+    [savedWealthWidgets]
+  );
 
   const currencySymbol = ALL_CURRENCIES.find((c) => c.code === displayCurrency)?.symbol || displayCurrency;
+
+  // Types d'actifs réellement présents (pour la grille bento : l'index sert au
+  // calcul de la largeur via slotSpan12, donc on filtre les types vides d'abord).
+  const shownAssetTypes = ASSET_TYPES.filter((type) => assets.some((a) => a.typeId === type.id));
 
   async function refreshPrices() {
     setRefreshing(true);
@@ -226,22 +237,34 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
             )}
           </div>
 
+          {/* Fusion « Répartition par membre » : par membre, valeur nette +
+              part (%) + barre de répartition. */}
           {members.length > 0 && (
-            <div style={{ display: "flex", gap: 8, marginTop: 14, paddingTop: 14, borderTop: "0.5px solid var(--rule)" }}>
-              {members.map((m) => (
-                <div key={getMemberKey(m)} style={{ flex: 1 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-                    <Avatar member={m} colorMap={memberColorMap} size={18} />
-                    <span style={{ fontSize: 11, color: "var(--ink-2)" }}>{m.name}</span>
+            <div style={{ marginTop: 14, paddingTop: 14, borderTop: "0.5px solid var(--rule)" }}>
+              {members.map((m) => {
+                const share = netWorthByMember[getMemberKey(m)] || 0;
+                const pct = totalAssets > 0 ? (share / totalAssets) * 100 : 0;
+                const showBar = members.length > 1 && totalAssets > 0;
+                return (
+                  <div key={getMemberKey(m)} style={{ marginBottom: 12 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: showBar ? 5 : 0 }}>
+                      <Avatar member={m} colorMap={memberColorMap} size={18} />
+                      <span style={{ fontSize: 12, color: "var(--ink-2)", flex: 1, minWidth: 0 }}>{m.name}</span>
+                      <span style={{ fontSize: 13, fontWeight: 500, color: share >= 0 ? "var(--sage)" : "var(--tang)" }}>
+                        {formatAmount(share)} {currencySymbol}
+                      </span>
+                      {showBar && (
+                        <span style={{ fontSize: 11, color: "var(--ink-3)", width: 44, textAlign: "right" }}>{pct.toFixed(1)}%</span>
+                      )}
+                    </div>
+                    {showBar && (
+                      <div style={{ width: "100%", height: 6, background: "var(--rule)", borderRadius: 4, overflow: "hidden" }}>
+                        <div style={{ width: `${Math.max(0, Math.min(100, pct))}%`, height: 6, background: "var(--sky)" }} />
+                      </div>
+                    )}
                   </div>
-                  <p style={{
-                    fontSize: 15, fontWeight: 500,
-                    color: (netWorthByMember[getMemberKey(m)] || 0) >= 0 ? "var(--sage)" : "var(--tang)",
-                  }}>
-                    {formatAmount(netWorthByMember[getMemberKey(m)] || 0)} {currencySymbol}
-                  </p>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -267,31 +290,6 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
       return (
         <WidgetCard icon="ti-chart-donut" accent="amber" title={t("wealth_allocation")}>
           <AllocationChart totalsByType={totalsByType} totalAssets={totalAssets} />
-        </WidgetCard>
-      );
-    }
-
-    if (id === "member_allocation") {
-      if (!(members.length > 1 && totalAssets > 0)) return null;
-      return (
-        <WidgetCard icon="ti-users" accent="ocean" title={t("wealth_member_allocation")}>
-          <div>
-            {members.map((m) => {
-              const share = netWorthByMember[getMemberKey(m)] || 0;
-              const pct = totalAssets > 0 ? (share / totalAssets) * 100 : 0;
-              return (
-                <div key={getMemberKey(m)} style={{ marginBottom: 8 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                    <span style={{ fontSize: 12, color: "var(--ink-2)" }}>{m.name}</span>
-                    <span style={{ fontSize: 12, fontWeight: 500 }}>{pct.toFixed(1)}%</span>
-                  </div>
-                  <div style={{ width: "100%", height: 6, background: "var(--rule)", borderRadius: 4, overflow: "hidden" }}>
-                    <div style={{ width: `${Math.max(0, Math.min(100, pct))}%`, height: 6, background: "var(--sky)" }} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
         </WidgetCard>
       );
     }
@@ -434,12 +432,12 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
         bento
       />
 
-      <div className={isDesktop ? "card-columns" : ""}>
+      {/* Liste des actifs par type — même grille bento que les widgets (3 par
+          ligne, taille selon la position) sur desktop ; empilement sur mobile. */}
+      <div className={isDesktop ? "bento-grid" : ""} style={isDesktop ? { marginTop: 14 } : undefined}>
 
-      {/* Liste des actifs par type */}
-      {ASSET_TYPES.map((type) => {
+      {shownAssetTypes.map((type, typeIdx) => {
         const typeAssets = assets.filter((a) => a.typeId === type.id);
-        if (typeAssets.length === 0) return null;
         const colors = COLOR_MAP[type.color] || COLOR_MAP.sky;
 
         return (
@@ -449,7 +447,7 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
             accent={type.isLiability ? "pink" : "mint"}
             title={language === "en" && type.nameEn ? type.nameEn : type.name}
             flush
-            style={{ marginBottom: 16 }}
+            style={isDesktop ? { gridColumn: `span ${slotSpan12(typeIdx)}`, maxHeight: BENTO_MAX_HEIGHT } : { marginBottom: 16 }}
           >
             <div>
               {/* Total de la catégorie : sur les comptes en banque toujours,

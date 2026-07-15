@@ -47,10 +47,11 @@ export const DEFAULT_REPORT_WIDGETS = [
 // système de widgets). Champ distinct de l'ancien `wealthWidgets` (map
 // visibilité seule) pour ne pas mélanger les deux formats.
 export const DEFAULT_WEALTH_WIDGETS = [
+  // « member_allocation » a été fusionné dans le widget « net_worth » (Patrimoine
+  // net) — plus de widget séparé.
   { id: "net_worth", visible: true },
   { id: "evolution", visible: true },
   { id: "allocation", visible: true },
-  { id: "member_allocation", visible: true },
   { id: "calculator", visible: true },
 ];
 
