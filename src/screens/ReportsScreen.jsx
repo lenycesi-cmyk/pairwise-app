@@ -1,17 +1,11 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import {
-  DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors,
-} from "@dnd-kit/core";
-import {
-  SortableContext, rectSortingStrategy, useSortable, arrayMove,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
 import { useFinance } from "../context/FinanceContext";
 import { useExchangeRates } from "../hooks/useExchangeRates";
 import { useReportsPrefs } from "../hooks/useDashboardPrefs";
 import CategoryRow from "../components/CategoryRow";
 import WidgetCard from "../components/WidgetCard";
+import WidgetCanvas from "../components/WidgetCanvas";
 import Avatar from "../components/Avatar";
 import { buildMemberColorMap } from "../utils/memberColors";
 import { ALL_CURRENCIES } from "../data/categories";
@@ -26,70 +20,6 @@ import { tagColor } from "../utils/tags";
 import TagChip from "../components/TagChip";
 
 const PERIOD_TYPES = ["week", "month", "quarter", "year", "last12", "custom"];
-
-const LONG_PRESS_DELAY = 500;
-
-// ── Sortable widget wrapper (même motif que DashboardScreen) ──────────────────
-function SortableWidget({ id, editMode, onLongPress, children }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id, disabled: !editMode });
-  const longPressTimer = useRef(null);
-
-  function startLongPress() {
-    if (editMode) return;
-    longPressTimer.current = setTimeout(() => onLongPress?.(), LONG_PRESS_DELAY);
-  }
-  function cancelLongPress() {
-    clearTimeout(longPressTimer.current);
-  }
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={{
-        transform: CSS.Transform.toString(transform),
-        transition,
-        opacity: isDragging ? 0.5 : 1,
-        position: "relative",
-      }}
-      onMouseDown={startLongPress}
-      onMouseUp={cancelLongPress}
-      onMouseLeave={cancelLongPress}
-      onTouchStart={startLongPress}
-      onTouchEnd={cancelLongPress}
-      onTouchMove={cancelLongPress}
-    >
-      {editMode && (
-        <div
-          style={{
-            position: "absolute", inset: 0,
-            border: "1.5px dashed var(--sky)",
-            borderRadius: "var(--radius-lg)",
-            pointerEvents: "none",
-            zIndex: 2,
-          }}
-        />
-      )}
-      {editMode && (
-        <button
-          {...attributes}
-          {...listeners}
-          aria-label="Réorganiser"
-          style={{
-            position: "absolute", top: 8, left: 8,
-            zIndex: 3, background: "var(--bg-card)", border: "0.5px solid var(--rule)",
-            borderRadius: "var(--radius-sm)", width: 28, height: 28,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            cursor: "grab", touchAction: "none",
-          }}
-        >
-          <i className="ti ti-grip-vertical" style={{ fontSize: 14, color: "var(--ink-3)" }} aria-hidden="true" />
-        </button>
-      )}
-      {children}
-    </div>
-  );
-}
 
 // Same k-notation as the dashboard's IncomeExpenseTrendChart, so the
 // mobile Reports chart and the desktop widget read identically.
@@ -224,38 +154,9 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
 
   // ── Personnalisation (ordre + afficher/cacher par carte), comme sur Home ──
+  // WidgetCanvas gère le glisser-déposer et l'afficher/masquer via saveWidgets.
   const [editMode, setEditMode] = useState(false);
   const { widgets, saveWidgets } = useReportsPrefs();
-  const [localWidgets, setLocalWidgets] = useState(null);
-  const activeWidgets = localWidgets ?? widgets;
-
-  function enterEditMode() {
-    setLocalWidgets([...activeWidgets]);
-    setShowCurrencyPicker(false);
-    setEditMode(true);
-  }
-  function exitEditMode() {
-    saveWidgets(localWidgets ?? activeWidgets);
-    setEditMode(false);
-  }
-  function toggleWidget(id) {
-    setLocalWidgets((prev) =>
-      (prev ?? activeWidgets).map((w) => (w.id === id ? { ...w, visible: !w.visible } : w))
-    );
-  }
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } })
-  );
-  function handleDragEnd({ active, over }) {
-    if (!over || active.id === over.id) return;
-    setLocalWidgets((prev) => {
-      const list = prev ?? activeWidgets;
-      const oldIdx = list.findIndex((w) => w.id === active.id);
-      const newIdx = list.findIndex((w) => w.id === over.id);
-      return arrayMove(list, oldIdx, newIdx);
-    });
-  }
 
   function setAnchor(newAnchor) {
     setAnchorRaw(newAnchor);
@@ -706,8 +607,6 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
     );
   }
 
-  const visibleIds = activeWidgets.filter((w) => w.visible || editMode).map((w) => w.id);
-
   return (
     <div style={{ padding: "1.5rem 1.25rem 6rem" }}>
       {/* En-tête collant : titre + filtres temporels, alignés à gauche. */}
@@ -717,7 +616,7 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               {editMode ? (
                 <button
-                  onClick={exitEditMode}
+                  onClick={() => setEditMode(false)}
                   style={{
                     background: "var(--ink)", color: "var(--bg)", border: "none",
                     borderRadius: "var(--radius-md)", padding: "5px 14px", fontSize: 13, fontWeight: 500,
@@ -739,7 +638,7 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
                   </button>
                   <button
                     ref={customizeButtonRef}
-                    onClick={enterEditMode}
+                    onClick={() => { setEditMode(true); setShowCurrencyPicker(false); }}
                     aria-label={t("dashboard_customize")}
                     style={{
                       width: 30, height: 30, borderRadius: "50%", background: "var(--bg-card)",
@@ -833,58 +732,18 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
           remontée dans la ligne 1 du header). */}
       {isDesktop && <div style={{ marginBottom: 16 }}>{periodNav}</div>}
 
-      {/* Cartes — réorganisables et masquables en mode édition, comme sur Home.
-          Layout masonry desktop sauf pendant l'édition (le drag suppose une
-          seule colonne verticale). */}
-      <div
-        className={isDesktop && !editMode ? "card-columns" : ""}
-        style={isDesktop && editMode ? { display: "grid", gridTemplateColumns: "1fr 1fr", columnGap: 20, alignItems: "start" } : undefined}
-      >
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-          <SortableContext items={visibleIds} strategy={rectSortingStrategy}>
-            {activeWidgets
-              .filter((w) => w.visible || editMode)
-              .map((w) => {
-                const content = renderWidgetContent(w.id);
-                if (!content && !editMode) return null;
-                return (
-                  <SortableWidget key={w.id} id={w.id} editMode={editMode} onLongPress={enterEditMode}>
-                    <div style={{ marginBottom: 20, position: "relative" }}>
-                      {editMode && (
-                        <button
-                          onClick={() => toggleWidget(w.id)}
-                          aria-label={w.visible ? t("dashboard_widget_hide") : t("dashboard_widget_show")}
-                          style={{
-                            position: "absolute", top: 8, right: 8, zIndex: 3,
-                            display: "flex", alignItems: "center", gap: 6,
-                            padding: "3px 8px 3px 3px", borderRadius: 13,
-                            border: w.visible ? "0.5px solid var(--sky)" : "1px solid var(--ink-3)",
-                            background: w.visible ? "var(--sky)" : "var(--bg-card)",
-                            boxShadow: "0 1px 3px rgba(0,0,0,0.12)",
-                          }}
-                        >
-                          <span style={{ width: 16, height: 16, borderRadius: "50%", background: w.visible ? "var(--bg)" : "var(--ink-3)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                            <i className={`ti ${w.visible ? "ti-eye" : "ti-eye-off"}`} style={{ fontSize: 10, color: w.visible ? "var(--sky)" : "var(--bg-card)" }} aria-hidden="true" />
-                          </span>
-                          <span style={{ fontSize: 11, fontWeight: 500, color: w.visible ? "var(--bg)" : "var(--ink-2)" }}>
-                            {w.visible ? t("dashboard_widget_shown") : t("dashboard_widget_hidden")}
-                          </span>
-                        </button>
-                      )}
-                      <div style={{ opacity: editMode && !w.visible ? 0.4 : 1, paddingLeft: editMode ? 36 : 0, transition: "opacity 0.2s, padding 0.2s" }}>
-                        {content || (
-                          <div style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px dashed var(--rule)", padding: "0.75rem 1.25rem" }}>
-                            <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center" }}>{WIDGET_LABELS[w.id]}</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </SortableWidget>
-                );
-              })}
-          </SortableContext>
-        </DndContext>
-      </div>
+      {/* Cartes — même moteur que l'Accueil/Flux/Patrimoine : grille bento
+          personnalisable sur desktop, empilement 1 colonne sur mobile. */}
+      <WidgetCanvas
+        widgets={widgets}
+        onSave={saveWidgets}
+        editMode={editMode}
+        onEnterEditMode={() => setEditMode(true)}
+        renderContent={renderWidgetContent}
+        labels={WIDGET_LABELS}
+        isDesktop={isDesktop}
+        bento
+      />
     </div>
   );
 }
