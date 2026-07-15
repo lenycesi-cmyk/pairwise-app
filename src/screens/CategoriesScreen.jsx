@@ -96,31 +96,25 @@ export default function CategoriesScreen() {
   }
 
   return (
-    <div style={{ padding: "1.5rem 1.25rem 6rem" }}>
+    <div style={{ padding: "18px 20px 6rem", maxWidth: 640, margin: "0 auto" }}>
       <div
         style={{
           display: "flex",
-          justifyContent: "space-between",
+          justifyContent: "flex-end",
           alignItems: "center",
           marginBottom: 8,
         }}
       >
-        <h1 style={{ fontSize: 20 }}>{t("categories_title")}</h1>
         <button
           onClick={() => setShowNewCat(!showNewCat)}
-          aria-label={t("categories_add_category")}
           style={{
-            width: 32,
-            height: 32,
-            borderRadius: "50%",
-            background: "var(--ink)",
-            border: "none",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
+            height: 34, padding: "0 14px", borderRadius: 99,
+            background: "var(--ink)", border: "none", color: "var(--bg)",
+            display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 500, cursor: "pointer",
           }}
         >
-          <i className="ti ti-plus" style={{ fontSize: 16, color: "var(--bg)" }} aria-hidden="true" />
+          <i className="ti ti-plus" style={{ fontSize: 15 }} aria-hidden="true" />
+          {t("categories_add_category")}
         </button>
       </div>
 

@@ -6,6 +6,19 @@ import { useTranslation } from "../hooks/useTranslation";
 import { useCategoryName } from "../hooks/useCategoryName";
 import { getMemberKey } from "../utils/members";
 
+// Segment/chip sélectionnable, cohérent avec AddTransactionScreen.
+function segStyle(selected, accent) {
+  return {
+    flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+    height: 40, borderRadius: "var(--radius-md)", cursor: "pointer",
+    border: `0.5px solid ${selected ? accent : "var(--rule)"}`,
+    background: selected ? `color-mix(in srgb, ${accent} 13%, transparent)` : "var(--bg-card)",
+    color: selected ? accent : "var(--ink-3)",
+    fontSize: 13, fontWeight: selected ? 600 : 400,
+    transition: "background-color .18s ease, color .18s ease, border-color .18s ease",
+  };
+}
+
 function getFrequencies(t) {
   return [
     { key: "monthly", label: t("recurring_freq_monthly") },
@@ -130,25 +143,37 @@ export default function RecurringScreen({ onClose, initialEditId }) {
 
   return (
     <div className="app-modal">
-      <div style={{ padding: "1.5rem 1.25rem 6rem" }}>
-        <div style={{ display: "flex", alignItems: "center", marginBottom: 16 }}>
+      {/* En-tête pastille : fermer/retour · titre centré · ajouter (liste). */}
+      <div
+        style={{
+          position: "sticky", top: 0, zIndex: 10, display: "flex", alignItems: "center", gap: 12,
+          padding: "14px 20px", background: "var(--bg)", borderBottom: "0.5px solid var(--rule)",
+        }}
+      >
+        <button
+          onClick={() => { if (showForm) { setShowForm(false); resetForm(); } else onClose(); }}
+          aria-label="Fermer"
+          style={{ width: 32, height: 32, borderRadius: 99, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "color-mix(in srgb, var(--ink) 6%, transparent)", border: "none", color: "var(--ink-2)", cursor: "pointer" }}
+        >
+          <i className={`ti ${showForm ? "ti-arrow-left" : "ti-x"}`} style={{ fontSize: 17 }} aria-hidden="true" />
+        </button>
+        <h1 style={{ flex: 1, textAlign: "center", margin: 0, fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 16, color: "var(--ink)" }}>
+          {showForm ? (editingId ? t("recurring_edit_title") : t("recurring_new_title")) : t("recurring_title")}
+        </h1>
+        {!showForm ? (
           <button
-            onClick={() => { if (showForm) { setShowForm(false); resetForm(); } else onClose(); }}
-            aria-label="Fermer"
-            style={{ background: "none", border: "none" }}
+            onClick={openNew}
+            aria-label="Ajouter"
+            style={{ width: 32, height: 32, borderRadius: 99, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "var(--ink)", border: "none", color: "var(--bg)", cursor: "pointer" }}
           >
-            <i className="ti ti-x" style={{ fontSize: 20 }} aria-hidden="true" />
+            <i className="ti ti-plus" style={{ fontSize: 17 }} aria-hidden="true" />
           </button>
-          <h1 style={{ fontSize: 18, flex: 1, textAlign: "center" }}>
-            {showForm ? (editingId ? t("recurring_edit_title") : t("recurring_new_title")) : t("recurring_title")}
-          </h1>
-          {!showForm && (
-            <button onClick={openNew} aria-label="Ajouter" style={{ background: "none", border: "none" }}>
-              <i className="ti ti-plus" style={{ fontSize: 20 }} aria-hidden="true" />
-            </button>
-          )}
-          {showForm && <div style={{ width: 20 }} />}
-        </div>
+        ) : (
+          <span style={{ width: 32, height: 32, flexShrink: 0 }} />
+        )}
+      </div>
+
+      <div style={{ padding: "18px 20px 6rem", maxWidth: 640, margin: "0 auto" }}>
 
         {showForm && (
           <div
@@ -179,26 +204,19 @@ export default function RecurringScreen({ onClose, initialEditId }) {
               </div>
             )}
 
-            <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
+            <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
               {[
-                { key: "expense", label: t("tx_expense") },
-                { key: "income", label: t("tx_income") },
-                { key: "investment", label: t("tx_investment") },
-              ].map((t) => (
+                { key: "expense", label: t("tx_expense"), color: "var(--tang)", icon: "ti-arrow-down-left" },
+                { key: "income", label: t("tx_income"), color: "var(--good)", icon: "ti-arrow-up-right" },
+                { key: "investment", label: t("tx_investment"), color: "var(--lavi)", icon: "ti-trending-up" },
+              ].map((opt) => (
                 <button
-                  key={t.key}
-                  onClick={() => { setType(t.key); setCategoryId(null); }}
-                  style={{
-                    flex: 1,
-                    padding: 8,
-                    borderRadius: "var(--radius-md)",
-                    border: "0.5px solid var(--rule)",
-                    background: type === t.key ? "var(--tang-light)" : "var(--bg)",
-                    color: type === t.key ? "var(--tang)" : "var(--ink)",
-                    fontSize: 12,
-                  }}
+                  key={opt.key}
+                  onClick={() => { setType(opt.key); setCategoryId(null); }}
+                  style={segStyle(type === opt.key, opt.color)}
                 >
-                  {t.label}
+                  <i className={`ti ${opt.icon}`} style={{ fontSize: 15 }} aria-hidden="true" />
+                  {opt.label}
                 </button>
               ))}
             </div>
@@ -296,20 +314,12 @@ export default function RecurringScreen({ onClose, initialEditId }) {
             />
 
             <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>{t("recurring_frequency")}</p>
-            <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+            <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
               {FREQUENCIES.map((f) => (
                 <button
                   key={f.key}
                   onClick={() => setFrequency(f.key)}
-                  style={{
-                    flex: 1,
-                    padding: 8,
-                    borderRadius: "var(--radius-md)",
-                    border: frequency === f.key ? "0.5px solid var(--lavi)" : "0.5px solid var(--rule)",
-                    background: frequency === f.key ? "var(--lavi-light)" : "var(--bg)",
-                    color: frequency === f.key ? "var(--lavi)" : "var(--ink)",
-                    fontSize: 12,
-                  }}
+                  style={segStyle(frequency === f.key, "var(--lavi)")}
                 >
                   {f.label}
                 </button>
@@ -345,19 +355,12 @@ export default function RecurringScreen({ onClose, initialEditId }) {
                 <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>
                   {needsMemberAttribution ? t("tx_received_by") : t("recurring_who_pays")}
                 </p>
-                <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+                <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
                   {members.map((m) => (
                     <button
                       key={getMemberKey(m)}
                       onClick={() => setPaidBy(getMemberKey(m))}
-                      style={{
-                        flex: 1,
-                        padding: 8,
-                        borderRadius: "var(--radius-md)",
-                        border: paidBy === getMemberKey(m) ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
-                        background: paidBy === getMemberKey(m) ? "var(--sky-light)" : "var(--bg)",
-                        fontSize: 12,
-                      }}
+                      style={segStyle(paidBy === getMemberKey(m), "var(--sky)")}
                     >
                       {m.name}
                     </button>
@@ -366,33 +369,19 @@ export default function RecurringScreen({ onClose, initialEditId }) {
                 <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>
                   {needsMemberAttribution ? t("tx_for") : t("recurring_split")}
                 </p>
-                <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
+                <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
                   {members.map((m) => (
                     <button
                       key={getMemberKey(m)}
                       onClick={() => setSplit(getMemberKey(m))}
-                      style={{
-                        flex: 1,
-                        padding: 8,
-                        borderRadius: "var(--radius-md)",
-                        border: split === getMemberKey(m) ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
-                        background: split === getMemberKey(m) ? "var(--sky-light)" : "var(--bg)",
-                        fontSize: 12,
-                      }}
+                      style={segStyle(split === getMemberKey(m), "var(--sky)")}
                     >
                       {m.name}
                     </button>
                   ))}
                   <button
                     onClick={() => setSplit("50/50")}
-                    style={{
-                      flex: 1,
-                      padding: 8,
-                      borderRadius: "var(--radius-md)",
-                      border: split === "50/50" ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
-                      background: split === "50/50" ? "var(--sky-light)" : "var(--bg)",
-                      fontSize: 12,
-                    }}
+                    style={segStyle(split === "50/50", "var(--sky)")}
                   >
                     50/50
                   </button>

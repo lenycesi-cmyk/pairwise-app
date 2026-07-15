@@ -92,6 +92,12 @@ function AddFab({ onClick }) {
   );
 }
 
+// Rend une clé de traduction — utilisable comme `title` de ModalWrapper.
+function TranslatedTitle({ k }) {
+  const t = useTranslation();
+  return t(k);
+}
+
 function ModalWrapper({ onClose, title, children }) {
   return (
     <div className="app-modal">
@@ -105,19 +111,20 @@ function ModalWrapper({ onClose, title, children }) {
           background: "var(--bg)",
           display: "flex",
           alignItems: "center",
-          gap: 10,
-          padding: "1rem 1.25rem",
+          gap: 12,
+          padding: "14px 20px",
           borderBottom: "0.5px solid var(--rule)",
         }}
       >
         <button
           onClick={onClose}
           aria-label="Fermer"
-          style={{ background: "none", border: "none", display: "flex" }}
+          style={{ width: 32, height: 32, borderRadius: 99, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "color-mix(in srgb, var(--ink) 6%, transparent)", border: "none", color: "var(--ink-2)", cursor: "pointer" }}
         >
-          <i className="ti ti-x" style={{ fontSize: 20 }} aria-hidden="true" />
+          <i className="ti ti-x" style={{ fontSize: 17 }} aria-hidden="true" />
         </button>
-        {title && <h1 style={{ fontSize: 17, margin: 0 }}>{title}</h1>}
+        <h1 style={{ flex: 1, textAlign: "center", margin: 0, fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 16, color: "var(--ink)" }}>{title}</h1>
+        <span style={{ width: 32, height: 32, flexShrink: 0 }} />
       </div>
       {children}
     </div>
@@ -360,7 +367,7 @@ function AppContent() {
           <InvestmentCalculatorScreen onClose={() => setShowCalculator(false)} />
         )}
         {showDebt && (
-          <ModalWrapper onClose={() => setShowDebt(false)}>
+          <ModalWrapper onClose={() => setShowDebt(false)} title={<TranslatedTitle k="debt_title" />}>
             <DebtScreen />
           </ModalWrapper>
         )}
@@ -376,12 +383,12 @@ function AppContent() {
         )}
         {showRecurring && <RecurringScreen onClose={closeRecurring} initialEditId={recurringEditId} />}
         {showCategories && (
-          <ModalWrapper onClose={() => setShowCategories(false)}>
+          <ModalWrapper onClose={() => setShowCategories(false)} title={<TranslatedTitle k="categories_title" />}>
             <CategoriesScreen />
           </ModalWrapper>
         )}
         {showTags && (
-          <ModalWrapper onClose={() => setShowTags(false)}>
+          <ModalWrapper onClose={() => setShowTags(false)} title={<TranslatedTitle k="categories_tags_title" />}>
             <TagsScreen />
           </ModalWrapper>
         )}
