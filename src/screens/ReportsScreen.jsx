@@ -132,6 +132,28 @@ function trimLeadingEmpty(series) {
   return first === -1 ? [] : series.slice(first);
 }
 
+// Nombre de périodes précédentes servant de référence (« moyenne N périodes »)
+// pour le widget « À surveiller ».
+const WATCH_BASELINE_N = 3;
+
+// Renvoie les N plages précédant `range` (même type/longueur de période). Pour
+// week/month/quarter/year on décale l'ancre ; pour last12/custom on recule d'un
+// multiple de la durée de la plage courante (comme prevRange).
+function previousRanges(periodType, anchor, customRange, range, locale, n) {
+  const out = [];
+  if (periodType === "last12" || periodType === "custom") {
+    const span = range.end.getTime() - range.start.getTime();
+    for (let i = 1; i <= n; i++) {
+      out.push({ start: new Date(range.start.getTime() - span * i), end: new Date(range.end.getTime() - span * i) });
+    }
+  } else {
+    for (let i = 1; i <= n; i++) {
+      out.push(getRange(periodType, shiftAnchor(periodType, anchor, -i), customRange, locale));
+    }
+  }
+  return out;
+}
+
 function shiftAnchor(periodType, anchor, delta) {
   const d = new Date(anchor);
   if (periodType === "week") d.setDate(d.getDate() + delta * 7);
@@ -443,6 +465,17 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
     return Math.round(n).toLocaleString(locale);
   }
 
+  // Ouvre une catégorie dans le widget « Tendance par poste » (depuis « À
+  // surveiller ») et fait défiler jusqu'à lui s'il est visible.
+  function openInTrend(cid) {
+    setTrendDim("category");
+    setTrendValue(cid);
+    setShowTrendPicker(false);
+    requestAnimationFrame(() => {
+      document.getElementById("pw-poste-trend")?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  }
+
   const currencySymbol =
     ALL_CURRENCIES.find((c) => c.code === displayCurrency)?.symbol || displayCurrency;
 
@@ -463,13 +496,20 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
       cur[tx.categoryId] = (cur[tx.categoryId] || 0) + v;
       curTotal += v;
     }
-    const prev = {};
-    for (const tx of prevPeriodTx) {
+    // Référence = moyenne des N périodes précédentes (même type/longueur), plus
+    // stable qu'une seule période précédente (un mois atypique fausse moins).
+    const baseRanges = previousRanges(periodType, anchor, customRange, range, locale, WATCH_BASELINE_N);
+    const prevSum = {};
+    for (const tx of transactions) {
       if (tx.type !== "expense") continue;
+      const d = new Date(tx.date);
+      if (!baseRanges.some((r) => d >= r.start && d < r.end)) continue;
       const v = toBase(tx) * wfrac(tx);
       if (!v) continue;
-      prev[tx.categoryId] = (prev[tx.categoryId] || 0) + v;
+      prevSum[tx.categoryId] = (prevSum[tx.categoryId] || 0) + v;
     }
+    const prev = {};
+    for (const cid in prevSum) prev[cid] = prevSum[cid] / WATCH_BASELINE_N;
     const nameOf = (cid) => categories.find((c) => c.id === cid)?.name ?? cid;
     const iconOf = (cid) => categories.find((c) => c.id === cid)?.icon ?? "ti-receipt";
 
@@ -488,7 +528,7 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
     // 1. Plus gros poste.
     const [bigId, bigVal] = [...curEntries].sort((a, b) => b[1] - a[1])[0];
     insights.push({
-      key: "biggest", tone: "neutral", icon: iconOf(bigId), amount: bigVal, delta: null,
+      key: "biggest", cid: bigId, tone: "neutral", icon: iconOf(bigId), amount: bigVal, delta: null,
       text: t("reports_watch_biggest")
         .replace("{name}", nameOf(bigId))
         .replace("{pct}", (curTotal > 0 ? (bigVal / curTotal) * 100 : 0).toFixed(0)),
@@ -504,7 +544,7 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
       if (insights.length >= 4) break;
       if (used.has(inc.cid)) continue;
       insights.push({
-        key: `up-${inc.cid}`, tone: "warn", icon: iconOf(inc.cid), amount: inc.v, delta: inc.v - prev[inc.cid],
+        key: `up-${inc.cid}`, cid: inc.cid, tone: "warn", icon: iconOf(inc.cid), amount: inc.v, delta: inc.v - prev[inc.cid],
         text: t("reports_watch_increase").replace("{name}", nameOf(inc.cid)).replace("{pct}", inc.pct.toFixed(0)),
       });
       used.add(inc.cid);
@@ -518,7 +558,7 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
       if (news.length) {
         const [nid, nval] = news[0];
         insights.push({
-          key: `new-${nid}`, tone: "warn", icon: iconOf(nid), amount: nval, delta: null,
+          key: `new-${nid}`, cid: nid, tone: "warn", icon: iconOf(nid), amount: nval, delta: null,
           text: t("reports_watch_new").replace("{name}", nameOf(nid)),
         });
         used.add(nid);
@@ -534,7 +574,7 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
       if (decreases.length) {
         const dec = decreases[0];
         insights.push({
-          key: `down-${dec.cid}`, tone: "good", icon: iconOf(dec.cid), amount: dec.v, delta: dec.v - prev[dec.cid],
+          key: `down-${dec.cid}`, cid: dec.cid, tone: "good", icon: iconOf(dec.cid), amount: dec.v, delta: dec.v - prev[dec.cid],
           text: t("reports_watch_saving").replace("{name}", nameOf(dec.cid)).replace("{pct}", Math.abs(dec.pct).toFixed(0)),
         });
       }
@@ -542,7 +582,7 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
 
     return insights;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [periodTx, prevPeriodTx, categories, watchScope, members, displayCurrency, convert, language]);
+  }, [periodTx, transactions, categories, watchScope, members, periodType, anchor, customRange, range, locale, displayCurrency, convert, language]);
 
   // Libellé de période : sur mobile, le mois (type "month") est abrégé à 4
   // lettres s'il dépasse (Juillet → Juil), comme le sélecteur de l'accueil.
@@ -742,7 +782,12 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
               </p>
             ) : (
               watchInsights.map((ins, i) => (
-                <div key={ins.key} style={{ display: "flex", alignItems: "center", gap: 11, padding: "9px 0", borderBottom: i === watchInsights.length - 1 ? "none" : "0.5px solid var(--rule)" }}>
+                <div
+                  key={ins.key}
+                  onClick={() => openInTrend(ins.cid)}
+                  role="button"
+                  style={{ display: "flex", alignItems: "center", gap: 11, padding: "9px 0", borderBottom: i === watchInsights.length - 1 ? "none" : "0.5px solid var(--rule)", cursor: "pointer" }}
+                >
                   <span style={{ width: 30, height: 30, borderRadius: 9, background: toneBg[ins.tone], display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                     <i className={`ti ${ins.icon}`} style={{ fontSize: 15, color: toneColor[ins.tone] }} aria-hidden="true" />
                   </span>
@@ -755,6 +800,7 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
                       </p>
                     )}
                   </div>
+                  <i className="ti ti-chevron-right" style={{ fontSize: 14, color: "var(--ink-3)", flexShrink: 0 }} aria-hidden="true" />
                 </div>
               ))
             )}
@@ -764,7 +810,7 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
       case "poste_trend": {
         const dims = ["category", "subcategory", "tag"];
         return (
-          <WidgetCard icon="ti-chart-dots" accent="ocean" title={t("reports_poste_trend")}>
+          <WidgetCard id="pw-poste-trend" icon="ti-chart-dots" accent="ocean" title={t("reports_poste_trend")}>
             <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
               {dims.map((d) => {
                 const active = trendDim === d;
