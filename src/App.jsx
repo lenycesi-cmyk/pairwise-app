@@ -302,6 +302,8 @@ function AppContent() {
             onOpenTransactions={() => setShowTransactions(true)}
             onOpenRecurring={openRecurring}
             onEditTransaction={openEdit}
+            sharedMonth={sharedMonth}
+            onSharedMonthChange={setSharedMonth}
           />
         </Suspense>
       )}

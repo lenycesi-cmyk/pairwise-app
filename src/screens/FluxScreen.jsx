@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useFinance } from "../context/FinanceContext";
 import { useTranslation } from "../hooks/useTranslation";
 import { useExchangeRates } from "../hooks/useExchangeRates";
@@ -16,13 +16,14 @@ import CategoryRow from "../components/CategoryRow";
 import ScopeFilter from "../components/ScopeFilter";
 import IncomeExpenseTrendChart from "../components/IncomeExpenseTrendChart";
 import { memberShareFraction } from "../utils/members";
+import { PERIOD_TYPES, getRange, shiftAnchor, monthsInRange } from "../utils/periodRange";
 
 // Onglet Flux (« ce qui rentre, ce qui sort ») : cash flow du mois, charges
 // fixes, dépenses par catégorie, détection d'abonnement, dernières transactions
 // et récurrences à venir. Même UI que l'Accueil/Patrimoine : sur desktop, une
 // grille bento personnalisable (glisser-déposer + afficher/masquer) ; sur mobile,
 // empilement 1 colonne. Les listes renvoient aux écrans complets via les modales.
-export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecurring, onEditTransaction }) {
+export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecurring, onEditTransaction, sharedMonth, onSharedMonthChange }) {
   const t = useTranslation();
   const {
     transactions,
@@ -61,21 +62,57 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
 
   const now = new Date();
 
-  // Cash flow du mois en cours : entrées, sorties, net.
+  // ── Sélecteur de période (en haut de page) ─────────────────────────────
+  // Même modèle que Rapports : type de période + ancre. Le type "month" reste
+  // synchronisé avec l'Accueil/Rapports via sharedMonth ; les autres types sont
+  // locaux à l'onglet.
+  const [periodType, setPeriodType] = useState("month");
+  const [anchor, setAnchorRaw] = useState(() =>
+    sharedMonth ? new Date(sharedMonth.year, sharedMonth.month, 1) : new Date()
+  );
+  const [customRange, setCustomRange] = useState({ start: "", end: "" });
+
+  function setAnchor(newAnchor) {
+    setAnchorRaw(newAnchor);
+    if (periodType === "month" && onSharedMonthChange) {
+      onSharedMonthChange({ month: newAnchor.getMonth(), year: newAnchor.getFullYear() });
+    }
+  }
+
+  useEffect(() => {
+    if (periodType === "month" && sharedMonth) {
+      setAnchorRaw((prev) =>
+        prev.getMonth() === sharedMonth.month && prev.getFullYear() === sharedMonth.year
+          ? prev
+          : new Date(sharedMonth.year, sharedMonth.month, 1)
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sharedMonth?.month, sharedMonth?.year]);
+
+  const range = useMemo(
+    () => getRange(periodType, anchor, customRange, locale),
+    [periodType, anchor, customRange, locale]
+  );
+  const inRange = (tx) => {
+    const d = new Date(tx.date);
+    return d >= range.start && d < range.end;
+  };
+
+  // Cash flow de la période : entrées, sorties, net.
   const monthFlow = useMemo(() => {
     let income = 0;
     let expense = 0;
     for (const tx of transactions) {
-      const d = new Date(tx.date);
-      if (d.getMonth() !== now.getMonth() || d.getFullYear() !== now.getFullYear()) continue;
+      if (!inRange(tx)) continue;
       if (tx.type === "income") income += toBase(tx);
       else if (tx.type === "expense") expense += toBase(tx);
     }
     return { income, expense, net: income - expense };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [transactions, displayCurrency, convert]);
+  }, [transactions, range, displayCurrency, convert]);
 
-  // Dépenses du mois par catégorie (même calcul que le widget du Dashboard).
+  // Dépenses de la période par catégorie (même calcul que le widget du Dashboard).
   const categoryTotals = useMemo(() => {
     const result = {};
     for (const cat of categories) {
@@ -83,8 +120,7 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
       let total = 0;
       const subtotals = {};
       for (const tx of transactions) {
-        const d = new Date(tx.date);
-        if (d.getMonth() !== now.getMonth() || d.getFullYear() !== now.getFullYear()) continue;
+        if (!inRange(tx)) continue;
         if (tx.type === "expense" && tx.categoryId === cat.id) {
           const val = toBase(tx);
           total += val;
@@ -95,7 +131,7 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
     }
     return result;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [transactions, categories, displayCurrency, convert]);
+  }, [transactions, categories, range, displayCurrency, convert]);
   const maxCatTotal = Math.max(1, ...Object.values(categoryTotals).map((c) => c.total));
 
   // Tendance 6 derniers mois (entrées vs sorties).
@@ -122,28 +158,29 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [transactions, displayCurrency, convert, locale]);
 
-  // « Ce qui bouge » : catégories dont la dépense du mois en cours s'écarte le
-  // plus de leur moyenne des 3 mois précédents (signal léger, pas d'explorateur —
-  // celui-ci vit dans Rapports). On exige un historique (moyenne > 0) et un écart
-  // notable (≥ 15 %) pour éviter le bruit ; hausse en tang (à surveiller), baisse
-  // en sage (économie). Trié par ampleur d'écart, 3 max.
+  // « Ce qui bouge » : catégories dont la dépense de la période s'écarte le plus
+  // de leur moyenne des 3 périodes précédentes (même type/longueur ; signal léger,
+  // l'explorateur vit dans Rapports). Historique requis (moyenne > 0) et écart
+  // notable (≥ 15 %) pour éviter le bruit ; hausse en tang, baisse en sage. 3 max.
   const whatsMoving = useMemo(() => {
+    const baseRanges = [];
+    if (periodType === "last12" || periodType === "custom") {
+      const span = range.end.getTime() - range.start.getTime();
+      for (let i = 1; i <= 3; i++) {
+        baseRanges.push({ start: new Date(range.start.getTime() - span * i), end: new Date(range.end.getTime() - span * i) });
+      }
+    } else {
+      for (let i = 1; i <= 3; i++) baseRanges.push(getRange(periodType, shiftAnchor(periodType, anchor, -i), customRange, locale));
+    }
     const cur = {};
     const prevSum = {};
-    const curM = now.getMonth();
-    const curY = now.getFullYear();
-    const prevKeys = new Set();
-    for (let i = 1; i <= 3; i++) {
-      const d = new Date(curY, curM - i, 1);
-      prevKeys.add(`${d.getFullYear()}-${d.getMonth()}`);
-    }
     for (const tx of transactions) {
       if (tx.type !== "expense") continue;
       const d = new Date(tx.date);
       const v = toBase(tx);
-      if (d.getMonth() === curM && d.getFullYear() === curY) {
+      if (d >= range.start && d < range.end) {
         cur[tx.categoryId] = (cur[tx.categoryId] || 0) + v;
-      } else if (prevKeys.has(`${d.getFullYear()}-${d.getMonth()}`)) {
+      } else if (baseRanges.some((r) => d >= r.start && d < r.end)) {
         prevSum[tx.categoryId] = (prevSum[tx.categoryId] || 0) + v;
       }
     }
@@ -159,11 +196,12 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
     rows.sort((a, b) => Math.abs(b.pct) - Math.abs(a.pct));
     return rows.slice(0, 3);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [transactions, displayCurrency, convert]);
+  }, [transactions, range, periodType, anchor, customRange, locale, displayCurrency, convert]);
 
   const recentTx = useMemo(
-    () => [...transactions].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 6),
-    [transactions]
+    () => transactions.filter(inRange).sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 6),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [transactions, range]
   );
 
   const seeAll = (onClick) => (
@@ -192,8 +230,7 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
       // Flux + tendance re-scopés par membre (part « pour qui »).
       let income = 0, expense = 0;
       for (const tx of transactions) {
-        const d = new Date(tx.date);
-        if (d.getMonth() !== now.getMonth() || d.getFullYear() !== now.getFullYear()) continue;
+        if (!inRange(tx)) continue;
         const f = frac(tx, scope);
         if (!f) continue;
         if (tx.type === "income") income += toBase(tx) * f;
@@ -304,13 +341,15 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
         .filter(({ monthly }) => monthly > 0);
       const scopedMonthly = scopedItems.reduce((s, x) => s + x.monthly, 0);
       const scopedCount = scopedItems.length;
-      // Revenus du mois re-scopés pour le calcul de la part.
-      let scopedIncome = 0;
+      // Revenus de la période re-scopés, ramenés à une moyenne MENSUELLE (les
+      // charges fixes sont un taux mensuel) pour que la part reste comparable
+      // quelle que soit la longueur de la période sélectionnée.
+      let periodIncome = 0;
       for (const tx of transactions) {
-        const d = new Date(tx.date);
-        if (d.getMonth() !== now.getMonth() || d.getFullYear() !== now.getFullYear()) continue;
-        if (tx.type === "income") scopedIncome += toBase(tx) * frac(tx, scope);
+        if (!inRange(tx)) continue;
+        if (tx.type === "income") periodIncome += toBase(tx) * frac(tx, scope);
       }
+      const scopedIncome = periodIncome / monthsInRange(range);
       return (
         <WidgetCard icon="ti-calendar-repeat" accent="amber" title={t("flux_fixed_title")}>
           {members.length > 1 && <ScopeFilter members={members} scope={scope} onChange={(v) => setScope(id, v)} style={{ marginBottom: 12 }} />}
@@ -531,6 +570,48 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
             </div>
           );
         })()}
+        {!editMode && (
+          <>
+            {/* Navigation de période + filtres (semaine / mois / trimestre / …),
+                en haut de page pour ne pas surcharger les widgets. */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 12 }}>
+              {periodType !== "last12" && periodType !== "custom" && (
+                <button onClick={() => setAnchor(shiftAnchor(periodType, anchor, -1))} aria-label="Période précédente" style={navBtnStyle}>
+                  <i className="ti ti-chevron-left" style={{ fontSize: 16 }} aria-hidden="true" />
+                </button>
+              )}
+              <p style={{ fontSize: 15, fontWeight: 500, textTransform: "capitalize", textAlign: "center", whiteSpace: "nowrap" }}>{range.label}</p>
+              {periodType !== "last12" && periodType !== "custom" && (
+                <button onClick={() => setAnchor(shiftAnchor(periodType, anchor, 1))} aria-label="Période suivante" style={navBtnStyle}>
+                  <i className="ti ti-chevron-right" style={{ fontSize: 16 }} aria-hidden="true" />
+                </button>
+              )}
+            </div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10, justifyContent: "center" }}>
+              {PERIOD_TYPES.map((p) => (
+                <button
+                  key={p}
+                  onClick={() => { setPeriodType(p); if (p === "week") setAnchorRaw(new Date()); }}
+                  style={{
+                    padding: "6px 12px", borderRadius: 99,
+                    border: periodType === p ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
+                    background: periodType === p ? "var(--sky-light)" : "var(--bg-card)",
+                    color: periodType === p ? "var(--sky)" : "var(--ink)",
+                    fontSize: 12, fontWeight: periodType === p ? 500 : 400,
+                  }}
+                >
+                  {t(`reports_period_${p}`)}
+                </button>
+              ))}
+            </div>
+            {periodType === "custom" && (
+              <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                <input type="date" value={customRange.start} onChange={(e) => setCustomRange((r) => ({ ...r, start: e.target.value }))} style={dateInputStyle} />
+                <input type="date" value={customRange.end} onChange={(e) => setCustomRange((r) => ({ ...r, end: e.target.value }))} style={dateInputStyle} />
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       {showCurrencyPicker && !editMode && (
@@ -563,3 +644,15 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
     </div>
   );
 }
+
+const navBtnStyle = {
+  width: 30, height: 30, borderRadius: "50%",
+  background: "var(--bg-card)", border: "0.5px solid var(--rule)",
+  display: "flex", alignItems: "center", justifyContent: "center",
+};
+
+const dateInputStyle = {
+  flex: 1, padding: "8px 10px", borderRadius: "var(--radius-md)",
+  border: "0.5px solid var(--rule)", background: "var(--bg-card)",
+  fontSize: 13, color: "var(--ink)",
+};
