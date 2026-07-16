@@ -34,6 +34,7 @@ export const DEFAULT_WIDGETS = [
 // d'édition (réorganisation + afficher/cacher par carte).
 export const DEFAULT_REPORT_WIDGETS = [
   { id: "totals", visible: true },
+  { id: "watch", visible: true },
   { id: "net_worth", visible: true },
   { id: "spending_evolution", visible: true },
   { id: "income_vs_expense", visible: true },
