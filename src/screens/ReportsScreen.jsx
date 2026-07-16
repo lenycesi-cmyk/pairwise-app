@@ -164,8 +164,9 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
   const [trendDim, setTrendDim] = useState("category");
   const [trendValue, setTrendValue] = useState(null);
   const [showTrendPicker, setShowTrendPicker] = useState(false);
-  // Widget « Dépenses par tag » : dépliage du détail (transactions par tag).
-  const [tagDetailOpen, setTagDetailOpen] = useState(false);
+  // Widget « Dépenses par tag » : tags dépliés (transactions du tag sur la période),
+  // même comportement que les lignes de « Dépenses par catégorie ».
+  const [expandedTags, setExpandedTags] = useState(() => new Set());
 
   // ── Personnalisation (ordre + afficher/cacher par carte), comme sur Home ──
   // WidgetCanvas gère le glisser-déposer et l'afficher/masquer via saveWidgets.
@@ -742,63 +743,71 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
           </WidgetCard>
         );
       }
-      case "by_tag":
+      case "by_tag": {
         if (tagTotals.length === 0) return null;
+        const toggleTag = (tag) =>
+          setExpandedTags((prev) => {
+            const next = new Set(prev);
+            if (next.has(tag)) next.delete(tag);
+            else next.add(tag);
+            return next;
+          });
         return (
-          <WidgetCard
-            icon="ti-tags"
-            accent="pink"
-            title={t("reports_by_tag")}
-            action={!editMode && (
-              <button
-                onClick={() => setTagDetailOpen((v) => !v)}
-                style={{ background: "none", border: "none", color: "var(--sky)", fontSize: 12, display: "flex", alignItems: "center", gap: 3, flexShrink: 0 }}
-              >
-                {t("dashboard_detail")}
-                <i className={`ti ti-chevron-${tagDetailOpen ? "up" : "down"}`} style={{ fontSize: 12 }} aria-hidden="true" />
-              </button>
-            )}
-          >
-            <div>
-              {tagTotals.map(({ tag, total }, i) => {
-                const color = tagColor(tag);
-                const tagTx = tagDetailOpen
-                  ? periodTx
-                      .filter((tx) => tx.type === "expense" && (tx.tags || []).includes(tag))
-                      .sort((a, b) => toBase(b) - toBase(a))
-                  : [];
-                return (
-                  <div key={tag} style={{ marginBottom: i === tagTotals.length - 1 ? 0 : 12 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                      <TagChip tag={tag} size="sm" />
-                      <span style={{ fontSize: 13, fontWeight: 500 }}>{formatAmount(total)} {currencySymbol}</span>
+          <WidgetCard icon="ti-tags" accent="pink" title={t("reports_by_tag")}>
+            {tagTotals.map(({ tag, total }) => {
+              const color = tagColor(tag);
+              const expanded = expandedTags.has(tag);
+              const barPct = Math.round((total / maxTagTotal) * 100);
+              const sharePct = totalExpense > 0 ? (total / totalExpense) * 100 : 0;
+              const tagTx = expanded
+                ? periodTx
+                    .filter((tx) => tx.type === "expense" && (tx.tags || []).includes(tag))
+                    .sort((a, b) => toBase(b) - toBase(a))
+                : [];
+              return (
+                <div key={tag} style={{ borderBottom: "0.5px solid var(--rule)" }}>
+                  <div
+                    onClick={() => toggleTag(tag)}
+                    style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 0", cursor: "pointer" }}
+                  >
+                    <TagChip tag={tag} size="sm" />
+                    <div style={{ flex: 1, minWidth: 0 }} />
+                    <div style={{ width: 50, height: 5, background: "var(--rule)", borderRadius: 4, overflow: "hidden", flexShrink: 0 }}>
+                      <div style={{ width: `${barPct}%`, height: 5, background: `var(--${color})`, transition: "width 0.3s ease" }} />
                     </div>
-                    <div style={{ height: 6, borderRadius: 3, background: "var(--rule)", overflow: "hidden" }}>
-                      <div style={{ height: "100%", width: `${(total / maxTagTotal) * 100}%`, background: `var(--${color})`, borderRadius: 3 }} />
+                    <div style={{ textAlign: "right", flexShrink: 0, minWidth: 78 }}>
+                      <p style={{ fontSize: 13, fontWeight: 500 }}>{formatAmount(total)} {currencySymbol}</p>
+                      <p style={{ fontSize: 10, color: "var(--ink-3)" }}>{sharePct.toFixed(1)}%</p>
                     </div>
-                    {tagDetailOpen && (
-                      <div style={{ marginTop: 6, paddingLeft: 2 }}>
-                        {tagTx.map((tx) => {
-                          const cat = categories.find((c) => c.id === tx.categoryId);
-                          return (
-                            <div key={tx.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0" }}>
-                              <i className={`ti ${cat?.icon || "ti-receipt"}`} style={{ fontSize: 13, color: "var(--ink-3)", flexShrink: 0 }} aria-hidden="true" />
-                              <span style={{ fontSize: 12, flex: 1, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: "var(--ink-2)" }}>
-                                {tx.description || cat?.name}
-                              </span>
-                              <span style={{ fontSize: 10.5, color: "var(--ink-3)", flexShrink: 0 }}>{new Date(tx.date).toLocaleDateString(locale)}</span>
-                              <span className="pw-num" style={{ fontSize: 12, fontWeight: 600, flexShrink: 0 }}>{formatAmount(toBase(tx))} {currencySymbol}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
+                    <i
+                      className="ti ti-chevron-right"
+                      style={{ fontSize: 14, color: "var(--ink-3)", transform: expanded ? "rotate(90deg)" : "rotate(0deg)", transition: "transform 0.2s", flexShrink: 0 }}
+                      aria-hidden="true"
+                    />
                   </div>
-                );
-              })}
-            </div>
+                  {expanded && (
+                    <div style={{ padding: "0 0 10px 28px" }}>
+                      {tagTx.map((tx) => {
+                        const cat = categories.find((c) => c.id === tx.categoryId);
+                        return (
+                          <div key={tx.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 0" }}>
+                            <i className={`ti ${cat?.icon || "ti-receipt"}`} style={{ fontSize: 13, color: "var(--ink-3)", flexShrink: 0 }} aria-hidden="true" />
+                            <span style={{ fontSize: 12, flex: 1, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: "var(--ink-2)" }}>
+                              {tx.description || cat?.name}
+                            </span>
+                            <span style={{ fontSize: 10.5, color: "var(--ink-3)", flexShrink: 0 }}>{new Date(tx.date).toLocaleDateString(locale)}</span>
+                            <span className="pw-num" style={{ fontSize: 12, fontWeight: 500, flexShrink: 0 }}>{formatAmount(toBase(tx))} {currencySymbol}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </WidgetCard>
         );
+      }
       case "by_category":
         return (
           <WidgetCard icon="ti-chart-pie" accent="coral" title={t("reports_by_category")}>
