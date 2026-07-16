@@ -21,6 +21,14 @@ import TagChip from "../components/TagChip";
 
 const PERIOD_TYPES = ["week", "month", "quarter", "year", "last12", "custom"];
 
+// Un mouvement correspond-il au poste sélectionné (catégorie / sous-catégorie /
+// tag) du widget « Tendance par poste » ?
+function trendMatches(tx, dim, val) {
+  if (dim === "category") return tx.categoryId === val;
+  if (dim === "subcategory") return tx.subcategory === val;
+  return (tx.tags || []).includes(val);
+}
+
 // Same k-notation as the dashboard's IncomeExpenseTrendChart, so the
 // mobile Reports chart and the desktop widget read identically.
 function formatAxisTick(v) {
@@ -152,6 +160,9 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
   );
   const [customRange, setCustomRange] = useState({ start: "", end: "" });
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
+  // Widget « Tendance par poste » : dimension (catégorie/sous-cat/tag) + poste choisi.
+  const [trendDim, setTrendDim] = useState("category");
+  const [trendValue, setTrendValue] = useState(null);
 
   // ── Personnalisation (ordre + afficher/cacher par carte), comme sur Home ──
   // WidgetCanvas gère le glisser-déposer et l'afficher/masquer via saveWidgets.
@@ -298,6 +309,70 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
 
   const maxTagTotal = Math.max(1, ...tagTotals.map((t) => t.total));
 
+  // ── Tendance par poste ─────────────────────────────────────────────────
+  // Options disponibles pour la dimension courante, triées par dépense décroissante
+  // sur la période (le libellé d'une catégorie vient de `categories`, sinon c'est
+  // la valeur brute — nom de sous-catégorie ou tag).
+  const trendOptions = useMemo(() => {
+    const totals = new Map();
+    for (const tx of periodTx) {
+      if (tx.type !== "expense") continue;
+      let keys;
+      if (trendDim === "category") keys = [tx.categoryId];
+      else if (trendDim === "subcategory") keys = tx.subcategory ? [tx.subcategory] : [];
+      else keys = tx.tags || [];
+      for (const k of keys) totals.set(k, (totals.get(k) || 0) + toBase(tx));
+    }
+    const labelOf = (val) =>
+      trendDim === "category" ? categories.find((c) => c.id === val)?.name ?? val : val;
+    return [...totals.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([value, total]) => ({ value, total, label: labelOf(value) }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [periodTx, trendDim, categories, displayCurrency, convert]);
+
+  // Poste actif : on garde le choix de l'utilisateur tant qu'il existe encore,
+  // sinon on retombe sur le plus gros poste de la dimension courante.
+  const activeTrendValue =
+    trendValue != null && trendOptions.some((o) => o.value === trendValue)
+      ? trendValue
+      : trendOptions[0]?.value ?? null;
+
+  const trendSeries = useMemo(() => {
+    if (activeTrendValue == null) return [];
+    const sumByKey = new Map();
+    for (const tx of periodTx) {
+      if (tx.type !== "expense" || !trendMatches(tx, trendDim, activeTrendValue)) continue;
+      const key = bucketKeyOf(new Date(tx.date), periodType);
+      sumByKey.set(key, (sumByKey.get(key) || 0) + toBase(tx));
+    }
+    const series = enumerateBuckets(range, periodType, locale).map((b) => ({
+      label: b.label,
+      value: sumByKey.has(b.key) ? sumByKey.get(b.key) : null,
+    }));
+    return trimLeadingEmpty(series);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [periodTx, trendDim, activeTrendValue, range, periodType, displayCurrency, convert, locale]);
+
+  const trendTotal = useMemo(() => {
+    if (activeTrendValue == null) return 0;
+    return periodTx
+      .filter((tx) => tx.type === "expense" && trendMatches(tx, trendDim, activeTrendValue))
+      .reduce((s, tx) => s + toBase(tx), 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [periodTx, trendDim, activeTrendValue, displayCurrency, convert]);
+
+  const trendPrevTotal = useMemo(() => {
+    if (activeTrendValue == null) return 0;
+    return prevPeriodTx
+      .filter((tx) => tx.type === "expense" && trendMatches(tx, trendDim, activeTrendValue))
+      .reduce((s, tx) => s + toBase(tx), 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prevPeriodTx, trendDim, activeTrendValue, displayCurrency, convert]);
+
+  const trendDiffPct =
+    trendPrevTotal > 0 ? ((trendTotal - trendPrevTotal) / trendPrevTotal) * 100 : null;
+
   const evolutionData = useMemo(() => {
     // Somme des dépenses par bucket, projetée sur tous les buckets de la
     // période. Un bucket sans dépense reste à null (blanc) plutôt que 0, pour
@@ -416,6 +491,7 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
     spending_evolution: t("reports_evolution"),
     income_vs_expense: t("reports_income_vs_expense"),
     member_comparison: t("reports_member_comparison"),
+    poste_trend: t("reports_poste_trend"),
     by_tag: t("reports_by_tag"),
     by_category: t("reports_by_category"),
   };
@@ -546,6 +622,82 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
             </div>
           </WidgetCard>
         );
+      case "poste_trend": {
+        const dims = ["category", "subcategory", "tag"];
+        return (
+          <WidgetCard icon="ti-chart-dots" accent="ocean" title={t("reports_poste_trend")}>
+            <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
+              {dims.map((d) => {
+                const active = trendDim === d;
+                return (
+                  <button
+                    key={d}
+                    onClick={() => { setTrendDim(d); setTrendValue(null); }}
+                    style={{
+                      flex: 1, padding: "6px 4px", borderRadius: 99, border: "none",
+                      background: active ? "var(--lavi-light)" : "color-mix(in srgb, var(--ink) 5%, transparent)",
+                      color: active ? "var(--lavi)" : "var(--ink-3)",
+                      fontSize: 12, fontWeight: active ? 600 : 400,
+                    }}
+                  >
+                    {t(`reports_trend_dim_${d}`)}
+                  </button>
+                );
+              })}
+            </div>
+            {trendOptions.length === 0 ? (
+              <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", padding: "1.25rem 0" }}>
+                {t("reports_trend_no_data")}
+              </p>
+            ) : (
+              <>
+                <select
+                  value={activeTrendValue ?? ""}
+                  onChange={(e) => setTrendValue(e.target.value)}
+                  aria-label={t("reports_trend_pick")}
+                  style={{
+                    width: "100%", padding: "8px 10px", borderRadius: "var(--radius-md)",
+                    border: "0.5px solid var(--rule)", background: "var(--bg-card)",
+                    fontSize: 13, color: "var(--ink)", marginBottom: 10,
+                  }}
+                >
+                  {trendOptions.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+                <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 6, gap: 8 }}>
+                  <span className="pw-num" style={{ fontSize: 19, fontWeight: 700 }}>
+                    {formatAmount(trendTotal)} {currencySymbol}
+                  </span>
+                  {trendDiffPct !== null && (
+                    <span style={{ fontSize: 12, fontWeight: 600, color: trendDiffPct <= 0 ? "var(--sage)" : "var(--tang)", display: "flex", alignItems: "center", gap: 3, whiteSpace: "nowrap" }}>
+                      <i className={`ti ti-arrow-${trendDiffPct >= 0 ? "up-right" : "down-right"}`} style={{ fontSize: 13 }} aria-hidden="true" />
+                      {trendDiffPct >= 0 ? "+" : ""}{trendDiffPct.toFixed(0)}%
+                      <span style={{ color: "var(--ink-3)", fontWeight: 400 }}>{t("reports_vs_previous")}</span>
+                    </span>
+                  )}
+                </div>
+                {trendSeries.length === 0 ? (
+                  <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", padding: "1rem 0" }}>
+                    {t("reports_no_expenses")}
+                  </p>
+                ) : (
+                  <div style={{ width: "100%", height: 140 }}>
+                    <ResponsiveContainer>
+                      <LineChart data={trendSeries} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
+                        <XAxis dataKey="label" tick={{ fontSize: 10, fill: "var(--ink-3)" }} axisLine={{ stroke: "var(--rule)" }} tickLine={false} />
+                        <YAxis tick={{ fontSize: 10, fill: "var(--ink-3)" }} axisLine={false} tickLine={false} tickFormatter={formatAxisTick} width={38} domain={[0, "auto"]} />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Line type="monotone" dataKey="value" stroke="var(--lavi)" strokeWidth={2} dot={{ r: 2, fill: "var(--lavi)" }} activeDot={{ r: 4 }} connectNulls={false} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </>
+            )}
+          </WidgetCard>
+        );
+      }
       case "by_tag":
         if (tagTotals.length === 0) return null;
         return (

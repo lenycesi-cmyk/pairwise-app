@@ -38,6 +38,7 @@ export const DEFAULT_REPORT_WIDGETS = [
   { id: "spending_evolution", visible: true },
   { id: "income_vs_expense", visible: true },
   { id: "member_comparison", visible: true },
+  { id: "poste_trend", visible: true },
   { id: "by_tag", visible: true },
   { id: "by_category", visible: true },
 ];
@@ -60,6 +61,7 @@ export const DEFAULT_WEALTH_WIDGETS = [
 // d'abonnement est détectée (renderContent renvoie null sinon).
 export const DEFAULT_FLUX_WIDGETS = [
   { id: "cashflow", visible: true },
+  { id: "whats_moving", visible: true },
   { id: "spending_by_category", visible: true },
   { id: "fixed", visible: true },
   { id: "recent", visible: true },
