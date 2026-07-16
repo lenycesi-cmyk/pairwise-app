@@ -443,6 +443,83 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
   const currencySymbol =
     ALL_CURRENCIES.find((c) => c.code === displayCurrency)?.symbol || displayCurrency;
 
+  // ── Insights « À surveiller » ──────────────────────────────────────────
+  // Cartes générées automatiquement à partir des dépenses de la période :
+  // plus gros poste, plus fortes hausses vs période précédente, nouveau poste,
+  // et une baisse (renforcement positif). 4 cartes max, sans doublon de catégorie.
+  // Placé après `currencySymbol`/`formatAmount` car il les référence.
+  const watchInsights = useMemo(() => {
+    const cur = {};
+    for (const tx of periodTx) if (tx.type === "expense") cur[tx.categoryId] = (cur[tx.categoryId] || 0) + toBase(tx);
+    const prev = {};
+    for (const tx of prevPeriodTx) if (tx.type === "expense") prev[tx.categoryId] = (prev[tx.categoryId] || 0) + toBase(tx);
+    const nameOf = (cid) => categories.find((c) => c.id === cid)?.name ?? cid;
+    const iconOf = (cid) => categories.find((c) => c.id === cid)?.icon ?? "ti-receipt";
+
+    const curEntries = Object.entries(cur).filter(([, v]) => v > 0);
+    if (curEntries.length === 0) return [];
+
+    const insights = [];
+    const used = new Set();
+    const pctOf = (cid, v) => ((v - prev[cid]) / prev[cid]) * 100;
+
+    // 1. Plus gros poste.
+    const [bigId, bigVal] = [...curEntries].sort((a, b) => b[1] - a[1])[0];
+    insights.push({
+      key: "biggest", tone: "neutral", icon: iconOf(bigId),
+      text: t("reports_watch_biggest")
+        .replace("{name}", nameOf(bigId))
+        .replace("{pct}", (totalExpense > 0 ? (bigVal / totalExpense) * 100 : 0).toFixed(0)),
+    });
+    used.add(bigId);
+
+    // 2. Plus fortes hausses vs période précédente.
+    const increases = curEntries
+      .filter(([cid, v]) => (prev[cid] || 0) > 0 && pctOf(cid, v) >= 15)
+      .map(([cid, v]) => ({ cid, pct: pctOf(cid, v) }))
+      .sort((a, b) => b.pct - a.pct);
+    for (const inc of increases) {
+      if (insights.length >= 4) break;
+      if (used.has(inc.cid)) continue;
+      insights.push({
+        key: `up-${inc.cid}`, tone: "warn", icon: iconOf(inc.cid),
+        text: t("reports_watch_increase").replace("{name}", nameOf(inc.cid)).replace("{pct}", inc.pct.toFixed(0)),
+      });
+      used.add(inc.cid);
+    }
+
+    // 3. Nouveau poste (dépense cette période, rien la précédente).
+    if (insights.length < 4) {
+      const news = curEntries.filter(([cid]) => !(prev[cid] > 0) && !used.has(cid)).sort((a, b) => b[1] - a[1]);
+      if (news.length) {
+        const [nid, nval] = news[0];
+        insights.push({
+          key: `new-${nid}`, tone: "warn", icon: iconOf(nid),
+          text: t("reports_watch_new").replace("{name}", nameOf(nid)).replace("{amount}", `${formatAmount(nval)} ${currencySymbol}`),
+        });
+        used.add(nid);
+      }
+    }
+
+    // 4. Plus forte baisse (renforcement positif).
+    if (insights.length < 4) {
+      const decreases = curEntries
+        .filter(([cid, v]) => (prev[cid] || 0) > 0 && pctOf(cid, v) <= -15 && !used.has(cid))
+        .map(([cid, v]) => ({ cid, pct: pctOf(cid, v) }))
+        .sort((a, b) => a.pct - b.pct);
+      if (decreases.length) {
+        const dec = decreases[0];
+        insights.push({
+          key: `down-${dec.cid}`, tone: "good", icon: iconOf(dec.cid),
+          text: t("reports_watch_saving").replace("{name}", nameOf(dec.cid)).replace("{pct}", Math.abs(dec.pct).toFixed(0)),
+        });
+      }
+    }
+
+    return insights;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [periodTx, prevPeriodTx, categories, totalExpense, displayCurrency, convert, language]);
+
   // Libellé de période : sur mobile, le mois (type "month") est abrégé à 4
   // lettres s'il dépasse (Juillet → Juil), comme le sélecteur de l'accueil.
   const periodLabel =
@@ -491,6 +568,7 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
   // Titres des cartes (pour le placeholder en mode édition).
   const WIDGET_LABELS = {
     totals: t("reports_totals_title"),
+    watch: t("reports_watch_title"),
     net_worth: t("reports_net_worth_evolution"),
     spending_evolution: t("reports_evolution"),
     income_vs_expense: t("reports_income_vs_expense"),
@@ -626,6 +704,23 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
             </div>
           </WidgetCard>
         );
+      case "watch": {
+        if (watchInsights.length === 0) return null;
+        const toneColor = { neutral: "var(--lavi)", warn: "var(--tang)", good: "var(--sage)" };
+        const toneBg = { neutral: "var(--lavi-light)", warn: "var(--tang-light)", good: "var(--sage-light)" };
+        return (
+          <WidgetCard icon="ti-eye" accent="amber" title={t("reports_watch_title")}>
+            {watchInsights.map((ins, i) => (
+              <div key={ins.key} style={{ display: "flex", alignItems: "center", gap: 11, padding: "9px 0", borderBottom: i === watchInsights.length - 1 ? "none" : "0.5px solid var(--rule)" }}>
+                <span style={{ width: 30, height: 30, borderRadius: 9, background: toneBg[ins.tone], display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <i className={`ti ${ins.icon}`} style={{ fontSize: 15, color: toneColor[ins.tone] }} aria-hidden="true" />
+                </span>
+                <p style={{ fontSize: 12.5, lineHeight: 1.4, color: "var(--ink-2)" }}>{ins.text}</p>
+              </div>
+            ))}
+          </WidgetCard>
+        );
+      }
       case "poste_trend": {
         const dims = ["category", "subcategory", "tag"];
         return (
