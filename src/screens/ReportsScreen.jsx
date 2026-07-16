@@ -163,6 +163,9 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
   // Widget « Tendance par poste » : dimension (catégorie/sous-cat/tag) + poste choisi.
   const [trendDim, setTrendDim] = useState("category");
   const [trendValue, setTrendValue] = useState(null);
+  const [showTrendPicker, setShowTrendPicker] = useState(false);
+  // Widget « Dépenses par tag » : dépliage du détail (transactions par tag).
+  const [tagDetailOpen, setTagDetailOpen] = useState(false);
 
   // ── Personnalisation (ordre + afficher/cacher par carte), comme sur Home ──
   // WidgetCanvas gère le glisser-déposer et l'afficher/masquer via saveWidgets.
@@ -608,12 +611,12 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
                 const mt = memberComparison[getMemberKey(m)] || { expense: 0, income: 0 };
                 return (
                   <div key={getMemberKey(m)}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                      <Avatar member={m} colorMap={memberColorMap} size={24} />
-                      <p style={{ fontSize: 13, fontWeight: 500 }}>{m.name}</p>
+                    <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 10 }}>
+                      <Avatar member={m} colorMap={memberColorMap} size={30} />
+                      <p style={{ fontSize: 15, fontWeight: 600 }}>{m.name}</p>
                     </div>
-                    <p style={{ fontSize: 11, color: "var(--ink-3)" }}>{t("dashboard_expenses")}</p>
-                    <p className="pw-num" style={{ fontSize: 15, color: "var(--tang)" }}>
+                    <p style={{ fontSize: 12.5, color: "var(--ink-3)", marginBottom: 2 }}>{t("dashboard_expenses")}</p>
+                    <p className="pw-num" style={{ fontSize: 24, fontWeight: 700, letterSpacing: "-0.01em", color: "var(--tang)" }}>
                       {formatAmount(mt.expense)} {currencySymbol}
                     </p>
                   </div>
@@ -632,7 +635,7 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
                 return (
                   <button
                     key={d}
-                    onClick={() => { setTrendDim(d); setTrendValue(null); }}
+                    onClick={() => { setTrendDim(d); setTrendValue(null); setShowTrendPicker(false); }}
                     style={{
                       flex: 1, padding: "6px 4px", borderRadius: 99, border: "none",
                       background: active ? "var(--lavi-light)" : "color-mix(in srgb, var(--ink) 5%, transparent)",
@@ -651,20 +654,61 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
               </p>
             ) : (
               <>
-                <select
-                  value={activeTrendValue ?? ""}
-                  onChange={(e) => setTrendValue(e.target.value)}
-                  aria-label={t("reports_trend_pick")}
-                  style={{
-                    width: "100%", padding: "8px 10px", borderRadius: "var(--radius-md)",
-                    border: "0.5px solid var(--rule)", background: "var(--bg-card)",
-                    fontSize: 13, color: "var(--ink)", marginBottom: 10,
-                  }}
-                >
-                  {trendOptions.map((o) => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
-                  ))}
-                </select>
+                {(() => {
+                  // Même UI que le sélecteur de catégorie de la modale Transaction :
+                  // un champ « trigger » teinté + une grille 2 colonnes dépliable.
+                  const active = trendOptions.find((o) => o.value === activeTrendValue);
+                  const iconFor = (val) =>
+                    trendDim === "category"
+                      ? categories.find((c) => c.id === val)?.icon || "ti-category"
+                      : trendDim === "tag"
+                        ? "ti-hash"
+                        : "ti-list";
+                  return (
+                    <>
+                      <div
+                        onClick={() => setShowTrendPicker((v) => !v)}
+                        style={{
+                          display: "flex", alignItems: "center", gap: 9, height: 44, padding: "0 13px",
+                          borderRadius: "var(--radius-md)", cursor: "pointer", marginBottom: 8,
+                          background: "color-mix(in srgb, var(--lavi) 12%, transparent)",
+                          border: "0.5px solid var(--lavi)",
+                        }}
+                      >
+                        <i className={`ti ${iconFor(activeTrendValue)}`} style={{ fontSize: 17, color: "var(--lavi)", flexShrink: 0 }} aria-hidden="true" />
+                        <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, color: "var(--lavi)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          {active?.label ?? t("reports_trend_pick")}
+                        </span>
+                        <i className={`ti ti-chevron-${showTrendPicker ? "up" : "down"}`} style={{ fontSize: 16, color: "var(--lavi)", flexShrink: 0 }} aria-hidden="true" />
+                      </div>
+                      {showTrendPicker && (
+                        <div style={{ marginBottom: 10, border: "0.5px solid var(--rule)", borderRadius: "var(--radius-md)", padding: 6, background: "var(--bg-card)" }}>
+                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2, maxHeight: 240, overflowY: "auto" }}>
+                            {trendOptions.map((o) => {
+                              const sel = o.value === activeTrendValue;
+                              return (
+                                <div
+                                  key={o.value}
+                                  onClick={() => { setTrendValue(o.value); setShowTrendPicker(false); }}
+                                  style={{
+                                    display: "flex", alignItems: "center", gap: 9, height: 40, padding: "0 11px", cursor: "pointer",
+                                    borderRadius: 8, minWidth: 0,
+                                    background: sel ? "color-mix(in srgb, var(--lavi) 12%, transparent)" : "transparent",
+                                  }}
+                                >
+                                  <i className={`ti ${iconFor(o.value)}`} style={{ fontSize: 15, flexShrink: 0, color: sel ? "var(--lavi)" : "var(--ink-3)" }} aria-hidden="true" />
+                                  <span style={{ fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: sel ? "var(--lavi)" : "var(--ink-2)", fontWeight: sel ? 600 : 400 }}>
+                                    {o.label}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
                 <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 6, gap: 8 }}>
                   <span className="pw-num" style={{ fontSize: 19, fontWeight: 700 }}>
                     {formatAmount(trendTotal)} {currencySymbol}
@@ -701,10 +745,28 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
       case "by_tag":
         if (tagTotals.length === 0) return null;
         return (
-          <WidgetCard icon="ti-tags" accent="pink" title={t("reports_by_tag")}>
+          <WidgetCard
+            icon="ti-tags"
+            accent="pink"
+            title={t("reports_by_tag")}
+            action={!editMode && (
+              <button
+                onClick={() => setTagDetailOpen((v) => !v)}
+                style={{ background: "none", border: "none", color: "var(--sky)", fontSize: 12, display: "flex", alignItems: "center", gap: 3, flexShrink: 0 }}
+              >
+                {t("dashboard_detail")}
+                <i className={`ti ti-chevron-${tagDetailOpen ? "up" : "down"}`} style={{ fontSize: 12 }} aria-hidden="true" />
+              </button>
+            )}
+          >
             <div>
               {tagTotals.map(({ tag, total }, i) => {
                 const color = tagColor(tag);
+                const tagTx = tagDetailOpen
+                  ? periodTx
+                      .filter((tx) => tx.type === "expense" && (tx.tags || []).includes(tag))
+                      .sort((a, b) => toBase(b) - toBase(a))
+                  : [];
                 return (
                   <div key={tag} style={{ marginBottom: i === tagTotals.length - 1 ? 0 : 12 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
@@ -714,6 +776,23 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
                     <div style={{ height: 6, borderRadius: 3, background: "var(--rule)", overflow: "hidden" }}>
                       <div style={{ height: "100%", width: `${(total / maxTagTotal) * 100}%`, background: `var(--${color})`, borderRadius: 3 }} />
                     </div>
+                    {tagDetailOpen && (
+                      <div style={{ marginTop: 6, paddingLeft: 2 }}>
+                        {tagTx.map((tx) => {
+                          const cat = categories.find((c) => c.id === tx.categoryId);
+                          return (
+                            <div key={tx.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0" }}>
+                              <i className={`ti ${cat?.icon || "ti-receipt"}`} style={{ fontSize: 13, color: "var(--ink-3)", flexShrink: 0 }} aria-hidden="true" />
+                              <span style={{ fontSize: 12, flex: 1, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: "var(--ink-2)" }}>
+                                {tx.description || cat?.name}
+                              </span>
+                              <span style={{ fontSize: 10.5, color: "var(--ink-3)", flexShrink: 0 }}>{new Date(tx.date).toLocaleDateString(locale)}</span>
+                              <span className="pw-num" style={{ fontSize: 12, fontWeight: 600, flexShrink: 0 }}>{formatAmount(toBase(tx))} {currencySymbol}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 );
               })}
