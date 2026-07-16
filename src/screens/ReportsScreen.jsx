@@ -383,6 +383,16 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [periodTx, trendDim, activeTrendValue, range, periodType, displayCurrency, convert, locale]);
 
+  // Transactions composant le poste sélectionné sur la période (triées par
+  // montant décroissant) — pour voir « d'où vient » la tendance.
+  const trendTx = useMemo(() => {
+    if (activeTrendValue == null) return [];
+    return periodTx
+      .filter((tx) => tx.type === "expense" && trendMatches(tx, trendDim, activeTrendValue))
+      .sort((a, b) => toBase(b) - toBase(a));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [periodTx, trendDim, activeTrendValue, displayCurrency, convert]);
+
   const trendTotal = useMemo(() => {
     if (activeTrendValue == null) return 0;
     return periodTx
@@ -917,6 +927,36 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
                         <Line type="monotone" dataKey="value" stroke="var(--lavi)" strokeWidth={2} dot={{ r: 2, fill: "var(--lavi)" }} activeDot={{ r: 4 }} connectNulls={false} />
                       </LineChart>
                     </ResponsiveContainer>
+                  </div>
+                )}
+                {/* « D'où ça vient » : les transactions du poste sur la période,
+                    triées par montant, pour expliquer la tendance. */}
+                {trendTx.length > 0 && (
+                  <div style={{ marginTop: 10, paddingTop: 10, borderTop: "0.5px solid var(--rule)" }}>
+                    <p style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-3)", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.03em" }}>
+                      {t("reports_trend_breakdown")}
+                    </p>
+                    {trendTx.map((tx) => {
+                      const cat = categories.find((c) => c.id === tx.categoryId);
+                      const share = trendTotal > 0 ? (toBase(tx) / trendTotal) * 100 : 0;
+                      return (
+                        <div key={tx.id} style={{ display: "flex", alignItems: "center", gap: 9, padding: "6px 0" }}>
+                          <i className={`ti ${cat?.icon || "ti-receipt"}`} style={{ fontSize: 14, color: "var(--ink-3)", flexShrink: 0 }} aria-hidden="true" />
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <p style={{ fontSize: 12.5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: "var(--ink-2)" }}>
+                              {tx.description || (tx.subcategory ? tx.subcategory : cat?.name)}
+                            </p>
+                            <p style={{ fontSize: 10.5, color: "var(--ink-3)" }}>
+                              {new Date(tx.date).toLocaleDateString(locale)}{tx.subcategory && (tx.description || cat) ? ` · ${tx.subcategory}` : ""}
+                            </p>
+                          </div>
+                          <div style={{ textAlign: "right", flexShrink: 0 }}>
+                            <p className="pw-num" style={{ fontSize: 12.5, fontWeight: 600 }}>{formatAmount(toBase(tx))} {currencySymbol}</p>
+                            <p style={{ fontSize: 10, color: "var(--ink-3)" }}>{share.toFixed(0)}%</p>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </>
