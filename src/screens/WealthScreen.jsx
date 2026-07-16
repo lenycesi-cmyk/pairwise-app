@@ -203,7 +203,7 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
       return (
         <div
           ref={netWorthCardRef}
-          className="pw-card"
+          className="pw-card pw-chip-host"
           data-accent="ocean"
           style={{
             background: "var(--bg-card)",
@@ -212,8 +212,13 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
             padding: "1.25rem",
           }}
         >
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-            <p style={{ fontSize: 12, color: "var(--ink-2)" }}>{t("wealth_net_worth")}</p>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span className="pw-chip" style={{ width: 32, height: 32, borderRadius: 10, background: "var(--lavi-light)", "--pw-chip": "var(--lavi)", flexShrink: 0 }}>
+                <i className="ti ti-diamond" style={{ fontSize: 16, color: "var(--lavi)" }} aria-hidden="true" />
+              </span>
+              <p style={{ fontSize: 13.5, fontWeight: 600, fontFamily: "var(--font-display)" }}>{t("wealth_net_worth")}</p>
+            </div>
             {refreshing && (
               <i className="ti ti-refresh" style={{ fontSize: 13, color: "var(--ink-3)" }} aria-hidden="true" />
             )}

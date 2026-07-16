@@ -105,6 +105,10 @@ export default function WidgetCanvas({
   // masqués passent dans un tiroir sous la grille (comme l'Accueil), au lieu
   // d'être affichés grisés en ligne. Sur mobile, empilement 1 colonne (idem).
   bento = false,
+  // `heroGrid` : sur desktop hors édition, met le PREMIER widget (id "overview")
+  // en pleine largeur, puis les autres dans une grille 3 colonnes — pour que la
+  // vue d'ensemble ressorte au-dessus des budgets. Sur mobile : 1 colonne (idem).
+  heroGrid = false,
 }) {
   const t = useTranslation();
   const sensors = useSensors(
@@ -141,10 +145,17 @@ export default function WidgetCanvas({
   // Deux colonnes en édition sur desktop (demande produit) ; masonry hors
   // édition ; une seule colonne sur mobile. En bento, c'est la grille 12 colonnes.
   const twoColEdit = !bentoOn && editMode && isDesktop;
-  const containerClass = bentoOn ? "bento-grid" : (!editMode && isDesktop ? "card-columns" : "");
+  const heroGridOn = heroGrid && isDesktop && !editMode;
+  const containerClass = bentoOn
+    ? "bento-grid"
+    : heroGridOn
+      ? ""
+      : (!editMode && isDesktop ? "card-columns" : "");
   const containerStyle = twoColEdit
     ? { display: "grid", gridTemplateColumns: "1fr 1fr", columnGap: 20, alignItems: "start" }
-    : undefined;
+    : heroGridOn
+      ? { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 20, alignItems: "start" }
+      : undefined;
 
   return (
     <>
@@ -160,9 +171,15 @@ export default function WidgetCanvas({
                   id={w.id}
                   editMode={editMode}
                   onLongPress={onEnterEditMode}
-                  outerStyle={bentoOn ? { gridColumn: `span ${slotSpan12(idx)}`, maxHeight: BENTO_MAX_HEIGHT } : undefined}
+                  outerStyle={
+                    bentoOn
+                      ? { gridColumn: `span ${slotSpan12(idx)}`, maxHeight: BENTO_MAX_HEIGHT }
+                      : heroGridOn
+                        ? { gridColumn: w.id === "overview" ? "1 / -1" : "auto" }
+                        : undefined
+                  }
                 >
-                  <div style={{ marginBottom: bentoOn ? 0 : 28, position: "relative", height: bentoOn ? "100%" : undefined }}>
+                  <div style={{ marginBottom: bentoOn || heroGridOn ? 0 : 28, position: "relative", height: bentoOn ? "100%" : undefined }}>
                     {editMode && (
                       <button
                         onClick={() => toggleWidget(w.id)}

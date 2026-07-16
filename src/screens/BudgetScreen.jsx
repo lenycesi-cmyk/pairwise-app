@@ -373,7 +373,7 @@ export default function BudgetScreen({ openSignal, onOpenMenu }) {
       // ambre/rouge sinon (statut sémantique, jamais la couleur de marque).
       const barColor = pct >= 100 ? "var(--red)" : watchCount > calmCount ? "var(--amber)" : "var(--sage)";
       return (
-        <WidgetCard icon="ti-gauge" accent="amber" title={t("budget_widget_overview")}>
+        <WidgetCard icon="ti-gauge" accent="amber" noBar title={t("budget_widget_overview")}>
           {members.length > 1 && (
             <ScopeFilter members={members} scope={overviewScope} onChange={setOverviewScope} />
           )}
@@ -1178,6 +1178,7 @@ export default function BudgetScreen({ openSignal, onOpenMenu }) {
           renderContent={renderBudgetWidget}
           labels={canvasLabels}
           isDesktop={isDesktop}
+          heroGrid
         />
       )}
     </div>

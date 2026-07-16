@@ -229,6 +229,8 @@ button[style*="background: var(--ink)"] {
   top: 0;
   height: 5px;
 }
+/* Barre d'accent supprimée à la demande (ex. widget « Vue d'ensemble » budget). */
+.pw-card[data-nobar]::before { display: none; }
 .pw-card[data-accent="coral"]::before { background: var(--tang); }
 .pw-card[data-accent="ocean"]::before { background: var(--lavi); }
 .pw-card[data-accent="sky"]::before { background: var(--sky); }
