@@ -14,10 +14,11 @@ import { useTranslation } from "../hooks/useTranslation";
 import SpotlightHint from "../components/SpotlightHint";
 import GreetingHeader from "../components/GreetingHeader";
 import HeaderMenuButton from "../components/HeaderMenuButton";
-import { getMemberKey } from "../utils/members";
+import { getMemberKey, memberShareFraction } from "../utils/members";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 import { tagColor } from "../utils/tags";
 import TagChip from "../components/TagChip";
+import ScopeFilter from "../components/ScopeFilter";
 
 const PERIOD_TYPES = ["week", "month", "quarter", "year", "last12", "custom"];
 
@@ -164,6 +165,8 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
   const [trendDim, setTrendDim] = useState("category");
   const [trendValue, setTrendValue] = useState(null);
   const [showTrendPicker, setShowTrendPicker] = useState(false);
+  // Widget « À surveiller » : filtre membre (null = Famille).
+  const [watchScope, setWatchScope] = useState(null);
   // Widget « Dépenses par tag » : tags dépliés (transactions du tag sur la période),
   // même comportement que les lignes de « Dépenses par catégorie ».
   const [expandedTags, setExpandedTags] = useState(() => new Set());
@@ -449,15 +452,34 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
   // et une baisse (renforcement positif). 4 cartes max, sans doublon de catégorie.
   // Placé après `currencySymbol`/`formatAmount` car il les référence.
   const watchInsights = useMemo(() => {
+    // Part « pour qui » du mouvement selon le filtre membre (1 = Famille).
+    const wfrac = (tx) => (watchScope === null ? 1 : memberShareFraction(tx, watchScope, members));
     const cur = {};
-    for (const tx of periodTx) if (tx.type === "expense") cur[tx.categoryId] = (cur[tx.categoryId] || 0) + toBase(tx);
+    let curTotal = 0;
+    for (const tx of periodTx) {
+      if (tx.type !== "expense") continue;
+      const v = toBase(tx) * wfrac(tx);
+      if (!v) continue;
+      cur[tx.categoryId] = (cur[tx.categoryId] || 0) + v;
+      curTotal += v;
+    }
     const prev = {};
-    for (const tx of prevPeriodTx) if (tx.type === "expense") prev[tx.categoryId] = (prev[tx.categoryId] || 0) + toBase(tx);
+    for (const tx of prevPeriodTx) {
+      if (tx.type !== "expense") continue;
+      const v = toBase(tx) * wfrac(tx);
+      if (!v) continue;
+      prev[tx.categoryId] = (prev[tx.categoryId] || 0) + v;
+    }
     const nameOf = (cid) => categories.find((c) => c.id === cid)?.name ?? cid;
     const iconOf = (cid) => categories.find((c) => c.id === cid)?.icon ?? "ti-receipt";
 
     const curEntries = Object.entries(cur).filter(([, v]) => v > 0);
     if (curEntries.length === 0) return [];
+
+    // Seuil anti-bruit : une variation n'est retenue que si son montant absolu est
+    // significatif (évite les « +136 % » sur un poste à quelques euros). ~2 % des
+    // dépenses de la période, borné entre 15 et 100 (unités de la devise d'affichage).
+    const minDelta = Math.min(100, Math.max(15, curTotal * 0.02));
 
     const insights = [];
     const used = new Set();
@@ -466,51 +488,53 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
     // 1. Plus gros poste.
     const [bigId, bigVal] = [...curEntries].sort((a, b) => b[1] - a[1])[0];
     insights.push({
-      key: "biggest", tone: "neutral", icon: iconOf(bigId),
+      key: "biggest", tone: "neutral", icon: iconOf(bigId), amount: bigVal, delta: null,
       text: t("reports_watch_biggest")
         .replace("{name}", nameOf(bigId))
-        .replace("{pct}", (totalExpense > 0 ? (bigVal / totalExpense) * 100 : 0).toFixed(0)),
+        .replace("{pct}", (curTotal > 0 ? (bigVal / curTotal) * 100 : 0).toFixed(0)),
     });
     used.add(bigId);
 
-    // 2. Plus fortes hausses vs période précédente.
+    // 2. Plus fortes hausses vs période précédente (montant en hausse ≥ seuil).
     const increases = curEntries
-      .filter(([cid, v]) => (prev[cid] || 0) > 0 && pctOf(cid, v) >= 15)
-      .map(([cid, v]) => ({ cid, pct: pctOf(cid, v) }))
+      .filter(([cid, v]) => (prev[cid] || 0) > 0 && pctOf(cid, v) >= 15 && v - prev[cid] >= minDelta)
+      .map(([cid, v]) => ({ cid, v, pct: pctOf(cid, v) }))
       .sort((a, b) => b.pct - a.pct);
     for (const inc of increases) {
       if (insights.length >= 4) break;
       if (used.has(inc.cid)) continue;
       insights.push({
-        key: `up-${inc.cid}`, tone: "warn", icon: iconOf(inc.cid),
+        key: `up-${inc.cid}`, tone: "warn", icon: iconOf(inc.cid), amount: inc.v, delta: inc.v - prev[inc.cid],
         text: t("reports_watch_increase").replace("{name}", nameOf(inc.cid)).replace("{pct}", inc.pct.toFixed(0)),
       });
       used.add(inc.cid);
     }
 
-    // 3. Nouveau poste (dépense cette période, rien la précédente).
+    // 3. Nouveau poste (dépense cette période ≥ seuil, rien la précédente).
     if (insights.length < 4) {
-      const news = curEntries.filter(([cid]) => !(prev[cid] > 0) && !used.has(cid)).sort((a, b) => b[1] - a[1]);
+      const news = curEntries
+        .filter(([cid, v]) => !(prev[cid] > 0) && v >= minDelta && !used.has(cid))
+        .sort((a, b) => b[1] - a[1]);
       if (news.length) {
         const [nid, nval] = news[0];
         insights.push({
-          key: `new-${nid}`, tone: "warn", icon: iconOf(nid),
-          text: t("reports_watch_new").replace("{name}", nameOf(nid)).replace("{amount}", `${formatAmount(nval)} ${currencySymbol}`),
+          key: `new-${nid}`, tone: "warn", icon: iconOf(nid), amount: nval, delta: null,
+          text: t("reports_watch_new").replace("{name}", nameOf(nid)),
         });
         used.add(nid);
       }
     }
 
-    // 4. Plus forte baisse (renforcement positif).
+    // 4. Plus forte baisse (renforcement positif, baisse en montant ≥ seuil).
     if (insights.length < 4) {
       const decreases = curEntries
-        .filter(([cid, v]) => (prev[cid] || 0) > 0 && pctOf(cid, v) <= -15 && !used.has(cid))
-        .map(([cid, v]) => ({ cid, pct: pctOf(cid, v) }))
+        .filter(([cid, v]) => (prev[cid] || 0) > 0 && pctOf(cid, v) <= -15 && prev[cid] - v >= minDelta && !used.has(cid))
+        .map(([cid, v]) => ({ cid, v, pct: pctOf(cid, v) }))
         .sort((a, b) => a.pct - b.pct);
       if (decreases.length) {
         const dec = decreases[0];
         insights.push({
-          key: `down-${dec.cid}`, tone: "good", icon: iconOf(dec.cid),
+          key: `down-${dec.cid}`, tone: "good", icon: iconOf(dec.cid), amount: dec.v, delta: dec.v - prev[dec.cid],
           text: t("reports_watch_saving").replace("{name}", nameOf(dec.cid)).replace("{pct}", Math.abs(dec.pct).toFixed(0)),
         });
       }
@@ -518,7 +542,7 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
 
     return insights;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [periodTx, prevPeriodTx, categories, totalExpense, displayCurrency, convert, language]);
+  }, [periodTx, prevPeriodTx, categories, watchScope, members, displayCurrency, convert, language]);
 
   // Libellé de période : sur mobile, le mois (type "month") est abrégé à 4
   // lettres s'il dépasse (Juillet → Juil), comme le sélecteur de l'accueil.
@@ -705,19 +729,35 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
           </WidgetCard>
         );
       case "watch": {
-        if (watchInsights.length === 0) return null;
         const toneColor = { neutral: "var(--lavi)", warn: "var(--tang)", good: "var(--sage)" };
         const toneBg = { neutral: "var(--lavi-light)", warn: "var(--tang-light)", good: "var(--sage-light)" };
         return (
           <WidgetCard icon="ti-eye" accent="amber" title={t("reports_watch_title")}>
-            {watchInsights.map((ins, i) => (
-              <div key={ins.key} style={{ display: "flex", alignItems: "center", gap: 11, padding: "9px 0", borderBottom: i === watchInsights.length - 1 ? "none" : "0.5px solid var(--rule)" }}>
-                <span style={{ width: 30, height: 30, borderRadius: 9, background: toneBg[ins.tone], display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  <i className={`ti ${ins.icon}`} style={{ fontSize: 15, color: toneColor[ins.tone] }} aria-hidden="true" />
-                </span>
-                <p style={{ fontSize: 12.5, lineHeight: 1.4, color: "var(--ink-2)" }}>{ins.text}</p>
-              </div>
-            ))}
+            {members.length > 1 && (
+              <ScopeFilter members={members} scope={watchScope} onChange={setWatchScope} style={{ marginBottom: 6 }} />
+            )}
+            {watchInsights.length === 0 ? (
+              <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", padding: "1.25rem 0" }}>
+                {t("reports_no_expenses")}
+              </p>
+            ) : (
+              watchInsights.map((ins, i) => (
+                <div key={ins.key} style={{ display: "flex", alignItems: "center", gap: 11, padding: "9px 0", borderBottom: i === watchInsights.length - 1 ? "none" : "0.5px solid var(--rule)" }}>
+                  <span style={{ width: 30, height: 30, borderRadius: 9, background: toneBg[ins.tone], display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <i className={`ti ${ins.icon}`} style={{ fontSize: 15, color: toneColor[ins.tone] }} aria-hidden="true" />
+                  </span>
+                  <p style={{ fontSize: 12.5, lineHeight: 1.4, color: "var(--ink-2)", flex: 1, minWidth: 0 }}>{ins.text}</p>
+                  <div style={{ textAlign: "right", flexShrink: 0 }}>
+                    <p className="pw-num" style={{ fontSize: 13, fontWeight: 700 }}>{formatAmount(ins.amount)} {currencySymbol}</p>
+                    {ins.delta != null && (
+                      <p style={{ fontSize: 10.5, fontWeight: 600, color: toneColor[ins.tone] }}>
+                        {ins.delta >= 0 ? "+" : "−"}{formatAmount(Math.abs(ins.delta))} {currencySymbol}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
           </WidgetCard>
         );
       }
