@@ -18,10 +18,11 @@ const WIDGET_ACCENTS = {
 // hauteur (remplissage dynamique) en passant p.ex. `{ justifyContent: "center" }`.
 // Sur une carte à hauteur automatique (mobile, autres écrans), `flex: 1` est sans
 // effet — le corps prend simplement la hauteur de son contenu.
-export default function WidgetCard({ icon, accent = "coral", title, action, flush = false, style, bodyStyle, children }) {
+export default function WidgetCard({ id, icon, accent = "coral", title, action, flush = false, style, bodyStyle, children }) {
   const [color, light] = WIDGET_ACCENTS[accent] || WIDGET_ACCENTS.coral;
   return (
     <div
+      id={id}
       className="pw-card pw-chip-host"
       data-accent={accent}
       style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", overflow: "hidden", display: "flex", flexDirection: "column", ...style }}
