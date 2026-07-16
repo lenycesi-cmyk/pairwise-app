@@ -122,6 +122,45 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [transactions, displayCurrency, convert, locale]);
 
+  // « Ce qui bouge » : catégories dont la dépense du mois en cours s'écarte le
+  // plus de leur moyenne des 3 mois précédents (signal léger, pas d'explorateur —
+  // celui-ci vit dans Rapports). On exige un historique (moyenne > 0) et un écart
+  // notable (≥ 15 %) pour éviter le bruit ; hausse en tang (à surveiller), baisse
+  // en sage (économie). Trié par ampleur d'écart, 3 max.
+  const whatsMoving = useMemo(() => {
+    const cur = {};
+    const prevSum = {};
+    const curM = now.getMonth();
+    const curY = now.getFullYear();
+    const prevKeys = new Set();
+    for (let i = 1; i <= 3; i++) {
+      const d = new Date(curY, curM - i, 1);
+      prevKeys.add(`${d.getFullYear()}-${d.getMonth()}`);
+    }
+    for (const tx of transactions) {
+      if (tx.type !== "expense") continue;
+      const d = new Date(tx.date);
+      const v = toBase(tx);
+      if (d.getMonth() === curM && d.getFullYear() === curY) {
+        cur[tx.categoryId] = (cur[tx.categoryId] || 0) + v;
+      } else if (prevKeys.has(`${d.getFullYear()}-${d.getMonth()}`)) {
+        prevSum[tx.categoryId] = (prevSum[tx.categoryId] || 0) + v;
+      }
+    }
+    const rows = [];
+    for (const cid of new Set([...Object.keys(cur), ...Object.keys(prevSum)])) {
+      const thisMonth = cur[cid] || 0;
+      const avg = (prevSum[cid] || 0) / 3;
+      if (avg <= 0) continue;
+      const pct = ((thisMonth - avg) / avg) * 100;
+      if (Math.abs(pct) < 15) continue;
+      rows.push({ cid, thisMonth, pct });
+    }
+    rows.sort((a, b) => Math.abs(b.pct) - Math.abs(a.pct));
+    return rows.slice(0, 3);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [transactions, displayCurrency, convert]);
+
   const recentTx = useMemo(
     () => [...transactions].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 6),
     [transactions]
@@ -138,6 +177,7 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
 
   const fluxWidgetLabels = {
     cashflow: t("flux_cashflow_title"),
+    whats_moving: t("flux_whats_moving_title"),
     spending_by_category: t("dashboard_spending_by_category"),
     fixed: t("flux_fixed_title"),
     recent: t("flux_recent_title"),
@@ -196,6 +236,35 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
             </span>
           </div>
           <IncomeExpenseTrendChart data={scopedTrend} currencySymbol={symbol} />
+        </WidgetCard>
+      );
+    }
+
+    if (id === "whats_moving") {
+      if (whatsMoving.length === 0) return null;
+      return (
+        <WidgetCard icon="ti-activity" accent="ocean" title={t("flux_whats_moving_title")}>
+          {whatsMoving.map(({ cid, thisMonth, pct }, i) => {
+            const cat = categories.find((c) => c.id === cid);
+            const up = pct >= 0;
+            const color = up ? "var(--tang)" : "var(--sage)";
+            return (
+              <div
+                key={cid}
+                style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 0", borderBottom: i === whatsMoving.length - 1 ? "none" : "0.5px solid var(--rule)" }}
+              >
+                <i className={`ti ${cat?.icon || "ti-receipt"}`} style={{ fontSize: 16, color: "var(--ink-3)" }} aria-hidden="true" />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{cat?.name || cid}</p>
+                  <p style={{ fontSize: 11, color: "var(--ink-3)" }}>{fmt(thisMonth)} {symbol} · {t("flux_whats_moving_vs_avg")}</p>
+                </div>
+                <span style={{ fontSize: 13, fontWeight: 700, color, display: "flex", alignItems: "center", gap: 2, whiteSpace: "nowrap" }}>
+                  <i className={`ti ti-arrow-${up ? "up-right" : "down-right"}`} style={{ fontSize: 14 }} aria-hidden="true" />
+                  {up ? "+" : ""}{Math.round(pct)}%
+                </span>
+              </div>
+            );
+          })}
         </WidgetCard>
       );
     }
