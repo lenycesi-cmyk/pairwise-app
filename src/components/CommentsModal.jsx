@@ -18,6 +18,7 @@ export default function CommentsModal({ title, onClose, children }) {
   return (
     <div
       onClick={onClose}
+      className="pw-dialog-backdrop"
       style={{
         position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,0.4)",
         display: "flex", alignItems: "center", justifyContent: "center", padding: "0 12px",
@@ -25,6 +26,7 @@ export default function CommentsModal({ title, onClose, children }) {
     >
       <div
         onClick={(e) => e.stopPropagation()}
+        className="pw-dialog-panel"
         style={{
           background: "var(--bg)", width: "100%", maxWidth: 520, maxHeight: "85vh",
           borderRadius: "var(--radius-lg)", display: "flex", flexDirection: "column",
