@@ -5,7 +5,7 @@ import CommentThread from "./CommentThread";
 
 // Fil de discussion d'UNE transaction — fin wrapper autour de CommentThread.
 // Lit la transaction "live" du contexte (onSnapshot) pour l'affichage temps réel.
-export default function TransactionComments({ txId }) {
+export default function TransactionComments({ txId, bare = false }) {
   const { transactions, members, addTransactionComment, removeTransactionComment } = useFinance();
   const { user } = useAuth();
 
@@ -20,6 +20,7 @@ export default function TransactionComments({ txId }) {
       comments={tx.comments || []}
       members={members}
       myKey={myKey}
+      bare={bare}
       onSend={(text) => addTransactionComment(txId, { memberId: myKey, text })}
       onSendGif={(gifUrl) => addTransactionComment(txId, { memberId: myKey, gifUrl })}
       onRemove={(id) => removeTransactionComment(txId, id)}

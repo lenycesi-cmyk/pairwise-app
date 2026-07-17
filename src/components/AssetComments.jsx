@@ -6,7 +6,7 @@ import CommentThread from "./CommentThread";
 // Fil de discussion d'UN actif — fin wrapper autour de CommentThread. Permet au
 // couple d'échanger sur un investissement (on vend, on rachète…). Lit l'actif
 // "live" du contexte (onSnapshot) pour l'affichage temps réel.
-export default function AssetComments({ assetId }) {
+export default function AssetComments({ assetId, bare = false }) {
   const { assets, members, addAssetComment, removeAssetComment } = useFinance();
   const { user } = useAuth();
 
@@ -21,6 +21,7 @@ export default function AssetComments({ assetId }) {
       comments={asset.comments || []}
       members={members}
       myKey={myKey}
+      bare={bare}
       onSend={(text) => addAssetComment(assetId, { memberId: myKey, text })}
       onSendGif={(gifUrl) => addAssetComment(assetId, { memberId: myKey, gifUrl })}
       onRemove={(id) => removeAssetComment(assetId, id)}

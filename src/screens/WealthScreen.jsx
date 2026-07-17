@@ -21,6 +21,9 @@ import { useMediaQuery } from "../hooks/useMediaQuery";
 import { useWealthLayout } from "../hooks/useDashboardPrefs";
 import WidgetCanvas from "../components/WidgetCanvas";
 import ScopeFilter from "../components/ScopeFilter";
+import CommentBubble from "../components/CommentBubble";
+import CommentsModal from "../components/CommentsModal";
+import AssetComments from "../components/AssetComments";
 
 const COLOR_MAP = {
   tang: { text: "var(--tang)", bg: "var(--tang-light)" },
@@ -54,6 +57,7 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
   const memberColorMap = useMemo(() => buildMemberColorMap(members), [members]);
 
   const [editingAsset, setEditingAsset] = useState(null);
+  const [commentsAsset, setCommentsAsset] = useState(null);
   const [livePrices, setLivePrices] = useState({});
   const [liveChanges, setLiveChanges] = useState({});
   const [refreshing, setRefreshing] = useState(false);
@@ -449,6 +453,9 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
                   {type.id === "account" && !asset.bankConnected && (
                     <ConnectBankButton asset={asset} compact onSuccess={() => setEditingAsset(null)} />
                   )}
+                  {asset.comments?.length > 0 && (
+                    <CommentBubble count={asset.comments.length} onClick={() => setCommentsAsset(asset)} />
+                  )}
                   <div style={{ textAlign: "right" }}>
                     {priceUnavailable ? (
                       <p style={{ fontSize: 13, fontWeight: 500, color: "var(--ink-3)" }} title={t("wealth_price_unavailable")}>
@@ -493,6 +500,11 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
 
   return (
     <div style={{ padding: "1.5rem 1.25rem 6rem" }}>
+      {commentsAsset && (
+        <CommentsModal title={commentsAsset.name} onClose={() => setCommentsAsset(null)}>
+          <AssetComments assetId={commentsAsset.id} bare />
+        </CommentsModal>
+      )}
       <div style={{ position: "sticky", top: 0, zIndex: 30, background: "var(--bg)", marginLeft: "-1.25rem", marginRight: "-1.25rem", padding: "0.4rem 1.25rem", marginBottom: 12 }}>
         {(() => {
           const actions = (

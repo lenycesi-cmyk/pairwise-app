@@ -7,6 +7,7 @@ import { getMemberKey } from "../utils/members";
 import { usedTags } from "../utils/tags";
 import TagChip from "../components/TagChip";
 import TransactionComments from "../components/TransactionComments";
+import CommentsModal from "../components/CommentsModal";
 
 const COLOR_MAP = {
   tang: { text: "var(--tang)", bg: "var(--tang-light)" },
@@ -579,46 +580,12 @@ export default function TransactionsScreen({ onEdit }) {
       )}
 
       {discussTx && (
-        <div
-          onClick={() => setDiscussTxId(null)}
-          style={{
-            position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)",
-            zIndex: 200, display: "flex", alignItems: "flex-end", justifyContent: "center",
-          }}
+        <CommentsModal
+          title={discussTx.description || t("tx_comments")}
+          onClose={() => setDiscussTxId(null)}
         >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              width: "100%", maxWidth: "var(--app-shell-width)",
-              maxHeight: "85vh", background: "var(--bg)",
-              borderTopLeftRadius: "var(--radius-xl)", borderTopRightRadius: "var(--radius-xl)",
-              display: "flex", flexDirection: "column",
-              boxShadow: "0 -4px 24px rgba(0,0,0,0.18)",
-            }}
-          >
-            {/* En-tête : rappel de la transaction concernée + fermer */}
-            <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 10, padding: "1rem 1.25rem", borderBottom: "0.5px solid var(--rule)" }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: 15, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                  {discussTx.description}
-                </p>
-                <p style={{ fontSize: 12, color: "var(--ink-3)" }}>
-                  {discussTx.type === "income" ? "+" : "−"}{Math.round(discussTx.amount).toLocaleString("fr-FR")} {discussTx.currency}
-                </p>
-              </div>
-              <button
-                onClick={() => setDiscussTxId(null)}
-                aria-label={t("common_close")}
-                style={{ background: "none", border: "none", display: "flex", flexShrink: 0 }}
-              >
-                <i className="ti ti-x" style={{ fontSize: 20 }} aria-hidden="true" />
-              </button>
-            </div>
-            <div style={{ flex: 1, overflowY: "auto", padding: "1rem 1.25rem calc(1rem + env(safe-area-inset-bottom))" }}>
-              <TransactionComments txId={discussTx.id} />
-            </div>
-          </div>
-        </div>
+          <TransactionComments txId={discussTx.id} bare />
+        </CommentsModal>
       )}
     </div>
   );
