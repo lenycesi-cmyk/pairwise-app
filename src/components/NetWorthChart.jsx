@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { useFinance } from "../context/FinanceContext";
 import { useTranslation } from "../hooks/useTranslation";
 
@@ -14,6 +14,7 @@ const PERIODS = [
 export default function NetWorthChart({ history, currencySymbol, displayCurrency, convert }) {
   const t = useTranslation();
   const [period, setPeriod] = useState("3m");
+  const [chartType, setChartType] = useState("line"); // "line" | "bar"
 
   const selectedPeriod = PERIODS.find((p) => p.key === period);
 
@@ -67,24 +68,47 @@ export default function NetWorthChart({ history, currencySymbol, displayCurrency
 
   return (
     <div>
-      <div style={{ display: "flex", gap: 4, marginBottom: 10, flexWrap: "wrap" }}>
-        {PERIODS.map((p) => (
-          <button
-            key={p.key}
-            onClick={() => setPeriod(p.key)}
-            style={{
-              padding: "4px 9px",
-              borderRadius: "var(--radius-sm)",
-              border: period === p.key ? "0.5px solid var(--sage)" : "0.5px solid var(--rule)",
-              background: period === p.key ? "var(--sage-light)" : "transparent",
-              color: period === p.key ? "var(--sage)" : "var(--ink-3)",
-              fontSize: 11,
-              fontWeight: period === p.key ? 500 : 400,
-            }}
-          >
-            {t(p.labelKey)}
-          </button>
-        ))}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+        <div style={{ display: "flex", gap: 4, flexWrap: "wrap", flex: 1, minWidth: 0 }}>
+          {PERIODS.map((p) => (
+            <button
+              key={p.key}
+              onClick={() => setPeriod(p.key)}
+              style={{
+                padding: "4px 9px",
+                borderRadius: "var(--radius-sm)",
+                border: period === p.key ? "0.5px solid var(--sage)" : "0.5px solid var(--rule)",
+                background: period === p.key ? "var(--sage-light)" : "transparent",
+                color: period === p.key ? "var(--sage)" : "var(--ink-3)",
+                fontSize: 11,
+                fontWeight: period === p.key ? 500 : 400,
+              }}
+            >
+              {t(p.labelKey)}
+            </button>
+          ))}
+        </div>
+        {/* Bascule courbe / barres. */}
+        <div style={{ display: "flex", flexShrink: 0, borderRadius: "var(--radius-sm)", border: "0.5px solid var(--rule)", overflow: "hidden" }}>
+          {[
+            { key: "line", icon: "ti-chart-line", label: t("chart_type_line") },
+            { key: "bar", icon: "ti-chart-bar", label: t("chart_type_bar") },
+          ].map((c) => (
+            <button
+              key={c.key}
+              onClick={() => setChartType(c.key)}
+              aria-label={c.label}
+              aria-pressed={chartType === c.key}
+              style={{
+                width: 30, height: 26, display: "flex", alignItems: "center", justifyContent: "center", border: "none",
+                background: chartType === c.key ? "var(--sage-light)" : "transparent",
+                color: chartType === c.key ? "var(--sage)" : "var(--ink-3)", cursor: "pointer",
+              }}
+            >
+              <i className={`ti ${c.icon}`} style={{ fontSize: 15 }} aria-hidden="true" />
+            </button>
+          ))}
+        </div>
       </div>
 
       {performance && (
@@ -105,24 +129,38 @@ export default function NetWorthChart({ history, currencySymbol, displayCurrency
 
       <div style={{ width: "100%", height: 140 }}>
         <ResponsiveContainer>
-          <LineChart data={data} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
-            <XAxis
-              dataKey="date"
-              tick={{ fontSize: 10, fill: "var(--ink-3)" }}
-              axisLine={{ stroke: "var(--rule)" }}
-              tickLine={false}
-            />
-            <YAxis hide domain={["auto", "auto"]} />
-            <Tooltip content={<CustomTooltip />} />
-            <Line
-              type="monotone"
-              dataKey="value"
-              stroke="var(--sage)"
-              strokeWidth={2}
-              dot={false}
-              activeDot={{ r: 4 }}
-            />
-          </LineChart>
+          {chartType === "bar" ? (
+            <BarChart data={data} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
+              <XAxis
+                dataKey="date"
+                tick={{ fontSize: 10, fill: "var(--ink-3)" }}
+                axisLine={{ stroke: "var(--rule)" }}
+                tickLine={false}
+              />
+              <YAxis hide domain={["auto", "auto"]} />
+              <Tooltip content={<CustomTooltip />} cursor={{ fill: "var(--rule)", opacity: 0.4 }} />
+              <Bar dataKey="value" fill="var(--sage)" radius={[3, 3, 0, 0]} />
+            </BarChart>
+          ) : (
+            <LineChart data={data} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
+              <XAxis
+                dataKey="date"
+                tick={{ fontSize: 10, fill: "var(--ink-3)" }}
+                axisLine={{ stroke: "var(--rule)" }}
+                tickLine={false}
+              />
+              <YAxis hide domain={["auto", "auto"]} />
+              <Tooltip content={<CustomTooltip />} />
+              <Line
+                type="monotone"
+                dataKey="value"
+                stroke="var(--sage)"
+                strokeWidth={2}
+                dot={false}
+                activeDot={{ r: 4 }}
+              />
+            </LineChart>
+          )}
         </ResponsiveContainer>
       </div>
     </div>
