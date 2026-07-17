@@ -123,6 +123,11 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
   const [trendDim, setTrendDim] = useState("category");
   const [trendValue, setTrendValue] = useState(null);
   const [showTrendPicker, setShowTrendPicker] = useState(false);
+  // Widget « Simulateur d'économies » : dimension + poste + % de réduction.
+  const [simDim, setSimDim] = useState("subcategory");
+  const [simValue, setSimValue] = useState(null);
+  const [simPct, setSimPct] = useState(20);
+  const [showSimPicker, setShowSimPicker] = useState(false);
   // Widget « À surveiller » : filtre membre (null = Famille).
   const [watchScope, setWatchScope] = useState(null);
   // Widget « Dépenses par tag » : tags dépliés (transactions du tag sur la période),
@@ -348,6 +353,41 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
   const trendDiffPct =
     trendPrevTotal > 0 ? ((trendTotal - trendPrevTotal) / trendPrevTotal) * 100 : null;
 
+  // ── Simulateur d'économies ─────────────────────────────────────────────
+  // Dépense MENSUELLE MOYENNE par poste sur les 6 derniers mois (fenêtre fixe,
+  // indépendante du sélecteur de période pour une base stable). Sert à projeter
+  // l'économie annuelle d'une réduction en %.
+  const SIM_WINDOW_MONTHS = 6;
+  const simOptions = useMemo(() => {
+    const start = new Date();
+    start.setMonth(start.getMonth() - SIM_WINDOW_MONTHS, 1);
+    start.setHours(0, 0, 0, 0);
+    const totals = new Map();
+    for (const tx of transactions) {
+      if (tx.type !== "expense") continue;
+      if (new Date(tx.date) < start) continue;
+      let keys;
+      if (simDim === "category") keys = [tx.categoryId];
+      else if (simDim === "subcategory") keys = tx.subcategory ? [tx.subcategory] : [];
+      else keys = tx.tags || [];
+      for (const k of keys) totals.set(k, (totals.get(k) || 0) + toBase(tx));
+    }
+    const labelOf = (val) =>
+      simDim === "category" ? categories.find((c) => c.id === val)?.name ?? val : val;
+    return [...totals.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([value, total]) => ({ value, label: labelOf(value), monthly: total / SIM_WINDOW_MONTHS }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [transactions, simDim, categories, displayCurrency, convert]);
+
+  const activeSimValue =
+    simValue != null && simOptions.some((o) => o.value === simValue)
+      ? simValue
+      : simOptions[0]?.value ?? null;
+  const simItem = simOptions.find((o) => o.value === activeSimValue) || null;
+  const simMonthly = simItem?.monthly ?? 0;
+  const simAnnualSaving = simMonthly * 12 * (simPct / 100);
+
   const evolutionData = useMemo(() => {
     // Somme des dépenses par bucket, projetée sur tous les buckets de la
     // période. Un bucket sans dépense reste à null (blanc) plutôt que 0, pour
@@ -570,6 +610,7 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
     income_vs_expense: t("reports_income_vs_expense"),
     member_comparison: t("reports_member_comparison"),
     poste_trend: t("reports_poste_trend"),
+    savings_sim: t("reports_sim_title"),
     by_tag: t("reports_by_tag"),
     by_category: t("reports_by_category"),
   };
@@ -881,6 +922,103 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
                     })}
                   </div>
                 )}
+              </>
+            )}
+          </WidgetCard>
+        );
+      }
+      case "savings_sim": {
+        const dims = ["category", "subcategory", "tag"];
+        const iconFor = (val) =>
+          simDim === "category"
+            ? categories.find((c) => c.id === val)?.icon || "ti-category"
+            : simDim === "tag" ? "ti-hash" : "ti-list";
+        return (
+          <WidgetCard icon="ti-calculator" accent="mint" title={t("reports_sim_title")}>
+            <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
+              {dims.map((d) => {
+                const active = simDim === d;
+                return (
+                  <button
+                    key={d}
+                    onClick={() => { setSimDim(d); setSimValue(null); setShowSimPicker(false); }}
+                    style={{
+                      flex: 1, padding: "6px 4px", borderRadius: 99, border: "none",
+                      background: active ? "var(--sage-light)" : "color-mix(in srgb, var(--ink) 5%, transparent)",
+                      color: active ? "var(--sage)" : "var(--ink-3)",
+                      fontSize: 12, fontWeight: active ? 600 : 400,
+                    }}
+                  >
+                    {t(`reports_trend_dim_${d}`)}
+                  </button>
+                );
+              })}
+            </div>
+            {simOptions.length === 0 ? (
+              <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", padding: "1.25rem 0" }}>
+                {t("reports_trend_no_data")}
+              </p>
+            ) : (
+              <>
+                <div
+                  onClick={() => setShowSimPicker((v) => !v)}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 9, height: 44, padding: "0 13px",
+                    borderRadius: "var(--radius-md)", cursor: "pointer", marginBottom: 12,
+                    background: "color-mix(in srgb, var(--sage) 12%, transparent)", border: "0.5px solid var(--sage)",
+                  }}
+                >
+                  <i className={`ti ${iconFor(activeSimValue)}`} style={{ fontSize: 17, color: "var(--sage)", flexShrink: 0 }} aria-hidden="true" />
+                  <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, color: "var(--sage)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {simItem?.label ?? t("reports_trend_pick")}
+                  </span>
+                  <i className={`ti ti-chevron-${showSimPicker ? "up" : "down"}`} style={{ fontSize: 16, color: "var(--sage)", flexShrink: 0 }} aria-hidden="true" />
+                </div>
+                {showSimPicker && (
+                  <div style={{ marginBottom: 12, border: "0.5px solid var(--rule)", borderRadius: "var(--radius-md)", padding: 6, background: "var(--bg-card)" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2, maxHeight: 240, overflowY: "auto" }}>
+                      {simOptions.map((o) => {
+                        const sel = o.value === activeSimValue;
+                        return (
+                          <div
+                            key={o.value}
+                            onClick={() => { setSimValue(o.value); setShowSimPicker(false); }}
+                            style={{
+                              display: "flex", alignItems: "center", gap: 9, height: 40, padding: "0 11px", cursor: "pointer",
+                              borderRadius: 8, minWidth: 0,
+                              background: sel ? "color-mix(in srgb, var(--sage) 12%, transparent)" : "transparent",
+                            }}
+                          >
+                            <i className={`ti ${iconFor(o.value)}`} style={{ fontSize: 15, flexShrink: 0, color: sel ? "var(--sage)" : "var(--ink-3)" }} aria-hidden="true" />
+                            <span style={{ fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: sel ? "var(--sage)" : "var(--ink-2)", fontWeight: sel ? 600 : 400 }}>
+                              {o.label}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+                <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 8 }}>
+                  <span style={{ fontSize: 12.5, color: "var(--ink-2)" }}>{t("reports_sim_reduce")}</span>
+                  <span className="pw-num" style={{ fontSize: 18, fontWeight: 700, color: "var(--sage)" }}>−{simPct}%</span>
+                </div>
+                <input
+                  type="range" min="0" max="100" step="5" value={simPct}
+                  onChange={(e) => setSimPct(parseInt(e.target.value))}
+                  style={{ width: "100%", accentColor: "var(--sage)", marginBottom: 14 }}
+                />
+                <div style={{ background: "var(--sage-light)", borderRadius: "var(--radius-md)", padding: "12px 14px", textAlign: "center" }}>
+                  <p className="pw-num" style={{ fontSize: 26, fontWeight: 800, letterSpacing: "-0.02em", color: "var(--sage)" }}>
+                    {formatAmount(simAnnualSaving)} {currencySymbol}
+                  </p>
+                  <p style={{ fontSize: 12, color: "var(--ink-2)", marginTop: 2 }}>{t("reports_sim_annual")}</p>
+                </div>
+                <p style={{ fontSize: 11.5, color: "var(--ink-3)", marginTop: 8, textAlign: "center" }}>
+                  {t("reports_sim_basis")
+                    .replace("{now}", `${formatAmount(simMonthly)} ${currencySymbol}`)
+                    .replace("{new}", `${formatAmount(simMonthly * (1 - simPct / 100))} ${currencySymbol}`)}
+                </p>
               </>
             )}
           </WidgetCard>
