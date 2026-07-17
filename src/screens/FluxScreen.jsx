@@ -19,6 +19,14 @@ import { memberShareFraction } from "../utils/members";
 import { getRange, shiftAnchor, monthsInRange } from "../utils/periodRange";
 import PeriodSelector from "../components/PeriodSelector";
 
+// Retire les mois vides EN TÊTE de la tendance (aucune entrée/sortie/investi) —
+// le graphe démarre au premier mois avec de l'activité. Les trous internes et de
+// fin sont conservés. Si tout est vide, on garde la série telle quelle.
+function trimLeadingEmptyTrend(buckets) {
+  const first = buckets.findIndex((b) => b.income || b.expense || b.investment);
+  return first <= 0 ? buckets : buckets.slice(first);
+}
+
 // Onglet Flux (« ce qui rentre, ce qui sort ») : cash flow du mois, charges
 // fixes, dépenses par catégorie, détection d'abonnement, dernières transactions
 // et récurrences à venir. Même UI que l'Accueil/Patrimoine : sur desktop, une
@@ -283,7 +291,7 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
               {flow.net >= 0 ? "+" : "−"}{fmt(Math.abs(flow.net))} {symbol}
             </span>
           </div>
-          <IncomeExpenseTrendChart data={scopedTrend} currencySymbol={symbol} />
+          <IncomeExpenseTrendChart data={trimLeadingEmptyTrend(scopedTrend)} currencySymbol={symbol} />
         </WidgetCard>
       );
     }
