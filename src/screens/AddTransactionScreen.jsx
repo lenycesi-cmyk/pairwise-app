@@ -17,6 +17,7 @@ import { dedupeTags, extractTagsFromText, usedTags } from "../utils/tags";
 import { parseNaturalTransaction } from "../utils/parseNaturalTransaction";
 import QuickAddBar from "../components/QuickAddBar";
 import { useMediaQuery } from "../hooks/useMediaQuery";
+import { haptic } from "../utils/haptics";
 
 // Carte de section « 1B Chaleureux » : en-tête pastille (icône teintée + titre),
 // identique au WidgetCard du Dashboard. `accent` est une couleur token
@@ -495,6 +496,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
         await updateTransaction(txId, { receiptURL: null });
       }
 
+      haptic("tap");
       onClose();
     } catch (err) {
       console.error(err);

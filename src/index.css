@@ -189,9 +189,61 @@
   to   { opacity: 1; transform: none; }
 }
 
+/* ── Moment de "délice" : confettis + pastille checkmark ──────────────────────
+   Salve plein écran, sans dépendance (voir components/Celebration.jsx). Le
+   conteneur ne capture aucun clic ; les confettis tombent, la pastille pop. */
+.pw-celebration {
+  position: fixed;
+  inset: 0;
+  z-index: 4000;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.pw-celebration-confetti { position: absolute; inset: 0; overflow: hidden; }
+.pw-confetti {
+  position: absolute;
+  top: -16px;
+  border-radius: 2px;
+  opacity: 0;
+  animation-name: pw-confetti-fall;
+  animation-timing-function: var(--ease-out);
+  animation-fill-mode: forwards;
+}
+@keyframes pw-confetti-fall {
+  0%   { opacity: 1; transform: translate(0, 0) rotate(var(--pw-rot)); }
+  100% { opacity: 0; transform: translate(var(--pw-drift), 105vh) rotate(calc(var(--pw-rot) + 540deg)); }
+}
+.pw-celebration-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 18px;
+  border-radius: 999px;
+  background: var(--accent, #f56346);
+  color: #fff;
+  font-weight: 700;
+  font-size: 15px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+}
+.pw-celebration-badge .ti-check { font-size: 20px; }
+
+/* Cross-fade de bascule clair/sombre : un court fondu couleur/fond sur toute
+   la page quand on change de thème (voir data/themes.js → classe transitoire). */
+.pw-theme-fade,
+.pw-theme-fade * {
+  transition: background-color var(--dur-slow) var(--ease-out),
+              border-color var(--dur-slow) var(--ease-out),
+              color var(--dur-slow) var(--ease-out) !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .pw-stagger > *, .pw-bar-fill, .pw-pop-spring, .pw-takeoff,
   .pw-dialog-backdrop, .pw-dialog-panel { animation: none !important; }
+  /* On garde la pastille (en fondu simple) mais on supprime les confettis. */
+  .pw-confetti { display: none !important; }
+  .pw-theme-fade, .pw-theme-fade * { transition: none !important; }
 }
 
 html {
