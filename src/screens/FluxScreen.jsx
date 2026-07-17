@@ -16,7 +16,8 @@ import CategoryRow from "../components/CategoryRow";
 import ScopeFilter from "../components/ScopeFilter";
 import IncomeExpenseTrendChart from "../components/IncomeExpenseTrendChart";
 import { memberShareFraction } from "../utils/members";
-import { PERIOD_TYPES, getRange, shiftAnchor, monthsInRange } from "../utils/periodRange";
+import { getRange, shiftAnchor, monthsInRange } from "../utils/periodRange";
+import PeriodSelector from "../components/PeriodSelector";
 
 // Onglet Flux (« ce qui rentre, ce qui sort ») : cash flow du mois, charges
 // fixes, dépenses par catégorie, détection d'abonnement, dernières transactions
@@ -164,7 +165,7 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
   // notable (≥ 15 %) pour éviter le bruit ; hausse en tang, baisse en sage. 3 max.
   const whatsMoving = useMemo(() => {
     const baseRanges = [];
-    if (periodType === "last12" || periodType === "custom") {
+    if (periodType === "last12" || periodType === "last3" || periodType === "custom") {
       const span = range.end.getTime() - range.start.getTime();
       for (let i = 1; i <= 3; i++) {
         baseRanges.push({ start: new Date(range.start.getTime() - span * i), end: new Date(range.end.getTime() - span * i) });
@@ -571,46 +572,18 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
           );
         })()}
         {!editMode && (
-          <>
-            {/* Navigation de période + filtres (semaine / mois / trimestre / …),
-                en haut de page pour ne pas surcharger les widgets. */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 12 }}>
-              {periodType !== "last12" && periodType !== "custom" && (
-                <button onClick={() => setAnchor(shiftAnchor(periodType, anchor, -1))} aria-label="Période précédente" style={navBtnStyle}>
-                  <i className="ti ti-chevron-left" style={{ fontSize: 16 }} aria-hidden="true" />
-                </button>
-              )}
-              <p style={{ fontSize: 15, fontWeight: 500, textTransform: "capitalize", textAlign: "center", whiteSpace: "nowrap" }}>{range.label}</p>
-              {periodType !== "last12" && periodType !== "custom" && (
-                <button onClick={() => setAnchor(shiftAnchor(periodType, anchor, 1))} aria-label="Période suivante" style={navBtnStyle}>
-                  <i className="ti ti-chevron-right" style={{ fontSize: 16 }} aria-hidden="true" />
-                </button>
-              )}
-            </div>
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10, justifyContent: "center" }}>
-              {PERIOD_TYPES.map((p) => (
-                <button
-                  key={p}
-                  onClick={() => { setPeriodType(p); if (p === "week") setAnchorRaw(new Date()); }}
-                  style={{
-                    padding: "6px 12px", borderRadius: 99,
-                    border: periodType === p ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
-                    background: periodType === p ? "var(--sky-light)" : "var(--bg-card)",
-                    color: periodType === p ? "var(--sky)" : "var(--ink)",
-                    fontSize: 12, fontWeight: periodType === p ? 500 : 400,
-                  }}
-                >
-                  {t(`reports_period_${p}`)}
-                </button>
-              ))}
-            </div>
-            {periodType === "custom" && (
-              <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                <input type="date" value={customRange.start} onChange={(e) => setCustomRange((r) => ({ ...r, start: e.target.value }))} style={dateInputStyle} />
-                <input type="date" value={customRange.end} onChange={(e) => setCustomRange((r) => ({ ...r, end: e.target.value }))} style={dateInputStyle} />
-              </div>
-            )}
-          </>
+          <div style={{ marginTop: 12 }}>
+            <PeriodSelector
+              periodType={periodType}
+              setPeriodType={setPeriodType}
+              anchor={anchor}
+              setAnchor={setAnchor}
+              setAnchorNow={() => setAnchorRaw(new Date())}
+              rangeLabel={range.label}
+              customRange={customRange}
+              setCustomRange={setCustomRange}
+            />
+          </div>
         )}
       </div>
 
@@ -644,15 +617,3 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
     </div>
   );
 }
-
-const navBtnStyle = {
-  width: 30, height: 30, borderRadius: "50%",
-  background: "var(--bg-card)", border: "0.5px solid var(--rule)",
-  display: "flex", alignItems: "center", justifyContent: "center",
-};
-
-const dateInputStyle = {
-  flex: 1, padding: "8px 10px", borderRadius: "var(--radius-md)",
-  border: "0.5px solid var(--rule)", background: "var(--bg-card)",
-  fontSize: 13, color: "var(--ink)",
-};

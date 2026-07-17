@@ -19,7 +19,8 @@ import { useMediaQuery } from "../hooks/useMediaQuery";
 import { tagColor } from "../utils/tags";
 import TagChip from "../components/TagChip";
 import ScopeFilter from "../components/ScopeFilter";
-import { PERIOD_TYPES, getRange, shiftAnchor } from "../utils/periodRange";
+import { getRange, shiftAnchor } from "../utils/periodRange";
+import PeriodSelector from "../components/PeriodSelector";
 
 // Un mouvement correspond-il au poste sélectionné (catégorie / sous-catégorie /
 // tag) du widget « Tendance par poste » ?
@@ -84,7 +85,7 @@ const WATCH_BASELINE_N = 3;
 // multiple de la durée de la plage courante (comme prevRange).
 function previousRanges(periodType, anchor, customRange, range, locale, n) {
   const out = [];
-  if (periodType === "last12" || periodType === "custom") {
+  if (periodType === "last12" || periodType === "last3" || periodType === "custom") {
     const span = range.end.getTime() - range.start.getTime();
     for (let i = 1; i <= n; i++) {
       out.push({ start: new Date(range.start.getTime() - span * i), end: new Date(range.end.getTime() - span * i) });
@@ -157,7 +158,7 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
     [periodType, anchor, customRange, locale]
   );
   const prevRange = useMemo(() => {
-    if (periodType === "last12" || periodType === "custom") {
+    if (periodType === "last12" || periodType === "last3" || periodType === "custom") {
       const span = range.end.getTime() - range.start.getTime();
       return { start: new Date(range.start.getTime() - span), end: range.start };
     }
@@ -529,32 +530,18 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [periodTx, transactions, categories, watchScope, members, periodType, anchor, customRange, range, locale, displayCurrency, convert, language]);
 
-  // Libellé de période : sur mobile, le mois (type "month") est abrégé à 4
-  // lettres s'il dépasse (Juillet → Juil), comme le sélecteur de l'accueil.
-  const periodLabel =
-    !isDesktop && periodType === "month"
-      ? `${(() => {
-          const m = anchor.toLocaleDateString(locale, { month: "long" });
-          return m.length > 4 ? m.slice(0, 4) : m;
-        })()} ${anchor.getFullYear()}`
-      : range.label;
-
-  // Navigation de période (‹ libellé ›) — réutilisée dans la ligne 1 du header
-  // sur mobile et sous les filtres sur desktop.
-  const periodNav = (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-      {periodType !== "last12" && periodType !== "custom" && (
-        <button onClick={() => setAnchor(shiftAnchor(periodType, anchor, -1))} aria-label="Période précédente" style={navBtnStyle}>
-          <i className="ti ti-chevron-left" style={{ fontSize: 16 }} aria-hidden="true" />
-        </button>
-      )}
-      <p style={{ fontSize: 15, fontWeight: 500, textTransform: "capitalize", textAlign: "center", whiteSpace: "nowrap" }}>{periodLabel}</p>
-      {periodType !== "last12" && periodType !== "custom" && (
-        <button onClick={() => setAnchor(shiftAnchor(periodType, anchor, 1))} aria-label="Période suivante" style={navBtnStyle}>
-          <i className="ti ti-chevron-right" style={{ fontSize: 16 }} aria-hidden="true" />
-        </button>
-      )}
-    </div>
+  // Sélecteur de période unifié (bouton + menu + navigation), partagé avec Flux.
+  const periodSelector = (
+    <PeriodSelector
+      periodType={periodType}
+      setPeriodType={setPeriodType}
+      anchor={anchor}
+      setAnchor={setAnchor}
+      setAnchorNow={() => setAnchorRaw(new Date())}
+      rangeLabel={range.label}
+      customRange={customRange}
+      setCustomRange={setCustomRange}
+    />
   );
 
   function CustomTooltip({ active, payload, label }) {
@@ -1062,31 +1049,15 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
                   colonnes latérales égales (1fr) pour centrer la période, comme l'accueil. */}
               <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", gap: 8, marginBottom: 10 }}>
                 <div style={{ justifySelf: "start" }}><HeaderMenuButton onClick={onOpenMenu} /></div>
-                {editMode ? <span /> : periodNav}
+                <span />
                 <div style={{ justifySelf: "end" }}>{actions}</div>
               </div>
               {greeting}
             </>
           );
         })()}
-        <div ref={periodRowRef} style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
-        {PERIOD_TYPES.map((p) => (
-          <button
-            key={p}
-            onClick={() => { setPeriodType(p); if (p === "week") setAnchorRaw(new Date()); }}
-            style={{
-              padding: "6px 12px",
-              borderRadius: 99,
-              border: periodType === p ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
-              background: periodType === p ? "var(--sky-light)" : "var(--bg-card)",
-              color: periodType === p ? "var(--sky)" : "var(--ink)",
-              fontSize: 12,
-              fontWeight: periodType === p ? 500 : 400,
-            }}
-          >
-            {t(`reports_period_${p}`)}
-          </button>
-        ))}
+        <div ref={periodRowRef} style={{ marginTop: 12 }}>
+          {!editMode && periodSelector}
         </div>
       </div>
 
@@ -1107,27 +1078,6 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
         </div>
       )}
 
-      {periodType === "custom" && !editMode && (
-        <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-          <input
-            type="date"
-            value={customRange.start}
-            onChange={(e) => setCustomRange((r) => ({ ...r, start: e.target.value }))}
-            style={{ flex: 1, padding: "8px 10px", borderRadius: "var(--radius-md)", border: "0.5px solid var(--rule)", background: "var(--bg-card)", fontSize: 13, color: "var(--ink)" }}
-          />
-          <input
-            type="date"
-            value={customRange.end}
-            onChange={(e) => setCustomRange((r) => ({ ...r, end: e.target.value }))}
-            style={{ flex: 1, padding: "8px 10px", borderRadius: "var(--radius-md)", border: "0.5px solid var(--rule)", background: "var(--bg-card)", fontSize: 13, color: "var(--ink)" }}
-          />
-        </div>
-      )}
-
-      {/* Navigation de période — sur desktop uniquement (sur mobile elle est
-          remontée dans la ligne 1 du header). */}
-      {isDesktop && <div style={{ marginBottom: 16 }}>{periodNav}</div>}
-
       {/* Cartes — même moteur que l'Accueil/Flux/Patrimoine : grille bento
           personnalisable sur desktop, empilement 1 colonne sur mobile. */}
       <WidgetCanvas
@@ -1143,14 +1093,3 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
     </div>
   );
 }
-
-const navBtnStyle = {
-  width: 30,
-  height: 30,
-  borderRadius: "50%",
-  background: "var(--bg-card)",
-  border: "0.5px solid var(--rule)",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-};

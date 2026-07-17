@@ -3,11 +3,10 @@
 // `shiftAnchor` avance/recule l'ancre d'une période ; `PERIOD_TYPES` liste les
 // types dans l'ordre d'affichage des filtres.
 
-export const PERIOD_TYPES = ["week", "month", "quarter", "year", "last12", "custom"];
+export const PERIOD_TYPES = ["week", "month", "last3", "year", "last12", "custom"];
 
 export function getRange(periodType, anchor, customRange, locale) {
   const y = anchor.getFullYear();
-  const isEn = locale.startsWith("en");
   if (periodType === "week") {
     // Fenêtre de 7 jours se terminant sur l'ancre (incluse).
     const start = new Date(y, anchor.getMonth(), anchor.getDate() - 6);
@@ -26,12 +25,14 @@ export function getRange(periodType, anchor, customRange, locale) {
       label: anchor.toLocaleDateString(locale, { month: "long", year: "numeric" }),
     };
   }
-  if (periodType === "quarter") {
-    const q = Math.floor(anchor.getMonth() / 3);
+  if (periodType === "last3") {
+    // Fenêtre glissante des 3 mois se terminant sur le mois de l'ancre (inclus).
+    const end = new Date(y, anchor.getMonth() + 1, 1);
+    const start = new Date(y, anchor.getMonth() - 2, 1);
     return {
-      start: new Date(y, q * 3, 1),
-      end: new Date(y, q * 3 + 3, 1),
-      label: `${isEn ? "Q" : "T"}${q + 1} ${y}`,
+      start,
+      end,
+      label: `${start.toLocaleDateString(locale, { month: "short" })} – ${anchor.toLocaleDateString(locale, { month: "short", year: "numeric" })}`,
     };
   }
   if (periodType === "last12") {
