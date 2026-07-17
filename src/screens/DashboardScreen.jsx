@@ -623,7 +623,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
           <WidgetCard
             icon="ti-receipt-2"
             accent="sky"
-            title={<>{t("dashboard_transactions")} <span style={{ color: "var(--ink-3)", fontWeight: 400 }}>· {monthTx.length}</span></>}
+            title={<>{t("dashboard_transactions")} <span style={{ color: "var(--ink-3)", fontWeight: 400 }}>· <AnimatedNumber value={monthTx.length} duration={450} format={(n) => String(Math.round(n))} /></span></>}
             flush
             action={!editMode && recentTx.length > 0 && (
               <button onClick={onOpenTransactions} style={{ background: "none", border: "none", color: "var(--sky)", fontSize: 12.5, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 3, flexShrink: 0 }}>
