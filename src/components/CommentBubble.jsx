@@ -5,6 +5,7 @@
 export default function CommentBubble({ count = 0, onClick, label = "Discussion" }) {
   return (
     <button
+      className="pw-pop-spring"
       onClick={(e) => { e.stopPropagation(); onClick?.(); }}
       aria-label={label}
       style={{
