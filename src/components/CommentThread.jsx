@@ -26,6 +26,7 @@ export default function CommentThread({ comments = [], members, myKey, onSend, o
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [showGifPicker, setShowGifPicker] = useState(false);
+  const [flying, setFlying] = useState(false);
   const listRef = useRef(null);
 
   const memberColorMap = buildMemberColorMap(members);
@@ -37,6 +38,8 @@ export default function CommentThread({ comments = [], members, myKey, onSend, o
   async function send(content) {
     if (!content.trim() || busy) return;
     setBusy(true);
+    setFlying(true);
+    setTimeout(() => setFlying(false), 500);
     try {
       await onSend(content.trim());
       setText("");
@@ -226,7 +229,7 @@ export default function CommentThread({ comments = [], members, myKey, onSend, o
             flexShrink: 0,
           }}
         >
-          <i className="ti ti-send" style={{ fontSize: 15 }} aria-hidden="true" />
+          <i className={`ti ti-send${flying ? " pw-takeoff" : ""}`} style={{ fontSize: 15 }} aria-hidden="true" />
         </button>
       </div>
     </div>

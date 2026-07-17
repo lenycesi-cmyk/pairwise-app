@@ -244,7 +244,7 @@ export default function BudgetCard({
         {ghostW > 0 && (
           <div style={{ position: "absolute", top: 0, bottom: 0, left: `${fillW}%`, width: `${ghostW}%`, background: color, opacity: 0.28 }} />
         )}
-        <div style={{ position: "absolute", top: 0, bottom: 0, left: 0, width: `${fillW}%`, borderRadius: 99, background: color, transition: "width .4s ease" }} />
+        <div className="pw-bar-fill" style={{ position: "absolute", top: 0, bottom: 0, left: 0, width: `${fillW}%`, borderRadius: 99, background: color, transition: "width .4s ease" }} />
       </div>
 
       {/* Encart projection */}

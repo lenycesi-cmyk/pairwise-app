@@ -22,6 +22,7 @@ import { useWealthLayout } from "../hooks/useDashboardPrefs";
 import WidgetCanvas from "../components/WidgetCanvas";
 import ScopeFilter from "../components/ScopeFilter";
 import CommentBubble from "../components/CommentBubble";
+import AnimatedNumber from "../components/AnimatedNumber";
 import CommentsModal from "../components/CommentsModal";
 import AssetComments from "../components/AssetComments";
 
@@ -228,7 +229,7 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
             )}
           </div>
           <p style={{ fontSize: 30, fontWeight: 500, color: netWorth >= 0 ? "var(--sage)" : "var(--tang)" }}>
-            {formatAmount(netWorth)} {currencySymbol}
+            <AnimatedNumber value={netWorth} format={formatAmount} /> {currencySymbol}
           </p>
           <div style={{ display: "flex", gap: 16, marginTop: 8 }}>
             <div>

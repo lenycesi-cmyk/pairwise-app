@@ -22,6 +22,7 @@ import BudgetCard from "../components/BudgetCard";
 import ScopeFilter from "../components/ScopeFilter";
 import PeriodSelector from "../components/PeriodSelector";
 import CommentBubble from "../components/CommentBubble";
+import AnimatedNumber from "../components/AnimatedNumber";
 import CommentsModal from "../components/CommentsModal";
 import TransactionComments from "../components/TransactionComments";
 import { getRange } from "../utils/periodRange";
@@ -430,7 +431,8 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
             title={summaryLabel}
           >
             <p className="pw-num" style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 46, lineHeight: 1, letterSpacing: "-0.02em", marginTop: 4, color: totals.net >= 0 ? "var(--good)" : "var(--over)" }}>
-              {totals.net >= 0 ? "+" : "−"}{formatAmount(Math.abs(totals.net))} {currencySymbol}
+              {totals.net >= 0 ? "+" : "−"}
+              <AnimatedNumber value={Math.abs(totals.net)} format={formatAmount} /> {currencySymbol}
             </p>
             <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
               <HeroStat dot="var(--good)" label={t("dashboard_income")} value={`${formatAmount(totals.income)} ${currencySymbol}`} />
@@ -629,7 +631,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
               </button>
             )}
           >
-            <div>
+            <div className={recentTx.length > 0 ? "pw-stagger" : undefined}>
               {recentTx.length === 0 ? (
                 <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", padding: "1.5rem 0" }}>{t("tx_no_transactions")}</p>
               ) : (
@@ -661,7 +663,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
             <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
               <div>
                 <span className="pw-num" style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 30, letterSpacing: "-0.01em", color: netWorth >= 0 ? "var(--good)" : "var(--over)" }}>
-                  {netWorth >= 0 ? "+" : "−"}{formatAmount(Math.abs(netWorth))} {currencySymbol}
+                  {netWorth >= 0 ? "+" : "−"}<AnimatedNumber value={Math.abs(netWorth)} format={formatAmount} /> {currencySymbol}
                 </span>
                 <div style={{ fontSize: 12, color: "var(--ink-3)", marginTop: 2 }}>{t("dashboard_networth_couple")}</div>
               </div>
