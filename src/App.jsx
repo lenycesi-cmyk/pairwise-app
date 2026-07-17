@@ -14,6 +14,7 @@ import { useScrollFocus } from "./hooks/useScrollFocus";
 import { useTranslation } from "./hooks/useTranslation";
 import OfflineBanner from "./components/OfflineBanner";
 import Celebration from "./components/Celebration";
+import SuccessCheck from "./components/SuccessCheck";
 import AuthScreen from "./screens/AuthScreen";
 import OnboardingFlowPreCouple from "./screens/OnboardingFlowPreCouple";
 import OnboardingFlowPostCouple from "./screens/OnboardingFlowPostCouple";
@@ -287,6 +288,7 @@ function AppContent() {
       <PushRunner />
       <OfflineBanner />
       <Celebration />
+      <SuccessCheck />
 
       <div className="tab-slide" key={tab} data-dir={tabDir}>
       {tab === "dashboard" && (

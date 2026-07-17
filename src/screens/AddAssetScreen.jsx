@@ -7,6 +7,7 @@ import { useTranslation } from "../hooks/useTranslation";
 import AdvancedSplitSelector from "../components/AdvancedSplitSelector";
 import AssetComments from "../components/AssetComments";
 import { getMemberKey } from "../utils/members";
+import { notifySuccess } from "../utils/successCheck";
 
 // Carte de section « 1B Chaleureux » : en-tête pastille (icône teintée + titre),
 // identique à AddTransactionScreen. `accent` est une couleur token.
@@ -135,6 +136,7 @@ export default function AddAssetScreen({ onClose, editingAsset }) {
         await updateAsset(editingAsset.id, payload);
       } else {
         await addAsset(payload);
+        notifySuccess();
       }
       onClose();
     } catch (err) {
