@@ -525,6 +525,41 @@ export function FinanceProvider({ children }) {
     await setDoc(doc(db, "couples", coupleId), { assets: updated }, { merge: true });
   }
 
+  // Discussion sur un actif : même modèle que les commentaires de transaction
+  // (tableau `comments` sur l'objet), mais l'actif vit dans le doc couple → on
+  // read-modify-merge le tableau `assets`. Notifie le partenaire (kind "comment").
+  async function addAssetComment(assetId, comment) {
+    if (!coupleId) return;
+    const newComment = {
+      id: `comment_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      createdAt: Date.now(),
+      ...comment,
+    };
+    const asset = assets.find((a) => a.id === assetId);
+    const updated = assets.map((a) =>
+      a.id === assetId ? { ...a, comments: [...(a.comments || []), newComment] } : a
+    );
+    await setDoc(doc(db, "couples", coupleId), { assets: updated }, { merge: true });
+
+    if (members.length > 1) {
+      sendPushNotification({
+        coupleId,
+        kind: "comment",
+        description: asset?.name || "",
+        text: comment.text || "",
+        gifUrl: comment.gifUrl || "",
+      });
+    }
+  }
+
+  async function removeAssetComment(assetId, commentId) {
+    if (!coupleId) return;
+    const updated = assets.map((a) =>
+      a.id === assetId ? { ...a, comments: (a.comments || []).filter((c) => c.id !== commentId) } : a
+    );
+    await setDoc(doc(db, "couples", coupleId), { assets: updated }, { merge: true });
+  }
+
   async function recordNetWorthSnapshot(totalValue, currency) {
     if (!coupleId) return;
     const today = new Date().toISOString().slice(0, 10);
@@ -670,6 +705,8 @@ export function FinanceProvider({ children }) {
     addAsset,
     updateAsset,
     removeAsset,
+    addAssetComment,
+    removeAssetComment,
     netWorthHistory,
     recordNetWorthSnapshot,
     updateMemberPhoto,
