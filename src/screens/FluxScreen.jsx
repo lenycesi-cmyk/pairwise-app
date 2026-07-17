@@ -15,6 +15,9 @@ import CurrencyPicker from "../components/CurrencyPicker";
 import CategoryRow from "../components/CategoryRow";
 import ScopeFilter from "../components/ScopeFilter";
 import IncomeExpenseTrendChart from "../components/IncomeExpenseTrendChart";
+import CommentBubble from "../components/CommentBubble";
+import CommentsModal from "../components/CommentsModal";
+import TransactionComments from "../components/TransactionComments";
 import { memberShareFraction } from "../utils/members";
 import { getRange, shiftAnchor, monthsInRange } from "../utils/periodRange";
 import PeriodSelector from "../components/PeriodSelector";
@@ -52,6 +55,7 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
   const { widgets, saveWidgets } = useFluxPrefs();
 
   const [fixedDetailOpen, setFixedDetailOpen] = useState(false);
+  const [commentsTx, setCommentsTx] = useState(null);
   const [editMode, setEditMode] = useState(false);
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
   // Filtre membre par widget (Famille / A / B), comme Liquidités en banque.
@@ -463,6 +467,9 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
                     <p style={{ fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{tx.description || cat?.name || t("flux_recent_title")}</p>
                     <p style={{ fontSize: 11, color: "var(--ink-3)" }}>{new Date(tx.date).toLocaleDateString(locale)}</p>
                   </div>
+                  {tx.comments?.length > 0 && (
+                    <CommentBubble count={tx.comments.length} onClick={() => setCommentsTx(tx)} />
+                  )}
                   <p className="pw-num" style={{ fontSize: 13, fontWeight: 600, color: income ? "var(--sage)" : "var(--ink)" }}>
                     {income ? "+" : "−"}{fmt(Math.abs(toBase(tx)))} {symbol}
                   </p>
@@ -526,6 +533,11 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
 
   return (
     <div style={{ minHeight: "100dvh", paddingBottom: "6rem" }}>
+      {commentsTx && (
+        <CommentsModal title={commentsTx.description || t("tx_comments")} onClose={() => setCommentsTx(null)}>
+          <TransactionComments txId={commentsTx.id} bare />
+        </CommentsModal>
+      )}
       {/* Header sticky : menu (mobile), titre, devise + Personnaliser. */}
       <div
         style={{
