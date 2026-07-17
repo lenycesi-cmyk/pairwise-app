@@ -1,4 +1,5 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import { CHART_ANIM, TOOLTIP_ANIM } from "../utils/chartAnim";
 import { ASSET_TYPES } from "../data/assetTypes";
 import { useFinance } from "../context/FinanceContext";
 
@@ -60,12 +61,13 @@ export default function AllocationChart({ totalsByType, totalAssets, fill = fals
               outerRadius={fill ? 72 : 52}
               paddingAngle={2}
               stroke="none"
+              {...CHART_ANIM}
             >
               {data.map((entry, i) => (
                 <Cell key={i} fill={entry.color} />
               ))}
             </Pie>
-            <Tooltip content={<CustomTooltip />} />
+            <Tooltip content={<CustomTooltip />} {...TOOLTIP_ANIM} />
           </PieChart>
         </ResponsiveContainer>
         {fill && top && (

@@ -1,4 +1,5 @@
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { CHART_ANIM, TOOLTIP_ANIM } from "../utils/chartAnim";
 
 function formatTick(v) {
   const abs = Math.abs(v);
@@ -43,10 +44,10 @@ export default function IncomeExpenseTrendChart({ data, currencySymbol }) {
             tickFormatter={formatTick}
             width={38}
           />
-          <Tooltip content={<CustomTooltip />} />
-          <Bar dataKey="income" fill="var(--sage)" radius={[4, 4, 0, 0]} />
-          <Bar dataKey="expense" fill="var(--tang)" radius={[4, 4, 0, 0]} />
-          <Bar dataKey="investment" fill="var(--lavi)" radius={[4, 4, 0, 0]} />
+          <Tooltip content={<CustomTooltip />} {...TOOLTIP_ANIM} />
+          <Bar dataKey="income" fill="var(--sage)" radius={[4, 4, 0, 0]} {...CHART_ANIM} />
+          <Bar dataKey="expense" fill="var(--tang)" radius={[4, 4, 0, 0]} {...CHART_ANIM} />
+          <Bar dataKey="investment" fill="var(--lavi)" radius={[4, 4, 0, 0]} {...CHART_ANIM} />
         </BarChart>
       </ResponsiveContainer>
     </div>

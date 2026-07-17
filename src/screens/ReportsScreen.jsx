@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { CHART_ANIM, TOOLTIP_ANIM } from "../utils/chartAnim";
 import { useFinance } from "../context/FinanceContext";
 import { useExchangeRates } from "../hooks/useExchangeRates";
 import { useReportsPrefs } from "../hooks/useDashboardPrefs";
@@ -655,8 +656,8 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
                     <div style={{ background: "var(--ink)", color: "var(--bg)", padding: "6px 10px", borderRadius: "var(--radius-sm)", fontSize: 12 }}>
                       {label}: {formatAmount(payload[0].value)} {currencySymbol}
                     </div>
-                  ) : null} />
-                  <Bar dataKey="value" fill="var(--lavi)" radius={[3, 3, 0, 0]} />
+                  ) : null} {...TOOLTIP_ANIM} />
+                  <Bar dataKey="value" fill="var(--lavi)" radius={[3, 3, 0, 0]} {...CHART_ANIM} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -675,8 +676,8 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
                   <LineChart data={evolutionData} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
                     <XAxis dataKey="label" tick={{ fontSize: 10, fill: "var(--ink-3)" }} axisLine={{ stroke: "var(--rule)" }} tickLine={false} />
                     <YAxis tick={{ fontSize: 10, fill: "var(--ink-3)" }} axisLine={false} tickLine={false} tickFormatter={formatAxisTick} width={38} domain={[0, "auto"]} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Line type="monotone" dataKey="value" stroke="var(--tang)" strokeWidth={2} dot={{ r: 2, fill: "var(--tang)" }} activeDot={{ r: 4 }} connectNulls={false} />
+                    <Tooltip content={<CustomTooltip />} {...TOOLTIP_ANIM} />
+                    <Line type="monotone" dataKey="value" stroke="var(--tang)" strokeWidth={2} dot={{ r: 2, fill: "var(--tang)" }} activeDot={{ r: 4 }} connectNulls={false} {...CHART_ANIM} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -696,10 +697,10 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
                   <BarChart data={incomeExpenseData} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
                     <XAxis dataKey="label" tick={{ fontSize: 10, fill: "var(--ink-3)" }} axisLine={{ stroke: "var(--rule)" }} tickLine={false} />
                     <YAxis tick={{ fontSize: 10, fill: "var(--ink-3)" }} axisLine={false} tickLine={false} tickFormatter={formatAxisTick} width={38} />
-                    <Tooltip formatter={(value, name) => [`${formatAmount(value)} ${currencySymbol}`, name]} labelStyle={{ color: "var(--ink)" }} />
+                    <Tooltip formatter={(value, name) => [`${formatAmount(value)} ${currencySymbol}`, name]} labelStyle={{ color: "var(--ink)" }} {...TOOLTIP_ANIM} />
                     <Legend wrapperStyle={{ fontSize: 11 }} />
-                    <Bar dataKey="income" name={t("dashboard_income")} fill="var(--sage)" radius={[3, 3, 0, 0]} />
-                    <Bar dataKey="expense" name={t("dashboard_expenses")} fill="var(--tang)" radius={[3, 3, 0, 0]} />
+                    <Bar dataKey="income" name={t("dashboard_income")} fill="var(--sage)" radius={[3, 3, 0, 0]} {...CHART_ANIM} />
+                    <Bar dataKey="expense" name={t("dashboard_expenses")} fill="var(--tang)" radius={[3, 3, 0, 0]} {...CHART_ANIM} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -886,8 +887,8 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
                       <LineChart data={trendSeries} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
                         <XAxis dataKey="label" tick={{ fontSize: 10, fill: "var(--ink-3)" }} axisLine={{ stroke: "var(--rule)" }} tickLine={false} />
                         <YAxis tick={{ fontSize: 10, fill: "var(--ink-3)" }} axisLine={false} tickLine={false} tickFormatter={formatAxisTick} width={38} domain={[0, "auto"]} />
-                        <Tooltip content={<CustomTooltip />} />
-                        <Line type="monotone" dataKey="value" stroke="var(--lavi)" strokeWidth={2} dot={{ r: 2, fill: "var(--lavi)" }} activeDot={{ r: 4 }} connectNulls={false} />
+                        <Tooltip content={<CustomTooltip />} {...TOOLTIP_ANIM} />
+                        <Line type="monotone" dataKey="value" stroke="var(--lavi)" strokeWidth={2} dot={{ r: 2, fill: "var(--lavi)" }} activeDot={{ r: 4 }} connectNulls={false} {...CHART_ANIM} />
                       </LineChart>
                     </ResponsiveContainer>
                   </div>

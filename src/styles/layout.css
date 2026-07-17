@@ -407,11 +407,30 @@
   from { transform: translateX(-7%); opacity: 0.35; }
   to { transform: none; opacity: 1; }
 }
-.tab-slide[data-dir="fwd"] { animation: tabSlideFwd 0.24s ease-out; }
-.tab-slide[data-dir="back"] { animation: tabSlideBack 0.24s ease-out; }
+.tab-slide[data-dir="fwd"] { animation: tabSlideFwd var(--dur-base) var(--ease-out); }
+.tab-slide[data-dir="back"] { animation: tabSlideBack var(--dur-base) var(--ease-out); }
 
 @media (prefers-reduced-motion: reduce) {
   .tab-slide[data-dir] { animation: none; }
+}
+
+/* Entrée des écrans-détail plein écran : léger glissement vers le haut + fondu
+   sur mobile ; sur desktop (dialogue centré via translate(-50%,-50%)) on anime
+   un pop discret en préservant le centrage. */
+@keyframes appModalUp {
+  from { transform: translateY(14px); opacity: 0; }
+  to   { transform: none; opacity: 1; }
+}
+@keyframes appModalPop {
+  from { transform: translate(-50%, -48%) scale(0.98); opacity: 0; }
+  to   { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
+.app-modal { animation: appModalUp var(--dur-base) var(--ease-out); }
+@media (min-width: 1024px) {
+  .app-modal { animation: appModalPop var(--dur-base) var(--ease-out); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-modal { animation: none; }
 }
 
 /* Mise en page « bento » du Dashboard (desktop, hors mode édition) : grille à

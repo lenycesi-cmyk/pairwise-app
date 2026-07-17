@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { CHART_ANIM, TOOLTIP_ANIM } from "../utils/chartAnim";
 import { useFinance } from "../context/FinanceContext";
 import { useTranslation } from "../hooks/useTranslation";
 
@@ -138,8 +139,8 @@ export default function NetWorthChart({ history, currencySymbol, displayCurrency
                 tickLine={false}
               />
               <YAxis hide domain={["auto", "auto"]} />
-              <Tooltip content={<CustomTooltip />} cursor={{ fill: "var(--rule)", opacity: 0.4 }} />
-              <Bar dataKey="value" fill="var(--sage)" radius={[3, 3, 0, 0]} />
+              <Tooltip content={<CustomTooltip />} cursor={{ fill: "var(--rule)", opacity: 0.4 }} {...TOOLTIP_ANIM} />
+              <Bar dataKey="value" fill="var(--sage)" radius={[3, 3, 0, 0]} {...CHART_ANIM} />
             </BarChart>
           ) : (
             <LineChart data={data} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
@@ -150,7 +151,7 @@ export default function NetWorthChart({ history, currencySymbol, displayCurrency
                 tickLine={false}
               />
               <YAxis hide domain={["auto", "auto"]} />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={<CustomTooltip />} {...TOOLTIP_ANIM} />
               <Line
                 type="monotone"
                 dataKey="value"
@@ -158,6 +159,7 @@ export default function NetWorthChart({ history, currencySymbol, displayCurrency
                 strokeWidth={2}
                 dot={false}
                 activeDot={{ r: 4 }}
+                {...CHART_ANIM}
               />
             </LineChart>
           )}
