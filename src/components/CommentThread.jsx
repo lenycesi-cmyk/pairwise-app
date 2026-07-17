@@ -21,7 +21,7 @@ function isEmojiOnly(text) {
 // assets. L'appelant fournit les commentaires (live via onSnapshot), la clé du
 // membre courant et les trois actions ; toute la logique d'UI (bulles, emojis,
 // GIF, saisie, scroll) vit ici. Cf. TransactionComments / AssetComments.
-export default function CommentThread({ comments = [], members, myKey, onSend, onSendGif, onRemove }) {
+export default function CommentThread({ comments = [], members, myKey, onSend, onSendGif, onRemove, bare = false }) {
   const t = useTranslation();
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
@@ -62,17 +62,23 @@ export default function CommentThread({ comments = [], members, myKey, onSend, o
 
   return (
     <div
-      style={{
-        background: "var(--bg-card)",
-        borderRadius: "var(--radius-lg)",
-        border: "0.5px solid var(--rule)",
-        padding: "1rem 1.25rem",
-        marginBottom: 12,
-      }}
+      style={
+        bare
+          ? {}
+          : {
+              background: "var(--bg-card)",
+              borderRadius: "var(--radius-lg)",
+              border: "0.5px solid var(--rule)",
+              padding: "1rem 1.25rem",
+              marginBottom: 12,
+            }
+      }
     >
-      <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 8 }}>
-        {t("tx_comments")} {comments.length > 0 && `(${comments.length})`}
-      </p>
+      {!bare && (
+        <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 8 }}>
+          {t("tx_comments")} {comments.length > 0 && `(${comments.length})`}
+        </p>
+      )}
 
       {comments.length > 0 && (
         <div ref={listRef} style={{ maxHeight: 220, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8, marginBottom: 10 }}>
