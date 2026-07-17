@@ -369,12 +369,25 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
       if (new Date(tx.date) < start) continue;
       let keys;
       if (simDim === "category") keys = [tx.categoryId];
-      else if (simDim === "subcategory") keys = tx.subcategory ? [tx.subcategory] : [];
+      // Sous-catégorie : clé composite `categoryId::nom` pour ne PAS fusionner
+      // des sous-catégories homonymes de catégories différentes (« Autre » de
+      // Courses ≠ « Autre » de Loisirs) — c'est ce qui rendait la liste illisible.
+      else if (simDim === "subcategory") keys = tx.subcategory ? [`${tx.categoryId}::${tx.subcategory}`] : [];
       else keys = tx.tags || [];
       for (const k of keys) totals.set(k, (totals.get(k) || 0) + toBase(tx));
     }
-    const labelOf = (val) =>
-      simDim === "category" ? categories.find((c) => c.id === val)?.name ?? val : val;
+    const labelOf = (val) => {
+      if (simDim === "category") return categories.find((c) => c.id === val)?.name ?? val;
+      if (simDim === "subcategory") {
+        const sep = String(val).indexOf("::");
+        const cid = sep >= 0 ? String(val).slice(0, sep) : val;
+        const sub = sep >= 0 ? String(val).slice(sep + 2) : val;
+        const cat = categories.find((c) => c.id === cid);
+        // Préfixe de catégorie pour situer d'un coup d'œil chaque poste.
+        return cat ? `${cat.name} · ${sub}` : sub;
+      }
+      return val;
+    };
     return [...totals.entries()]
       .sort((a, b) => b[1] - a[1])
       .map(([value, total]) => ({ value, label: labelOf(value), monthly: total / SIM_WINDOW_MONTHS }));
@@ -930,10 +943,13 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
       }
       case "savings_sim": {
         const dims = ["category", "subcategory", "tag"];
-        const iconFor = (val) =>
-          simDim === "category"
-            ? categories.find((c) => c.id === val)?.icon || "ti-category"
-            : simDim === "tag" ? "ti-hash" : "ti-list";
+        const iconFor = (val) => {
+          if (simDim === "category") return categories.find((c) => c.id === val)?.icon || "ti-category";
+          if (simDim === "tag") return "ti-hash";
+          // Sous-catégorie : icône de sa catégorie parente (clé composite).
+          const cid = String(val).split("::")[0];
+          return categories.find((c) => c.id === cid)?.icon || "ti-list";
+        };
         return (
           <WidgetCard icon="ti-calculator" accent="mint" title={t("reports_sim_title")}>
             <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
