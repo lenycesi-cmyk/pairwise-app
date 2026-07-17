@@ -6,12 +6,14 @@ import { useBudgetAlerts } from "./hooks/useBudgetAlerts";
 import { useBudgetSnapshots } from "./hooks/useBudgetSnapshots";
 import { useCommentNotifications } from "./hooks/useCommentNotifications";
 import { useRecurringReminders } from "./hooks/useRecurringReminders";
+import { useGoalCelebration } from "./hooks/useGoalCelebration";
 import { usePushNotifications, useForegroundPush } from "./hooks/usePushNotifications";
 import { useBackGuard } from "./hooks/useBackGuard";
 import { useTabSwipe } from "./hooks/useTabSwipe";
 import { useScrollFocus } from "./hooks/useScrollFocus";
 import { useTranslation } from "./hooks/useTranslation";
 import OfflineBanner from "./components/OfflineBanner";
+import Celebration from "./components/Celebration";
 import AuthScreen from "./screens/AuthScreen";
 import OnboardingFlowPreCouple from "./screens/OnboardingFlowPreCouple";
 import OnboardingFlowPostCouple from "./screens/OnboardingFlowPostCouple";
@@ -67,6 +69,11 @@ function CommentNotifierRunner() {
 
 function RecurringRemindersRunner() {
   useRecurringReminders();
+  return null;
+}
+
+function GoalCelebrationRunner() {
+  useGoalCelebration();
   return null;
 }
 
@@ -276,8 +283,10 @@ function AppContent() {
       <BudgetSnapshotRunner />
       <CommentNotifierRunner />
       <RecurringRemindersRunner />
+      <GoalCelebrationRunner />
       <PushRunner />
       <OfflineBanner />
+      <Celebration />
 
       <div className="tab-slide" key={tab} data-dir={tabDir}>
       {tab === "dashboard" && (

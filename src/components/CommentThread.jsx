@@ -3,6 +3,7 @@ import { useTranslation } from "../hooks/useTranslation";
 import Avatar from "./Avatar";
 import { buildMemberColorMap } from "../utils/memberColors";
 import { getMemberKey } from "../utils/members";
+import { haptic } from "../utils/haptics";
 
 const QUICK_EMOJIS = ["❤️", "😂", "😮", "👍", "🤔"];
 
@@ -39,6 +40,7 @@ export default function CommentThread({ comments = [], members, myKey, onSend, o
     if (!content.trim() || busy) return;
     setBusy(true);
     setFlying(true);
+    haptic("tap");
     setTimeout(() => setFlying(false), 500);
     try {
       await onSend(content.trim());
