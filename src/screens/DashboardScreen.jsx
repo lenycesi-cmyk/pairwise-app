@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, lazy, Suspense, Fragment } from "react";
+import { useState, useMemo, useRef, useEffect, lazy, Suspense, Fragment } from "react";
 import {
   DndContext,
   closestCenter,
@@ -20,6 +20,8 @@ import { useDebtCalculation } from "../hooks/useDebtCalculation";
 import { useBudgetProgress } from "../hooks/useBudgetProgress";
 import BudgetCard from "../components/BudgetCard";
 import ScopeFilter from "../components/ScopeFilter";
+import PeriodSelector from "../components/PeriodSelector";
+import { getRange } from "../utils/periodRange";
 import { useInsights } from "../hooks/useInsights";
 import { useDashboardPrefs, useBudgetHiddenIds } from "../hooks/useDashboardPrefs";
 import { useNetWorth } from "../hooks/useNetWorth";
@@ -172,17 +174,49 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
   const debt = useDebtCalculation(transactions, members, displayCurrency, convert, { settlements: debtSettlements });
   const memberColorMap = useMemo(() => buildMemberColorMap(members), [members]);
 
-  const now = new Date();
-  // Controlled by the shared month state in App.jsx when provided (keeps Home
-  // in sync with Reports so switching tabs doesn't reset the selected period);
-  // falls back to local state so this component still works standalone.
-  const [localMonth, setLocalMonth] = useState({ month: now.getMonth(), year: now.getFullYear() });
-  const { month: viewMonth, year: viewYear } = sharedMonth ?? localMonth;
-  const setViewMonthYear = onSharedMonthChange ?? setLocalMonth;
+  // Sélecteur de période partagé avec Rapports/Flux. Le type "month" reste
+  // synchronisé avec les autres onglets via sharedMonth (l'ancre = 1er du mois) ;
+  // les autres types (3/12 derniers mois, année, perso) sont locaux à l'Accueil.
+  const [periodType, setPeriodType] = useState("month");
+  const [anchor, setAnchorRaw] = useState(() =>
+    sharedMonth ? new Date(sharedMonth.year, sharedMonth.month, 1) : new Date()
+  );
+  const [customRange, setCustomRange] = useState({ start: "", end: "" });
 
-  // Budget progress must follow the currently viewed month, not always the
-  // real calendar month — otherwise the widget silently shows next/prev
-  // month's spend while the rest of the screen is browsing a different one.
+  function setAnchor(newAnchor) {
+    setAnchorRaw(newAnchor);
+    if (periodType === "month" && onSharedMonthChange) {
+      onSharedMonthChange({ month: newAnchor.getMonth(), year: newAnchor.getFullYear() });
+    }
+  }
+
+  useEffect(() => {
+    if (periodType === "month" && sharedMonth) {
+      setAnchorRaw((prev) =>
+        prev.getMonth() === sharedMonth.month && prev.getFullYear() === sharedMonth.year
+          ? prev
+          : new Date(sharedMonth.year, sharedMonth.month, 1)
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sharedMonth?.month, sharedMonth?.year]);
+
+  const range = useMemo(
+    () => getRange(periodType, anchor, customRange, locale),
+    [periodType, anchor, customRange, locale]
+  );
+  const inRange = (tx) => {
+    const d = new Date(tx.date);
+    return d >= range.start && d < range.end;
+  };
+  // Mois de référence (ancre) — utilisé par les widgets restés MENSUELS (budget,
+  // tendance N mois) même quand une période plus large est sélectionnée.
+  const viewMonth = anchor.getMonth();
+  const viewYear = anchor.getFullYear();
+
+  // Budget progress reste MENSUEL (une enveloppe budget est mensuelle) : il suit
+  // le mois de l'ancre, pas la plage complète. C'est le compromis assumé de
+  // l'onglet Accueil (cf. docs) — les budgets ne se recalculent pas sur un an.
   const { progress: budgetProgress } = useBudgetProgress(viewMonth, viewYear, displayCurrency);
   const { suggestion: subscriptionSuggestion, accept: acceptSubscription, dismiss: dismissSubscription } = useSubscriptionSuggestion();
 
@@ -202,20 +236,15 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
     [budgetProgress, hiddenBudgetIds]
   );
 
-  function changeMonth(delta) {
-    let m = viewMonth + delta;
-    let y = viewYear;
-    if (m > 11) { m = 0; y++; }
-    if (m < 0) { m = 11; y--; }
-    setViewMonthYear({ month: m, year: y });
-  }
-
-  const monthTx = useMemo(() => {
-    return transactions.filter((tx) => {
-      const d = new Date(tx.date);
-      return d.getMonth() === viewMonth && d.getFullYear() === viewYear;
-    });
-  }, [transactions, viewMonth, viewYear]);
+  // Transactions de la PÉRIODE sélectionnée : alimente les widgets « scopés »
+  // (résumé du couple, dépenses par catégorie, dernières transactions, résumé
+  // par membre). Les widgets patrimoine/liquidité (instantanés) et le budget
+  // (mensuel) ne s'appuient pas dessus.
+  const monthTx = useMemo(
+    () => transactions.filter(inRange),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [transactions, range]
+  );
 
   function toBase(tx) {
     if (tx.convertedAmount !== undefined && tx.convertedCurrency === displayCurrency) {
@@ -395,7 +424,6 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
             icon="ti-heart"
             accent="coral"
             title={summaryLabel}
-            action={<span style={{ fontSize: 11, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: "0.04em", fontWeight: 600, whiteSpace: "nowrap" }}>{t("dashboard_month_balance")}</span>}
           >
             <p className="pw-num" style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 46, lineHeight: 1, letterSpacing: "-0.02em", marginTop: 4, color: totals.net >= 0 ? "var(--good)" : "var(--over)" }}>
               {totals.net >= 0 ? "+" : "−"}{formatAmount(Math.abs(totals.net))} {currencySymbol}
@@ -877,24 +905,20 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
           gauche), ligne 2 le bloc « Bonjour … » sur toute la largeur. */}
       {(() => {
         const monthNav = (
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, justifySelf: "center", background: "var(--bg-card)", border: "0.5px solid var(--rule)", borderRadius: 99, padding: "5px 6px" }}>
-            <button onClick={() => changeMonth(-1)} aria-label="Mois précédent" style={pillNavBtnStyle}>
-              <i className="ti ti-chevron-left" style={{ fontSize: 16 }} aria-hidden="true" />
-            </button>
-            <p style={{ fontSize: 13, fontWeight: 600, whiteSpace: "nowrap", padding: "0 4px" }}>
-              {(() => {
-                // Sur mobile, abréger le mois s'il dépasse 4 lettres (Septembre → Sept)
-                // pour que la ligne du sélecteur reste compacte.
-                const full = monthName(viewMonth);
-                return isDesktop || full.length <= 4 ? full : full.slice(0, 4);
-              })()} {viewYear}
-              {ratesError === "using_fallback_rates" && (
-                <i className="ti ti-alert-triangle" title="Taux de change approximatifs" style={{ fontSize: 12, color: "var(--amber)", marginLeft: 6 }} aria-hidden="true" />
-              )}
-            </p>
-            <button onClick={() => changeMonth(1)} aria-label="Mois suivant" style={pillNavBtnStyle}>
-              <i className="ti ti-chevron-right" style={{ fontSize: 16 }} aria-hidden="true" />
-            </button>
+          <div style={{ justifySelf: "center", display: "flex", alignItems: "center", gap: 6 }}>
+            <PeriodSelector
+              periodType={periodType}
+              setPeriodType={setPeriodType}
+              anchor={anchor}
+              setAnchor={setAnchor}
+              setAnchorNow={() => setAnchorRaw(new Date())}
+              rangeLabel={range.label}
+              customRange={customRange}
+              setCustomRange={setCustomRange}
+            />
+            {ratesError === "using_fallback_rates" && (
+              <i className="ti ti-alert-triangle" title="Taux de change approximatifs" style={{ fontSize: 12, color: "var(--amber)" }} aria-hidden="true" />
+            )}
           </div>
         );
         const actions = (
@@ -943,7 +967,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
           <GreetingHeader
             subtitleKey="home_subtitle"
             marginLeft={0}
-            month={`${monthName(viewMonth)} ${viewYear}`}
+            month={range.label.charAt(0).toUpperCase() + range.label.slice(1)}
           />
         );
         if (isDesktop) {
@@ -1161,10 +1185,4 @@ function BreakdownRow({ color, label, value, valueColor = "var(--ink)", last = f
 const navBtnStyle = {
   width: 30, height: 30, borderRadius: "50%", background: "var(--bg-card)",
   border: "0.5px solid var(--rule)", display: "flex", alignItems: "center", justifyContent: "center",
-};
-
-// Chevrons du sélecteur de mois DANS la pilule (fond transparent, sans bordure).
-const pillNavBtnStyle = {
-  width: 26, height: 26, borderRadius: "50%", background: "transparent",
-  border: "none", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--ink-3)",
 };
