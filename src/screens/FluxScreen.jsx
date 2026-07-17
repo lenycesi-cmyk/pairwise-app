@@ -135,7 +135,7 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
   }, [transactions, categories, range, displayCurrency, convert]);
   const maxCatTotal = Math.max(1, ...Object.values(categoryTotals).map((c) => c.total));
 
-  // Tendance 6 derniers mois (entrées vs sorties).
+  // Tendance 6 derniers mois (entrées / sorties / investi).
   const trend = useMemo(() => {
     const buckets = [];
     for (let i = 5; i >= 0; i--) {
@@ -145,6 +145,7 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
         label: d.toLocaleDateString(locale, { month: "short" }),
         income: 0,
         expense: 0,
+        investment: 0,
       });
     }
     const byKey = new Map(buckets.map((b) => [b.key, b]));
@@ -154,6 +155,7 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
       if (!b) continue;
       if (tx.type === "income") b.income += toBase(tx);
       else if (tx.type === "expense") b.expense += toBase(tx);
+      else if (tx.type === "investment") b.investment += toBase(tx);
     }
     return buckets;
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -229,19 +231,20 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
     if (id === "cashflow") {
       const scope = scopeByWidget[id] ?? null;
       // Flux + tendance re-scopés par membre (part « pour qui »).
-      let income = 0, expense = 0;
+      let income = 0, expense = 0, invested = 0;
       for (const tx of transactions) {
         if (!inRange(tx)) continue;
         const f = frac(tx, scope);
         if (!f) continue;
         if (tx.type === "income") income += toBase(tx) * f;
         else if (tx.type === "expense") expense += toBase(tx) * f;
+        else if (tx.type === "investment") invested += toBase(tx) * f;
       }
-      const flow = { income, expense, net: income - expense };
+      const flow = { income, expense, invested, net: income - expense };
       const scopedTrend = scope === null
         ? trend
         : (() => {
-            const buckets = trend.map((b) => ({ ...b, income: 0, expense: 0 }));
+            const buckets = trend.map((b) => ({ ...b, income: 0, expense: 0, investment: 0 }));
             const byKey = new Map(buckets.map((b) => [b.key, b]));
             for (const tx of transactions) {
               const d = new Date(tx.date);
@@ -251,6 +254,7 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
               if (!f) continue;
               if (tx.type === "income") b.income += toBase(tx) * f;
               else if (tx.type === "expense") b.expense += toBase(tx) * f;
+              else if (tx.type === "investment") b.investment += toBase(tx) * f;
             }
             return buckets;
           })();
@@ -266,6 +270,12 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
               <p style={{ fontSize: 11, color: "var(--ink-3)", marginBottom: 3 }}>{t("flux_out")}</p>
               <p className="pw-num" style={{ fontSize: 16, fontWeight: 700, color: "var(--tang)" }}>{fmt(flow.expense)} {symbol}</p>
             </div>
+            {flow.invested > 0 && (
+              <div style={{ flex: 1, background: "var(--lavi-light)", borderRadius: "var(--radius-md)", padding: "10px 12px" }}>
+                <p style={{ fontSize: 11, color: "var(--ink-3)", marginBottom: 3 }}>{t("dashboard_invested")}</p>
+                <p className="pw-num" style={{ fontSize: 16, fontWeight: 700, color: "var(--lavi)" }}>{fmt(flow.invested)} {symbol}</p>
+              </div>
+            )}
           </div>
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 4 }}>
             <span style={{ fontSize: 12.5, color: "var(--ink-2)" }}>{t("flux_net")}</span>

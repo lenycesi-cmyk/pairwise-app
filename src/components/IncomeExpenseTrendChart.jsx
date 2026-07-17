@@ -6,6 +6,8 @@ function formatTick(v) {
   return `${v}`;
 }
 
+const TREND_COLORS = { income: "var(--sage)", expense: "var(--tang)", investment: "var(--lavi)" };
+
 export default function IncomeExpenseTrendChart({ data, currencySymbol }) {
   function CustomTooltip({ active, payload, label }) {
     if (!active || !payload?.length) return null;
@@ -21,7 +23,7 @@ export default function IncomeExpenseTrendChart({ data, currencySymbol }) {
       >
         <p style={{ marginBottom: 2 }}>{label}</p>
         {payload.map((p) => (
-          <p key={p.dataKey} style={{ color: p.dataKey === "income" ? "var(--sage)" : "var(--tang)" }}>
+          <p key={p.dataKey} style={{ color: TREND_COLORS[p.dataKey] || "var(--tang)" }}>
             {Math.round(p.value).toLocaleString("fr-FR")} {currencySymbol}
           </p>
         ))}
@@ -44,6 +46,7 @@ export default function IncomeExpenseTrendChart({ data, currencySymbol }) {
           <Tooltip content={<CustomTooltip />} />
           <Bar dataKey="income" fill="var(--sage)" radius={[4, 4, 0, 0]} />
           <Bar dataKey="expense" fill="var(--tang)" radius={[4, 4, 0, 0]} />
+          <Bar dataKey="investment" fill="var(--lavi)" radius={[4, 4, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>
