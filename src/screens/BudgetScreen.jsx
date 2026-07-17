@@ -107,6 +107,19 @@ export default function BudgetScreen({ openSignal, onOpenMenu }) {
 
   const expenseCategories = categories.filter((c) => !EXPENSE_EXCLUDED.includes(c.id));
 
+  // Les modes « 50/30/20 » et « basé sur l'historique » s'appuient sur une
+  // moyenne 3 mois : ils ne sont proposés qu'à partir de 3 mois de données
+  // (sinon la moyenne est faussée). En dessous, seul le mode manuel est offert.
+  const monthsOfHistory = useMemo(() => {
+    const set = new Set();
+    for (const tx of transactions) {
+      const d = new Date(tx.date);
+      set.add(`${d.getFullYear()}-${d.getMonth()}`);
+    }
+    return set.size;
+  }, [transactions]);
+  const hasEnoughHistory = monthsOfHistory >= 3;
+
   // ── Devise du budget : même sélecteur inline que la création de transaction
   // (liste blanche du couple + gestion/ajout avec recherche), au lieu du
   // <select> natif qui ouvrait le menu déroulant du système.
@@ -530,29 +543,37 @@ export default function BudgetScreen({ openSignal, onOpenMenu }) {
         >
           <button
             onClick={applyFiftyThirtyTwenty}
+            disabled={!hasEnoughHistory}
             style={{
               textAlign: "left",
               padding: 14,
               borderRadius: "var(--radius-md)",
               border: "0.5px solid var(--rule)",
               background: "var(--bg)",
+              opacity: hasEnoughHistory ? 1 : 0.5,
             }}
           >
             <p style={{ fontSize: 14, fontWeight: 500 }}>{t("budget_quick_5030")}</p>
-            <p style={{ fontSize: 12, color: "var(--ink-3)", marginTop: 2 }}>{t("budget_quick_5030_hint")}</p>
+            <p style={{ fontSize: 12, color: "var(--ink-3)", marginTop: 2 }}>
+              {hasEnoughHistory ? t("budget_quick_5030_hint") : t("budget_quick_needs_history")}
+            </p>
           </button>
           <button
             onClick={() => { resetForm(); setScope("category"); setQuickMode("history"); }}
+            disabled={!hasEnoughHistory}
             style={{
               textAlign: "left",
               padding: 14,
               borderRadius: "var(--radius-md)",
               border: "0.5px solid var(--rule)",
               background: "var(--bg)",
+              opacity: hasEnoughHistory ? 1 : 0.5,
             }}
           >
             <p style={{ fontSize: 14, fontWeight: 500 }}>{t("budget_quick_history")}</p>
-            <p style={{ fontSize: 12, color: "var(--ink-3)", marginTop: 2 }}>{t("budget_quick_history_hint")}</p>
+            <p style={{ fontSize: 12, color: "var(--ink-3)", marginTop: 2 }}>
+              {hasEnoughHistory ? t("budget_quick_history_hint") : t("budget_quick_needs_history")}
+            </p>
           </button>
           <button
             onClick={() => { resetForm(); setQuickMode("manual"); }}
