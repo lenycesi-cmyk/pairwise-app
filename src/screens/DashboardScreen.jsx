@@ -21,6 +21,9 @@ import { useBudgetProgress } from "../hooks/useBudgetProgress";
 import BudgetCard from "../components/BudgetCard";
 import ScopeFilter from "../components/ScopeFilter";
 import PeriodSelector from "../components/PeriodSelector";
+import CommentBubble from "../components/CommentBubble";
+import CommentsModal from "../components/CommentsModal";
+import TransactionComments from "../components/TransactionComments";
 import { getRange } from "../utils/periodRange";
 import { useInsights } from "../hooks/useInsights";
 import { useDashboardPrefs, useBudgetHiddenIds } from "../hooks/useDashboardPrefs";
@@ -148,6 +151,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
   const { convert, loading: ratesLoading, error: ratesError } = useExchangeRates(displayCurrency);
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
   const [editMode, setEditMode] = useState(false);
+  const [commentsTx, setCommentsTx] = useState(null);
   // Filtre du widget Liquidités : null = couple ; sinon memberKey (comptes de ce
   // membre + comptes partagés).
   const [liquidScope, setLiquidScope] = useState(null);
@@ -637,10 +641,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                       <i className={`ti ${cat.icon}`} style={{ fontSize: 16, color: "var(--ink-3)" }} aria-hidden="true" />
                       <p style={{ flex: 1, minWidth: 0, fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{tx.description}</p>
                       {tx.comments?.length > 0 && (
-                        <span style={{ display: "flex", alignItems: "center", gap: 2, fontSize: 11, color: "var(--sky)", flexShrink: 0 }}>
-                          <i className="ti ti-message-circle" style={{ fontSize: 13 }} aria-hidden="true" />
-                          {tx.comments.length}
-                        </span>
+                        <CommentBubble count={tx.comments.length} onClick={() => setCommentsTx(tx)} />
                       )}
                       <p style={{ fontSize: 13, fontWeight: 500, color: isIncome ? "var(--sage)" : "var(--ink)" }}>
                         {isIncome ? "+" : "−"}{Math.round(tx.amount).toLocaleString("fr-FR")} {tx.currency}
@@ -888,6 +889,11 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
 
   return (
     <div style={{ paddingBottom: "6rem" }}>
+      {commentsTx && (
+        <CommentsModal title={commentsTx.description || t("tx_comments")} onClose={() => setCommentsTx(null)}>
+          <TransactionComments txId={commentsTx.id} bare />
+        </CommentsModal>
+      )}
       {/* Sticky header — stays visible while scrolling widgets below, with an
           opaque background matching the page so content scrolls under it
           rather than through it. */}
