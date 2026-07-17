@@ -129,6 +129,11 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
   const [simValue, setSimValue] = useState(null);
   const [simPct, setSimPct] = useState(20);
   const [showSimPicker, setShowSimPicker] = useState(false);
+  // Mode « sous-catégorie » du simulateur : on choisit d'abord une catégorie
+  // (simCatId), puis une ou plusieurs de ses sous-catégories (simSubSel, un Set ;
+  // null = toutes les sous-cat de la catégorie active).
+  const [simCatId, setSimCatId] = useState(null);
+  const [simSubSel, setSimSubSel] = useState(null);
   // Widget « À surveiller » : filtre membre (null = Famille).
   const [watchScope, setWatchScope] = useState(null);
   // Widget « Dépenses par tag » : tags dépliés (transactions du tag sur la période),
@@ -367,27 +372,15 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
     for (const tx of transactions) {
       if (tx.type !== "expense") continue;
       if (new Date(tx.date) < start) continue;
+      // Le simulateur en mode « sous-catégorie » passe par un sélecteur à deux
+      // étages dédié (simSubData) ; ici on ne gère que catégorie et tag.
       let keys;
       if (simDim === "category") keys = [tx.categoryId];
-      // Sous-catégorie : clé composite `categoryId::nom` pour ne PAS fusionner
-      // des sous-catégories homonymes de catégories différentes (« Autre » de
-      // Courses ≠ « Autre » de Loisirs) — c'est ce qui rendait la liste illisible.
-      else if (simDim === "subcategory") keys = tx.subcategory ? [`${tx.categoryId}::${tx.subcategory}`] : [];
       else keys = tx.tags || [];
       for (const k of keys) totals.set(k, (totals.get(k) || 0) + toBase(tx));
     }
-    const labelOf = (val) => {
-      if (simDim === "category") return categories.find((c) => c.id === val)?.name ?? val;
-      if (simDim === "subcategory") {
-        const sep = String(val).indexOf("::");
-        const cid = sep >= 0 ? String(val).slice(0, sep) : val;
-        const sub = sep >= 0 ? String(val).slice(sep + 2) : val;
-        const cat = categories.find((c) => c.id === cid);
-        // Préfixe de catégorie pour situer d'un coup d'œil chaque poste.
-        return cat ? `${cat.name} · ${sub}` : sub;
-      }
-      return val;
-    };
+    const labelOf = (val) =>
+      simDim === "category" ? categories.find((c) => c.id === val)?.name ?? val : val;
     return [...totals.entries()]
       .sort((a, b) => b[1] - a[1])
       .map(([value, total]) => ({ value, label: labelOf(value), monthly: total / SIM_WINDOW_MONTHS }));
@@ -399,7 +392,55 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
       ? simValue
       : simOptions[0]?.value ?? null;
   const simItem = simOptions.find((o) => o.value === activeSimValue) || null;
-  const simMonthly = simItem?.monthly ?? 0;
+
+  // Agrégation à deux niveaux pour le mode « sous-catégorie » : par catégorie
+  // (étape 1) et, dans chacune, par sous-catégorie (étape 2). Même fenêtre de 6
+  // mois glissants que simOptions. Trié par dépense décroissante partout.
+  const simSubData = useMemo(() => {
+    const start = new Date();
+    start.setMonth(start.getMonth() - SIM_WINDOW_MONTHS, 1);
+    start.setHours(0, 0, 0, 0);
+    const perCat = new Map();
+    for (const tx of transactions) {
+      if (tx.type !== "expense" || !tx.subcategory) continue;
+      if (new Date(tx.date) < start) continue;
+      let e = perCat.get(tx.categoryId);
+      if (!e) { e = { total: 0, subs: new Map() }; perCat.set(tx.categoryId, e); }
+      const v = toBase(tx);
+      e.total += v;
+      e.subs.set(tx.subcategory, (e.subs.get(tx.subcategory) || 0) + v);
+    }
+    return [...perCat.entries()]
+      .map(([cid, { total, subs }]) => {
+        const cat = categories.find((c) => c.id === cid);
+        return {
+          id: cid,
+          name: cat?.name ?? cid,
+          icon: cat?.icon || "ti-category",
+          monthly: total / SIM_WINDOW_MONTHS,
+          subs: [...subs.entries()]
+            .sort((a, b) => b[1] - a[1])
+            .map(([name, tot]) => ({ name, monthly: tot / SIM_WINDOW_MONTHS })),
+        };
+      })
+      .sort((a, b) => b.monthly - a.monthly);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [transactions, categories, displayCurrency, convert]);
+
+  const activeSimCat =
+    simDim === "subcategory"
+      ? simSubData.find((c) => c.id === simCatId) ?? simSubData[0] ?? null
+      : null;
+  // Sous-catégories sélectionnées de la catégorie active (null = toutes).
+  const simSubSelected =
+    activeSimCat ? (simSubSel ?? new Set(activeSimCat.subs.map((s) => s.name))) : new Set();
+
+  const simMonthly =
+    simDim === "subcategory"
+      ? (activeSimCat
+          ? activeSimCat.subs.filter((s) => simSubSelected.has(s.name)).reduce((sum, s) => sum + s.monthly, 0)
+          : 0)
+      : (simItem?.monthly ?? 0);
   const simAnnualSaving = simMonthly * 12 * (simPct / 100);
 
   const evolutionData = useMemo(() => {
@@ -943,13 +984,10 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
       }
       case "savings_sim": {
         const dims = ["category", "subcategory", "tag"];
-        const iconFor = (val) => {
-          if (simDim === "category") return categories.find((c) => c.id === val)?.icon || "ti-category";
-          if (simDim === "tag") return "ti-hash";
-          // Sous-catégorie : icône de sa catégorie parente (clé composite).
-          const cid = String(val).split("::")[0];
-          return categories.find((c) => c.id === cid)?.icon || "ti-list";
-        };
+        const iconFor = (val) =>
+          simDim === "category"
+            ? categories.find((c) => c.id === val)?.icon || "ti-category"
+            : simDim === "tag" ? "ti-hash" : "ti-list";
         return (
           <WidgetCard icon="ti-calculator" accent="mint" title={t("reports_sim_title")}>
             <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
@@ -958,7 +996,7 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
                 return (
                   <button
                     key={d}
-                    onClick={() => { setSimDim(d); setSimValue(null); setShowSimPicker(false); }}
+                    onClick={() => { setSimDim(d); setSimValue(null); setSimCatId(null); setSimSubSel(null); setShowSimPicker(false); }}
                     style={{
                       flex: 1, padding: "6px 4px", borderRadius: 99, border: "none",
                       background: active ? "var(--sage-light)" : "color-mix(in srgb, var(--ink) 5%, transparent)",
@@ -971,50 +1009,131 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
                 );
               })}
             </div>
-            {simOptions.length === 0 ? (
+            {(simDim === "subcategory" ? simSubData.length === 0 : simOptions.length === 0) ? (
               <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", padding: "1.25rem 0" }}>
                 {t("reports_trend_no_data")}
               </p>
             ) : (
               <>
-                <div
-                  onClick={() => setShowSimPicker((v) => !v)}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 9, height: 44, padding: "0 13px",
-                    borderRadius: "var(--radius-md)", cursor: "pointer", marginBottom: 12,
-                    background: "color-mix(in srgb, var(--sage) 12%, transparent)", border: "0.5px solid var(--sage)",
-                  }}
-                >
-                  <i className={`ti ${iconFor(activeSimValue)}`} style={{ fontSize: 17, color: "var(--sage)", flexShrink: 0 }} aria-hidden="true" />
-                  <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, color: "var(--sage)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                    {simItem?.label ?? t("reports_trend_pick")}
-                  </span>
-                  <i className={`ti ti-chevron-${showSimPicker ? "up" : "down"}`} style={{ fontSize: 16, color: "var(--sage)", flexShrink: 0 }} aria-hidden="true" />
-                </div>
-                {showSimPicker && (
-                  <div style={{ marginBottom: 12, border: "0.5px solid var(--rule)", borderRadius: "var(--radius-md)", padding: 6, background: "var(--bg-card)" }}>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2, maxHeight: 240, overflowY: "auto" }}>
-                      {simOptions.map((o) => {
-                        const sel = o.value === activeSimValue;
-                        return (
-                          <div
-                            key={o.value}
-                            onClick={() => { setSimValue(o.value); setShowSimPicker(false); }}
-                            style={{
-                              display: "flex", alignItems: "center", gap: 9, height: 40, padding: "0 11px", cursor: "pointer",
-                              borderRadius: 8, minWidth: 0,
-                              background: sel ? "color-mix(in srgb, var(--sage) 12%, transparent)" : "transparent",
-                            }}
-                          >
-                            <i className={`ti ${iconFor(o.value)}`} style={{ fontSize: 15, flexShrink: 0, color: sel ? "var(--sage)" : "var(--ink-3)" }} aria-hidden="true" />
-                            <span style={{ fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: sel ? "var(--sage)" : "var(--ink-2)", fontWeight: sel ? 600 : 400 }}>
-                              {o.label}
-                            </span>
-                          </div>
-                        );
-                      })}
+                {simDim === "subcategory" ? (
+                  <>
+                    {/* Étape 1 : choisir la catégorie. */}
+                    <div
+                      onClick={() => setShowSimPicker((v) => !v)}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 9, height: 44, padding: "0 13px",
+                        borderRadius: "var(--radius-md)", cursor: "pointer", marginBottom: 10,
+                        background: "color-mix(in srgb, var(--sage) 12%, transparent)", border: "0.5px solid var(--sage)",
+                      }}
+                    >
+                      <i className={`ti ${activeSimCat?.icon || "ti-category"}`} style={{ fontSize: 17, color: "var(--sage)", flexShrink: 0 }} aria-hidden="true" />
+                      <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, color: "var(--sage)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        {activeSimCat?.name ?? t("reports_trend_pick")}
+                      </span>
+                      <i className={`ti ti-chevron-${showSimPicker ? "up" : "down"}`} style={{ fontSize: 16, color: "var(--sage)", flexShrink: 0 }} aria-hidden="true" />
                     </div>
-                  </div>
+                    {showSimPicker && (
+                      <div style={{ marginBottom: 12, border: "0.5px solid var(--rule)", borderRadius: "var(--radius-md)", padding: 6, background: "var(--bg-card)" }}>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2, maxHeight: 240, overflowY: "auto" }}>
+                          {simSubData.map((c) => {
+                            const sel = c.id === activeSimCat?.id;
+                            return (
+                              <div
+                                key={c.id}
+                                onClick={() => { setSimCatId(c.id); setSimSubSel(null); setShowSimPicker(false); }}
+                                style={{
+                                  display: "flex", alignItems: "center", gap: 9, height: 40, padding: "0 11px", cursor: "pointer",
+                                  borderRadius: 8, minWidth: 0,
+                                  background: sel ? "color-mix(in srgb, var(--sage) 12%, transparent)" : "transparent",
+                                }}
+                              >
+                                <i className={`ti ${c.icon}`} style={{ fontSize: 15, flexShrink: 0, color: sel ? "var(--sage)" : "var(--ink-3)" }} aria-hidden="true" />
+                                <span style={{ fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: sel ? "var(--sage)" : "var(--ink-2)", fontWeight: sel ? 600 : 400 }}>
+                                  {c.name}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                    {/* Étape 2 : une ou plusieurs sous-catégories (multi-sélection). */}
+                    {activeSimCat && (
+                      <div style={{ marginBottom: 14 }}>
+                        <p style={{ fontSize: 11.5, color: "var(--ink-3)", marginBottom: 7 }}>{t("reports_sim_pick_subs")}</p>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                          {activeSimCat.subs.map((s) => {
+                            const on = simSubSelected.has(s.name);
+                            return (
+                              <button
+                                key={s.name}
+                                onClick={() =>
+                                  setSimSubSel((prev) => {
+                                    const base = new Set(prev ?? activeSimCat.subs.map((x) => x.name));
+                                    if (base.has(s.name)) base.delete(s.name);
+                                    else base.add(s.name);
+                                    return base;
+                                  })
+                                }
+                                style={{
+                                  display: "inline-flex", alignItems: "center", gap: 5, padding: "6px 11px",
+                                  borderRadius: 99, cursor: "pointer", fontSize: 12.5, fontWeight: on ? 600 : 400,
+                                  border: on ? "0.5px solid var(--sage)" : "0.5px solid var(--rule)",
+                                  background: on ? "color-mix(in srgb, var(--sage) 12%, transparent)" : "transparent",
+                                  color: on ? "var(--sage)" : "var(--ink-2)",
+                                }}
+                              >
+                                {on && <i className="ti ti-check" style={{ fontSize: 13 }} aria-hidden="true" />}
+                                {s.name}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <div
+                      onClick={() => setShowSimPicker((v) => !v)}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 9, height: 44, padding: "0 13px",
+                        borderRadius: "var(--radius-md)", cursor: "pointer", marginBottom: 12,
+                        background: "color-mix(in srgb, var(--sage) 12%, transparent)", border: "0.5px solid var(--sage)",
+                      }}
+                    >
+                      <i className={`ti ${iconFor(activeSimValue)}`} style={{ fontSize: 17, color: "var(--sage)", flexShrink: 0 }} aria-hidden="true" />
+                      <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, color: "var(--sage)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        {simItem?.label ?? t("reports_trend_pick")}
+                      </span>
+                      <i className={`ti ti-chevron-${showSimPicker ? "up" : "down"}`} style={{ fontSize: 16, color: "var(--sage)", flexShrink: 0 }} aria-hidden="true" />
+                    </div>
+                    {showSimPicker && (
+                      <div style={{ marginBottom: 12, border: "0.5px solid var(--rule)", borderRadius: "var(--radius-md)", padding: 6, background: "var(--bg-card)" }}>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2, maxHeight: 240, overflowY: "auto" }}>
+                          {simOptions.map((o) => {
+                            const sel = o.value === activeSimValue;
+                            return (
+                              <div
+                                key={o.value}
+                                onClick={() => { setSimValue(o.value); setShowSimPicker(false); }}
+                                style={{
+                                  display: "flex", alignItems: "center", gap: 9, height: 40, padding: "0 11px", cursor: "pointer",
+                                  borderRadius: 8, minWidth: 0,
+                                  background: sel ? "color-mix(in srgb, var(--sage) 12%, transparent)" : "transparent",
+                                }}
+                              >
+                                <i className={`ti ${iconFor(o.value)}`} style={{ fontSize: 15, flexShrink: 0, color: sel ? "var(--sage)" : "var(--ink-3)" }} aria-hidden="true" />
+                                <span style={{ fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: sel ? "var(--sage)" : "var(--ink-2)", fontWeight: sel ? 600 : 400 }}>
+                                  {o.label}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
                 <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 8 }}>
                   <span style={{ fontSize: 12.5, color: "var(--ink-2)" }}>{t("reports_sim_reduce")}</span>

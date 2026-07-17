@@ -485,6 +485,7 @@ export const TRANSLATIONS = {
     reports_sim_title: "Simulateur d'économies",
     reports_sim_reduce: "Si je réduis ce poste de",
     reports_sim_annual: "économisés par an",
+    reports_sim_pick_subs: "Sous-catégories à réduire",
     reports_sim_basis: "Base : {now}/mois (moyenne 6 mois) → {new}/mois",
 
     // Insights (bande "Pour toi" du Dashboard)
@@ -1123,6 +1124,7 @@ export const TRANSLATIONS = {
     reports_sim_title: "Savings simulator",
     reports_sim_reduce: "If I cut this by",
     reports_sim_annual: "saved per year",
+    reports_sim_pick_subs: "Subcategories to cut",
     reports_sim_basis: "Basis: {now}/mo (6-month average) → {new}/mo",
 
     // Insights ("For you" strip on the Dashboard)
