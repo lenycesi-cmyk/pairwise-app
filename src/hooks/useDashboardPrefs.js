@@ -40,6 +40,7 @@ export const DEFAULT_REPORT_WIDGETS = [
   { id: "income_vs_expense", visible: true },
   { id: "member_comparison", visible: true },
   { id: "poste_trend", visible: true },
+  { id: "savings_sim", visible: true },
   { id: "by_tag", visible: true },
   { id: "by_category", visible: true },
 ];

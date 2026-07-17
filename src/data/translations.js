@@ -476,6 +476,10 @@ export const TRANSLATIONS = {
     reports_trend_pick: "Choisir un poste",
     reports_trend_no_data: "Pas assez de données pour tracer une tendance",
     reports_trend_breakdown: "D'où ça vient",
+    reports_sim_title: "Simulateur d'économies",
+    reports_sim_reduce: "Si je réduis ce poste de",
+    reports_sim_annual: "économisés par an",
+    reports_sim_basis: "Base : {now}/mois (moyenne 6 mois) → {new}/mois",
 
     // Insights (bande "Pour toi" du Dashboard)
     insight_strip_title: "Pour toi",
@@ -1104,6 +1108,10 @@ export const TRANSLATIONS = {
     reports_trend_pick: "Pick an item",
     reports_trend_no_data: "Not enough data to plot a trend",
     reports_trend_breakdown: "Where it comes from",
+    reports_sim_title: "Savings simulator",
+    reports_sim_reduce: "If I cut this by",
+    reports_sim_annual: "saved per year",
+    reports_sim_basis: "Basis: {now}/mo (6-month average) → {new}/mo",
 
     // Insights ("For you" strip on the Dashboard)
     insight_strip_title: "For you",
