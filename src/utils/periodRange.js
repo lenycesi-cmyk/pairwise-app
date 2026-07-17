@@ -71,6 +71,64 @@ export function shiftAnchor(periodType, anchor, delta) {
   return d;
 }
 
+// Découpe une plage en « seaux » (buckets) adaptés au type de période, pour un
+// graphe de tendance qui SUIT réellement la période affichée (au lieu d'un
+// 6-mois figé) :
+//   - semaine        → 7 seaux quotidiens (libellé jour court)
+//   - mois           → seaux hebdomadaires (libellé jour/mois du début de semaine)
+//   - trimestre/année/12 mois → seaux mensuels
+//   - personnalisé   → granularité choisie selon la durée (jour/semaine/mois)
+// Chaque seau : { key, label, start, end }. `start`/`end` bornent [start, end[.
+export function periodBuckets(periodType, range, locale) {
+  const { start, end } = range;
+  const dayMs = 86400000;
+  const spanDays = Math.max(1, Math.round((end.getTime() - start.getTime()) / dayMs));
+
+  let granularity;
+  if (periodType === "week") granularity = "day";
+  else if (periodType === "month") granularity = "week";
+  else if (periodType === "custom") granularity = spanDays <= 8 ? "day" : spanDays <= 70 ? "week" : "month";
+  else granularity = "month"; // last3, year, last12
+
+  const buckets = [];
+  if (granularity === "day") {
+    for (let d = new Date(start); d < end; d = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1)) {
+      const s = new Date(d);
+      const e = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
+      buckets.push({
+        key: `d${s.getFullYear()}-${s.getMonth()}-${s.getDate()}`,
+        label: s.toLocaleDateString(locale, { weekday: "short" }),
+        start: s,
+        end: e,
+      });
+    }
+  } else if (granularity === "week") {
+    for (let d = new Date(start); d < end; d = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 7)) {
+      const s = new Date(d);
+      let e = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 7);
+      if (e > end) e = new Date(end);
+      buckets.push({
+        key: `w${s.getFullYear()}-${s.getMonth()}-${s.getDate()}`,
+        label: s.toLocaleDateString(locale, { day: "numeric", month: "short" }),
+        start: s,
+        end: e,
+      });
+    }
+  } else {
+    for (let d = new Date(start.getFullYear(), start.getMonth(), 1); d < end; d = new Date(d.getFullYear(), d.getMonth() + 1, 1)) {
+      const s = new Date(d);
+      const e = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+      buckets.push({
+        key: `m${s.getFullYear()}-${s.getMonth()}`,
+        label: s.toLocaleDateString(locale, { month: "short" }),
+        start: s,
+        end: e,
+      });
+    }
+  }
+  return buckets;
+}
+
 // Nombre approximatif de mois couverts par une plage (pour normaliser un taux
 // mensuel — ex. charges fixes — sur une période plus longue).
 export function monthsInRange(range) {

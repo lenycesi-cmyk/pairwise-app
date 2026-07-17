@@ -19,17 +19,12 @@ import CommentBubble from "../components/CommentBubble";
 import CommentsModal from "../components/CommentsModal";
 import TransactionComments from "../components/TransactionComments";
 import { memberShareFraction } from "../utils/members";
-import { getRange, shiftAnchor, monthsInRange } from "../utils/periodRange";
+import { getRange, shiftAnchor, monthsInRange, periodBuckets } from "../utils/periodRange";
 import PeriodSelector from "../components/PeriodSelector";
 
 // Retire les mois vides EN TÊTE de la tendance (aucune entrée/sortie/investi) —
 // le graphe démarre au premier mois avec de l'activité. Les trous internes et de
 // fin sont conservés. Si tout est vide, on garde la série telle quelle.
-function trimLeadingEmptyTrend(buckets) {
-  const first = buckets.findIndex((b) => b.income || b.expense || b.investment);
-  return first <= 0 ? buckets : buckets.slice(first);
-}
-
 // Onglet Flux (« ce qui rentre, ce qui sort ») : cash flow du mois, charges
 // fixes, dépenses par catégorie, détection d'abonnement, dernières transactions
 // et récurrences à venir. Même UI que l'Accueil/Patrimoine : sur desktop, une
@@ -147,31 +142,12 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
   }, [transactions, categories, range, displayCurrency, convert]);
   const maxCatTotal = Math.max(1, ...Object.values(categoryTotals).map((c) => c.total));
 
-  // Tendance 6 derniers mois (entrées / sorties / investi).
-  const trend = useMemo(() => {
-    const buckets = [];
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      buckets.push({
-        key: `${d.getFullYear()}-${d.getMonth()}`,
-        label: d.toLocaleDateString(locale, { month: "short" }),
-        income: 0,
-        expense: 0,
-        investment: 0,
-      });
-    }
-    const byKey = new Map(buckets.map((b) => [b.key, b]));
-    for (const tx of transactions) {
-      const d = new Date(tx.date);
-      const b = byKey.get(`${d.getFullYear()}-${d.getMonth()}`);
-      if (!b) continue;
-      if (tx.type === "income") b.income += toBase(tx);
-      else if (tx.type === "expense") b.expense += toBase(tx);
-      else if (tx.type === "investment") b.investment += toBase(tx);
-    }
-    return buckets;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [transactions, displayCurrency, convert, locale]);
+  // Gabarit de seaux de tendance CALÉ sur la période affichée (jour/semaine/mois
+  // selon le type) — la tendance suit désormais réellement le filtre de période.
+  const trendBuckets = useMemo(
+    () => periodBuckets(periodType, range, locale),
+    [periodType, range, locale]
+  );
 
   // « Ce qui bouge » : catégories dont la dépense de la période s'écarte le plus
   // de leur moyenne des 3 périodes précédentes (même type/longueur ; signal léger,
@@ -228,8 +204,19 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
     </button>
   );
 
+  // Titre du widget flux calé sur la période sélectionnée (« Flux de la
+  // semaine / du mois / du trimestre / de l'année / personnalisé »).
+  const cashflowTitle = {
+    week: t("flux_cashflow_week"),
+    month: t("flux_cashflow_month"),
+    last3: t("flux_cashflow_quarter"),
+    year: t("flux_cashflow_year"),
+    last12: t("flux_cashflow_12m"),
+    custom: t("flux_cashflow_custom"),
+  }[periodType] || t("flux_cashflow_title");
+
   const fluxWidgetLabels = {
-    cashflow: t("flux_cashflow_title"),
+    cashflow: cashflowTitle,
     whats_moving: t("flux_whats_moving_title"),
     spending_by_category: t("dashboard_spending_by_category"),
     fixed: t("flux_fixed_title"),
@@ -253,25 +240,25 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
         else if (tx.type === "investment") invested += toBase(tx) * f;
       }
       const flow = { income, expense, invested, net: income - expense };
-      const scopedTrend = scope === null
-        ? trend
-        : (() => {
-            const buckets = trend.map((b) => ({ ...b, income: 0, expense: 0, investment: 0 }));
-            const byKey = new Map(buckets.map((b) => [b.key, b]));
-            for (const tx of transactions) {
-              const d = new Date(tx.date);
-              const b = byKey.get(`${d.getFullYear()}-${d.getMonth()}`);
-              if (!b) continue;
-              const f = frac(tx, scope);
-              if (!f) continue;
-              if (tx.type === "income") b.income += toBase(tx) * f;
-              else if (tx.type === "expense") b.expense += toBase(tx) * f;
-              else if (tx.type === "investment") b.investment += toBase(tx) * f;
-            }
-            return buckets;
-          })();
+      // Remplit les seaux de la période (scopés « pour qui ») : chaque tx dans la
+      // plage tombe dans le seau [start, end[ correspondant.
+      const scopedTrend = (() => {
+        const buckets = trendBuckets.map((b) => ({ label: b.label, start: b.start, end: b.end, income: 0, expense: 0, investment: 0 }));
+        for (const tx of transactions) {
+          const d = new Date(tx.date);
+          if (d < range.start || d >= range.end) continue;
+          const b = buckets.find((bk) => d >= bk.start && d < bk.end);
+          if (!b) continue;
+          const f = frac(tx, scope);
+          if (!f) continue;
+          if (tx.type === "income") b.income += toBase(tx) * f;
+          else if (tx.type === "expense") b.expense += toBase(tx) * f;
+          else if (tx.type === "investment") b.investment += toBase(tx) * f;
+        }
+        return buckets;
+      })();
       return (
-        <WidgetCard icon="ti-arrows-exchange" accent="sky" title={t("flux_cashflow_title")}>
+        <WidgetCard icon="ti-arrows-exchange" accent="sky" title={cashflowTitle}>
           {members.length > 1 && <ScopeFilter members={members} scope={scope} onChange={(v) => setScope(id, v)} style={{ marginBottom: 12 }} />}
           <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
             <div style={{ flex: 1, background: "var(--sage-light)", borderRadius: "var(--radius-md)", padding: "10px 12px" }}>
@@ -295,7 +282,7 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
               {flow.net >= 0 ? "+" : "−"}{fmt(Math.abs(flow.net))} {symbol}
             </span>
           </div>
-          <IncomeExpenseTrendChart data={trimLeadingEmptyTrend(scopedTrend)} currencySymbol={symbol} />
+          <IncomeExpenseTrendChart data={scopedTrend} currencySymbol={symbol} />
         </WidgetCard>
       );
     }

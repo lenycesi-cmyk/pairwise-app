@@ -176,6 +176,31 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
   // (align-items: stretch + .pw-card height:100%), pas de masonry.
   const bentoEnabled = isDesktop;
 
+  // Desktop : le widget « Transactions » remplit la hauteur réellement attribuée
+  // à sa box bento (étirée par ses voisines, plafonnée par BENTO_MAX_HEIGHT) au
+  // lieu d'un nombre fixe qui laissait un grand vide. On mesure le corps de la
+  // carte et on en déduit combien de lignes (~42 px) tiennent. Sur mobile :
+  // retour au nombre fixe.
+  const TX_ROW_H = 42;
+  const txListRef = useRef(null);
+  const [txFillCount, setTxFillCount] = useState(5);
+  useEffect(() => {
+    // Mobile : `recentTx` retombe sur 5 via `bentoEnabled ? … : 5`, inutile de
+    // toucher l'état ici.
+    if (!bentoEnabled) return;
+    const el = txListRef.current;
+    const body = el?.parentElement;
+    if (!body) return;
+    const measure = () => {
+      const n = Math.max(3, Math.floor((body.clientHeight - 12) / TX_ROW_H));
+      setTxFillCount((prev) => (prev === n ? prev : n));
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(body);
+    return () => ro.disconnect();
+  }, [bentoEnabled]);
+
   const debt = useDebtCalculation(transactions, members, displayCurrency, convert, { settlements: debtSettlements });
   const memberColorMap = useMemo(() => buildMemberColorMap(members), [members]);
 
@@ -355,8 +380,8 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
   const maxCatTotal = Math.max(1, ...Object.values(categoryTotals).map((c) => c.total));
 
   const recentTx = useMemo(
-    () => [...monthTx].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5),
-    [monthTx]
+    () => [...monthTx].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, bentoEnabled ? txFillCount : 5),
+    [monthTx, bentoEnabled, txFillCount]
   );
 
   const bankAccounts = useMemo(() => assets.filter((a) => a.typeId === "account"), [assets]);
@@ -631,7 +656,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
               </button>
             )}
           >
-            <div className={recentTx.length > 0 ? "pw-stagger" : undefined}>
+            <div ref={txListRef} className={recentTx.length > 0 ? "pw-stagger" : undefined}>
               {recentTx.length === 0 ? (
                 <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", padding: "1.5rem 0" }}>{t("tx_no_transactions")}</p>
               ) : (
