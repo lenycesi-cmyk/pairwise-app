@@ -5,6 +5,7 @@ import { CURRENCIES } from "../data/categories";
 import { searchCrypto, searchStocks } from "../utils/assetSearch";
 import { useTranslation } from "../hooks/useTranslation";
 import AdvancedSplitSelector from "../components/AdvancedSplitSelector";
+import AssetComments from "../components/AssetComments";
 import { getMemberKey } from "../utils/members";
 
 // Carte de section « 1B Chaleureux » : en-tête pastille (icône teintée + titre),
@@ -388,6 +389,14 @@ export default function AddAssetScreen({ onClose, editingAsset }) {
               />
             )}
           </SectionCard>
+        )}
+
+        {/* Discussion sur l'actif (édition uniquement — il faut un id) : le
+            couple peut échanger sur l'investissement (on vend, on rachète…). */}
+        {isEditing && (
+          <div style={{ padding: "0 20px" }}>
+            <AssetComments assetId={editingAsset.id} />
+          </div>
         )}
       </div>
 
