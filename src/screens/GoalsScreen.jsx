@@ -246,19 +246,25 @@ function GoalEditor({ goal, assets, defaultCurrency, t, onClose, onSave, onDelet
           </div>
         </div>
 
-        <button
-          onClick={save}
-          disabled={!canSave}
-          style={{ padding: "13px 0", borderRadius: "var(--radius-md)", border: "none", background: canSave ? "var(--lavi)" : "var(--rule)", color: canSave ? "#fff" : "var(--ink-3)", fontSize: 15, fontWeight: 600 }}
-        >
-          {goal.id ? t("goals_save") : t("goals_create")}
-        </button>
-
         {onDelete && (
           <button onClick={onDelete} style={{ padding: "11px 0", borderRadius: "var(--radius-md)", border: "0.5px solid var(--red)", background: "transparent", color: "var(--red)", fontSize: 14, fontWeight: 500 }}>
             {t("goals_delete")}
           </button>
         )}
+      </div>
+
+      {/* Footer collant : le bouton d'enregistrement reste visible même en
+          faisant défiler le formulaire (même pattern que les autres modales). */}
+      <div style={{ position: "sticky", bottom: 0, background: "var(--bg)", borderTop: "0.5px solid var(--rule)", padding: "0.75rem 1.25rem" }}>
+        <div style={{ maxWidth: 560, margin: "0 auto" }}>
+          <button
+            onClick={save}
+            disabled={!canSave}
+            style={{ width: "100%", padding: "13px 0", borderRadius: "var(--radius-md)", border: "none", background: canSave ? "var(--lavi)" : "var(--rule)", color: canSave ? "#fff" : "var(--ink-3)", fontSize: 15, fontWeight: 600 }}
+          >
+            {goal.id ? t("goals_save") : t("goals_create")}
+          </button>
+        </div>
       </div>
     </div>
   );
