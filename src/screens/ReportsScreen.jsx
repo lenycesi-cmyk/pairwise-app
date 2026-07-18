@@ -1262,9 +1262,9 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
   }
 
   return (
-    <div style={{ padding: "1.5rem 1.25rem 6rem" }}>
+    <div style={{ padding: "0 1.25rem 6rem" }}>
       {/* En-tête collant : titre + filtres temporels, alignés à gauche. */}
-      <div style={{ position: "sticky", top: 0, zIndex: 30, background: "var(--bg)", marginLeft: "-1.25rem", marginRight: "-1.25rem", padding: "0.5rem 1.25rem 0.6rem", marginBottom: 12 }}>
+      <div style={{ position: "sticky", top: 0, zIndex: 30, background: "var(--bg)", marginLeft: "-1.25rem", marginRight: "-1.25rem", padding: "1rem 1.25rem", marginBottom: 12 }}>
         {(() => {
           const actions = (
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
