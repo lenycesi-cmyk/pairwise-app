@@ -28,6 +28,8 @@ import TransactionComments from "../components/TransactionComments";
 import { getRange } from "../utils/periodRange";
 import { useInsights } from "../hooks/useInsights";
 import { useDashboardPrefs, useBudgetHiddenIds } from "../hooks/useDashboardPrefs";
+import { useLoanProgress } from "../hooks/useLoanProgress";
+import { loanType } from "../data/loanTypes";
 import { useNetWorth } from "../hooks/useNetWorth";
 import CategoryRow from "../components/CategoryRow";
 import WidgetCard from "../components/WidgetCard";
@@ -134,7 +136,7 @@ function SortableWidget({ id, editMode, onLongPress, outerStyle, children }) {
 }
 
 // ── Main component ───────────────────────────────────────────────────────────
-export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTransactions, onEditTransaction, sharedMonth, onSharedMonthChange, addButtonRef, settingsButtonRef, onOpenMenu, onOpenRecurring, onOpenBudget }) {
+export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTransactions, onEditTransaction, sharedMonth, onSharedMonthChange, addButtonRef, settingsButtonRef, onOpenMenu, onOpenRecurring, onOpenBudget, onOpenCredits }) {
   const t = useTranslation();
   const {
     transactions, categories, members, assets, recurringTx, coupleName, debtSettlements,
@@ -166,6 +168,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
     : t("widget_couple_summary_default");
 
   const { widgets, saveWidgets } = useDashboardPrefs();
+  const { items: loanItems, aggregate: loanAgg } = useLoanProgress(displayCurrency);
   const [localWidgets, setLocalWidgets] = useState(null);
   const activeWidgets = localWidgets ?? widgets;
 
@@ -417,6 +420,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
     transaction_history: t("widget_transaction_history"),
     net_worth: t("widget_net_worth"),
     debt_tracker: t("widget_debt_tracker"),
+    credits: t("widget_credits"),
     recurring: t("widget_recurring"),
     wealth_allocation: t("widget_wealth_allocation"),
     reports_trend: t("widget_reports_trend"),
@@ -718,6 +722,47 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
             </div>
           </WidgetCard>
         );
+
+      case "credits": {
+        // Synthèse des crédits : capital restant dû total + top prêts. Masqué
+        // quand aucun crédit (le widget disparaît de la grille, comme debt_tracker).
+        if (loanAgg.count === 0) return null;
+        const top = loanItems.filter((i) => !i.state.isPaidOff).slice(0, 3);
+        const seeAll = !editMode ? (
+          <button onClick={onOpenCredits} style={{ background: "none", border: "none", color: "var(--sky)", fontSize: 12.5, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 3, flexShrink: 0 }}>
+            {t("dashboard_see_all")} <i className="ti ti-chevron-right" style={{ fontSize: 12 }} aria-hidden="true" />
+          </button>
+        ) : null;
+        return (
+          <WidgetCard icon="ti-building-bank" accent="coral" title={t("widget_credits")} action={seeAll}>
+            <div onClick={!editMode ? onOpenCredits : undefined} style={{ cursor: editMode ? "default" : "pointer" }}>
+              <p style={{ fontSize: 11.5, color: "var(--ink-3)", marginBottom: 2 }}>{t("loan_total_remaining")}</p>
+              <p className="pw-num" style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 27, letterSpacing: "-0.01em", marginBottom: 10 }}>
+                {formatAmount(loanAgg.balance)} {currencySymbol}
+              </p>
+              <div style={{ height: 8, borderRadius: 99, background: "var(--rule)", overflow: "hidden", marginBottom: 4 }}>
+                <div style={{ height: "100%", width: `${Math.min(100, Math.round(loanAgg.progress * 100))}%`, background: "var(--sage)" }} />
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--ink-2)", marginBottom: 12 }}>
+                <span>{t("loan_repaid_pct").replace("{pct}", Math.round(loanAgg.progress * 100))}</span>
+                <span className="pw-num">{formatAmount(loanAgg.monthly)} {currencySymbol}/{t("loan_per_month")}</span>
+              </div>
+              {top.map(({ loan, conv }, i) => {
+                const ty = loanType(loan.type);
+                return (
+                  <div key={loan.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderTop: i === 0 ? "0.5px solid var(--rule)" : "0.5px solid var(--rule)" }}>
+                    <span style={{ width: 30, height: 30, borderRadius: 9, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: `var(--${ty.color}-light)` }}>
+                      <i className={`ti ${ty.icon}`} style={{ fontSize: 15, color: `var(--${ty.color})` }} aria-hidden="true" />
+                    </span>
+                    <span style={{ flex: 1, minWidth: 0, fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{loan.name || t(`loan_type_${ty.id}`)}</span>
+                    <span className="pw-num" style={{ fontSize: 13, fontWeight: 600 }}>{formatAmount(conv.balance)} {currencySymbol}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </WidgetCard>
+        );
+      }
 
       case "recurring": {
         const now = new Date();

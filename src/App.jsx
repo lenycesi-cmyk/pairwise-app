@@ -308,6 +308,7 @@ function AppContent() {
           onOpenMenu={() => setDrawerOpen(true)}
           onOpenRecurring={openRecurring}
           onOpenBudget={() => setTab("budget")}
+          onOpenCredits={() => setTab("credits")}
         />
       )}
       {tab === "flux" && (

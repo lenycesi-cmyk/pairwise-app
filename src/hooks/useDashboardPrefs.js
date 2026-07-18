@@ -24,6 +24,7 @@ export const DEFAULT_WIDGETS = [
   // regardless of this "visible" flag, see DESKTOP_ONLY_WIDGETS.
   { id: "wealth_allocation", visible: true },
   { id: "debt_tracker", visible: true },
+  { id: "credits", visible: true },
   { id: "reports_trend", visible: true },
   { id: "spending_by_category", visible: true },
   { id: "recurring", visible: false },
