@@ -966,7 +966,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                   aria-label={t("dashboard_customize")}
                   style={{
                     height: 34, padding: isDesktop ? "0 14px" : "0 11px", borderRadius: 99,
-                    background: "var(--tang)", border: "0.5px solid var(--tang)", color: "#fff",
+                    background: "var(--bg-card)", border: "0.5px solid var(--rule)", color: "var(--ink)",
                     fontSize: 13, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6,
                   }}
                 >
@@ -1004,9 +1004,9 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                 onClick={onOpenMenu}
                 aria-label={t("nav_menu")}
                 className="nav-menu-btn"
-                style={navBtnStyle}
+                style={{ ...navBtnStyle, background: "var(--tang)", border: "none" }}
               >
-                <i className="ti ti-menu-2" style={{ fontSize: 16 }} aria-hidden="true" />
+                <i className="ti ti-menu-2" style={{ fontSize: 16, color: "#fff" }} aria-hidden="true" />
               </button>
               {monthNav}
               {actions}
