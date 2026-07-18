@@ -59,6 +59,7 @@ export default function AddAssetScreen({ onClose, editingAsset }) {
   const [value, setValue] = useState(editingAsset?.value?.toString() || "");
   const [currency, setCurrency] = useState(editingAsset?.currency || defaultCurrency);
   const [quantity, setQuantity] = useState(editingAsset?.quantity?.toString() || "");
+  const [manualPrice, setManualPrice] = useState(editingAsset?.manualPrice?.toString() || "");
   const [apiId, setApiId] = useState(editingAsset?.apiId || "");
   const [apiLabel, setApiLabel] = useState(editingAsset?.apiLabel || "");
   const [busy, setBusy] = useState(false);
@@ -128,7 +129,7 @@ export default function AddAssetScreen({ onClose, editingAsset }) {
         sharePct: ownership === "shared" ? sharePct : 100,
         sharePctDetails: ownership === "shared" ? sharePctDetails : null,
         ...(usesApi
-          ? { quantity: parseFloat(quantity), apiId, apiLabel }
+          ? { quantity: parseFloat(quantity), apiId, apiLabel, manualPrice: parseFloat(manualPrice) || null }
           : { value: parseFloat(value) }),
       };
 
@@ -341,6 +342,19 @@ export default function AddAssetScreen({ onClose, editingAsset }) {
             <p style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 8 }}>
               <i className="ti ti-info-circle" style={{ fontSize: 12, verticalAlign: -1 }} aria-hidden="true" /> {t("asset_auto_value_hint")}
             </p>
+
+            {/* Prix unitaire manuel (repli) : utilisé quand l'API de cotation ne
+                price pas l'actif (clé "demo" limitée) → le montant s'affiche quand même. */}
+            <p style={{ fontSize: 12, color: "var(--ink-2)", margin: "14px 0 4px" }}>{t("asset_manual_price_label")}</p>
+            <input
+              type="number"
+              inputMode="decimal"
+              value={manualPrice}
+              onChange={(e) => setManualPrice(e.target.value)}
+              placeholder="0"
+              style={{ ...bareInput, fontSize: 16 }}
+            />
+            <p style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 6 }}>{t("asset_manual_price_hint")}</p>
           </SectionCard>
         )}
 

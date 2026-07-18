@@ -45,6 +45,10 @@ export function useNetWorth(displayCurrency) {
 
   function getAssetValue(asset) {
     if (livePrices[asset.id] !== undefined) return livePrices[asset.id];
+    // Repli sur un prix unitaire manuel quand l'API n'a pas coté l'actif.
+    if (asset.manualPrice > 0) {
+      return convert(asset.manualPrice * (asset.quantity || 1), asset.currency || displayCurrency, displayCurrency);
+    }
     return convert(asset.value ?? 0, asset.currency || displayCurrency, displayCurrency);
   }
 
