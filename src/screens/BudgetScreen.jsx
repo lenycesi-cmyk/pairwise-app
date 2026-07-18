@@ -476,22 +476,22 @@ export default function BudgetScreen({ openSignal, onOpenMenu }) {
                 ref={currencyButtonRef}
                 onClick={() => setShowCurrencyPicker(!showCurrencyPicker)}
                 style={{
-                  height: 30, padding: "0 10px", borderRadius: "var(--radius-md)", border: "0.5px solid var(--rule)",
-                  background: "var(--bg-card)", fontSize: 12, fontWeight: 500,
-                  display: "flex", alignItems: "center", gap: 4,
+                  height: 34, padding: "0 12px", borderRadius: 99, border: "0.5px solid var(--rule)",
+                  background: "var(--bg-card)", fontSize: 13, fontWeight: 600, color: "var(--ink)",
+                  display: "inline-flex", alignItems: "center", gap: 5,
                 }}
               >
-                {ALL_CURRENCIES.find((c) => c.code === displayCurrency)?.symbol || displayCurrency} <i className="ti ti-chevron-down" style={{ fontSize: 11 }} aria-hidden="true" />
+                {ALL_CURRENCIES.find((c) => c.code === displayCurrency)?.symbol || displayCurrency} <i className="ti ti-chevron-down" style={{ fontSize: 14, color: "var(--ink-3)" }} aria-hidden="true" />
               </button>
               <button
                 onClick={() => setEditMode(true)}
                 aria-label={t("dashboard_customize")}
                 style={{
-                  width: 30, height: 30, borderRadius: "50%", background: "var(--bg-card)",
+                  width: 34, height: 34, borderRadius: "50%", background: "var(--bg-card)",
                   border: "0.5px solid var(--rule)", display: "flex", alignItems: "center", justifyContent: "center",
                 }}
               >
-                <i className="ti ti-pencil" style={{ fontSize: 14 }} aria-hidden="true" />
+                <i className="ti ti-pencil" style={{ fontSize: 15 }} aria-hidden="true" />
               </button>
             </div>
           );
@@ -504,10 +504,10 @@ export default function BudgetScreen({ openSignal, onOpenMenu }) {
           // sélecteur de membre AU CENTRE, entre l'accueil et les actions.
           if (isDesktop) {
             return (
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center" }}>
                 {greeting}
-                {scopeSel}
-                {actions}
+                <div style={{ justifySelf: "center" }}>{scopeSel}</div>
+                <div style={{ justifySelf: "end" }}>{actions}</div>
               </div>
             );
           }

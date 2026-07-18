@@ -1283,53 +1283,53 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
                   <button
                     onClick={() => setShowCurrencyPicker(!showCurrencyPicker)}
                     style={{
-                      height: 30, padding: "0 10px", borderRadius: "var(--radius-md)", border: "0.5px solid var(--rule)",
-                      background: "var(--bg-card)", fontSize: 12, fontWeight: 500,
-                      display: "flex", alignItems: "center", gap: 4,
+                      height: 34, padding: "0 12px", borderRadius: 99, border: "0.5px solid var(--rule)",
+                      background: "var(--bg-card)", fontSize: 13, fontWeight: 600, color: "var(--ink)",
+                      display: "inline-flex", alignItems: "center", gap: 5,
                     }}
                   >
-                    {currencySymbol} <i className="ti ti-chevron-down" style={{ fontSize: 11 }} aria-hidden="true" />
+                    {currencySymbol} <i className="ti ti-chevron-down" style={{ fontSize: 14, color: "var(--ink-3)" }} aria-hidden="true" />
                   </button>
                   <button
                     ref={customizeButtonRef}
                     onClick={() => { setEditMode(true); setShowCurrencyPicker(false); }}
                     aria-label={t("dashboard_customize")}
                     style={{
-                      width: 30, height: 30, borderRadius: "50%", background: "var(--bg-card)",
+                      width: 34, height: 34, borderRadius: "50%", background: "var(--bg-card)",
                       border: "0.5px solid var(--rule)", display: "flex", alignItems: "center", justifyContent: "center",
                     }}
                   >
-                    <i className="ti ti-pencil" style={{ fontSize: 14 }} aria-hidden="true" />
+                    <i className="ti ti-pencil" style={{ fontSize: 15 }} aria-hidden="true" />
                   </button>
                 </>
               )}
             </div>
           );
           const greeting = <GreetingHeader subtitleKey="reports_subtitle" marginLeft={0} />;
+          const periodNode = !editMode ? periodSelector : null;
+          // Desktop : une ligne [accueil | période | actions], comme l'Accueil ;
+          // le sélecteur de période s'aligne avec les boutons devise/personnaliser,
+          // et le filtre membre remonte juste en dessous du header.
           if (isDesktop) {
             return (
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center" }}>
                 {greeting}
-                {actions}
+                <div ref={periodRowRef} style={{ justifySelf: "center" }}>{periodNode}</div>
+                <div style={{ justifySelf: "end" }}>{actions}</div>
               </div>
             );
           }
           return (
             <>
-              {/* Ligne 1 : [Réglages | nav période centrée | devise/personnaliser],
-                  colonnes latérales égales (1fr) pour centrer la période, comme l'accueil. */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", gap: 8, marginBottom: 10 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", alignItems: "center", gap: 8, marginBottom: 10 }}>
                 <div style={{ justifySelf: "start" }}><HeaderMenuButton onClick={onOpenMenu} /></div>
-                <span />
                 <div style={{ justifySelf: "end" }}>{actions}</div>
               </div>
               {greeting}
+              <div ref={periodRowRef} style={{ marginTop: 12 }}>{periodNode}</div>
             </>
           );
         })()}
-        <div ref={periodRowRef} style={{ marginTop: 12 }}>
-          {!editMode && periodSelector}
-        </div>
         {!editMode && members.length > 1 && (
           <div style={{ marginTop: 12 }}>
             <ScopeFilter members={members} scope={globalScope} onChange={setGlobalScope} size="lg" style={{ marginBottom: 0 }} />
