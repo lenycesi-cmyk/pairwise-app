@@ -11,6 +11,7 @@ import { currencySymbol } from "../utils/onboardingDraft";
 import WidgetCard from "../components/WidgetCard";
 import WidgetCanvas from "../components/WidgetCanvas";
 import HeaderMenuButton from "../components/HeaderMenuButton";
+import GreetingHeader from "../components/GreetingHeader";
 import CurrencyPicker from "../components/CurrencyPicker";
 import CategoryRow from "../components/CategoryRow";
 import ScopeFilter from "../components/ScopeFilter";
@@ -114,12 +115,14 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
     let expense = 0;
     for (const tx of transactions) {
       if (!inRange(tx)) continue;
-      if (tx.type === "income") income += toBase(tx);
-      else if (tx.type === "expense") expense += toBase(tx);
+      const f = frac(tx, globalScope);
+      if (!f) continue;
+      if (tx.type === "income") income += toBase(tx) * f;
+      else if (tx.type === "expense") expense += toBase(tx) * f;
     }
     return { income, expense, net: income - expense };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [transactions, range, displayCurrency, convert]);
+  }, [transactions, range, displayCurrency, convert, globalScope]);
 
   // Dépenses de la période par catégorie (même calcul que le widget du Dashboard).
   const categoryTotals = useMemo(() => {
@@ -131,7 +134,9 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
       for (const tx of transactions) {
         if (!inRange(tx)) continue;
         if (tx.type === "expense" && tx.categoryId === cat.id) {
-          const val = toBase(tx);
+          const f = frac(tx, globalScope);
+          if (!f) continue;
+          const val = toBase(tx) * f;
           total += val;
           subtotals[tx.subcategory] = (subtotals[tx.subcategory] || 0) + val;
         }
@@ -140,7 +145,7 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
     }
     return result;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [transactions, categories, range, displayCurrency, convert]);
+  }, [transactions, categories, range, displayCurrency, convert, globalScope]);
   const maxCatTotal = Math.max(1, ...Object.values(categoryTotals).map((c) => c.total));
 
   // Gabarit de seaux de tendance CALÉ sur la période affichée (jour/semaine/mois
@@ -190,10 +195,15 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [transactions, range, periodType, anchor, customRange, locale, displayCurrency, convert]);
 
+  // Dernières transactions, filtrées par le membre global (on ne garde que les
+  // mouvements qui le concernent ; le montant affiché est sa part « pour qui »).
   const recentTx = useMemo(
-    () => transactions.filter(inRange).sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 6),
+    () => transactions
+      .filter((tx) => inRange(tx) && frac(tx, globalScope) > 0)
+      .sort((a, b) => new Date(b.date) - new Date(a.date))
+      .slice(0, 6),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [transactions, range]
+    [transactions, range, globalScope]
   );
 
   const seeAll = (onClick) => (
@@ -457,7 +467,7 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
                     <CommentBubble count={tx.comments.length} onClick={() => setCommentsTx(tx)} />
                   )}
                   <p className="pw-num" style={{ fontSize: 13, fontWeight: 600, color: income ? "var(--sage)" : "var(--ink)" }}>
-                    {income ? "+" : "−"}{fmt(Math.abs(toBase(tx)))} {symbol}
+                    {income ? "+" : "−"}{fmt(Math.abs(toBase(tx) * frac(tx, globalScope)))} {symbol}
                   </p>
                 </div>
               );
@@ -581,27 +591,35 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
               setCustomRange={setCustomRange}
             />
           ) : null;
-          // Desktop : titre + actions sur une ligne, période dessous (inchangé).
+          // Message d'accueil « Bonjour {prénom} · résumé de tes flux pour {mois} »,
+          // identique à l'Accueil (plus de titre « Flux »).
+          const greeting = (
+            <GreetingHeader
+              subtitleKey="flux_subtitle"
+              marginLeft={0}
+              month={range.label.charAt(0).toUpperCase() + range.label.slice(1)}
+            />
+          );
+          // Desktop : une ligne [accueil | période | actions], comme les autres onglets.
           if (isDesktop) {
-            const title = <h1 style={{ fontSize: 22, margin: 0, whiteSpace: "nowrap", fontFamily: "var(--font-display)", fontWeight: 600 }}>{t("nav_flux")}</h1>;
             return (
-              <>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  {title}
-                  {actions}
-                </div>
-                {periodSel && <div style={{ marginTop: 12 }}>{periodSel}</div>}
-              </>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center" }}>
+                {greeting}
+                <div style={{ justifySelf: "center" }}>{periodSel}</div>
+                <div style={{ justifySelf: "end" }}>{actions}</div>
+              </div>
             );
           }
-          // Mobile : plus de titre « Flux » ; le sélecteur de période remonte au
-          // centre, aligné avec le menu (gauche) et les actions devise/crayon (droite).
+          // Mobile : ligne 1 [menu | période | actions], ligne 2 le message d'accueil.
           return (
-            <div style={{ display: "grid", gridTemplateColumns: "auto 1fr auto", alignItems: "center", gap: 8 }}>
-              <div style={{ justifySelf: "start" }}><HeaderMenuButton onClick={onOpenMenu} /></div>
-              <div style={{ justifySelf: "center", minWidth: 0 }}>{periodSel}</div>
-              <div style={{ justifySelf: "end" }}>{actions}</div>
-            </div>
+            <>
+              <div style={{ display: "grid", gridTemplateColumns: "auto 1fr auto", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                <div style={{ justifySelf: "start" }}><HeaderMenuButton onClick={onOpenMenu} /></div>
+                <div style={{ justifySelf: "center", minWidth: 0 }}>{periodSel}</div>
+                <div style={{ justifySelf: "end" }}>{actions}</div>
+              </div>
+              {greeting}
+            </>
           );
         })()}
         {!editMode && members.length > 1 && (
@@ -610,6 +628,7 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
               members={members}
               scope={globalScope}
               onChange={setGlobalScope}
+              size="lg"
               style={{ marginBottom: 0 }}
             />
           </div>
