@@ -42,8 +42,14 @@ export default function NetWorthChart({ history, currencySymbol, displayCurrency
   // Performance sur la période affichée
   const performance = useMemo(() => {
     if (data.length < 2) return null;
-    const first = data[0].value;
     const last = data[data.length - 1].value;
+    // Base robuste : on ignore les points initiaux de « montée en charge »
+    // (saisie progressive des actifs) qui valent moins de 10 % de la valeur
+    // actuelle — sinon un premier snapshot quasi nul gonfle le % (ex. +442 %).
+    const threshold = Math.abs(last) * 0.1;
+    let baseIdx = data.findIndex((d) => Math.abs(d.value) >= threshold);
+    if (baseIdx === -1 || baseIdx >= data.length - 1) baseIdx = 0;
+    const first = data[baseIdx].value;
     if (first === 0) return null;
     const diff = last - first;
     const pct = (diff / Math.abs(first)) * 100;
