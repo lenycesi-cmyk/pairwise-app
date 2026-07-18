@@ -18,6 +18,8 @@ import GreetingHeader from "../components/GreetingHeader";
 import HeaderMenuButton from "../components/HeaderMenuButton";
 import { getMemberKey } from "../utils/members";
 import { useMediaQuery } from "../hooks/useMediaQuery";
+import { useLoanProgress } from "../hooks/useLoanProgress";
+import { loanType } from "../data/loanTypes";
 import { useWealthLayout } from "../hooks/useDashboardPrefs";
 import WidgetCanvas from "../components/WidgetCanvas";
 import ScopeFilter from "../components/ScopeFilter";
@@ -37,7 +39,7 @@ const COLOR_MAP = {
   red: { text: "var(--red)", bg: "var(--red-light)" },
 };
 
-export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMenu }) {
+export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMenu, onOpenCredits }) {
   const t = useTranslation();
   const { language } = useFinance();
   const netWorthCardRef = useRef(null);
@@ -56,6 +58,9 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
   const displayCurrency = wealthDisplayCurrency || defaultCurrency;
   const { convert, loading: ratesLoading } = useExchangeRates(displayCurrency);
   const memberColorMap = useMemo(() => buildMemberColorMap(members), [members]);
+  // Crédits en cours : leur capital restant dû pèse comme un passif dans le
+  // patrimoine net (intégration lot 5).
+  const { items: loanItems, aggregate: loanAgg } = useLoanProgress(displayCurrency);
 
   const [editingAsset, setEditingAsset] = useState(null);
   const [commentsAsset, setCommentsAsset] = useState(null);
@@ -162,7 +167,10 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
     return total;
   }, [totalsByType]);
 
-  const totalLiabilities = totalsByType["debt"] || 0;
+  // Passifs = dettes du Patrimoine + capital restant dû des crédits en cours.
+  const totalLiabilities = (totalsByType["debt"] || 0) + loanAgg.balance;
+  // Patrimoine net « tout compris » : actifs − passifs (crédits déduits).
+  const netWorthAll = netWorth - loanAgg.balance;
 
   // Patrimoine net par membre
   const netWorthByMember = useMemo(() => {
@@ -180,10 +188,10 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
   }, [assets, livePrices, displayCurrency, members]);
 
   useEffect(() => {
-    if (!ratesLoading && assets.length > 0 && netWorth !== 0) {
-      recordNetWorthSnapshot(netWorth, displayCurrency);
+    if (!ratesLoading && assets.length > 0 && netWorthAll !== 0) {
+      recordNetWorthSnapshot(netWorthAll, displayCurrency);
     }
-  }, [netWorth, ratesLoading]);
+  }, [netWorthAll, ratesLoading]);
 
   function formatAmount(n) {
     return Math.round(n).toLocaleString("fr-FR");
@@ -193,6 +201,7 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
     net_worth: t("wealth_net_worth"),
     evolution: t("wealth_evolution"),
     allocation: t("wealth_allocation"),
+    credits: t("nav_credits"),
     calculator: t("wealth_calculator_cta"),
     // Cartes d'actifs par type (widgets déplaçables "asset_<typeId>").
     ...Object.fromEntries(
@@ -227,8 +236,8 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
               <i className="ti ti-refresh" style={{ fontSize: 13, color: "var(--ink-3)" }} aria-hidden="true" />
             )}
           </div>
-          <p style={{ fontSize: 30, fontWeight: 500, color: netWorth >= 0 ? "var(--sage)" : "var(--tang)" }}>
-            <AnimatedNumber value={netWorth} format={formatAmount} /> {currencySymbol}
+          <p style={{ fontSize: 30, fontWeight: 500, color: netWorthAll >= 0 ? "var(--sage)" : "var(--tang)" }}>
+            <AnimatedNumber value={netWorthAll} format={formatAmount} /> {currencySymbol}
           </p>
           <div style={{ display: "flex", gap: 16, marginTop: 8 }}>
             <div>
@@ -341,6 +350,38 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
           </span>
           <i className="ti ti-chevron-right" style={{ fontSize: 14, color: "var(--lavi)" }} aria-hidden="true" />
         </button>
+      );
+    }
+
+    if (id === "credits") {
+      // Carte « Crédits » : capital restant dû (passif), top prêts, lien vers
+      // l'onglet Crédits. Masquée si aucun crédit en cours.
+      if (loanAgg.count === 0) return null;
+      const top = loanItems.filter((i) => !i.state.isPaidOff).slice(0, 3);
+      return (
+        <WidgetCard icon="ti-building-bank" accent="coral" title={t("nav_credits")}>
+          <div onClick={onOpenCredits} style={{ cursor: "pointer" }}>
+            <p style={{ fontSize: 11.5, color: "var(--ink-3)", marginBottom: 2 }}>{t("loan_total_remaining")}</p>
+            <p className="pw-num" style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 26, letterSpacing: "-0.01em", color: "var(--red)", marginBottom: 10 }}>
+              −{formatAmount(loanAgg.balance)} {currencySymbol}
+            </p>
+            <div style={{ height: 8, borderRadius: 99, background: "var(--rule)", overflow: "hidden", marginBottom: 12 }}>
+              <div style={{ height: "100%", width: `${Math.min(100, Math.round(loanAgg.progress * 100))}%`, background: "var(--sage)" }} />
+            </div>
+            {top.map(({ loan, conv }, i) => {
+              const ty = loanType(loan.type);
+              return (
+                <div key={loan.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderTop: i === 0 ? "none" : "0.5px solid var(--rule)" }}>
+                  <span style={{ width: 30, height: 30, borderRadius: 9, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: `var(--${ty.color}-light)` }}>
+                    <i className={`ti ${ty.icon}`} style={{ fontSize: 15, color: `var(--${ty.color})` }} aria-hidden="true" />
+                  </span>
+                  <span style={{ flex: 1, minWidth: 0, fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{loan.name || t(`loan_type_${ty.id}`)}</span>
+                  <span className="pw-num" style={{ fontSize: 13, fontWeight: 600 }}>{formatAmount(conv.balance)} {currencySymbol}</span>
+                </div>
+              );
+            })}
+          </div>
+        </WidgetCard>
       );
     }
 

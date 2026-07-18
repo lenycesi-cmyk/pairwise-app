@@ -56,6 +56,7 @@ export const DEFAULT_WEALTH_WIDGETS = [
   { id: "net_worth", visible: true },
   { id: "evolution", visible: true },
   { id: "allocation", visible: true },
+  { id: "credits", visible: true },
   { id: "calculator", visible: true },
 ];
 
