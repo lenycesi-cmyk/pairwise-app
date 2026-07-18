@@ -3,7 +3,6 @@ import { useFinance } from "../context/FinanceContext";
 import { useTranslation } from "../hooks/useTranslation";
 import { useCategoryName } from "../hooks/useCategoryName";
 import { getMemberKey } from "../utils/members";
-import ScopeFilter from "./ScopeFilter";
 import { splitTag } from "../utils/tags";
 import { STATUS_COLOR, STATUS_TINT, STATUS_ICON, budgetLevel } from "../utils/budgetStatus";
 
@@ -18,6 +17,7 @@ export default function BudgetCard({
   onDelete,
   dragHandleProps = null,
   variant = "standalone",
+  scope: scopeProp = null,
 }) {
   const t = useTranslation();
   const { categories, members, coupleName, defaultCurrency, language } = useFinance();
@@ -34,11 +34,10 @@ export default function BudgetCard({
   const denom = effectiveAmount > 0 ? effectiveAmount : amountInBase;
   const isCouple = !budget.memberUid || budget.memberUid === "couple";
 
-  // Filtre membre « pour qui » (Famille / A / B), comme Liquidités en banque —
-  // seulement pour un budget de couple (un budget déjà membre est intrinsèquement
-  // scopé). `spent`/`pct`/`level` suivent le filtre.
-  const [memberScope, setMemberScope] = useState(null);
-  const scope = isCouple ? memberScope : null;
+  // Filtre membre « pour qui » (Famille / A / B) piloté par le sélecteur GLOBAL de
+  // la page (prop `scope`) — seulement pour un budget de couple (un budget déjà
+  // membre est intrinsèquement scopé). `spent`/`pct`/`level` suivent le filtre.
+  const scope = isCouple ? scopeProp : null;
   const spent = scope === null ? rawSpent : (spentByMember[scope] ?? 0);
   const pct = scope === null ? rawPct : (denom > 0 ? (spent / denom) * 100 : 0);
   const level = budgetLevel({ ...p, spent, pct });
@@ -209,13 +208,6 @@ export default function BudgetCard({
               {t("common_delete")}
             </button>
           )}
-        </div>
-      )}
-
-      {/* Filtre membre « pour qui » EN HAUT, centré (budget de couple uniquement). */}
-      {isCouple && members.length > 1 && (
-        <div onClick={(e) => e.stopPropagation()} style={{ marginTop: 12 }}>
-          <ScopeFilter members={members} scope={memberScope} onChange={setMemberScope} style={{ marginBottom: 0 }} />
         </div>
       )}
 

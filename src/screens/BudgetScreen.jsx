@@ -429,6 +429,7 @@ export default function BudgetScreen({ openSignal, onOpenMenu }) {
       <BudgetCard
         p={p}
         displayCurrency={displayCurrency}
+        scope={globalScope}
         onEdit={openEdit}
         onToggleActive={toggleActive}
         onDelete={removeBudget}
@@ -495,14 +496,22 @@ export default function BudgetScreen({ openSignal, onOpenMenu }) {
             </div>
           );
           const greeting = <GreetingHeader subtitleKey="budget_subtitle" marginLeft={0} />;
+          const showScope = !showForm && !editMode && members.length > 1;
+          const scopeSel = showScope ? (
+            <ScopeFilter members={members} scope={globalScope} onChange={setGlobalScope} size="lg" style={{ marginBottom: 0 }} />
+          ) : null;
+          // Desktop : on profite de la place libre du header pour placer le
+          // sélecteur de membre AU CENTRE, entre l'accueil et les actions.
           if (isDesktop) {
             return (
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
                 {greeting}
+                {scopeSel}
                 {actions}
               </div>
             );
           }
+          // Mobile : header serré → le sélecteur reste sur sa propre ligne, sous l'accueil.
           return (
             <>
               <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", alignItems: "center", gap: 8, marginBottom: 10 }}>
@@ -510,14 +519,10 @@ export default function BudgetScreen({ openSignal, onOpenMenu }) {
                 <div style={{ justifySelf: "end" }}>{actions}</div>
               </div>
               {greeting}
+              {scopeSel && <div style={{ marginTop: 12 }}>{scopeSel}</div>}
             </>
           );
         })()}
-        {!showForm && !editMode && members.length > 1 && (
-          <div style={{ marginTop: 12 }}>
-            <ScopeFilter members={members} scope={globalScope} onChange={setGlobalScope} size="lg" style={{ marginBottom: 0 }} />
-          </div>
-        )}
       </div>
 
       {!showForm && showCurrencyPicker && (
