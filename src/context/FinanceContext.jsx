@@ -43,6 +43,7 @@ export function FinanceProvider({ children }) {
   const [lastUsedCurrency, setLastUsedCurrency] = useState("EUR");
   const [recurringTx, setRecurringTx] = useState([]);
   const [budgets, setBudgets] = useState([]);
+  const [loans, setLoans] = useState([]);
   const [goals, setGoals] = useState([]);
   const [budgetHistory, setBudgetHistory] = useState({});
   const [incomeAccountLinks, setIncomeAccountLinksState] = useState({});
@@ -115,6 +116,7 @@ export function FinanceProvider({ children }) {
         // gardent chacun leur dernière devise. Chargé dans l'effet dédié.
         if (data.recurringTx) setRecurringTx(data.recurringTx);
         if (data.budgets) setBudgets(data.budgets);
+        if (data.loans) setLoans(data.loans);
         if (data.goals) setGoals(data.goals);
         if (data.budgetHistory) setBudgetHistory(data.budgetHistory);
         if (data.incomeAccountLinks) setIncomeAccountLinksState(data.incomeAccountLinks);
@@ -436,6 +438,33 @@ export function FinanceProvider({ children }) {
     await setDoc(doc(db, "couples", coupleId), { budgets: updated }, { merge: true });
   }
 
+  // Crédits / emprunts (immobilier, auto, conso…) — même pattern read-modify-merge
+  // que les budgets/assets. Les calculs d'amortissement vivent dans utils/loanMath.js
+  // (lecture seule) ; ici on ne stocke que les paramètres du prêt.
+  async function addLoan(loan) {
+    if (!coupleId) return;
+    const newLoan = {
+      ...loan,
+      id: `loan_${Date.now()}`,
+      extraPayments: loan.extraPayments || [],
+      createdAt: Date.now(),
+    };
+    const updated = [...loans, newLoan];
+    await setDoc(doc(db, "couples", coupleId), { loans: updated }, { merge: true });
+  }
+
+  async function updateLoan(id, updates) {
+    if (!coupleId) return;
+    const updated = loans.map((l) => (l.id === id ? { ...l, ...updates } : l));
+    await setDoc(doc(db, "couples", coupleId), { loans: updated }, { merge: true });
+  }
+
+  async function removeLoan(id) {
+    if (!coupleId) return;
+    const updated = loans.filter((l) => l.id !== id);
+    await setDoc(doc(db, "couples", coupleId), { loans: updated }, { merge: true });
+  }
+
   // Objectifs d'épargne / patrimoine — même pattern read-modify-merge que les
   // budgets. La progression est calculée à la lecture (assets liés) par
   // useGoalProgress, jamais stockée ici.
@@ -693,6 +722,10 @@ export function FinanceProvider({ children }) {
     updateBudget,
     removeBudget,
     reorderBudgets,
+    loans,
+    addLoan,
+    updateLoan,
+    removeLoan,
     budgetHistory,
     saveBudgetSnapshots,
     goals,

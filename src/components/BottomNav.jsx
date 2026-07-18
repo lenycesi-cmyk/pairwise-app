@@ -26,6 +26,7 @@ export default function NavDrawer({ active, onChange, onAddClick, addButtonRef, 
     { key: "budget", icon: "ti-wallet", label: t("nav_budget") },
     { key: "goals", icon: "ti-target", label: t("nav_goals") },
     { key: "wealth", icon: "ti-chart-pie", label: t("nav_wealth") },
+    { key: "credits", icon: "ti-building-bank", label: t("nav_credits") },
     { key: "reports", icon: "ti-chart-bar", label: t("nav_reports") },
   ];
 
