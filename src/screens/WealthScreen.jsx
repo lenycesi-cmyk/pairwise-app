@@ -482,13 +482,13 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
   }
 
   return (
-    <div style={{ padding: "1.5rem 1.25rem 6rem" }}>
+    <div style={{ padding: "0 1.25rem 6rem" }}>
       {commentsAsset && (
         <CommentsModal title={commentsAsset.name} onClose={() => setCommentsAsset(null)}>
           <AssetComments assetId={commentsAsset.id} bare />
         </CommentsModal>
       )}
-      <div style={{ position: "sticky", top: 0, zIndex: 30, background: "var(--bg)", marginLeft: "-1.25rem", marginRight: "-1.25rem", padding: "0.4rem 1.25rem", marginBottom: 12 }}>
+      <div style={{ position: "sticky", top: 0, zIndex: 30, background: "var(--bg)", marginLeft: "-1.25rem", marginRight: "-1.25rem", padding: "1rem 1.25rem", marginBottom: 12 }}>
         {(() => {
           const actions = (
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
