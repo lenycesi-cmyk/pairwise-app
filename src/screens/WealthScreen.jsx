@@ -65,11 +65,10 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
   const [editMode, setEditMode] = useState(false);
   // Périmètre du total par catégorie d'actifs : null = famille (tous), sinon la
-  // clé d'un membre (part de ce membre). Mémorisé par type d'actif (comptes,
-  // assurance vie…) puisque chaque catégorie a son propre filtre.
-  const [scopeByType, setScopeByType] = useState({});
-  // Filtre membre du widget « Répartition par type » (part de propriété).
-  const [allocScope, setAllocScope] = useState(null);
+  // clé d'un membre (part de ce membre). Filtre membre GLOBAL de la page, placé
+  // sous le header et appliqué à tous les widgets scopables (répartition + totaux
+  // par catégorie) — remplace les anciens sélecteurs par widget.
+  const [globalScope, setGlobalScope] = useState(null);
   // Ids des types d'actifs réellement présents (chaque catégorie devient un widget
   // déplaçable "asset_<typeId>" dans la grille bento) — mémorisé sur `assets`.
   const assetTypeIds = useMemo(
@@ -298,7 +297,7 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
 
     if (id === "allocation") {
       if (assets.length === 0) return null;
-      const scope = allocScope;
+      const scope = globalScope;
       // Répartition re-scopée par part de propriété du membre (comme Liquidités).
       let tbt = totalsByType;
       let ta = totalAssets;
@@ -316,7 +315,6 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
       }
       return (
         <WidgetCard icon="ti-chart-donut" accent="amber" title={t("wealth_allocation")}>
-          {members.length > 1 && <ScopeFilter members={members} scope={scope} onChange={setAllocScope} style={{ marginBottom: 10 }} />}
           <AllocationChart totalsByType={tbt} totalAssets={ta} />
         </WidgetCard>
       );
@@ -374,30 +372,14 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
               Filtrable par membre (Famille / A / B) quand la catégorie
               comporte des entrées pour plus d'un membre. */}
           {(type.id === "account" || typeAssets.length >= 2) && (() => {
-            const scope = scopeByType[type.id] ?? null;
+            const scope = globalScope;
             const catTotal = typeAssets.reduce(
               (s, a) => s + (scope === null ? getAssetValue(a) : getMemberShare(a, scope)),
               0
             );
-            // Membres réellement représentés dans la catégorie (un actif
-            // "partagé" compte pour les deux) → pills seulement si >1.
-            const owners = new Set();
-            for (const a of typeAssets) {
-              if (a.ownership === "shared") members.forEach((m) => owners.add(getMemberKey(m)));
-              else if (a.ownership) owners.add(a.ownership);
-            }
-            const spansMembers = members.length > 1 && members.filter((m) => owners.has(getMemberKey(m))).length > 1;
             const label = type.id === "account" ? t("bank_total_available") : t("wealth_category_total");
             return (
               <div style={{ padding: "12px 14px", borderBottom: "0.5px solid var(--rule)" }}>
-                {spansMembers && (
-                  <ScopeFilter
-                    members={members}
-                    scope={scope}
-                    onChange={(v) => setScopeByType((prev) => ({ ...prev, [type.id]: v }))}
-                    style={{ marginBottom: 10 }}
-                  />
-                )}
                 <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10 }}>
                   <span style={{ fontSize: 13.5, color: "var(--ink-2)", fontWeight: 600 }}>{label}</span>
                   <span style={{ fontSize: 18, fontWeight: 700, color: type.isLiability ? "var(--red)" : "var(--ink)" }}>
@@ -565,6 +547,11 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
             </>
           );
         })()}
+        {!editMode && members.length > 1 && (
+          <div style={{ marginTop: 12 }}>
+            <ScopeFilter members={members} scope={globalScope} onChange={setGlobalScope} size="lg" style={{ marginBottom: 0 }} />
+          </div>
+        )}
       </div>
 
       <SpotlightHint

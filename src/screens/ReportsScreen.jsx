@@ -135,7 +135,7 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
   const [simCatId, setSimCatId] = useState(null);
   const [simSubSel, setSimSubSel] = useState(null);
   // Widget « À surveiller » : filtre membre (null = Famille).
-  const [watchScope, setWatchScope] = useState(null);
+  const [globalScope, setGlobalScope] = useState(null);
   // Widget « Dépenses par tag » : tags dépliés (transactions du tag sur la période),
   // même comportement que les lignes de « Dépenses par catégorie ».
   const [expandedTags, setExpandedTags] = useState(() => new Set());
@@ -527,7 +527,7 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
   // Placé après `currencySymbol`/`formatAmount` car il les référence.
   const watchInsights = useMemo(() => {
     // Part « pour qui » du mouvement selon le filtre membre (1 = Famille).
-    const wfrac = (tx) => (watchScope === null ? 1 : memberShareFraction(tx, watchScope, members));
+    const wfrac = (tx) => (globalScope === null ? 1 : memberShareFraction(tx, globalScope, members));
     const cur = {};
     let curTotal = 0;
     for (const tx of periodTx) {
@@ -623,7 +623,7 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
 
     return insights;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [periodTx, transactions, categories, watchScope, members, periodType, anchor, customRange, range, locale, displayCurrency, convert, language]);
+  }, [periodTx, transactions, categories, globalScope, members, periodType, anchor, customRange, range, locale, displayCurrency, convert, language]);
 
   // Sélecteur de période unifié (bouton + menu + navigation), partagé avec Flux.
   const periodSelector = (
@@ -801,9 +801,6 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
         const toneBg = { neutral: "var(--lavi-light)", warn: "var(--tang-light)", good: "var(--sage-light)" };
         return (
           <WidgetCard icon="ti-eye" accent="amber" title={t("reports_watch_title")}>
-            {members.length > 1 && (
-              <ScopeFilter members={members} scope={watchScope} onChange={setWatchScope} style={{ marginBottom: 6 }} />
-            )}
             {watchInsights.length === 0 ? (
               <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", padding: "1.25rem 0" }}>
                 {t("reports_no_expenses")}
@@ -1333,6 +1330,11 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
         <div ref={periodRowRef} style={{ marginTop: 12 }}>
           {!editMode && periodSelector}
         </div>
+        {!editMode && members.length > 1 && (
+          <div style={{ marginTop: 12 }}>
+            <ScopeFilter members={members} scope={globalScope} onChange={setGlobalScope} size="lg" style={{ marginBottom: 0 }} />
+          </div>
+        )}
       </div>
 
       {!editMode && <SpotlightHint tabKey="reports" targetRef={periodRowRef} text={t("hint_reports")} />}
