@@ -340,7 +340,7 @@ function AppContent() {
       )}
       {tab === "wealth" && (
         <Suspense fallback={null}>
-          <WealthScreen onOpenCalculator={() => setShowCalculator(true)} addButtonRef={addButtonRef} onOpenMenu={() => setDrawerOpen(true)} />
+          <WealthScreen onOpenCalculator={() => setShowCalculator(true)} addButtonRef={addButtonRef} onOpenMenu={() => setDrawerOpen(true)} onOpenCredits={() => setTab("credits")} />
         </Suspense>
       )}
       {tab === "credits" && (

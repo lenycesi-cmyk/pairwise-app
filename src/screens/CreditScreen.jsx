@@ -300,8 +300,8 @@ function LoanForm({ t, locale, formLoan, setFormLoan, canSave, onClose, onSave }
   const years = Number(formLoan.termMonths) > 0 ? (Number(formLoan.termMonths) / 12).toFixed(1) : null;
 
   return (
-    <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 60, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "flex-end", justifyContent: "center", padding: "0" }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", width: "100%", maxWidth: 480, maxHeight: "92vh", overflowY: "auto", borderRadius: "20px 20px 0 0", padding: "18px 18px 28px" }}>
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 60, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", width: "100%", maxWidth: 480, maxHeight: "92vh", overflowY: "auto", borderRadius: 20, padding: "18px 18px 24px", boxShadow: "0 20px 60px rgba(0,0,0,0.28)" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
           <h2 style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 700 }}>{formLoan.id ? t("loan_edit") : t("loan_add")}</h2>
           <button onClick={onClose} aria-label={t("common_close")} style={{ background: "none", border: "none", color: "var(--ink-3)", fontSize: 22, lineHeight: 1, cursor: "pointer" }}>×</button>
