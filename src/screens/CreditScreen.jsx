@@ -5,7 +5,7 @@ import { useMediaQuery } from "../hooks/useMediaQuery";
 import { useLoanProgress } from "../hooks/useLoanProgress";
 import { ALL_CURRENCIES } from "../data/categories";
 import { LOAN_TYPES } from "../data/loanTypes";
-import { monthlyPayment } from "../utils/loanMath";
+import { monthlyPayment, extraPaymentImpact } from "../utils/loanMath";
 import { currencySymbol } from "../utils/onboardingDraft";
 import GreetingHeader from "../components/GreetingHeader";
 import HeaderMenuButton from "../components/HeaderMenuButton";
@@ -32,6 +32,7 @@ export default function CreditScreen({ onOpenMenu, openSignal }) {
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
   const [formLoan, setFormLoan] = useState(null); // objet en cours d'édition/création
   const [showForm, setShowForm] = useState(false);
+  const [extraLoan, setExtraLoan] = useState(null); // prêt ciblé par un versement exceptionnel
 
   // Le bouton central « Ajouter » (FAB / rail) déclenche l'ouverture du formulaire.
   useEffect(() => {
@@ -66,6 +67,16 @@ export default function CreditScreen({ onOpenMenu, openSignal }) {
   }
 
   const canSave = formLoan && Number(formLoan.principal) > 0 && Number(formLoan.termMonths) > 0;
+
+  // Enregistre un versement exceptionnel : ajoute une entrée à extraPayments —
+  // loanState le déduit alors du capital restant (et raccourcit l'échéancier).
+  async function saveExtraPayment(loan, amount) {
+    const amt = Number(amount) || 0;
+    if (amt <= 0) return;
+    const entry = { id: `xp_${Date.now()}`, amount: amt, date: new Date().toISOString().slice(0, 10) };
+    await updateLoan(loan.id, { extraPayments: [...(loan.extraPayments || []), entry] });
+    setExtraLoan(null);
+  }
 
   return (
     <div style={{ padding: "0 1.25rem 6rem" }}>
@@ -156,7 +167,7 @@ export default function CreditScreen({ onOpenMenu, openSignal }) {
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 {items.map((item, i) => (
-                  <LoanCard key={item.loan.id} item={item} displayCurrency={displayCurrency} onEdit={openEdit} onDelete={(l) => removeLoan(l.id)} defaultOpen={i === 0} />
+                  <LoanCard key={item.loan.id} item={item} displayCurrency={displayCurrency} onEdit={openEdit} onDelete={(l) => removeLoan(l.id)} onExtraPayment={setExtraLoan} defaultOpen={i === 0} />
                 ))}
               </div>
             </div>
@@ -173,6 +184,58 @@ export default function CreditScreen({ onOpenMenu, openSignal }) {
           canSave={canSave} onClose={closeForm} onSave={saveForm}
         />
       )}
+
+      {extraLoan && (
+        <ExtraPaymentModal
+          t={t} locale={locale} symbol={symbol} loan={extraLoan}
+          onClose={() => setExtraLoan(null)} onSave={saveExtraPayment}
+        />
+      )}
+    </div>
+  );
+}
+
+// Modale « versement exceptionnel » : montant → simulation en direct (mois &
+// intérêts économisés, nouveau reste à payer) via extraPaymentImpact, puis
+// enregistrement.
+function ExtraPaymentModal({ t, locale, symbol, loan, onClose, onSave }) {
+  const [amount, setAmount] = useState("");
+  const money = (n) => `${Math.round(n).toLocaleString(locale)} ${symbol}`;
+  const amt = Number(amount) || 0;
+  const impact = extraPaymentImpact(loan, amt);
+  const valid = amt > 0;
+
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 60, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", width: "100%", maxWidth: 460, maxHeight: "92vh", overflowY: "auto", borderRadius: "20px 20px 0 0", padding: "18px 18px 28px" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+          <h2 style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 700 }}>{t("loan_extra_add")}</h2>
+          <button onClick={onClose} aria-label={t("common_close")} style={{ background: "none", border: "none", color: "var(--ink-3)", fontSize: 22, lineHeight: 1, cursor: "pointer" }}>×</button>
+        </div>
+        <p style={{ fontSize: 12.5, color: "var(--ink-3)", marginBottom: 16 }}>{loan.name}</p>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 5, marginBottom: 14 }}>
+          <label style={{ fontSize: 11.5, color: "var(--ink-3)", fontWeight: 600 }}>{t("loan_extra_amount")}</label>
+          <input autoFocus inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" style={inputStyle} />
+        </div>
+
+        <div style={{ background: "var(--sage-light)", borderRadius: "var(--radius-md)", padding: "14px 15px" }}>
+          <div style={{ fontSize: 12.5, color: "var(--ink-2)", display: "flex", alignItems: "center", gap: 8 }}>
+            <i className="ti ti-chart-arrows-vertical" style={{ fontSize: 16, color: "var(--sage)" }} aria-hidden="true" /> {t("loan_extra_impact")}
+          </div>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: 15, fontWeight: 700, marginTop: 8, color: "var(--sage)", lineHeight: 1.5 }}>
+            <span style={{ color: "var(--ink)" }}>−{impact.monthsSaved} {t("loan_months")}</span> {t("loan_extra_on_term")}<br />
+            <span style={{ color: "var(--ink)" }}>−{money(impact.interestSaved)}</span> {t("loan_extra_interest_saved")}
+          </div>
+        </div>
+        <p style={{ fontSize: 11.5, color: "var(--ink-3)", marginTop: 10, lineHeight: 1.45 }}>
+          {t("loan_extra_new_balance")} : <b className="pw-num" style={{ color: "var(--ink)" }}>{money(impact.newBalance)}</b>
+        </p>
+
+        <button disabled={!valid} onClick={() => onSave(loan, amt)} style={{ width: "100%", marginTop: 16, padding: 13, borderRadius: 13, border: "none", background: "var(--tang)", color: "#fff", fontSize: 14, fontWeight: 700, opacity: valid ? 1 : 0.5, cursor: valid ? "pointer" : "default" }}>
+          {t("loan_extra_save")}
+        </button>
+      </div>
     </div>
   );
 }

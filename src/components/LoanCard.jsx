@@ -8,7 +8,7 @@ import { loanType } from "../data/loanTypes";
 // d'amortissement (mensualité, coût total, intérêts, répartition de l'échéance
 // courante). `item` vient de useLoanProgress : { loan, state, conv }.
 // `variant="embedded"` retire le châssis pour un rendu dans une carte parente.
-export default function LoanCard({ item, displayCurrency, onEdit, onDelete, defaultOpen = false, variant = "standalone" }) {
+export default function LoanCard({ item, displayCurrency, onEdit, onDelete, onExtraPayment, defaultOpen = false, variant = "standalone" }) {
   const t = useTranslation();
   const { language, categories } = useFinance();
   const [open, setOpen] = useState(defaultOpen);
@@ -141,6 +141,18 @@ export default function LoanCard({ item, displayCurrency, onEdit, onDelete, defa
           <Row label={t("loan_capital_repaid")} value={money(conv.principalRepaid)} valueColor="var(--sage)" />
           {linkedCat && (
             <Row label={t("loan_linked_sub")} value={<span style={{ fontSize: 12, color: "var(--sky)" }}>🔗 {loan.linkedSubcategory}</span>} />
+          )}
+          {state.extraPaymentsTotal > 0 && (
+            <Row label={t("loan_extra_total")} value={<span style={{ color: "var(--sage)" }}>+{money(state.extraPaymentsTotal)}</span>} />
+          )}
+
+          {onExtraPayment && !state.isPaidOff && (
+            <button
+              onClick={() => onExtraPayment(loan)}
+              style={{ width: "100%", marginTop: 14, padding: 11, borderRadius: 12, border: "none", background: "var(--tang)", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}
+            >
+              <i className="ti ti-cash-banknote" style={{ fontSize: 16 }} aria-hidden="true" /> {t("loan_extra_add")}
+            </button>
           )}
         </div>
       )}

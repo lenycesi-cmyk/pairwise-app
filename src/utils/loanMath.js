@@ -40,8 +40,17 @@ export function addMonths(date, count) {
   return d;
 }
 
-// État complet d'amortissement d'un prêt à l'instant `now`. Toutes les valeurs
-// monétaires sont dans la devise du prêt (`loan.currency`).
+// Nombre de mois entiers entre deux dates (a → b), borné à 0.
+function monthsBetween(a, b) {
+  let m = (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth());
+  if (b.getDate() < a.getDate()) m -= 1;
+  return Math.max(0, m);
+}
+
+// État complet d'amortissement d'un prêt à l'instant `now`, versements
+// exceptionnels compris. Simulation mensuelle (mensualité constante) : passe 1
+// jusqu'à aujourd'hui pour le capital restant, passe 2 pour l'échéancier restant.
+// Toutes les valeurs monétaires sont dans la devise du prêt (`loan.currency`).
 export function loanState(loan, now = new Date()) {
   const P = Number(loan?.principal) || 0;
   const n = Number(loan?.termMonths) || 0;
@@ -50,23 +59,58 @@ export function loanState(loan, now = new Date()) {
   const M = Number(loan?.monthlyPayment) > 0
     ? Number(loan.monthlyPayment)
     : monthlyPayment(P, rateAnnual, n);
+  const start = loan?.startDate ? new Date(loan.startDate) : null;
+  const kNow = paymentsMade(loan?.startDate, n, now);
 
-  const k = paymentsMade(loan?.startDate, n, now);
-  const paymentsLeft = Math.max(0, n - k);
+  // Versements exceptionnels rattachés à leur mois d'échéance (index depuis le début).
+  const extras = (loan?.extraPayments || []).map((e) => ({
+    amount: Number(e.amount) || 0,
+    date: e.date ? new Date(e.date) : now,
+    monthIndex: start && e.date ? monthsBetween(start, new Date(e.date)) : 0,
+  }));
+  const extrasElapsedInMonth = (m) =>
+    extras.reduce((s, e) => s + (e.monthIndex === m && e.date <= now ? e.amount : 0), 0);
 
-  // Capital restant dû après k échéances.
-  let balance;
-  if (r === 0) balance = Math.max(0, P - M * k);
-  else balance = P * Math.pow(1 + r, k) - M * ((Math.pow(1 + r, k) - 1) / r);
-  balance = Math.max(0, balance);
+  const CAP = n + 1200; // garde-fou anti-boucle infinie
 
-  const totalCost = M * n; // total remboursé sur toute la durée
-  const totalInterest = Math.max(0, totalCost - P);
-  const principalRepaid = Math.max(0, P - balance);
-  // Intérêts restants ≈ ce qu'il reste à verser − le capital restant.
-  const interestRemaining = Math.max(0, paymentsLeft * M - balance);
-  const interestPaid = Math.max(0, totalInterest - interestRemaining);
-  const progress = P > 0 ? principalRepaid / P : 0; // 0..1
+  // ── Passe 1 : mois déjà écoulés → capital restant + payé à ce jour ──────
+  let bal = P;
+  let interestPaid = 0;
+  let principalRepaid = 0;
+  for (let m = 0; m < kNow && bal > 0.005; m++) {
+    const interest = bal * r;
+    let principal = Math.min(bal, Math.max(0, M - interest));
+    bal -= principal;
+    const ex = Math.min(bal, extrasElapsedInMonth(m));
+    bal -= ex;
+    interestPaid += interest;
+    principalRepaid += principal + ex;
+  }
+  // Versements exceptionnels datés d'aujourd'hui (ou dont le mois ≥ kNow) déjà encaissés.
+  const extraNow = extras
+    .filter((e) => e.date <= now && e.monthIndex >= kNow)
+    .reduce((s, e) => s + e.amount, 0);
+  const exNowApplied = Math.min(bal, extraNow);
+  bal -= exNowApplied;
+  principalRepaid += exNowApplied;
+  const balance = Math.max(0, bal);
+
+  // ── Passe 2 : échéancier restant à partir du capital courant ────────────
+  let paymentsLeft = 0;
+  let interestRemaining = 0;
+  let b = balance;
+  for (let i = 0; b > 0.005 && i < CAP; i++) {
+    const interest = b * r;
+    const principal = M - interest;
+    if (principal <= 0) { paymentsLeft = Math.max(0, n - kNow); break; } // ne s'amortit pas
+    b -= Math.min(b, principal);
+    interestRemaining += interest;
+    paymentsLeft++;
+  }
+
+  const totalInterest = interestPaid + interestRemaining;
+  const totalCost = P + totalInterest;
+  const progress = P > 0 ? principalRepaid / P : 0;
 
   return {
     monthly: M,
@@ -76,11 +120,12 @@ export function loanState(loan, now = new Date()) {
     interestRemaining,
     totalInterest,
     totalCost,
-    paymentsMade: k,
+    paymentsMade: kNow,
     paymentsLeft,
     termMonths: n,
     progress,
-    payoffDate: loan?.startDate ? addMonths(loan.startDate, n) : null,
+    extraPaymentsTotal: extras.reduce((s, e) => s + (e.date <= now ? e.amount : 0), 0),
+    payoffDate: addMonths(now, paymentsLeft),
     isPaidOff: balance <= 0.005,
   };
 }
