@@ -37,12 +37,18 @@ export async function searchStocks(query, apiKey = "") {
     if (!res.ok) throw new Error("stock_search_failed");
     const json = await res.json();
     if (!json.data) return [];
-    return json.data.slice(0, 8).map((s) => ({
-      symbol: s.symbol,
-      name: s.instrument_name,
-      exchange: s.exchange,
-      currency: s.currency,
-    }));
+    // Un même symbole est souvent listé sur plusieurs places (NYSE + bourses
+    // internationales) → doublons identiques à l'écran. On dédoublonne par
+    // symbole (première occurrence, généralement la place principale).
+    const seen = new Set();
+    const deduped = [];
+    for (const s of json.data) {
+      if (seen.has(s.symbol)) continue;
+      seen.add(s.symbol);
+      deduped.push({ symbol: s.symbol, name: s.instrument_name, exchange: s.exchange, currency: s.currency });
+      if (deduped.length >= 8) break;
+    }
+    return deduped;
   } catch (err) {
     console.warn("Recherche actions échouée:", err.message);
     return [];

@@ -121,6 +121,12 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
 
   function getAssetValue(asset) {
     if (livePrices[asset.id] !== undefined) return livePrices[asset.id];
+    // Repli sur un prix unitaire manuel quand l'API n'a pas coté l'actif
+    // (clé "demo" limitée) : valeur = prix manuel × quantité.
+    if (asset.manualPrice > 0) {
+      const converted = convert(asset.manualPrice * (asset.quantity || 1), asset.currency || displayCurrency, displayCurrency);
+      return Number.isFinite(converted) ? converted : 0;
+    }
     // API-priced assets (stocks/crypto) store no `value` — only quantity + apiId.
     // If the live price fetch failed (e.g. Twelve Data's demo key only prices AAPL),
     // we have nothing to convert, so guard against NaN leaking into per-asset display and totals.
@@ -439,7 +445,7 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
             const val = getAssetValue(asset);
             // API-priced asset with no live price and no stored value: price couldn't be fetched
             const priceUnavailable =
-              !!asset.apiId && livePrices[asset.id] === undefined && !Number.isFinite(asset.value);
+              !!asset.apiId && livePrices[asset.id] === undefined && !Number.isFinite(asset.value) && !(asset.manualPrice > 0);
             const ownerLabel =
               asset.ownership === "shared"
                 ? "Partagé"
