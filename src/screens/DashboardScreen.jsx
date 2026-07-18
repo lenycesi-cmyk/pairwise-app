@@ -40,7 +40,7 @@ import CurrencyPicker from "../components/CurrencyPicker";
 import { useTranslation } from "../hooks/useTranslation";
 import SpotlightHint from "../components/SpotlightHint";
 import GreetingHeader from "../components/GreetingHeader";
-import { getMemberKey } from "../utils/members";
+import { getMemberKey, memberShareFraction } from "../utils/members";
 import { nextOccurrence, daysUntil } from "../utils/recurrence";
 import { useSubscriptionSuggestion } from "../hooks/useSubscriptionSuggestion";
 import { useMediaQuery } from "../hooks/useMediaQuery";
@@ -362,9 +362,15 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
 
   const maxCatTotal = Math.max(1, ...Object.values(categoryTotals).map((c) => c.total));
 
+  // Transactions du mois filtrées par le sélecteur de membre global (widget
+  // « Transactions ») : on ne garde que celles qui concernent le membre choisi.
+  const scopedMonthTx = useMemo(
+    () => (globalScope == null ? monthTx : monthTx.filter((tx) => memberShareFraction(tx, globalScope, members) > 0)),
+    [monthTx, globalScope, members]
+  );
   const recentTx = useMemo(
-    () => [...monthTx].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, bentoEnabled ? DESKTOP_TX_ROWS : 5),
-    [monthTx, bentoEnabled, DESKTOP_TX_ROWS]
+    () => [...scopedMonthTx].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, bentoEnabled ? DESKTOP_TX_ROWS : 5),
+    [scopedMonthTx, bentoEnabled, DESKTOP_TX_ROWS]
   );
 
   const bankAccounts = useMemo(() => assets.filter((a) => a.typeId === "account"), [assets]);
@@ -628,7 +634,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
           <WidgetCard
             icon="ti-receipt-2"
             accent="sky"
-            title={<>{t("dashboard_transactions")} <span style={{ color: "var(--ink-3)", fontWeight: 400 }}>· <AnimatedNumber value={monthTx.length} duration={450} format={(n) => String(Math.round(n))} /></span></>}
+            title={<>{t("dashboard_transactions")} <span style={{ color: "var(--ink-3)", fontWeight: 400 }}>· <AnimatedNumber value={scopedMonthTx.length} duration={450} format={(n) => String(Math.round(n))} /></span></>}
             flush
             action={!editMode && recentTx.length > 0 && (
               <button onClick={onOpenTransactions} style={{ background: "none", border: "none", color: "var(--sky)", fontSize: 12.5, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 3, flexShrink: 0 }}>

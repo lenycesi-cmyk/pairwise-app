@@ -397,7 +397,12 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
   // comme widget déplaçable dans la grille bento (id "asset_<typeId>"). Renvoie
   // null si la catégorie est vide → le widget disparaît de la grille.
   function renderAssetTypeCard(type) {
-    const typeAssets = assets.filter((a) => a.typeId === type.id);
+    // Filtre membre global : on ne montre que les actifs du membre choisi (+ les
+    // partagés / sans propriétaire), comme le widget Liquidités de l'Accueil.
+    const typeAssets = assets.filter(
+      (a) => a.typeId === type.id &&
+        (globalScope == null || a.ownership === globalScope || a.ownership === "shared" || a.ownership == null)
+    );
     if (typeAssets.length === 0) return null;
     const colors = COLOR_MAP[type.color] || COLOR_MAP.sky;
     return (
