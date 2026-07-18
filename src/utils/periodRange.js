@@ -79,13 +79,16 @@ export function shiftAnchor(periodType, anchor, delta) {
 //   - trimestre/année/12 mois → seaux mensuels
 //   - personnalisé   → granularité choisie selon la durée (jour/semaine/mois)
 // Chaque seau : { key, label, start, end }. `start`/`end` bornent [start, end[.
-export function periodBuckets(periodType, range, locale) {
+// `granularityOverride` ("day"|"week"|"month") force la granularité des seaux
+// (ex. bascule « journalier » sur la vue mensuelle du graphe Flux).
+export function periodBuckets(periodType, range, locale, granularityOverride) {
   const { start, end } = range;
   const dayMs = 86400000;
   const spanDays = Math.max(1, Math.round((end.getTime() - start.getTime()) / dayMs));
 
   let granularity;
-  if (periodType === "week") granularity = "day";
+  if (granularityOverride) granularity = granularityOverride;
+  else if (periodType === "week") granularity = "day";
   else if (periodType === "month") granularity = "week";
   else if (periodType === "custom") granularity = spanDays <= 8 ? "day" : spanDays <= 70 ? "week" : "month";
   else granularity = "month"; // last3, year, last12

@@ -150,9 +150,13 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
 
   // Gabarit de seaux de tendance CALÉ sur la période affichée (jour/semaine/mois
   // selon le type) — la tendance suit désormais réellement le filtre de période.
+  // Granularité du graphe cashflow. "auto" = par défaut (semaine sur le mois) ;
+  // sur la vue mensuelle, on propose une bascule "jour" pour un détail journalier.
+  const [chartGranularity, setChartGranularity] = useState("auto");
+  const gran = periodType === "month" && chartGranularity === "day" ? "day" : undefined;
   const trendBuckets = useMemo(
-    () => periodBuckets(periodType, range, locale),
-    [periodType, range, locale]
+    () => periodBuckets(periodType, range, locale, gran),
+    [periodType, range, locale, gran]
   );
 
   // « Ce qui bouge » : catégories dont la dépense de la période s'écarte le plus
@@ -292,6 +296,22 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
               {flow.net >= 0 ? "+" : "−"}{fmt(Math.abs(flow.net))} {symbol}
             </span>
           </div>
+          {periodType === "month" && (
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 6, marginBottom: 4 }}>
+              {[{ k: "auto", label: t("flux_gran_week") }, { k: "day", label: t("flux_gran_day") }].map((g) => {
+                const active = chartGranularity === g.k;
+                return (
+                  <button
+                    key={g.k}
+                    onClick={() => setChartGranularity(g.k)}
+                    style={{ padding: "3px 10px", borderRadius: 99, border: "none", fontSize: 11, fontWeight: active ? 600 : 400, background: active ? "color-mix(in srgb, var(--ink) 6%, transparent)" : "transparent", color: active ? "var(--ink-2)" : "var(--ink-3)", cursor: "pointer" }}
+                  >
+                    {g.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
           <IncomeExpenseTrendChart data={scopedTrend} currencySymbol={symbol} />
         </WidgetCard>
       );
