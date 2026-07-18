@@ -206,8 +206,8 @@ function ExtraPaymentModal({ t, locale, symbol, loan, onClose, onSave }) {
   const valid = amt > 0;
 
   return (
-    <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 60, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", width: "100%", maxWidth: 460, maxHeight: "92vh", overflowY: "auto", borderRadius: "20px 20px 0 0", padding: "18px 18px 28px" }}>
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 60, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", width: "100%", maxWidth: 440, maxHeight: "92vh", overflowY: "auto", borderRadius: 20, padding: "18px 18px 24px", boxShadow: "0 20px 60px rgba(0,0,0,0.28)" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
           <h2 style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 700 }}>{t("loan_extra_add")}</h2>
           <button onClick={onClose} aria-label={t("common_close")} style={{ background: "none", border: "none", color: "var(--ink-3)", fontSize: 22, lineHeight: 1, cursor: "pointer" }}>×</button>
