@@ -153,11 +153,10 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [commentsTx, setCommentsTx] = useState(null);
-  // Filtre du widget Liquidités : null = couple ; sinon memberKey (comptes de ce
-  // membre + comptes partagés).
-  const [liquidScope, setLiquidScope] = useState(null);
-  // Filtre membre du widget « Répartition du patrimoine » (part de propriété).
-  const [allocationScope, setAllocationScope] = useState(null);
+  // Filtre membre GLOBAL de la page (null = couple ; sinon memberKey), placé sous
+  // le sélecteur de période et appliqué aux widgets scopables (Liquidités,
+  // Répartition du patrimoine) — remplace les anciens sélecteurs par widget.
+  const [globalScope, setGlobalScope] = useState(null);
   const customizeButtonRef = useRef(null);
   const currencyButtonRef = useRef(null);
   const [trendPeriod, setTrendPeriod] = useState(6);
@@ -459,9 +458,9 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
 
       case "available_savings": {
         // Filtre par membre : couple = tous ; membre = ses comptes + les partagés.
-        const scopedAccounts = liquidScope == null
+        const scopedAccounts = globalScope == null
           ? bankAccounts
-          : bankAccounts.filter((a) => a.ownership === liquidScope || a.ownership === "shared" || a.ownership == null);
+          : bankAccounts.filter((a) => a.ownership === globalScope || a.ownership === "shared" || a.ownership == null);
         const scopedTotal = scopedAccounts.reduce((s, a) => s + convert(a.value ?? 0, a.currency, displayCurrency), 0);
         return (
           <WidgetCard
@@ -473,10 +472,6 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
               <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", padding: "0.5rem 0" }}>{t("widget_no_bank_accounts")}</p>
             ) : (
               <>
-                {/* Filtre membre en haut, centré (UI unifiée). */}
-                {!editMode && members.length > 1 && (
-                  <ScopeFilter members={members} value={liquidScope} onChange={setLiquidScope} coupleLabel={t("health_scope_couple")} />
-                )}
                 {/* Hero : le total en gros chiffre en tête, détail des comptes dessous. */}
                 <p style={{ fontSize: 11.5, color: "var(--ink-3)", marginBottom: 2 }}>{t("dashboard_total")}</p>
                 <p className="pw-num" style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 30, letterSpacing: "-0.01em", marginBottom: 14, color: "var(--good)" }}>
@@ -823,10 +818,9 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
 
       case "wealth_allocation": {
         if (totalAssets <= 0) return null;
-        const { totalsByType: tbtScoped, totalAssets: taScoped } = totalsByTypeFor(allocationScope);
+        const { totalsByType: tbtScoped, totalAssets: taScoped } = totalsByTypeFor(globalScope);
         return (
           <WidgetCard icon="ti-chart-donut" accent="amber" title={t("widget_wealth_allocation")} bodyStyle={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
-            {members.length > 1 && <ScopeFilter members={members} value={allocationScope} onChange={setAllocationScope} coupleLabel={t("health_scope_couple")} />}
             <Suspense fallback={<div className="skeleton" style={{ height: 110 }} />}>
               <AllocationChart totalsByType={tbtScoped} totalAssets={taScoped} fill />
             </Suspense>
@@ -1016,6 +1010,12 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
           </>
         );
       })()}
+
+      {!editMode && members.length > 1 && (
+        <div style={{ marginTop: 12 }}>
+          <ScopeFilter members={members} scope={globalScope} onChange={setGlobalScope} size="lg" style={{ marginBottom: 0 }} />
+        </div>
+      )}
 
       {!editMode && (
         <SpotlightHint

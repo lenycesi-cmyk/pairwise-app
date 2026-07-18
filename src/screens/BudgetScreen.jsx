@@ -69,7 +69,9 @@ export default function BudgetScreen({ openSignal, onOpenMenu }) {
   // sinon les tags suggérés par défaut (même source que le TagManager).
   const availableTags = customTags.length > 0 ? customTags : SUGGESTED_TAGS.map((s) => s.key);
 
-  const [overviewScope, setOverviewScope] = useState(null);
+  // Filtre membre GLOBAL de la page (null = couple ; sinon memberKey), placé sous
+  // le header et appliqué au widget de synthèse — remplace le sélecteur du widget.
+  const [globalScope, setGlobalScope] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [quickMode, setQuickMode] = useState(null); // null | "5030" | "history" | "manual"
   const [editingId, setEditingId] = useState(null);
@@ -375,7 +377,7 @@ export default function BudgetScreen({ openSignal, onOpenMenu }) {
 
     if (id === "overview") {
       const active = visibleProgress.filter(({ budget }) => budget.active !== false);
-      const spentOf = (p) => (overviewScope === null ? p.spent : (p.spentByMember?.[overviewScope] ?? 0));
+      const spentOf = (p) => (globalScope === null ? p.spent : (p.spentByMember?.[globalScope] ?? 0));
       const totalBudget = active.reduce((s, p) => s + p.effectiveAmount, 0);
       const totalSpent = active.reduce((s, p) => s + spentOf(p), 0);
       const remaining = totalBudget - totalSpent;
@@ -387,9 +389,6 @@ export default function BudgetScreen({ openSignal, onOpenMenu }) {
       const barColor = pct >= 100 ? "var(--red)" : watchCount > calmCount ? "var(--amber)" : "var(--sage)";
       return (
         <WidgetCard icon="ti-gauge" accent="amber" noBar title={t("budget_widget_overview")}>
-          {members.length > 1 && (
-            <ScopeFilter members={members} scope={overviewScope} onChange={setOverviewScope} />
-          )}
           {/* Héros : on mène avec le RESTE (plus rassurant et actionnable que
               le dépensé), pas avec la fraction consommée. */}
           <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
@@ -514,6 +513,11 @@ export default function BudgetScreen({ openSignal, onOpenMenu }) {
             </>
           );
         })()}
+        {!showForm && !editMode && members.length > 1 && (
+          <div style={{ marginTop: 12 }}>
+            <ScopeFilter members={members} scope={globalScope} onChange={setGlobalScope} size="lg" style={{ marginBottom: 0 }} />
+          </div>
+        )}
       </div>
 
       {!showForm && showCurrencyPicker && (
