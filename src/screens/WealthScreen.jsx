@@ -488,7 +488,7 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
           <AssetComments assetId={commentsAsset.id} bare />
         </CommentsModal>
       )}
-      <div style={{ position: "sticky", top: 0, zIndex: 30, background: "var(--bg)", marginLeft: "-1.25rem", marginRight: "-1.25rem", padding: "1rem 1.25rem", marginBottom: 12 }}>
+      <div style={{ position: "sticky", top: 0, zIndex: 30, background: "var(--bg)", marginLeft: "-1.25rem", marginRight: "-1.25rem", padding: "1rem 1.25rem" }}>
         {(() => {
           const actions = (
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -529,16 +529,13 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
             </div>
           );
           const greeting = <GreetingHeader subtitleKey="wealth_subtitle" marginLeft={0} />;
-          const scopeSel = !editMode && members.length > 1 ? (
-            <ScopeFilter members={members} scope={globalScope} onChange={setGlobalScope} size="lg" style={{ marginBottom: 0 }} />
-          ) : null;
-          // Desktop : une ligne [accueil | membre | actions], comme l'Accueil ;
-          // le sélecteur de membre s'aligne avec les boutons devise/personnaliser.
+          // Desktop : une ligne [accueil | · | actions] comme l'Accueil (le
+          // sélecteur de membre est posé sous le header, structure identique).
           if (isDesktop) {
             return (
               <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center" }}>
                 {greeting}
-                <div style={{ justifySelf: "center" }}>{scopeSel}</div>
+                <span />
                 <div style={{ justifySelf: "end" }}>{actions}</div>
               </div>
             );
@@ -550,10 +547,14 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
                 <div style={{ justifySelf: "end" }}>{actions}</div>
               </div>
               {greeting}
-              {scopeSel && <div style={{ marginTop: 12 }}>{scopeSel}</div>}
             </>
           );
         })()}
+        {!editMode && members.length > 1 && (
+          <div style={{ marginTop: 12 }}>
+            <ScopeFilter members={members} scope={globalScope} onChange={setGlobalScope} size="lg" style={{ marginBottom: 0 }} />
+          </div>
+        )}
       </div>
 
       <SpotlightHint

@@ -439,7 +439,7 @@ export default function BudgetScreen({ openSignal, onOpenMenu }) {
 
   return (
     <div style={{ padding: "0 1.25rem 6rem" }}>
-      <div style={{ position: "sticky", top: 0, zIndex: 30, background: "var(--bg)", marginLeft: "-1.25rem", marginRight: "-1.25rem", padding: "1rem 1.25rem", marginBottom: 8 }}>
+      <div style={{ position: "sticky", top: 0, zIndex: 30, background: "var(--bg)", marginLeft: "-1.25rem", marginRight: "-1.25rem", padding: "1rem 1.25rem" }}>
         {showForm ? (
           <div style={{ display: "flex", alignItems: "center" }}>
             <h1 style={{ fontSize: 20, marginLeft: 0, flex: 1 }}>
@@ -496,22 +496,17 @@ export default function BudgetScreen({ openSignal, onOpenMenu }) {
             </div>
           );
           const greeting = <GreetingHeader subtitleKey="budget_subtitle" marginLeft={0} />;
-          const showScope = !showForm && !editMode && members.length > 1;
-          const scopeSel = showScope ? (
-            <ScopeFilter members={members} scope={globalScope} onChange={setGlobalScope} size="lg" style={{ marginBottom: 0 }} />
-          ) : null;
-          // Desktop : on profite de la place libre du header pour placer le
-          // sélecteur de membre AU CENTRE, entre l'accueil et les actions.
+          // Desktop : une ligne [accueil | · | actions] comme l'Accueil ; le
+          // sélecteur de membre est posé sous le header (structure identique).
           if (isDesktop) {
             return (
               <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center" }}>
                 {greeting}
-                <div style={{ justifySelf: "center" }}>{scopeSel}</div>
+                <span />
                 <div style={{ justifySelf: "end" }}>{actions}</div>
               </div>
             );
           }
-          // Mobile : header serré → le sélecteur reste sur sa propre ligne, sous l'accueil.
           return (
             <>
               <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", alignItems: "center", gap: 8, marginBottom: 10 }}>
@@ -519,10 +514,14 @@ export default function BudgetScreen({ openSignal, onOpenMenu }) {
                 <div style={{ justifySelf: "end" }}>{actions}</div>
               </div>
               {greeting}
-              {scopeSel && <div style={{ marginTop: 12 }}>{scopeSel}</div>}
             </>
           );
         })()}
+        {!showForm && !editMode && members.length > 1 && (
+          <div style={{ marginTop: 12 }}>
+            <ScopeFilter members={members} scope={globalScope} onChange={setGlobalScope} size="lg" style={{ marginBottom: 0 }} />
+          </div>
+        )}
       </div>
 
       {!showForm && showCurrencyPicker && (
