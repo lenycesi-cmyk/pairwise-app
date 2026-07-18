@@ -31,6 +31,7 @@ const TagsScreen = lazy(() => import("./screens/TagsScreen"));
 const AddTransactionScreen = lazy(() => import("./screens/AddTransactionScreen"));
 const RecurringScreen = lazy(() => import("./screens/RecurringScreen"));
 const WealthScreen = lazy(() => import("./screens/WealthScreen"));
+const CreditScreen = lazy(() => import("./screens/CreditScreen"));
 const FluxScreen = lazy(() => import("./screens/FluxScreen"));
 const GoalsScreen = lazy(() => import("./screens/GoalsScreen"));
 const AddAssetScreen = lazy(() => import("./screens/AddAssetScreen"));
@@ -168,6 +169,7 @@ function AppContent() {
   const [sharedMonth, setSharedMonth] = useState({ month: now.getMonth(), year: now.getFullYear() });
   const [budgetAddSignal, setBudgetAddSignal] = useState(0);
   const [goalsAddSignal, setGoalsAddSignal] = useState(0);
+  const [creditAddSignal, setCreditAddSignal] = useState(0);
   const addButtonRef = useRef(null);
   const settingsButtonRef = useRef(null);
 
@@ -263,6 +265,8 @@ function AppContent() {
       setBudgetAddSignal((s) => s + 1);
     } else if (currentTab === "goals") {
       setGoalsAddSignal((s) => s + 1);
+    } else if (currentTab === "credits") {
+      setCreditAddSignal((s) => s + 1);
     } else {
       setShowAdd(true);
     }
@@ -336,6 +340,11 @@ function AppContent() {
       {tab === "wealth" && (
         <Suspense fallback={null}>
           <WealthScreen onOpenCalculator={() => setShowCalculator(true)} addButtonRef={addButtonRef} onOpenMenu={() => setDrawerOpen(true)} />
+        </Suspense>
+      )}
+      {tab === "credits" && (
+        <Suspense fallback={null}>
+          <CreditScreen openSignal={creditAddSignal} onOpenMenu={() => setDrawerOpen(true)} />
         </Suspense>
       )}
       {tab === "budget" && (
