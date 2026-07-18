@@ -675,6 +675,7 @@ export const TRANSLATIONS = {
     widget_transaction_history: "Transactions récentes",
     widget_net_worth: "Patrimoine net",
     widget_debt_tracker: "Suivi des dettes",
+    widget_credits: "Crédits",
 
     // Dette ("Entre vous")
     debt_title: "Entre vous",
@@ -1381,6 +1382,7 @@ export const TRANSLATIONS = {
     widget_transaction_history: "Recent Transactions",
     widget_net_worth: "Net Worth",
     widget_debt_tracker: "Debt Tracker",
+    widget_credits: "Credits",
 
     // Debt ("Between you")
     debt_title: "Between you",
