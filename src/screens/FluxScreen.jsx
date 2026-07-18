@@ -53,9 +53,10 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
   const [commentsTx, setCommentsTx] = useState(null);
   const [editMode, setEditMode] = useState(false);
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
-  // Filtre membre par widget (Famille / A / B), comme Liquidités en banque.
-  const [scopeByWidget, setScopeByWidget] = useState({});
-  const setScope = (id, v) => setScopeByWidget((prev) => ({ ...prev, [id]: v }));
+  // Filtre membre GLOBAL à la page (Famille / A / B), placé sous le sélecteur de
+  // période et appliqué à tous les widgets qui savent se re-scoper (flux, charges
+  // fixes, récurrences à venir) — remplace les anciens sélecteurs par widget.
+  const [globalScope, setGlobalScope] = useState(null);
   // Fraction « pour qui » d'un mouvement pour le membre filtré (1 si Famille).
   const frac = (tx, scope) => (scope === null ? 1 : memberShareFraction(tx, scope, members));
 
@@ -228,7 +229,7 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
   // Contenu d'un widget Flux (null quand rien à montrer → placeholder en édition).
   function renderFluxWidget(id) {
     if (id === "cashflow") {
-      const scope = scopeByWidget[id] ?? null;
+      const scope = globalScope;
       // Flux + tendance re-scopés par membre (part « pour qui »).
       let income = 0, expense = 0, invested = 0;
       for (const tx of transactions) {
@@ -259,7 +260,6 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
       })();
       return (
         <WidgetCard icon="ti-arrows-exchange" accent="sky" title={cashflowTitle}>
-          {members.length > 1 && <ScopeFilter members={members} scope={scope} onChange={(v) => setScope(id, v)} style={{ marginBottom: 12 }} />}
           <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
             <div style={{ flex: 1, background: "var(--sage-light)", borderRadius: "var(--radius-md)", padding: "10px 12px" }}>
               <p style={{ fontSize: 11, color: "var(--ink-3)", marginBottom: 3 }}>{t("flux_in")}</p>
@@ -345,7 +345,7 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
     }
 
     if (id === "fixed") {
-      const scope = scopeByWidget[id] ?? null;
+      const scope = globalScope;
       const scopedItems = fixedItems
         .map(({ rule, monthly }) => ({ rule, monthly: monthly * frac(rule, scope) }))
         .filter(({ monthly }) => monthly > 0);
@@ -362,7 +362,6 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
       const scopedIncome = periodIncome / monthsInRange(range);
       return (
         <WidgetCard icon="ti-calendar-repeat" accent="amber" title={t("flux_fixed_title")}>
-          {members.length > 1 && <ScopeFilter members={members} scope={scope} onChange={(v) => setScope(id, v)} style={{ marginBottom: 12 }} />}
           <p className="pw-num" style={{ fontSize: 26, fontWeight: 800, letterSpacing: "-0.02em", margin: "2px 0 6px" }}>
             {fmt(scopedMonthly)} {symbol}
           </p>
@@ -469,7 +468,7 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
     }
 
     if (id === "upcoming") {
-      const scope = scopeByWidget[id] ?? null;
+      const scope = globalScope;
       const scopedUpcoming = recurringTx
         .filter((r) => r.active !== false)
         .map((r) => ({ ...r, nextDate: nextOccurrence(r, now), _frac: frac(r, scope) }))
@@ -478,7 +477,6 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
         .slice(0, 3);
       return (
         <WidgetCard icon="ti-repeat" accent="pink" title={t("flux_upcoming_title")} flush action={!editMode && seeAll(() => onOpenRecurring?.())}>
-          {members.length > 1 && <ScopeFilter members={members} scope={scope} onChange={(v) => setScope(id, v)} style={{ padding: "0 18px 8px" }} />}
           {scopedUpcoming.length === 0 ? (
             <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", padding: "1.25rem 0" }}>{t("widget_recurring_empty")}</p>
           ) : (
@@ -571,25 +569,7 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
               )}
             </div>
           );
-          const title = <h1 style={{ fontSize: isDesktop ? 22 : 18, margin: 0, whiteSpace: "nowrap", fontFamily: "var(--font-display)", fontWeight: 600 }}>{t("nav_flux")}</h1>;
-          if (isDesktop) {
-            return (
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                {title}
-                {actions}
-              </div>
-            );
-          }
-          return (
-            <div style={{ display: "grid", gridTemplateColumns: "auto 1fr auto", alignItems: "center", gap: 8 }}>
-              <div style={{ justifySelf: "start" }}><HeaderMenuButton onClick={onOpenMenu} /></div>
-              <div style={{ justifySelf: "center" }}>{title}</div>
-              <div style={{ justifySelf: "end" }}>{actions}</div>
-            </div>
-          );
-        })()}
-        {!editMode && (
-          <div style={{ marginTop: 12 }}>
+          const periodSel = !editMode ? (
             <PeriodSelector
               periodType={periodType}
               setPeriodType={setPeriodType}
@@ -599,6 +579,38 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
               rangeLabel={range.label}
               customRange={customRange}
               setCustomRange={setCustomRange}
+            />
+          ) : null;
+          // Desktop : titre + actions sur une ligne, période dessous (inchangé).
+          if (isDesktop) {
+            const title = <h1 style={{ fontSize: 22, margin: 0, whiteSpace: "nowrap", fontFamily: "var(--font-display)", fontWeight: 600 }}>{t("nav_flux")}</h1>;
+            return (
+              <>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  {title}
+                  {actions}
+                </div>
+                {periodSel && <div style={{ marginTop: 12 }}>{periodSel}</div>}
+              </>
+            );
+          }
+          // Mobile : plus de titre « Flux » ; le sélecteur de période remonte au
+          // centre, aligné avec le menu (gauche) et les actions devise/crayon (droite).
+          return (
+            <div style={{ display: "grid", gridTemplateColumns: "auto 1fr auto", alignItems: "center", gap: 8 }}>
+              <div style={{ justifySelf: "start" }}><HeaderMenuButton onClick={onOpenMenu} /></div>
+              <div style={{ justifySelf: "center", minWidth: 0 }}>{periodSel}</div>
+              <div style={{ justifySelf: "end" }}>{actions}</div>
+            </div>
+          );
+        })()}
+        {!editMode && members.length > 1 && (
+          <div style={{ marginTop: 12 }}>
+            <ScopeFilter
+              members={members}
+              scope={globalScope}
+              onChange={setGlobalScope}
+              style={{ marginBottom: 0 }}
             />
           </div>
         )}
