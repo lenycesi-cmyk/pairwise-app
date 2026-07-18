@@ -7,6 +7,7 @@ import { ALL_CURRENCIES } from "../data/categories";
 import { LOAN_TYPES } from "../data/loanTypes";
 import { monthlyPayment, extraPaymentImpact } from "../utils/loanMath";
 import { currencySymbol } from "../utils/onboardingDraft";
+import { getMemberKey } from "../utils/members";
 import GreetingHeader from "../components/GreetingHeader";
 import HeaderMenuButton from "../components/HeaderMenuButton";
 import CurrencyPicker from "../components/CurrencyPicker";
@@ -19,7 +20,7 @@ import LoanCard from "../components/LoanCard";
 export default function CreditScreen({ onOpenMenu, openSignal }) {
   const t = useTranslation();
   const {
-    loans, addLoan, updateLoan, removeLoan,
+    loans, addLoan, updateLoan, removeLoan, members,
     defaultCurrency, wealthDisplayCurrency, updateWealthDisplayCurrency, language,
   } = useFinance();
   const isDesktop = useMediaQuery("(min-width: 1024px)");
@@ -41,7 +42,7 @@ export default function CreditScreen({ onOpenMenu, openSignal }) {
   }, [openSignal]);
 
   function openCreate() {
-    setFormLoan({ type: "mortgage", name: "", principal: "", rateAnnual: "", termMonths: "", startDate: new Date().toISOString().slice(0, 10), currency: displayCurrency, monthlyPayment: "" });
+    setFormLoan({ type: "mortgage", name: "", principal: "", rateAnnual: "", termMonths: "", startDate: new Date().toISOString().slice(0, 10), currency: displayCurrency, monthlyPayment: "", ownership: "shared" });
     setShowForm(true);
   }
   function openEdit(loan) {
@@ -60,6 +61,7 @@ export default function CreditScreen({ onOpenMenu, openSignal }) {
       startDate: formLoan.startDate,
       currency: formLoan.currency || displayCurrency,
       monthlyPayment: Number(formLoan.monthlyPayment) || 0,
+      ownership: formLoan.ownership || "shared",
     };
     if (formLoan.id) await updateLoan(formLoan.id, payload);
     else await addLoan(payload);
@@ -180,7 +182,7 @@ export default function CreditScreen({ onOpenMenu, openSignal }) {
 
       {showForm && formLoan && (
         <LoanForm
-          t={t} locale={locale} formLoan={formLoan} setFormLoan={setFormLoan}
+          t={t} locale={locale} members={members} formLoan={formLoan} setFormLoan={setFormLoan}
           canSave={canSave} onClose={closeForm} onSave={saveForm}
         />
       )}
@@ -294,7 +296,7 @@ function Calculator({ t, locale, symbol }) {
 }
 
 // Formulaire ajout/édition d'un prêt (overlay modale).
-function LoanForm({ t, locale, formLoan, setFormLoan, canSave, onClose, onSave }) {
+function LoanForm({ t, locale, members = [], formLoan, setFormLoan, canSave, onClose, onSave }) {
   const set = (k, v) => setFormLoan((f) => ({ ...f, [k]: v }));
   const autoMonthly = monthlyPayment(Number(formLoan.principal), Number(formLoan.rateAnnual), Number(formLoan.termMonths));
   const years = Number(formLoan.termMonths) > 0 ? (Number(formLoan.termMonths) / 12).toFixed(1) : null;
@@ -340,6 +342,21 @@ function LoanForm({ t, locale, formLoan, setFormLoan, canSave, onClose, onSave }
         </div>
 
         <Field label={t("loan_field_start")}><input type="date" value={formLoan.startDate} onChange={(e) => set("startDate", e.target.value)} style={inputStyle} /></Field>
+
+        {members.length > 1 && (
+          <Field label={t("loan_field_owner")}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {[{ key: "shared", label: t("asset_shared") }, ...members.map((m) => ({ key: getMemberKey(m), label: m.name }))].map((o) => {
+                const active = (formLoan.ownership || "shared") === o.key;
+                return (
+                  <button key={o.key} onClick={() => set("ownership", o.key)} style={{ padding: "7px 14px", borderRadius: 99, border: active ? "none" : "0.5px solid var(--rule)", background: active ? "var(--lavi-light)" : "var(--bg-card)", color: active ? "var(--lavi)" : "var(--ink-2)", fontSize: 12.5, fontWeight: active ? 700 : 500, cursor: "pointer" }}>
+                    {o.label}
+                  </button>
+                );
+              })}
+            </div>
+          </Field>
+        )}
 
         <Field label={t("loan_field_monthly")} hint={autoMonthly > 0 ? t("loan_monthly_auto").replace("{m}", `${Math.round(autoMonthly).toLocaleString(locale)}`) : null}>
           <input inputMode="decimal" value={formLoan.monthlyPayment} onChange={(e) => set("monthlyPayment", e.target.value)} placeholder={autoMonthly > 0 ? String(Math.round(autoMonthly)) : ""} style={inputStyle} />
