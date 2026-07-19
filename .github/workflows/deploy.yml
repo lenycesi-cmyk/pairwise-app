@@ -41,6 +41,22 @@ jobs:
             echo "changed=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Detect firestore rules changes
+        id: rules_changed
+        run: |
+          # On ne redéploie les règles Firestore que si firestore.rules a bougé
+          # (évite d'accumuler des rulesets inutiles). workflow_dispatch force.
+          before="${{ github.event.before }}"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          elif [ -z "$before" ] || [ "$before" = "0000000000000000000000000000000000000000" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          elif git diff --name-only "$before" "${{ github.sha }}" | grep -qE '^firestore\.rules$'; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -64,6 +80,12 @@ jobs:
         env:
           GOOGLE_APPLICATION_CREDENTIALS_JSON: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
         run: node scripts/deploy.js
+
+      - name: Deploy Firestore rules
+        if: steps.rules_changed.outputs.changed == 'true'
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS_JSON: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+        run: node scripts/deploy-rules.js
 
       - name: Install functions dependencies
         if: steps.functions_changed.outputs.changed == 'true'
