@@ -86,8 +86,10 @@ async function main() {
   const patch = await api(
     token,
     "PATCH",
-    `https://firebaserules.googleapis.com/v1/${RELEASE_NAME}?updateMask=rulesetName`,
-    { name: RELEASE_NAME, rulesetName: ruleset.name },
+    `https://firebaserules.googleapis.com/v1/${RELEASE_NAME}`,
+    // Corps de type UpdateReleaseRequest : la Release est imbriquée sous
+    // `release` (un `rulesetName` au premier niveau est rejeté en 400).
+    { release: { name: RELEASE_NAME, rulesetName: ruleset.name }, updateMask: "rulesetName" },
     { allow404: true }
   );
   if (patch && patch._notFound) {
