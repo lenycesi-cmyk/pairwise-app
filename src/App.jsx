@@ -309,6 +309,7 @@ function AppContent() {
           onOpenRecurring={openRecurring}
           onOpenBudget={() => setTab("budget")}
           onOpenCredits={() => setTab("credits")}
+          onAddAsset={() => setShowAddAsset(true)}
         />
       )}
       {tab === "flux" && (
