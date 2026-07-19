@@ -154,7 +154,7 @@ function EmptyStateCta({ text, cta, onClick, disabled }) {
   );
 }
 
-export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTransactions, onEditTransaction, sharedMonth, onSharedMonthChange, addButtonRef, settingsButtonRef, onOpenMenu, onOpenRecurring, onOpenBudget, onOpenCredits, onAddAsset }) {
+export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTransactions, onEditTransaction, sharedMonth, onSharedMonthChange, addButtonRef, settingsButtonRef, onOpenMenu, onOpenRecurring, onOpenBudget, onOpenCredits, onAddAsset, onAddBudget }) {
   const t = useTranslation();
   const {
     transactions, categories, members, assets, recurringTx, coupleName, debtSettlements,
@@ -531,7 +531,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
           >
             <div>
               {topBudgets.length === 0 ? (
-                <EmptyStateCta text={t("widget_budget_empty")} cta={t("widget_budget_empty_cta")} onClick={onOpenBudget} disabled={editMode} />
+                <EmptyStateCta text={t("widget_budget_empty")} cta={t("widget_budget_empty_cta")} onClick={onAddBudget} disabled={editMode} />
               ) : topBudgets.map((p, i) => {
                 const isLast = i === topBudgets.length - 1;
                 return (

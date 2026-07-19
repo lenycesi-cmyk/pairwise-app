@@ -154,6 +154,7 @@ function AppContent() {
   const [showDebt, setShowDebt] = useState(false);
   const [showCalculator, setShowCalculator] = useState(false);
   const [showAddAsset, setShowAddAsset] = useState(false);
+  const [addAssetType, setAddAssetType] = useState(null);
   const [showBreakdown, setShowBreakdown] = useState(false);
   const [showTheme, setShowTheme] = useState(false);
   const [showLanguage, setShowLanguage] = useState(false);
@@ -260,6 +261,7 @@ function AppContent() {
 
   function handleCentralAdd(currentTab) {
     if (currentTab === "wealth") {
+      setAddAssetType(null);
       setShowAddAsset(true);
     } else if (currentTab === "budget") {
       setBudgetAddSignal((s) => s + 1);
@@ -309,7 +311,8 @@ function AppContent() {
           onOpenRecurring={openRecurring}
           onOpenBudget={() => setTab("budget")}
           onOpenCredits={() => setTab("credits")}
-          onAddAsset={() => setShowAddAsset(true)}
+          onAddAsset={() => { setAddAssetType("account"); setShowAddAsset(true); }}
+          onAddBudget={() => { setTab("budget"); setBudgetAddSignal((s) => s + 1); }}
         />
       )}
       {tab === "flux" && (
@@ -385,7 +388,7 @@ function AppContent() {
 
       <Suspense fallback={null}>
         {showAdd && <AddTransactionScreen onClose={closeAdd} editingTx={editingTx} />}
-        {showAddAsset && <AddAssetScreen onClose={() => setShowAddAsset(false)} />}
+        {showAddAsset && <AddAssetScreen onClose={() => setShowAddAsset(false)} initialTypeId={addAssetType} />}
         {showBreakdown && <MemberBreakdownScreen onClose={() => setShowBreakdown(false)} />}
         {showCalculator && (
           <InvestmentCalculatorScreen onClose={() => setShowCalculator(false)} />

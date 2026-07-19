@@ -48,13 +48,13 @@ const bareInput = {
   fontSize: 14, outline: "none", color: "var(--ink)",
 };
 
-export default function AddAssetScreen({ onClose, editingAsset }) {
+export default function AddAssetScreen({ onClose, editingAsset, initialTypeId }) {
   const t = useTranslation();
   const { language } = useFinance();
   const { addAsset, updateAsset, removeAsset, defaultCurrency, members } = useFinance();
   const isEditing = !!editingAsset;
 
-  const [typeId, setTypeId] = useState(editingAsset?.typeId || "cash");
+  const [typeId, setTypeId] = useState(editingAsset?.typeId || initialTypeId || "cash");
   const [name, setName] = useState(editingAsset?.name || "");
   const [value, setValue] = useState(editingAsset?.value?.toString() || "");
   const [currency, setCurrency] = useState(editingAsset?.currency || defaultCurrency);
