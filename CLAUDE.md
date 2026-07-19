@@ -41,7 +41,10 @@ npm run build && node scripts/deploy.js
 (or `$GOOGLE_APPLICATION_CREDENTIALS`) and pushes `dist/` straight to Firebase Hosting via the REST API
 (`firebasehosting.googleapis.com`), bypassing the CLI entirely. The service account
 (`pairwise-deploy@pairwise-12df2.iam.gserviceaccount.com`) has `Firebase Hosting Admin` and
-`Firebase Rules Admin` — Firestore/Storage rules deploys could be scripted the same way but aren't yet automated.
+`Firebase Rules Admin`. **Firestore rules** are deployed by `scripts/deploy-rules.js` (REST API
+`firebaserules.googleapis.com`, same service-account auth as `deploy.js`), wired into `deploy.yml`
+(runs only when `firestore.rules` changed, or on manual `workflow_dispatch`). Storage rules aren't
+automated yet.
 
 ### Push notifications (FCM)
 
