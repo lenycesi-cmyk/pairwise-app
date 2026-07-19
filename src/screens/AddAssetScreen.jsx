@@ -191,7 +191,12 @@ export default function AddAssetScreen({ onClose, editingAsset }) {
         {/* Type d'actif */}
         <SectionCard accent="var(--sky)" icon="ti-category-2" title={t("asset_type_label")}>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {ASSET_TYPES.map((at) => {
+            {ASSET_TYPES.filter(
+              // Les dettes/crédits sont désormais gérés par le module Crédits :
+              // on masque le type « dette » à la création (mais on le garde à
+              // l'édition d'un actif hérité déjà enregistré comme dette).
+              (at) => !at.isLiability || at.id === editingAsset?.typeId
+            ).map((at) => {
               const sel = typeId === at.id;
               return (
                 <button
