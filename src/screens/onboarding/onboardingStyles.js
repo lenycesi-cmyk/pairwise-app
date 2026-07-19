@@ -2,6 +2,14 @@
 // composants pour respecter react-refresh/only-export-components).
 
 export const screenWrap = {
+  // position: fixed + inset: 0 → on se centre sur le vrai viewport et on ignore
+  // le décalage de #root : ces écrans s'affichent avant connexion, mais body
+  // réserve la largeur de la sidebar (>= 1024px, cf. layout.css) et centre #root
+  // dans l'espace restant, ce qui poussait tout le contenu vers la droite. En
+  // sortant du flux (fixed) avec inset: 0 + margin auto, le centrage se fait sur
+  // l'écran entier (même correctif que AuthScreen).
+  position: "fixed",
+  inset: 0,
   minHeight: "100dvh",
   display: "flex",
   flexDirection: "column",
