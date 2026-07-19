@@ -12,7 +12,8 @@ export const TRANSLATIONS = {
     hint_got_it: "Compris",
     hint_next: "Suivant",
     hint_previous: "Précédent",
-    widget_budget_empty: "Aucun budget pour l'instant. Crée-en un dans l'onglet Budget.",
+    widget_budget_empty: "Aucun budget pour l'instant. ",
+    widget_budget_empty_cta: "Crée ton premier budget",
     member_pending: "en attente",
 
     // Onboarding
@@ -704,7 +705,8 @@ export const TRANSLATIONS = {
     widget_trend_this_month: "Ce mois",
     widget_trend_this_week: "Cette sem.",
     widget_available_savings_label: "Liquidités en banque",
-    widget_no_bank_accounts: "Aucun compte bancaire dans le Patrimoine",
+    widget_no_bank_accounts: "Aucun compte bancaire pour le moment. ",
+    widget_no_bank_accounts_cta: "Ajoute ton premier compte",
     widget_net_worth_total: "Patrimoine total",
     widget_recurring_upcoming: "Prochaines récurrences",
     widget_recurring_empty: "Aucune transaction récurrente",
@@ -724,7 +726,8 @@ export const TRANSLATIONS = {
     hint_got_it: "Got it",
     hint_next: "Next",
     hint_previous: "Previous",
-    widget_budget_empty: "No budget yet. Create one in the Budget tab.",
+    widget_budget_empty: "No budget yet. ",
+    widget_budget_empty_cta: "Create your first budget",
     member_pending: "pending",
 
     // Onboarding
@@ -1416,7 +1419,8 @@ export const TRANSLATIONS = {
     widget_trend_this_month: "This month",
     widget_trend_this_week: "This week",
     widget_available_savings_label: "Cash in bank accounts",
-    widget_no_bank_accounts: "No bank accounts in Wealth",
+    widget_no_bank_accounts: "No bank account yet. ",
+    widget_no_bank_accounts_cta: "Add your first account",
     widget_net_worth_total: "Total net worth",
     widget_recurring_upcoming: "Upcoming recurring",
     widget_recurring_empty: "No recurring transactions",

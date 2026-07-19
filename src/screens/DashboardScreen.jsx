@@ -136,7 +136,25 @@ function SortableWidget({ id, editMode, onLongPress, outerStyle, children }) {
 }
 
 // ── Main component ───────────────────────────────────────────────────────────
-export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTransactions, onEditTransaction, sharedMonth, onSharedMonthChange, addButtonRef, settingsButtonRef, onOpenMenu, onOpenRecurring, onOpenBudget, onOpenCredits }) {
+// État vide cliquable : phrase grise suivie d'un appel à l'action bleu/gras
+// (ex. « Aucun budget pour l'instant. Crée ton premier budget »). Permet
+// d'ajouter une entrée directement depuis l'Accueil, sans aller sur l'onglet.
+function EmptyStateCta({ text, cta, onClick, disabled }) {
+  return (
+    <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", padding: "0.6rem 0", lineHeight: 1.5 }}>
+      {text}
+      <button
+        onClick={disabled ? undefined : onClick}
+        disabled={disabled}
+        style={{ background: "none", border: "none", padding: 0, color: "var(--sky)", fontWeight: 700, fontSize: 13, cursor: disabled ? "default" : "pointer", fontFamily: "inherit" }}
+      >
+        {cta}
+      </button>
+    </p>
+  );
+}
+
+export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTransactions, onEditTransaction, sharedMonth, onSharedMonthChange, addButtonRef, settingsButtonRef, onOpenMenu, onOpenRecurring, onOpenBudget, onOpenCredits, onAddAsset }) {
   const t = useTranslation();
   const {
     transactions, categories, members, assets, recurringTx, coupleName, debtSettlements,
@@ -479,7 +497,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
             title={t("widget_available_savings_label")}
           >
             {bankAccounts.length === 0 ? (
-              <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", padding: "0.5rem 0" }}>{t("widget_no_bank_accounts")}</p>
+              <EmptyStateCta text={t("widget_no_bank_accounts")} cta={t("widget_no_bank_accounts_cta")} onClick={onAddAsset} disabled={editMode} />
             ) : (
               <>
                 {/* Hero : le total en gros chiffre en tête, détail des comptes dessous. */}
@@ -491,7 +509,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                   <BreakdownRow key={a.id} color={BANK_DOT_COLORS[i % BANK_DOT_COLORS.length]} label={a.name} value={`${formatAmount(convert(a.value, a.currency, displayCurrency))} ${currencySymbol}`} last={i === scopedAccounts.length - 1} />
                 ))}
                 {scopedAccounts.length === 0 && (
-                  <p style={{ fontSize: 12.5, color: "var(--ink-3)", textAlign: "center", padding: "0.5rem 0" }}>{t("widget_no_bank_accounts")}</p>
+                  <EmptyStateCta text={t("widget_no_bank_accounts")} cta={t("widget_no_bank_accounts_cta")} onClick={onAddAsset} disabled={editMode} />
                 )}
               </>
             )}
@@ -513,7 +531,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
           >
             <div>
               {topBudgets.length === 0 ? (
-                <p style={{ fontSize: 13, color: "var(--ink-3)", textAlign: "center", padding: "0.75rem 0" }}>{t("widget_budget_empty")}</p>
+                <EmptyStateCta text={t("widget_budget_empty")} cta={t("widget_budget_empty_cta")} onClick={onOpenBudget} disabled={editMode} />
               ) : topBudgets.map((p, i) => {
                 const isLast = i === topBudgets.length - 1;
                 return (
