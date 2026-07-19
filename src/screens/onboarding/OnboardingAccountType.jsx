@@ -30,17 +30,19 @@ export default function OnboardingAccountType({ language, onPick, onJoin, onBack
           onClick={() => onPick("couple")}
         />
 
+        <button
+          onClick={onJoin}
+          style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", background: "none", border: "none", color: "var(--sky)", fontWeight: 700, fontSize: 15, cursor: "pointer", marginTop: 16, padding: "6px 0", fontFamily: "inherit" }}
+        >
+          <i className="ti ti-ticket" style={{ fontSize: 18 }} aria-hidden="true" />
+          {t("s4_join")}
+        </button>
+
         <div style={{ flex: 1 }} />
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7, color: "var(--ink-3)", fontSize: 12.5, marginTop: 18 }}>
           <i className="ti ti-refresh" style={{ fontSize: 14 }} />
           {t("s4_rev")}
         </div>
-        <button
-          onClick={onJoin}
-          style={{ background: "none", border: "none", color: "var(--sky)", fontWeight: 700, fontSize: 13, cursor: "pointer", marginTop: 14, fontFamily: "inherit" }}
-        >
-          {t("s4_join")}
-        </button>
       </div>
     </div>
   );

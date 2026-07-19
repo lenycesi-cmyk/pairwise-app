@@ -9,12 +9,13 @@ import { draftEntryView, deriveInsight, formatMoney } from "../utils/onboardingD
 // "+N autres" — garde la carte compacte sur mobile (pas de scroll voulu).
 const MAX_DRAFT_ROWS = 4;
 
-export default function AuthScreen({ defaultMode = "login", draft = [], language, onBack = null }) {
+export default function AuthScreen({ defaultMode = "login", draft = [], language, onBack = null, joinMode = false, onJoinCode = null }) {
   const { login, signup } = useAuth();
   const [mode, setMode] = useState(defaultMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -32,6 +33,10 @@ export default function AuthScreen({ defaultMode = "login", draft = [], language
       if (mode === "login") {
         await login(email, password);
       } else {
+        // Parcours "j'ai reçu un code" : on mémorise le code avant de créer le
+        // compte. Une fois connecté, CoupleSetupScreen le récupère (autoJoinCode)
+        // et rejoint l'espace automatiquement — pas d'écran intermédiaire.
+        if (joinMode && onJoinCode) onJoinCode(code.trim().toUpperCase());
         await signup(email, password, name);
       }
     } catch (err) {
@@ -143,6 +148,18 @@ export default function AuthScreen({ defaultMode = "login", draft = [], language
             onChange={(e) => setName(e.target.value)}
             required
             style={inputStyle}
+          />
+        )}
+        {mode === "signup" && joinMode && (
+          <input
+            type="text"
+            placeholder={lang === "en" ? "Invite code" : "Code d'invitation"}
+            value={code}
+            onChange={(e) => setCode(e.target.value.toUpperCase())}
+            required
+            maxLength={6}
+            autoCapitalize="characters"
+            style={{ ...inputStyle, fontFamily: "var(--font-mono)", letterSpacing: 2, textTransform: "uppercase" }}
           />
         )}
         <input
