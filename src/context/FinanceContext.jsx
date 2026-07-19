@@ -106,7 +106,19 @@ export function FinanceProvider({ children }) {
         const data = snap.data();
         if (data.categories) setCategories(data.categories);
         if (data.defaultCurrency) setDefaultCurrency(data.defaultCurrency);
-        if (data.members) setMembers(data.members);
+        if (data.members) {
+          setMembers(data.members);
+          // Self-heal : backfille le memberUids du doc couple pour les espaces
+          // anciens, afin que les règles Firestore durcies (accès réservé aux
+          // membres) ne verrouillent jamais un couple hérité. Idempotent : ne
+          // réécrit que si le champ manque ou diverge des membres réels.
+          const realUids = data.members.map((m) => m.uid).filter(Boolean);
+          const current = Array.isArray(data.memberUids) ? data.memberUids.filter(Boolean) : null;
+          const same = current && current.length === realUids.length && realUids.every((u) => current.includes(u));
+          if (!same) {
+            setDoc(doc(db, "couples", coupleId), { memberUids: realUids }, { merge: true }).catch(() => {});
+          }
+        }
         if (data.coupleName !== undefined) setCoupleName(data.coupleName);
         if (data.currencyMode) setCurrencyMode(data.currencyMode);
         if (data.financeMode) setFinanceMode(data.financeMode);

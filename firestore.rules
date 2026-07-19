@@ -3,25 +3,53 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Chaque utilisateur authentifié peut lire/modifier son propre profil
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+    function isSignedIn() {
+      return request.auth != null;
     }
 
-    // Tout utilisateur authentifié peut lire/modifier les couples et leurs
-    // transactions. Simplifié volontairement : à ce stade du projet (usage
-    // personnel, pas de données sensibles de tiers), la sécurité fine n'est
-    // pas prioritaire par rapport à la fiabilité. À renforcer plus tard si
-    // l'app grandit au-delà d'un usage privé entre vous deux.
+    function coupleData(coupleId) {
+      return get(/databases/$(database)/documents/couples/$(coupleId)).data;
+    }
+
+    // Un membre est un utilisateur dont l'uid figure dans memberUids du couple.
+    // memberUids est maintenu à la création, à la jointure et à la reprise d'un
+    // placeholder (voir CoupleSetupScreen), et backfillé au chargement pour les
+    // espaces hérités (self-heal dans FinanceContext). Tant que le champ manque
+    // sur un doc ancien, on tolère l'accès de tout utilisateur authentifié
+    // (comportement historique) pour ne jamais verrouiller un couple existant —
+    // le self-heal referme cette fenêtre dès la première ouverture par un membre.
+    function isCoupleMember(coupleId) {
+      return isSignedIn() && (
+        !('memberUids' in coupleData(coupleId))
+        || request.auth.uid in coupleData(coupleId).memberUids
+      );
+    }
+
+    // Chaque utilisateur authentifié peut lire/modifier son propre profil.
+    match /users/{userId} {
+      allow read, write: if isSignedIn() && request.auth.uid == userId;
+    }
+
     match /couples/{coupleId} {
-      allow read, write: if request.auth != null;
+      // Lecture/écriture réservées aux membres du couple. La jointure par code
+      // (un utilisateur pas encore membre s'ajoute lui-même) est autorisée
+      // uniquement s'il s'inscrit dans memberUids du document résultant — le
+      // code de couple (id du doc) fait office de secret d'invitation.
+      allow read, delete: if isCoupleMember(coupleId);
+      allow create: if isSignedIn()
+        && request.auth.uid in request.resource.data.memberUids;
+      allow update: if isCoupleMember(coupleId)
+        || request.auth.uid in request.resource.data.memberUids;
 
       match /transactions/{transactionId} {
-        allow read, write: if request.auth != null;
+        allow read, write: if isCoupleMember(coupleId);
       }
 
+      // Connexions bancaires : contiennent les access_token Plaid. Seules les
+      // Cloud Functions (admin SDK, qui contourne ces règles) y accèdent. Aucun
+      // accès client, en lecture comme en écriture.
       match /bankConnections/{connectionId} {
-        allow read, write: if request.auth != null;
+        allow read, write: if false;
       }
     }
   }

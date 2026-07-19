@@ -100,53 +100,43 @@ export default function CoupleSetupScreen() {
     setCoupleId(code);
   }
 
+  // La jointure passe par une Cloud Function (admin) : depuis le durcissement
+  // des règles Firestore, un non-membre ne peut plus lire ni écrire le doc
+  // couple côté client. Le code d'invitation (id du doc) reste le secret qui
+  // autorise la jointure, vérifié côté serveur.
+  function joinError(err) {
+    const msg = err?.message || "";
+    if (msg.includes("couple-not-found")) return "Code introuvable. Vérifiez l'orthographe.";
+    if (msg.includes("couple-full")) return "Cet espace est déjà complet (2 membres maximum).";
+    if (msg.includes("placeholder-unavailable")) return "Cette place n'est plus disponible.";
+    return `Erreur: ${err?.code || msg}`;
+  }
+
+  async function callJoinCouple(payload) {
+    const { getFunctions, httpsCallable } = await import("firebase/functions");
+    const fn = httpsCallable(getFunctions(undefined, "europe-west1"), "joinCouple");
+    return (await fn(payload)).data;
+  }
+
   async function handleJoin(e) {
     e.preventDefault();
     setBusy(true);
     setError("");
     try {
       const code = joinCode.trim().toUpperCase();
-      const coupleDoc = await getDoc(doc(db, "couples", code));
-      if (!coupleDoc.exists()) {
-        setError("Code introuvable. Vérifiez l'orthographe.");
-        setBusy(false);
-        return;
-      }
-      const data = coupleDoc.data();
-      const members = data.members || [];
-
-      if (members.find((m) => m.uid === user.uid)) {
-        // Already a member (e.g. re-joining after a refresh) — no-op.
-        await finalizeJoin(code);
-        return;
-      }
-
-      const placeholder = members.find((m) => m.uid === null);
-      if (placeholder) {
-        setPlaceholderMember(placeholder);
-        setConfirmName(placeholder.name);
+      const res = await callJoinCouple({ code });
+      if (res.status === "needs_identity") {
+        setPlaceholderMember(res.placeholder);
+        setConfirmName(res.placeholder.name);
         setJoiningCode(code);
         setMode("confirm-identity");
         setBusy(false);
         return;
       }
-
-      const realCount = members.filter((m) => m.uid !== null).length;
-      if (realCount >= 2) {
-        setError("Cet espace est déjà complet (2 membres maximum).");
-        setBusy(false);
-        return;
-      }
-      members.push({ uid: user.uid, memberId: user.uid, name: user.displayName || "Moi" });
-      await setDoc(
-        doc(db, "couples", code),
-        { members, memberUids: members.map((m) => m.uid) },
-        { merge: true }
-      );
       await finalizeJoin(code);
     } catch (err) {
       console.error("Erreur jointure couple:", err);
-      setError(`Erreur: ${err.code || err.message}`);
+      setError(joinError(err));
     } finally {
       setBusy(false);
     }
@@ -156,19 +146,11 @@ export default function CoupleSetupScreen() {
     setBusy(true);
     setError("");
     try {
-      const coupleRef = doc(db, "couples", joiningCode);
-      const coupleDoc = await getDoc(coupleRef);
-      const members = coupleDoc.data()?.members || [];
-      const updated = members.map((m) =>
-        m.memberId === placeholderMember.memberId
-          ? { ...m, uid: user.uid, name: confirmName.trim() || m.name }
-          : m
-      );
-      await setDoc(
-        coupleRef,
-        { members: updated, memberUids: updated.map((m) => m.uid) },
-        { merge: true }
-      );
+      await callJoinCouple({
+        code: joiningCode,
+        claimMemberId: placeholderMember.memberId,
+        name: confirmName.trim(),
+      });
       // The shared data (recurring/income/investments/possessions) was
       // already attributed to this placeholder by whoever created the
       // space — no wizard needed, straight to Home.
@@ -177,7 +159,7 @@ export default function CoupleSetupScreen() {
       setCoupleId(joiningCode);
     } catch (err) {
       console.error("Erreur confirmation identité:", err);
-      setError(`Erreur: ${err.code || err.message}`);
+      setError(joinError(err));
       setBusy(false);
     }
   }

@@ -101,15 +101,26 @@ export function AuthProvider({ children }) {
     const remainingMembers = (members || []).filter((m) => m.uid !== uid);
     const remainingRealMembers = remainingMembers.filter((m) => m.uid);
     if (remainingRealMembers.length === 0 && coupleId) {
-      // Last member — delete all couple data
+      // Last member — revoke Plaid items + delete bank connections server-side
+      // first (the bankConnections subcollection holds access tokens and is no
+      // longer client-accessible). Best-effort: never block account deletion.
+      try {
+        const { getFunctions, httpsCallable } = await import("firebase/functions");
+        await httpsCallable(getFunctions(undefined, "europe-west1"), "purgeBankConnections")({ coupleId });
+      } catch (err) {
+        console.warn("purgeBankConnections failed (continuing deletion):", err?.message);
+      }
+      // Delete remaining couple data
       const txSnap = await getDocs(collection(db, "couples", coupleId, "transactions"));
       txSnap.forEach((d) => batch.delete(d.ref));
-      const connSnap = await getDocs(collection(db, "couples", coupleId, "bankConnections"));
-      connSnap.forEach((d) => batch.delete(d.ref));
       batch.delete(doc(db, "couples", coupleId));
     } else if (coupleId) {
       // Other member remains — just remove this user from members array
-      batch.set(doc(db, "couples", coupleId), { members: remainingMembers }, { merge: true });
+      batch.set(
+        doc(db, "couples", coupleId),
+        { members: remainingMembers, memberUids: remainingMembers.map((m) => m.uid).filter(Boolean) },
+        { merge: true }
+      );
     }
 
     // Delete user doc

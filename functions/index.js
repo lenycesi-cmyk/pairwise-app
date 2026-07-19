@@ -258,6 +258,113 @@ async function syncAssetBalance(coupleId, assetId) {
   return { success: true, balance, currency: isoCurrency };
 }
 
+// ── Couple membership (server-side join) ─────────────────────────────────────
+
+/**
+ * Join a couple by its invite code. Runs server-side (admin) because the
+ * Firestore rules now restrict couple reads/writes to existing members — a
+ * not-yet-member cannot inspect or edit the couple doc from the client.
+ *
+ * Called with: { code, claimMemberId?, name? }
+ * Returns:
+ *   { status: "joined" }                         — caller is now a member
+ *   { status: "needs_identity", placeholder }    — a placeholder must be claimed
+ *
+ * The invite code (the couple doc id) is the shared secret that authorises the
+ * join, mirroring the previous client behaviour but without exposing the doc.
+ */
+exports.joinCouple = onCall(async (request) => {
+  if (!request.auth) throw new HttpsError("unauthenticated", "Authentication required");
+  const { code, claimMemberId, name } = request.data || {};
+  if (!code) throw new HttpsError("invalid-argument", "code required");
+
+  const uid = request.auth.uid;
+  const ref = db.collection("couples").doc(code);
+  const snap = await ref.get();
+  if (!snap.exists) throw new HttpsError("not-found", "couple-not-found");
+
+  const members = snap.data().members || [];
+
+  // Already a member (e.g. re-joining after a refresh) — no-op.
+  if (members.find((m) => m.uid === uid)) return { status: "joined" };
+
+  const placeholder = members.find((m) => m.uid === null);
+
+  // A placeholder exists but the caller hasn't confirmed which identity to
+  // claim yet — ask the client to show the confirm-identity step first.
+  if (placeholder && !claimMemberId) {
+    return {
+      status: "needs_identity",
+      placeholder: { memberId: placeholder.memberId, name: placeholder.name },
+    };
+  }
+
+  let updated;
+  if (claimMemberId) {
+    const target = members.find((m) => m.memberId === claimMemberId && m.uid === null);
+    if (!target) throw new HttpsError("failed-precondition", "placeholder-unavailable");
+    updated = members.map((m) =>
+      m.memberId === claimMemberId ? { ...m, uid, name: (name || m.name) } : m
+    );
+  } else {
+    const realCount = members.filter((m) => m.uid !== null).length;
+    if (realCount >= 2) throw new HttpsError("failed-precondition", "couple-full");
+    updated = [...members, { uid, memberId: uid, name: name || "Moi" }];
+  }
+
+  await ref.set(
+    { members: updated, memberUids: updated.map((m) => m.uid).filter(Boolean) },
+    { merge: true }
+  );
+  return { status: "joined" };
+});
+
+/**
+ * Purge every bank connection of a couple: revokes each Plaid item and deletes
+ * the docs. Called client-side right before deleting the last member's couple
+ * (the bankConnections subcollection is no longer client-accessible, so this
+ * cleanup — which also holds the Plaid access_tokens — must run as admin).
+ *
+ * Called with: { coupleId }
+ */
+exports.purgeBankConnections = onCall(
+  { secrets: [PLAID_CLIENT_ID, PLAID_SECRET, PLAID_ENV] },
+  async (request) => {
+    if (!request.auth) throw new HttpsError("unauthenticated", "Authentication required");
+    const { coupleId } = request.data || {};
+    if (!coupleId) throw new HttpsError("invalid-argument", "coupleId required");
+
+    const coupleSnap = await db.collection("couples").doc(coupleId).get();
+    const memberUids = coupleSnap.data()?.memberUids || [];
+    if (!memberUids.includes(request.auth.uid)) {
+      throw new HttpsError("permission-denied", "Not a member of this couple");
+    }
+
+    const connSnap = await db
+      .collection("couples").doc(coupleId)
+      .collection("bankConnections").get();
+    if (connSnap.empty) return { success: true, removed: 0 };
+
+    const plaid = getPlaidClient(
+      PLAID_CLIENT_ID.value(),
+      PLAID_SECRET.value(),
+      PLAID_ENV.value()
+    );
+    for (const connDoc of connSnap.docs) {
+      const { accessToken } = connDoc.data();
+      if (accessToken) {
+        try {
+          await plaid.itemRemove({ access_token: accessToken });
+        } catch (_) {
+          // best-effort: ignore Plaid errors, still delete the local doc
+        }
+      }
+      await connDoc.ref.delete();
+    }
+    return { success: true, removed: connSnap.size };
+  }
+);
+
 // ── Push notifications ───────────────────────────────────────────────────────
 
 // Un token FCM dont le timestamp (mis à jour à chaque ouverture de l'app par
