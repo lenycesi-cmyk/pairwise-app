@@ -127,7 +127,7 @@ export default function AuthScreen({ defaultMode = "login", draft = [], language
     <div style={{ marginBottom: "2.5rem", display: "flex", flexDirection: "column", alignItems: "center" }}>
       <Logo size={84} stacked />
       <p style={{ fontSize: 14, color: "var(--ink-3)", marginTop: 12 }}>
-        Vos finances, à deux
+        {t("auth_tagline")}
       </p>
     </div>
   );
@@ -143,7 +143,7 @@ export default function AuthScreen({ defaultMode = "login", draft = [], language
         {mode === "signup" && (
           <input
             type="text"
-            placeholder="Ton prénom"
+            placeholder={t("auth_first_name")}
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
@@ -153,7 +153,7 @@ export default function AuthScreen({ defaultMode = "login", draft = [], language
         {mode === "signup" && joinMode && (
           <input
             type="text"
-            placeholder={lang === "en" ? "Invite code" : "Code d'invitation"}
+            placeholder={t("auth_invite_code")}
             value={code}
             onChange={(e) => setCode(e.target.value.toUpperCase())}
             required
@@ -164,7 +164,7 @@ export default function AuthScreen({ defaultMode = "login", draft = [], language
         )}
         <input
           type="email"
-          placeholder="Email"
+          placeholder={t("auth_email")}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
@@ -173,7 +173,7 @@ export default function AuthScreen({ defaultMode = "login", draft = [], language
         <div style={{ position: "relative" }}>
           <input
             type={showPassword ? "text" : "password"}
-            placeholder="Mot de passe"
+            placeholder={t("auth_password")}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
@@ -183,7 +183,7 @@ export default function AuthScreen({ defaultMode = "login", draft = [], language
           <button
             type="button"
             onClick={() => setShowPassword((v) => !v)}
-            aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+            aria-label={showPassword ? t("auth_password_hide") : t("auth_password_show")}
             style={{
               position: "absolute",
               right: 8,
@@ -225,7 +225,7 @@ export default function AuthScreen({ defaultMode = "login", draft = [], language
             opacity: busy ? 0.6 : 1,
           }}
         >
-          {busy ? "..." : mode === "login" ? "Se connecter" : "Crée ton compte"}
+          {busy ? "..." : mode === "login" ? t("auth_login") : t("auth_create")}
         </button>
       </form>
     </div>
@@ -247,9 +247,9 @@ export default function AuthScreen({ defaultMode = "login", draft = [], language
       }}
     >
       {mode === "login" ? (
-        <>Pas encore de compte ? <span style={{ fontWeight: 700, color: "var(--sky)" }}>Créer un compte</span></>
+        <>{t("auth_no_account_q")} <span style={{ fontWeight: 700, color: "var(--sky)" }}>{t("auth_no_account_cta")}</span></>
       ) : (
-        <>Déjà un compte ? <span style={{ fontWeight: 700, color: "var(--sky)" }}>Se connecter</span></>
+        <>{t("auth_have_account_q")} <span style={{ fontWeight: 700, color: "var(--sky)" }}>{t("auth_have_account_cta")}</span></>
       )}
     </button>
   );
@@ -275,13 +275,20 @@ export default function AuthScreen({ defaultMode = "login", draft = [], language
       }}
     >
       {onBack && (
-        <button
-          onClick={onBack}
-          aria-label="Retour"
-          style={{ position: "absolute", top: 18, left: 18, background: "none", border: "none", display: "flex", color: "var(--ink-3)", cursor: "pointer" }}
-        >
-          <i className="ti ti-arrow-left" style={{ fontSize: 22 }} aria-hidden="true" />
-        </button>
+        // Flèche retour alignée sur le bord gauche de la colonne de contenu
+        // centrée (comme StepDots sur les autres écrans), et non plus collée au
+        // coin du viewport.
+        <div style={{ position: "absolute", top: 18, left: 0, right: 0, display: "flex", justifyContent: "center", pointerEvents: "none" }}>
+          <div style={{ width: "100%", maxWidth: draftPanel && isDesktop ? 840 : 400 }}>
+            <button
+              onClick={onBack}
+              aria-label={t("auth_back")}
+              style={{ background: "none", border: "none", display: "flex", color: "var(--ink-3)", cursor: "pointer", pointerEvents: "auto", padding: 4 }}
+            >
+              <i className="ti ti-arrow-left" style={{ fontSize: 22 }} aria-hidden="true" />
+            </button>
+          </div>
+        </div>
       )}
 
       {draftPanel && <div style={{ marginBottom: isDesktop ? 48 : 28 }}><Logo size={36} /></div>}
