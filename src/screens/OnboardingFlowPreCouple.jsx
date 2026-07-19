@@ -86,7 +86,7 @@ export default function OnboardingFlowPreCouple({ onSignIn }) {
   }, [user, setCoupleId, setOnboardingComplete]);
 
   if (user) {
-    if (loadMeta().accountType === "join") return <CoupleSetupScreen />;
+    if (loadMeta().accountType === "join") return <CoupleSetupScreen autoJoinCode={loadMeta().joinCode} />;
     return <Splash text={onboardingT(lang)("saving")} />;
   }
 
@@ -129,11 +129,14 @@ export default function OnboardingFlowPreCouple({ onSignIn }) {
 
   // signup
   const isCouple = loadMeta().accountType === "couple";
+  const isJoin = loadMeta().accountType === "join";
   return (
     <AuthScreen
       defaultMode="signup"
       draft={loadDraft()}
       language={lang}
+      joinMode={isJoin}
+      onJoinCode={(c) => saveMeta({ joinCode: c })}
       onBack={() => setStep(isCouple ? "mode" : "account")}
     />
   );

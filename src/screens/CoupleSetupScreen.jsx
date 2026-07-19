@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import { useAuth } from "../context/AuthContext";
 import { getInitial } from "../utils/memberColors";
+import { saveMeta } from "../utils/onboardingDraft";
 
 function newPlaceholderId() {
   return `ph_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
@@ -17,12 +18,13 @@ function generateCoupleCode() {
   return code;
 }
 
-export default function CoupleSetupScreen() {
+export default function CoupleSetupScreen({ autoJoinCode = null }) {
   const { user, setCoupleId, setOnboardingComplete } = useAuth();
   // null = ask solo vs couple first; "couple-choice" = create/join buttons;
-  // "join" = join-by-code form. Solo skips straight to handleCreate below.
-  const [mode, setMode] = useState(null);
-  const [joinCode, setJoinCode] = useState("");
+  // "join" = join-by-code form; "auto-joining" = a code carried over from the
+  // signup form (parcours "j'ai reçu un code") is being joined automatically.
+  const [mode, setMode] = useState(autoJoinCode ? "auto-joining" : null);
+  const [joinCode, setJoinCode] = useState(autoJoinCode || "");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [createdCode, setCreatedCode] = useState("");
@@ -118,12 +120,22 @@ export default function CoupleSetupScreen() {
     return (await fn(payload)).data;
   }
 
-  async function handleJoin(e) {
-    e.preventDefault();
+  // Code transmis par le formulaire d'inscription (parcours "j'ai reçu un
+  // code") : on rejoint l'espace directement, sans montrer l'écran solo/couple.
+  // En cas d'échec (code erroné), on bascule sur le formulaire de code classique
+  // pour laisser corriger.
+  useEffect(() => {
+    if (!autoJoinCode) return;
+    saveMeta({ joinCode: null }); // évite un nouvel essai au rafraîchissement
+    runJoin(autoJoinCode, { auto: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function runJoin(rawCode, { auto = false } = {}) {
     setBusy(true);
     setError("");
     try {
-      const code = joinCode.trim().toUpperCase();
+      const code = (rawCode || "").trim().toUpperCase();
       const res = await callJoinCouple({ code });
       if (res.status === "needs_identity") {
         setPlaceholderMember(res.placeholder);
@@ -137,9 +149,18 @@ export default function CoupleSetupScreen() {
     } catch (err) {
       console.error("Erreur jointure couple:", err);
       setError(joinError(err));
+      if (auto) {
+        setJoinCode(rawCode);
+        setMode("join");
+      }
     } finally {
       setBusy(false);
     }
+  }
+
+  async function handleJoin(e) {
+    e.preventDefault();
+    await runJoin(joinCode);
   }
 
   async function handleConfirmIdentity() {
@@ -245,6 +266,15 @@ export default function CoupleSetupScreen() {
         >
           {busy ? "..." : "C'est noté, continuer"}
         </button>
+      </div>
+    );
+  }
+
+  if (mode === "auto-joining") {
+    return (
+      <div style={screenStyle}>
+        <i className="ti ti-users" style={{ fontSize: 40, color: "var(--tang)", marginBottom: 16 }} aria-hidden="true" />
+        <p style={{ fontSize: 15, color: "var(--ink-2)", fontWeight: 600 }}>Connexion à votre espace…</p>
       </div>
     );
   }
