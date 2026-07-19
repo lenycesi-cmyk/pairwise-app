@@ -38,6 +38,8 @@ const FUNCTIONS_TO_DEPLOY = [
   "syncBalance",
   "disconnectBank",
   "syncAllBalances",
+  "joinCouple",
+  "purgeBankConnections",
   "sendPush",
   "sendRecurringReminders",
   "monthlySummary",
