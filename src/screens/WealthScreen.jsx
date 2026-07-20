@@ -483,9 +483,10 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
                       {asset.ownership === "shared" && ` (${asset.sharePct ?? 50}/${100 - (asset.sharePct ?? 50)})`}
                     </p>
                   </div>
-                  {/* Bouton compact "Connecter" entre le nom et le solde
-                      (seulement tant que la banque n'est pas connectée). */}
-                  {type.id === "account" && !asset.bankConnected && (
+                  {/* Bouton bancaire inline entre le nom et le solde : puce
+                      "Connecter" si non connecté, sinon actions rafraîchir /
+                      déconnecter — toujours visibles sans dérouler de bloc. */}
+                  {type.id === "account" && (
                     <ConnectBankButton asset={asset} compact onSuccess={() => setEditingAsset(null)} />
                   )}
                   {asset.comments?.length > 0 && (
@@ -508,14 +509,6 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
                     )}
                   </div>
                 </div>
-                {type.id === "account" && asset.bankConnected && (
-                  <div style={{ paddingLeft: 46, paddingRight: 14, paddingBottom: 10 }}>
-                    <ConnectBankButton
-                      asset={asset}
-                      onSuccess={() => setEditingAsset(null)}
-                    />
-                  </div>
-                )}
               </div>
             );
           })}

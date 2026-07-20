@@ -155,9 +155,59 @@ export default function ConnectBankButton({ asset, onSuccess, compact = false })
     );
   }
 
-  // Compact inline chip (icon + short label) — sits in the row between the
-  // account name and the balance.
+  // Icône normalisée : boîte de taille fixe + centrage, pour que toutes les
+  // puces "Connecter" (et les boutons d'action) aient un glyphe identique quel
+  // que soit l'icône rendue.
+  const chipIcon = {
+    fontSize: 14,
+    width: 16,
+    lineHeight: "16px",
+    textAlign: "center",
+    display: "inline-block",
+    flexShrink: 0,
+  };
+
+  // Compact inline chip — sits in the row between the account name and the
+  // balance. Once connected, it becomes two small action buttons (rafraîchir /
+  // déconnecter) au même emplacement, pour que la déconnexion soit toujours
+  // visible sans avoir à dérouler un bloc.
   if (compact) {
+    if (isConnected) {
+      const iconBtn = (color) => ({
+        width: 30,
+        height: 30,
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "var(--bg)",
+        border: "0.5px solid var(--rule)",
+        borderRadius: "var(--radius-md)",
+        color,
+        flexShrink: 0,
+      });
+      return (
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+          <button
+            onClick={handleSync}
+            disabled={status === "syncing"}
+            title={lastSync ? `${t("bank_last_sync")} : ${lastSync}` : t("bank_refresh")}
+            aria-label={t("bank_refresh")}
+            style={iconBtn("var(--sky)")}
+          >
+            <i className={`ti ${status === "syncing" ? "ti-loader-2" : "ti-refresh"}`} style={chipIcon} aria-hidden="true" />
+          </button>
+          <button
+            onClick={handleDisconnect}
+            disabled={status === "loading"}
+            title={t("bank_disconnect")}
+            aria-label={t("bank_disconnect")}
+            style={iconBtn("var(--red)")}
+          >
+            <i className="ti ti-unlink" style={chipIcon} aria-hidden="true" />
+          </button>
+        </div>
+      );
+    }
     return (
       <button
         onClick={openPlaidLink}
@@ -177,7 +227,7 @@ export default function ConnectBankButton({ asset, onSuccess, compact = false })
           flexShrink: 0,
         }}
       >
-        <i className={`ti ${status === "loading" ? "ti-loader-2" : "ti-building-bank"}`} style={{ fontSize: 14 }} aria-hidden="true" />
+        <i className={`ti ${status === "loading" ? "ti-loader-2" : "ti-building-bank"}`} style={chipIcon} aria-hidden="true" />
         {status === "loading" ? t("bank_connecting") : t("bank_connect")}
       </button>
     );
