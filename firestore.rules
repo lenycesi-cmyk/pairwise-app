@@ -52,5 +52,11 @@ service cloud.firestore {
         allow read, write: if false;
       }
     }
+
+    // Correspondance item Plaid → couple/asset, écrite/lue uniquement par les
+    // Cloud Functions (le webhook s'en sert pour router). Jamais côté client.
+    match /plaidItems/{itemId} {
+      allow read, write: if false;
+    }
   }
 }
