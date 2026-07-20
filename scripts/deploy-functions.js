@@ -40,6 +40,7 @@ const FUNCTIONS_TO_DEPLOY = [
   "syncAllBalances",
   "joinCouple",
   "purgeBankConnections",
+  "plaidWebhook",
   "sendPush",
   "sendRecurringReminders",
   "monthlySummary",

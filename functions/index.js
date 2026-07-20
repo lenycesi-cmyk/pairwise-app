@@ -1,8 +1,9 @@
-const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { onCall, HttpsError, onRequest } = require("firebase-functions/v2/https");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { onDocumentWritten } = require("firebase-functions/v2/firestore");
 const { defineSecret } = require("firebase-functions/params");
 const admin = require("firebase-admin");
+const crypto = require("node:crypto");
 const { PlaidApi, PlaidEnvironments, Configuration } = require("plaid");
 
 admin.initializeApp();
@@ -12,6 +13,12 @@ const db = admin.firestore();
 const PLAID_CLIENT_ID = defineSecret("PLAID_CLIENT_ID");
 const PLAID_SECRET = defineSecret("PLAID_SECRET");
 const PLAID_ENV = defineSecret("PLAID_ENV"); // "sandbox" | "production"
+
+// URL publique du webhook Plaid (alias cloudfunctions.net de la fonction v2
+// plaidWebhook, en europe-west1). Passée à Plaid dans createLinkToken pour
+// qu'il notifie ce endpoint des événements d'item (re-auth, révocation, MAJ).
+const PLAID_WEBHOOK_URL =
+  "https://europe-west1-pairwise-12df2.cloudfunctions.net/plaidWebhook";
 
 function getPlaidClient(clientId, secret, env) {
   const config = new Configuration({
@@ -49,6 +56,7 @@ exports.createLinkToken = onCall(
       products: ["transactions", "auth"],
       country_codes: ["FR", "BE", "CH", "LU", "CA", "US", "GB", "DE", "ES", "NL"],
       language,
+      webhook: PLAID_WEBHOOK_URL,
     });
 
     return { linkToken: response.data.link_token };
@@ -109,6 +117,11 @@ exports.exchangeToken = onCall(
         status: "active",
         lastSync: admin.firestore.FieldValue.serverTimestamp(),
       });
+
+    // Correspondance item_id → couple/asset, pour que le webhook (qui ne reçoit
+    // qu'un item_id) retrouve la connexion directement, sans requête
+    // collectionGroup (qui exigerait un index dédié).
+    await db.collection("plaidItems").doc(itemId).set({ coupleId, assetId });
 
     // Update the asset value with the fetched balance
     const coupleDoc = await db.collection("couples").doc(coupleId).get();
@@ -171,7 +184,7 @@ exports.disconnectBank = onCall(
       .get();
 
     if (connDoc.exists) {
-      const { accessToken } = connDoc.data();
+      const { accessToken, itemId } = connDoc.data();
       const plaid = getPlaidClient(
         PLAID_CLIENT_ID.value(),
         PLAID_SECRET.value(),
@@ -183,6 +196,7 @@ exports.disconnectBank = onCall(
         // ignore Plaid errors on removal
       }
       await connDoc.ref.delete();
+      if (itemId) await db.collection("plaidItems").doc(itemId).delete().catch(() => {});
     }
 
     // Remove bank connection metadata from the asset
@@ -351,7 +365,7 @@ exports.purgeBankConnections = onCall(
       PLAID_ENV.value()
     );
     for (const connDoc of connSnap.docs) {
-      const { accessToken } = connDoc.data();
+      const { accessToken, itemId } = connDoc.data();
       if (accessToken) {
         try {
           await plaid.itemRemove({ access_token: accessToken });
@@ -360,8 +374,159 @@ exports.purgeBankConnections = onCall(
         }
       }
       await connDoc.ref.delete();
+      if (itemId) await db.collection("plaidItems").doc(itemId).delete().catch(() => {});
     }
     return { success: true, removed: connSnap.size };
+  }
+);
+
+// ── Plaid webhook ────────────────────────────────────────────────────────────
+
+// Cache des clés de vérification Plaid par key_id (elles tournent rarement).
+const plaidKeyCache = new Map();
+
+/**
+ * Vérifie l'authenticité d'un webhook Plaid (JWT ES256 dans l'en-tête
+ * `plaid-verification`) : signature valide avec la clé publique fournie par
+ * Plaid, hash SHA-256 du corps brut conforme au claim, et émission récente.
+ * Cf. https://plaid.com/docs/api/webhooks/webhook-verification/
+ */
+async function verifyPlaidWebhook(req, plaid) {
+  const token = req.headers["plaid-verification"];
+  if (!token || typeof token !== "string") return false;
+  const parts = token.split(".");
+  if (parts.length !== 3) return false;
+
+  let header;
+  try {
+    header = JSON.parse(Buffer.from(parts[0], "base64url").toString("utf8"));
+  } catch {
+    return false;
+  }
+  if (header.alg !== "ES256" || !header.kid) return false;
+
+  // Récupère (et cache) la clé publique JWK correspondant au kid.
+  let jwk = plaidKeyCache.get(header.kid);
+  if (!jwk) {
+    const res = await plaid.webhookVerificationKeyGet({ key_id: header.kid });
+    jwk = res.data.key;
+    if (!jwk || jwk.expired_at) return false;
+    plaidKeyCache.set(header.kid, jwk);
+  }
+
+  // Vérifie la signature ES256 (r||s brut → dsaEncoding ieee-p1363).
+  let publicKey;
+  try {
+    // JWK épuré aux seuls champs EC standard (Plaid ajoute kid/use/alg/…).
+    const ec = { kty: jwk.kty, crv: jwk.crv, x: jwk.x, y: jwk.y };
+    publicKey = crypto.createPublicKey({ key: ec, format: "jwk" });
+  } catch {
+    return false;
+  }
+  const signingInput = `${parts[0]}.${parts[1]}`;
+  const signature = Buffer.from(parts[2], "base64url");
+  const sigOk = crypto.verify(
+    "sha256",
+    Buffer.from(signingInput),
+    { key: publicKey, dsaEncoding: "ieee-p1363" },
+    signature
+  );
+  if (!sigOk) return false;
+
+  // Corps : le hash du corps brut doit correspondre au claim, et le JWT doit
+  // être récent (fenêtre 5 min) pour limiter les rejeux.
+  let claims;
+  try {
+    claims = JSON.parse(Buffer.from(parts[1], "base64url").toString("utf8"));
+  } catch {
+    return false;
+  }
+  if (typeof claims.iat === "number" && Date.now() / 1000 - claims.iat > 300) return false;
+
+  const bodyHash = crypto.createHash("sha256").update(req.rawBody || Buffer.from("")).digest("hex");
+  if (claims.request_body_sha256 && claims.request_body_sha256 !== bodyHash) return false;
+
+  return true;
+}
+
+// Met à jour l'état d'une connexion bancaire (bankConnections + champ miroir
+// sur l'asset, lisible côté client pour afficher un bandeau).
+async function setConnectionStatus(coupleId, assetId, status) {
+  await db.collection("couples").doc(coupleId).collection("bankConnections").doc(assetId)
+    .set({ status, statusAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+  const coupleDoc = await db.collection("couples").doc(coupleId).get();
+  const assets = coupleDoc.data()?.assets || [];
+  const updated = assets.map((a) => (a.id === assetId ? { ...a, bankStatus: status } : a));
+  await db.collection("couples").doc(coupleId).set({ assets: updated }, { merge: true });
+}
+
+/**
+ * Endpoint HTTP appelé par Plaid (non authentifié → on vérifie la signature).
+ * Route les événements d'item : re-auth requise, expiration proche, révocation,
+ * et rafraîchit le solde quand de nouvelles données sont disponibles.
+ */
+exports.plaidWebhook = onRequest(
+  { secrets: [PLAID_CLIENT_ID, PLAID_SECRET, PLAID_ENV] },
+  async (req, res) => {
+    if (req.method !== "POST") {
+      res.status(405).send("Method Not Allowed");
+      return;
+    }
+
+    const plaid = getPlaidClient(
+      PLAID_CLIENT_ID.value(),
+      PLAID_SECRET.value(),
+      PLAID_ENV.value()
+    );
+
+    // On accuse réception vite ; un échec de vérif renvoie 401.
+    let verified = false;
+    try {
+      verified = await verifyPlaidWebhook(req, plaid);
+    } catch (err) {
+      console.error("Plaid webhook verification error:", err.message);
+    }
+    if (!verified) {
+      res.status(401).send("Invalid signature");
+      return;
+    }
+
+    const { webhook_type: type, webhook_code: code, item_id: itemId, error } = req.body || {};
+    if (!itemId) {
+      res.status(200).send("ok");
+      return;
+    }
+
+    // item_id → couple/asset
+    const mapDoc = await db.collection("plaidItems").doc(itemId).get();
+    if (!mapDoc.exists) {
+      res.status(200).send("ok"); // item inconnu (déjà déconnecté) — rien à faire
+      return;
+    }
+    const { coupleId, assetId } = mapDoc.data();
+
+    try {
+      if (type === "TRANSACTIONS" || (type === "ITEM" && code === "NEW_ACCOUNTS_AVAILABLE")) {
+        // De nouvelles données sont dispo → on resynchronise le solde.
+        await syncAssetBalance(coupleId, assetId).catch(() => {});
+        if (code) await setConnectionStatus(coupleId, assetId, "active");
+      } else if (type === "ITEM") {
+        if (code === "ERROR" && error?.error_code === "ITEM_LOGIN_REQUIRED") {
+          await setConnectionStatus(coupleId, assetId, "reauth_required");
+        } else if (code === "PENDING_EXPIRATION") {
+          await setConnectionStatus(coupleId, assetId, "pending_expiration");
+        } else if (code === "USER_PERMISSION_REVOKED" || code === "USER_ACCOUNT_REVOKED") {
+          await setConnectionStatus(coupleId, assetId, "revoked");
+        } else if (code === "LOGIN_REPAIRED") {
+          await setConnectionStatus(coupleId, assetId, "active");
+          await syncAssetBalance(coupleId, assetId).catch(() => {});
+        }
+      }
+    } catch (err) {
+      console.error(`Plaid webhook handling failed (${type}/${code}):`, err.message);
+    }
+
+    res.status(200).send("ok");
   }
 );
 
