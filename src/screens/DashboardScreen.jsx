@@ -287,13 +287,17 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
   const totals = useMemo(() => {
     let income = 0, expense = 0, invested = 0;
     for (const tx of monthTx) {
-      const val = toBase(tx);
+      // Filtre membre global : on ne compte que la part du membre choisi
+      // (fraction 0 → ignoré, 0.5 → moitié pour un split 50/50, 1 → tout).
+      const frac = globalScope == null ? 1 : memberShareFraction(tx, globalScope, members);
+      if (frac === 0) continue;
+      const val = toBase(tx) * frac;
       if (tx.type === "income") income += val;
       else if (tx.type === "expense") expense += val;
       else if (tx.type === "investment") invested += val;
     }
     return { income, expense, invested, net: income - expense - invested };
-  }, [monthTx, displayCurrency, convert]);
+  }, [monthTx, globalScope, members, displayCurrency, convert]);
 
   // Desktop-only "reports_trend" widget: income vs expense for the N
   // months (trendMonths, switchable via the widget's own period buttons)
@@ -334,12 +338,14 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
       const d = new Date(tx.date);
       const bucket = buckets.find((b) => b.month === d.getMonth() && b.year === d.getFullYear());
       if (!bucket) continue;
-      const val = toBase(tx);
+      const frac = globalScope == null ? 1 : memberShareFraction(tx, globalScope, members);
+      if (frac === 0) continue;
+      const val = toBase(tx) * frac;
       if (tx.type === "income") bucket.income += val;
       else if (tx.type === "expense") bucket.expense += val;
     }
     return buckets;
-  }, [transactions, viewMonth, viewYear, trendPeriod, displayCurrency, convert]);
+  }, [transactions, viewMonth, viewYear, trendPeriod, globalScope, members, displayCurrency, convert]);
 
   const memberTotals = useMemo(() => {
     const result = {};
@@ -368,7 +374,9 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
       const subtotals = {};
       for (const tx of monthTx) {
         if (tx.type === "expense" && tx.categoryId === cat.id) {
-          const val = toBase(tx);
+          const frac = globalScope == null ? 1 : memberShareFraction(tx, globalScope, members);
+          if (frac === 0) continue;
+          const val = toBase(tx) * frac;
           total += val;
           subtotals[tx.subcategory] = (subtotals[tx.subcategory] || 0) + val;
         }
@@ -376,7 +384,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
       if (total > 0) result[cat.id] = { category: cat, total, subtotals };
     }
     return result;
-  }, [monthTx, categories, displayCurrency, convert]);
+  }, [monthTx, categories, globalScope, members, displayCurrency, convert]);
 
   const maxCatTotal = Math.max(1, ...Object.values(categoryTotals).map((c) => c.total));
 
