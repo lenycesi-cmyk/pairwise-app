@@ -140,19 +140,23 @@ export default function SettingsScreen({ onOpenMenu, onOpenRecurring, onOpenCate
   return (
     <div style={{ minHeight: "100dvh", paddingBottom: "6rem" }}>
       {/* En-tête d'onglet (Réglages est désormais un onglet plein écran). */}
-      <div
-        style={{
-          position: "sticky", top: 0, zIndex: 10, background: "var(--bg)",
-          display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center",
-          gap: 8, padding: "1rem 1.25rem",
-        }}
-      >
-        <div style={{ justifySelf: "start" }}><HeaderMenuButton onClick={onOpenMenu} /></div>
-        <h1 style={{ fontSize: 18, margin: 0, whiteSpace: "nowrap", fontFamily: "var(--font-display)", fontWeight: 600 }}>{t("settings_title")}</h1>
-        <div style={{ justifySelf: "end" }} />
+      <div style={{ position: "sticky", top: 0, zIndex: 10, background: "var(--bg)" }}>
+        {/* Grille d'en-tête alignée sur la colonne de contenu (maxWidth 640,
+            calée à gauche sur desktop). La barre sticky, elle, reste pleine
+            largeur pour son fond. */}
+        <div
+          style={{
+            display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center",
+            gap: 8, padding: "1rem 1.25rem", maxWidth: 640, margin: 0,
+          }}
+        >
+          <div style={{ justifySelf: "start" }}><HeaderMenuButton onClick={onOpenMenu} /></div>
+          <h1 style={{ fontSize: 18, margin: 0, whiteSpace: "nowrap", fontFamily: "var(--font-display)", fontWeight: 600 }}>{t("settings_title")}</h1>
+          <div style={{ justifySelf: "end" }} />
+        </div>
       </div>
 
-      <div style={{ padding: "0.5rem 1.25rem", maxWidth: 640, margin: "0 auto" }}>
+      <div style={{ padding: "0.5rem 1.25rem", maxWidth: 640, margin: 0 }}>
 
       <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
         <div
