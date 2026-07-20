@@ -4,10 +4,55 @@ const { onDocumentWritten } = require("firebase-functions/v2/firestore");
 const { defineSecret } = require("firebase-functions/params");
 const admin = require("firebase-admin");
 const crypto = require("node:crypto");
+const { KeyManagementServiceClient } = require("@google-cloud/kms");
 const { PlaidApi, PlaidEnvironments, Configuration } = require("plaid");
 
 admin.initializeApp();
 const db = admin.firestore();
+
+// ── Chiffrement des access_token Plaid au repos (Cloud KMS) ──────────────────
+// Les access_token vivent dans la sous-collection bankConnections (jamais
+// accessible côté client). Pour une défense en profondeur (accès admin/console,
+// exports, fuite d'une sauvegarde), on les chiffre avec une clé symétrique
+// Cloud KMS avant de les écrire, et on les déchiffre à la volée côté serveur.
+//
+// Activation opt-in : tant que KMS_KEY_NAME n'est pas positionné (clé non
+// provisionnée), les tokens sont stockés en clair — comportement historique,
+// pour ne rien casser au déploiement. Les lectures gèrent les deux formats, si
+// bien que d'anciennes connexions en clair continuent de fonctionner même une
+// fois KMS activé ; elles basculent en chiffré au prochain ré-échange.
+// Provisionnement : voir CLAUDE.md (keyring/clé + rôle
+// roles/cloudkms.cryptoKeyEncrypterDecrypter sur le SA + variable KMS_KEY_NAME).
+const KMS_KEY_NAME = process.env.KMS_KEY_NAME || "";
+let kmsClient = null;
+function getKms() {
+  if (!kmsClient) kmsClient = new KeyManagementServiceClient();
+  return kmsClient;
+}
+
+// Renvoie les champs à fusionner dans le doc bankConnections pour stocker le
+// token : { accessTokenEnc } si KMS est actif, sinon { accessToken } en clair.
+async function encryptToken(plaintext) {
+  if (!KMS_KEY_NAME) return { accessToken: plaintext, accessTokenEnc: null };
+  const [res] = await getKms().encrypt({
+    name: KMS_KEY_NAME,
+    plaintext: Buffer.from(plaintext, "utf8"),
+  });
+  // On efface l'éventuel champ en clair historique en le passant à null.
+  return { accessTokenEnc: res.ciphertext.toString("base64"), accessToken: null };
+}
+
+// Déchiffre le token d'un doc bankConnections, quel que soit son format.
+async function decryptToken(data) {
+  if (data.accessTokenEnc) {
+    const [res] = await getKms().decrypt({
+      name: KMS_KEY_NAME,
+      ciphertext: Buffer.from(data.accessTokenEnc, "base64"),
+    });
+    return res.plaintext.toString("utf8");
+  }
+  return data.accessToken; // ancien format en clair
+}
 
 // Secrets (set via: firebase functions:secrets:set PLAID_CLIENT_ID etc.)
 const PLAID_CLIENT_ID = defineSecret("PLAID_CLIENT_ID");
@@ -107,7 +152,9 @@ exports.exchangeToken = onCall(
       .doc(assetId)
       .set({
         provider: "plaid",
-        accessToken, // stored server-side only
+        // Token stocké côté serveur uniquement, chiffré au repos si KMS est
+        // actif (accessTokenEnc) sinon en clair (accessToken) — cf. encryptToken.
+        ...(await encryptToken(accessToken)),
         itemId,
         plaidAccountId: selectedAccount.account_id,
         institutionName: institutionName || selectedAccount.name,
@@ -184,7 +231,8 @@ exports.disconnectBank = onCall(
       .get();
 
     if (connDoc.exists) {
-      const { accessToken, itemId } = connDoc.data();
+      const { itemId } = connDoc.data();
+      const accessToken = await decryptToken(connDoc.data());
       const plaid = getPlaidClient(
         PLAID_CLIENT_ID.value(),
         PLAID_SECRET.value(),
@@ -241,7 +289,8 @@ async function syncAssetBalance(coupleId, assetId) {
   const connDoc = await connRef.get();
   if (!connDoc.exists) throw new HttpsError("not-found", "No bank connection for this asset");
 
-  const { accessToken, plaidAccountId } = connDoc.data();
+  const { plaidAccountId } = connDoc.data();
+  const accessToken = await decryptToken(connDoc.data());
   const env = process.env.PLAID_ENV || "sandbox";
   const plaid = getPlaidClient(
     process.env.PLAID_CLIENT_ID || PLAID_CLIENT_ID.value(),
@@ -365,7 +414,8 @@ exports.purgeBankConnections = onCall(
       PLAID_ENV.value()
     );
     for (const connDoc of connSnap.docs) {
-      const { accessToken, itemId } = connDoc.data();
+      const { itemId } = connDoc.data();
+      const accessToken = await decryptToken(connDoc.data());
       if (accessToken) {
         try {
           await plaid.itemRemove({ access_token: accessToken });

@@ -96,4 +96,8 @@ jobs:
         if: steps.functions_changed.outputs.changed == 'true'
         env:
           GOOGLE_APPLICATION_CREDENTIALS_JSON: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+          # Ressource de la clé Cloud KMS (chiffrement des access_token Plaid au
+          # repos). Variable de dépôt facultative : si absente, les tokens sont
+          # stockés en clair (cf. functions/index.js, encryptToken).
+          KMS_KEY_NAME: ${{ vars.KMS_KEY_NAME }}
         run: node scripts/deploy-functions.js
