@@ -303,7 +303,7 @@ export default function SettingsScreen({ onOpenMenu, onOpenRecurring, onOpenCate
         </div>
       )}
 
-      <SectionLabel>{t("settings_couple")}</SectionLabel>
+      <SectionLabel icon="ti-users" accent="ocean">{t("settings_couple")}</SectionLabel>
       <Card>
         <Row label={t("settings_couple_name")}>
           {editingCoupleName ? (
@@ -381,7 +381,7 @@ export default function SettingsScreen({ onOpenMenu, onOpenRecurring, onOpenCate
         )}
       </Card>
 
-      <SectionLabel>{t("settings_finance_mode")}</SectionLabel>
+      <SectionLabel icon="ti-arrows-split" accent="coral">{t("settings_finance_mode")}</SectionLabel>
       <Card>
         <Row label={t("settings_finance_mode_label")}>
           <div />
@@ -401,7 +401,7 @@ export default function SettingsScreen({ onOpenMenu, onOpenRecurring, onOpenCate
         </p>
       </Card>
 
-      <SectionLabel>{t("settings_currency")}</SectionLabel>
+      <SectionLabel icon="ti-coin" accent="amber">{t("settings_currency")}</SectionLabel>
       <Card>
         <Row label={t("settings_currency_mode")}>
           <div />
@@ -462,7 +462,7 @@ export default function SettingsScreen({ onOpenMenu, onOpenRecurring, onOpenCate
         )}
       </Card>
 
-      <SectionLabel>{t("settings_automation")}</SectionLabel>
+      <SectionLabel icon="ti-bolt" accent="sky">{t("settings_automation")}</SectionLabel>
       <Card>
         <div
           onClick={onOpenCategories}
@@ -510,7 +510,7 @@ export default function SettingsScreen({ onOpenMenu, onOpenRecurring, onOpenCate
         </div>
       </Card>
 
-      <SectionLabel>{t("settings_notifications_section")}</SectionLabel>
+      <SectionLabel icon="ti-bell" accent="mint">{t("settings_notifications_section")}</SectionLabel>
       <Card>
         <div
           onClick={requestNotificationPermission}
@@ -659,7 +659,7 @@ export default function SettingsScreen({ onOpenMenu, onOpenRecurring, onOpenCate
         })()}
       </Card>
 
-      <SectionLabel>{t("settings_help_section")}</SectionLabel>
+      <SectionLabel icon="ti-lifebuoy" accent="sky">{t("settings_help_section")}</SectionLabel>
       <Card>
         <div
           onClick={resetHints}
@@ -681,7 +681,7 @@ export default function SettingsScreen({ onOpenMenu, onOpenRecurring, onOpenCate
         </div>
       </Card>
 
-      <SectionLabel>{t("settings_appearance")}</SectionLabel>
+      <SectionLabel icon="ti-palette" accent="pink">{t("settings_appearance")}</SectionLabel>
       <Card>
         <div
           onClick={onOpenTheme}
@@ -714,7 +714,7 @@ export default function SettingsScreen({ onOpenMenu, onOpenRecurring, onOpenCate
         </div>
       </Card>
 
-      <SectionLabel>{t("settings_legal")}</SectionLabel>
+      <SectionLabel icon="ti-file-text" accent="mint">{t("settings_legal")}</SectionLabel>
       <Card>
         <a
           href="/privacy.html"
@@ -743,7 +743,7 @@ export default function SettingsScreen({ onOpenMenu, onOpenRecurring, onOpenCate
         </a>
       </Card>
 
-      <SectionLabel>{t("settings_account")}</SectionLabel>
+      <SectionLabel icon="ti-user-circle" accent="coral">{t("settings_account")}</SectionLabel>
       <Card>
         <button
           onClick={exportCSV}
@@ -860,20 +860,37 @@ export default function SettingsScreen({ onOpenMenu, onOpenRecurring, onOpenCate
   );
 }
 
-function SectionLabel({ children }) {
+// Accents partagés avec WidgetCard (même vocabulaire de couleurs), pour que les
+// pastilles d'icône des sections Paramètres soient cohérentes avec le reste de
+// l'app. On garde ici le format « rangées dans une carte » (pas de conversion en
+// widgets) : seul l'en-tête de section adopte la pastille + le titre display.
+const SECTION_ACCENTS = {
+  coral: ["var(--tang)", "var(--tang-light)"],
+  ocean: ["var(--lavi)", "var(--lavi-light)"],
+  sky: ["var(--sky)", "var(--sky-light)"],
+  amber: ["var(--amber)", "var(--amber-light)"],
+  mint: ["var(--sage)", "var(--sage-light)"],
+  pink: ["var(--blush)", "var(--blush-light)"],
+};
+
+function SectionLabel({ icon, accent = "coral", children }) {
+  const [color, light] = SECTION_ACCENTS[accent] || SECTION_ACCENTS.coral;
   return (
-    <p
-      style={{
-        fontSize: 11,
-        letterSpacing: 1,
-        textTransform: "uppercase",
-        color: "var(--ink-3)",
-        marginBottom: 8,
-        marginTop: 18,
-      }}
-    >
-      {children}
-    </p>
+    <div style={{ display: "flex", alignItems: "center", gap: 9, marginTop: 22, marginBottom: 9, paddingLeft: 2 }}>
+      {icon && (
+        <span
+          style={{
+            width: 28, height: 28, borderRadius: 9, background: light,
+            display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+          }}
+        >
+          <i className={`ti ${icon}`} style={{ fontSize: 15, color }} aria-hidden="true" />
+        </span>
+      )}
+      <span style={{ fontSize: 14, fontWeight: 600, fontFamily: "var(--font-display)", color: "var(--ink)" }}>
+        {children}
+      </span>
+    </div>
   );
 }
 
