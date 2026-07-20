@@ -105,7 +105,12 @@
 .nav-fab {
   position: fixed;
   right: 16px;
-  bottom: calc(20px + env(safe-area-inset-bottom));
+  /* Android n'expose souvent PAS de safe-area-inset-bottom (renvoie 0) même en
+     navigation gestuelle ou avec une barre d'outils basse de navigateur
+     (Samsung Internet…), ce qui plaquait le FAB derrière cette barre sur
+     certains téléphones. On garantit un dégagement minimal de 44px via max(),
+     tout en respectant l'inset iOS quand il est plus grand. */
+  bottom: max(calc(20px + env(safe-area-inset-bottom)), 44px);
   left: auto;
   z-index: 80;
   display: flex;
