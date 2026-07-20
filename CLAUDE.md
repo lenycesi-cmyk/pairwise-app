@@ -46,6 +46,35 @@ npm run build && node scripts/deploy.js
 (runs only when `firestore.rules` changed, or on manual `workflow_dispatch`). Storage rules aren't
 automated yet.
 
+### Plaid access_token encryption at rest (Cloud KMS)
+
+Plaid `access_token`s live in the `couples/{id}/bankConnections/{assetId}` subcollection (locked to
+`if false` in the rules — server-only). For defense in depth they're additionally encrypted at rest
+with a **Cloud KMS symmetric key**: `encryptToken`/`decryptToken` in [functions/index.js](functions/index.js)
+wrap every write/read. Storage format is `accessTokenEnc` (base64 KMS ciphertext) when KMS is active,
+else legacy plaintext `accessToken` — reads transparently handle both, so old connections keep working
+and re-encrypt on next token exchange.
+
+**Opt-in via `KMS_KEY_NAME`**: unset ⇒ tokens stored in cleartext (the historical default, so merging
+the code changes nothing until you provision the key). To activate:
+
+```bash
+gcloud services enable cloudkms.googleapis.com
+gcloud kms keyrings create pairwise --location=europe-west1
+gcloud kms keys create plaid-tokens --location=europe-west1 --keyring=pairwise --purpose=encryption
+# grant the DEPLOY service account encrypt/decrypt on the key
+gcloud kms keys add-iam-policy-binding plaid-tokens --location=europe-west1 --keyring=pairwise \
+  --member="serviceAccount:pairwise-deploy@pairwise-12df2.iam.gserviceaccount.com" \
+  --role="roles/cloudkms.cryptoKeyEncrypterDecrypter"
+```
+
+Then set the **GitHub Actions repo variable** (Settings → Variables, not a secret — it's just a resource
+name) `KMS_KEY_NAME` to
+`projects/pairwise-12df2/locations/europe-west1/keyRings/pairwise/cryptoKeys/plaid-tokens`. `deploy.yml`
+passes it to `scripts/deploy-functions.js`, which injects it as a runtime env var on every function. The
+functions' **runtime** service account (same deploy SA here) needs the same
+`cryptoKeyEncrypterDecrypter` role — the binding above covers it.
+
 ### Push notifications (FCM)
 
 Push notifications go through Firebase Cloud Messaging. The pieces:

@@ -169,6 +169,12 @@ async function deployFunction(token, name, storageSource, isScheduled = false) {
       minInstanceCount: 0,
       maxInstanceCount: 10,
       serviceAccountEmail,
+      // Ressource de la clé Cloud KMS servant à chiffrer les access_token Plaid
+      // au repos. Non secret (un simple nom de ressource) → variable d'env
+      // classique. Absente = tokens en clair (opt-in, cf. functions/index.js).
+      environmentVariables: process.env.KMS_KEY_NAME
+        ? { KMS_KEY_NAME: process.env.KMS_KEY_NAME }
+        : {},
       secretEnvironmentVariables: [
         { key: "PLAID_CLIENT_ID", projectId: PROJECT_ID, secret: "PLAID_CLIENT_ID", version: "latest" },
         { key: "PLAID_SECRET", projectId: PROJECT_ID, secret: "PLAID_SECRET", version: "latest" },
