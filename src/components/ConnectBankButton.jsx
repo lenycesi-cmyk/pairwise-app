@@ -15,7 +15,7 @@ import { useTranslation } from "../hooks/useTranslation";
  */
 export default function ConnectBankButton({ asset, onSuccess, compact = false }) {
   const { coupleId } = useAuth();
-  const { language } = useFinance();
+  const { language, updateAsset } = useFinance();
   const t = useTranslation();
   const { syncBalance, disconnectBank } = usePlaid();
   const [status, setStatus] = useState("idle"); // idle | loading | syncing | error
@@ -98,6 +98,16 @@ export default function ConnectBankButton({ asset, onSuccess, compact = false })
     setStatus("loading");
     try {
       await disconnectBank(coupleId, asset.id);
+      // La fonction met à jour l'asset côté serveur (admin SDK), mais le
+      // round-trip Plaid (itemRemove) prend quelques secondes. On reflète l'état
+      // immédiatement via une écriture client (compensée par onSnapshot) pour
+      // que la ligne repasse en "Connecter" sans attendre ni rafraîchir.
+      await updateAsset(asset.id, {
+        bankConnected: false,
+        bankInstitution: null,
+        bankMask: null,
+        lastBankSync: null,
+      });
       setStatus("idle");
       onSuccess?.();
     } catch (err) {
@@ -203,7 +213,7 @@ export default function ConnectBankButton({ asset, onSuccess, compact = false })
             aria-label={t("bank_disconnect")}
             style={iconBtn("var(--red)")}
           >
-            <i className="ti ti-unlink" style={chipIcon} aria-hidden="true" />
+            <i className={`ti ${status === "loading" ? "ti-loader-2" : "ti-unlink"}`} style={chipIcon} aria-hidden="true" />
           </button>
         </div>
       );
