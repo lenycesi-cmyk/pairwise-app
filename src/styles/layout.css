@@ -105,12 +105,13 @@
 .nav-fab {
   position: fixed;
   right: 16px;
-  /* Android n'expose souvent PAS de safe-area-inset-bottom (renvoie 0) même en
-     navigation gestuelle ou avec une barre d'outils basse de navigateur
-     (Samsung Internet…), ce qui plaquait le FAB derrière cette barre sur
-     certains téléphones. On garantit un dégagement minimal de 44px via max(),
-     tout en respectant l'inset iOS quand il est plus grand. */
-  bottom: max(calc(20px + env(safe-area-inset-bottom)), 44px);
+  /* En PWA standalone sur Android + viewport-fit=cover, le contenu s'étend sous
+     la barre de navigation système, et Android n'expose PAS
+     safe-area-inset-bottom (renvoie 0) — le FAB se retrouvait donc derrière la
+     barre (3 boutons ~48px, pilule gestuelle ~24-32px). On garantit un
+     dégagement minimal de 56px via max() pour couvrir la nav 3 boutons, tout en
+     respectant l'inset iOS plus grand quand il est présent. */
+  bottom: max(calc(20px + env(safe-area-inset-bottom)), 56px);
   left: auto;
   z-index: 80;
   display: flex;
