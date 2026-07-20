@@ -419,6 +419,26 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
         flush
       >
         <div>
+          {/* Bandeau de reconnexion : comptes dont la connexion Plaid est à
+              réparer (statut poussé par le webhook). Le bouton "Reconnecter"
+              vit dans chaque ligne concernée ; ce bandeau ne fait que résumer. */}
+          {type.id === "account" && (() => {
+            const attention = typeAssets.filter((a) => a.bankConnected && a.bankStatus && a.bankStatus !== "active");
+            if (attention.length === 0) return null;
+            const msg = attention.length === 1
+              ? t("bank_banner_one")
+              : t("bank_banner_many").replace("{count}", attention.length);
+            return (
+              <div style={{
+                display: "flex", alignItems: "center", gap: 8,
+                padding: "10px 14px", borderBottom: "0.5px solid var(--rule)",
+                background: "var(--amber-light, #fff4e0)",
+              }}>
+                <i className="ti ti-alert-triangle" style={{ fontSize: 15, color: "var(--amber, #e0932f)", flexShrink: 0 }} aria-hidden="true" />
+                <span style={{ fontSize: 12.5, color: "var(--amber, #e0932f)", fontWeight: 600 }}>{msg}</span>
+              </div>
+            );
+          })()}
           {/* Total de la catégorie : sur les comptes en banque toujours,
               et sur toute autre catégorie contenant au moins deux entrées.
               Filtrable par membre (Famille / A / B) quand la catégorie

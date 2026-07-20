@@ -34,16 +34,18 @@ export default function ConnectBankButton({ asset, onSuccess, compact = false })
     document.head.appendChild(script);
   }, []);
 
-  async function openPlaidLink(e) {
+  // `update` = re-authentification d'un item existant (mode update de Plaid
+  // Link) : pas d'échange de token (même connexion), on rafraîchit juste le
+  // solde et on remet le statut à "actif". Sinon flux de première connexion.
+  async function openPlaidLink(e, update = false) {
     e?.stopPropagation();
     setStatus("loading");
     try {
-      // Fetch link token from our Cloud Function
       const fn = (await import("firebase/functions")).httpsCallable(
         (await import("firebase/functions")).getFunctions(undefined, "europe-west1"),
         "createLinkToken"
       );
-      const res = await fn({ coupleId, assetId: asset.id, language });
+      const res = await fn({ coupleId, assetId: asset.id, language, update });
       const token = res.data.linkToken;
 
       // Open Plaid Link
@@ -52,22 +54,30 @@ export default function ConnectBankButton({ asset, onSuccess, compact = false })
         onSuccess: async (publicToken, metadata) => {
           setStatus("syncing");
           try {
-            const exchangeFn = (await import("firebase/functions")).httpsCallable(
-              (await import("firebase/functions")).getFunctions(undefined, "europe-west1"),
-              "exchangeToken"
-            );
-            const account = metadata.accounts?.[0];
-            await exchangeFn({
-              coupleId,
-              assetId: asset.id,
-              publicToken,
-              accountId: account?.id,
-              institutionName: metadata.institution?.name,
-            });
+            if (update) {
+              // Re-auth réussie : l'item est réparé. On resynchronise le solde
+              // (remet aussi le statut connexion à "active" côté serveur) et on
+              // efface le bankStatus d'alerte côté client pour masquer le bandeau.
+              await syncBalance(coupleId, asset.id);
+              await updateAsset(asset.id, { bankStatus: "active" });
+            } else {
+              const exchangeFn = (await import("firebase/functions")).httpsCallable(
+                (await import("firebase/functions")).getFunctions(undefined, "europe-west1"),
+                "exchangeToken"
+              );
+              const account = metadata.accounts?.[0];
+              await exchangeFn({
+                coupleId,
+                assetId: asset.id,
+                publicToken,
+                accountId: account?.id,
+                institutionName: metadata.institution?.name,
+              });
+            }
             setStatus("idle");
             onSuccess?.();
           } catch (err) {
-            console.error("exchangeToken error:", err);
+            console.error(update ? "reauth sync error:" : "exchangeToken error:", err);
             setStatus("error");
           }
         },
@@ -116,6 +126,10 @@ export default function ConnectBankButton({ asset, onSuccess, compact = false })
   }
 
   const isConnected = asset.bankConnected;
+  // Statut poussé par le webhook Plaid (setConnectionStatus) : tout ce qui n'est
+  // ni "active" ni vide signale une connexion à réparer (re-auth, expiration
+  // proche, révocation) → on affiche une reconnexion en mode update.
+  const needsAttention = isConnected && asset.bankStatus && asset.bankStatus !== "active";
   const lastSync = asset.lastBankSync
     ? new Date(asset.lastBankSync).toLocaleString(language === "en" ? "en-US" : "fr-FR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })
     : null;
@@ -197,6 +211,30 @@ export default function ConnectBankButton({ asset, onSuccess, compact = false })
       });
       return (
         <div style={{ display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+          {needsAttention && (
+            <button
+              onClick={(e) => openPlaidLink(e, true)}
+              disabled={status === "loading" || status === "syncing" || !plaidReady}
+              title={t("bank_reconnect_hint")}
+              style={{
+                padding: "5px 10px",
+                fontSize: 12,
+                fontWeight: 600,
+                background: "var(--amber-light, #fff4e0)",
+                border: "0.5px solid var(--amber, #e0932f)",
+                borderRadius: 99,
+                color: "var(--amber, #e0932f)",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
+                whiteSpace: "nowrap",
+                flexShrink: 0,
+              }}
+            >
+              <i className={`ti ${status === "loading" || status === "syncing" ? "ti-loader-2" : "ti-alert-triangle"}`} style={chipIcon} aria-hidden="true" />
+              {t("bank_reconnect")}
+            </button>
+          )}
           <button
             onClick={handleSync}
             disabled={status === "syncing"}

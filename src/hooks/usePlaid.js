@@ -9,12 +9,12 @@ export function usePlaid() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const createLinkToken = useCallback(async (coupleId, assetId) => {
+  const createLinkToken = useCallback(async (coupleId, assetId, update = false) => {
     setLoading(true);
     setError(null);
     try {
       const fn = httpsCallable(functions, "createLinkToken");
-      const res = await fn({ coupleId, assetId, language: "fr" });
+      const res = await fn({ coupleId, assetId, language: "fr", update });
       return res.data.linkToken;
     } catch (e) {
       setError(e.message);

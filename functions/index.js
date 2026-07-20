@@ -85,7 +85,7 @@ function getPlaidClient(clientId, secret, env) {
 exports.createLinkToken = onCall(
   { secrets: [PLAID_CLIENT_ID, PLAID_SECRET, PLAID_ENV] },
   async (request) => {
-    const { coupleId, assetId, language = "fr" } = request.data;
+    const { coupleId, assetId, language = "fr", update = false } = request.data;
     if (!coupleId || !assetId) throw new HttpsError("invalid-argument", "coupleId and assetId required");
     if (!request.auth) throw new HttpsError("unauthenticated", "Authentication required");
 
@@ -95,14 +95,29 @@ exports.createLinkToken = onCall(
       PLAID_ENV.value()
     );
 
-    const response = await plaid.linkTokenCreate({
+    const params = {
       user: { client_user_id: request.auth.uid },
       client_name: "Pairwise",
-      products: ["transactions", "auth"],
       country_codes: ["FR", "BE", "CH", "LU", "CA", "US", "GB", "DE", "ES", "NL"],
       language,
       webhook: PLAID_WEBHOOK_URL,
-    });
+    };
+
+    if (update) {
+      // Mode "update" (re-authentification d'un item existant après une
+      // ITEM_LOGIN_REQUIRED / expiration) : on fournit l'access_token existant et
+      // on omet `products` — Plaid rouvre Link sur la même connexion.
+      const connDoc = await db
+        .collection("couples").doc(coupleId)
+        .collection("bankConnections").doc(assetId)
+        .get();
+      if (!connDoc.exists) throw new HttpsError("not-found", "No bank connection for this asset");
+      params.access_token = await decryptToken(connDoc.data());
+    } else {
+      params.products = ["transactions", "auth"];
+    }
+
+    const response = await plaid.linkTokenCreate(params);
 
     return { linkToken: response.data.link_token };
   }
