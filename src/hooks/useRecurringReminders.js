@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useFinance } from "../context/FinanceContext";
 import { useTranslation } from "./useTranslation";
 import { nextOccurrence, daysUntil } from "../utils/recurrence";
+import { showLocalNotification } from "../utils/localNotification";
 
 export const REMINDER_DAYS_AHEAD = 3;
 
@@ -32,7 +33,7 @@ export function useRecurringReminders() {
         days === 0 ? t("recurring_reminder_today") :
         days === 1 ? t("recurring_reminder_tomorrow") :
         t("recurring_reminder_in_days").replace("{days}", days);
-      new Notification(t("recurring_reminder_title"), {
+      showLocalNotification(t("recurring_reminder_title"), {
         body: `${rule.description} — ${Math.round(rule.amount).toLocaleString("fr-FR")} ${rule.currency} · ${when}`,
         tag: dedupeKey,
       });
