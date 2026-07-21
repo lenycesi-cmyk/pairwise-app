@@ -37,7 +37,10 @@ messaging.onBackgroundMessage((payload) => {
 // cache hors ligne) ; cache-first pour les assets statiques hashés (immuables).
 // Les appels Firestore/Storage/API de change ne sont PAS interceptés : ils
 // vont au réseau et Firestore gère lui-même son cache hors ligne (IndexedDB).
-const CACHE = "pairwise-shell-v1";
+// Version du cache : à incrémenter pour purger tout l'app-shell précédent lors
+// de l'activation (voir handler "activate"). Utile quand un ancien index/chunk
+// en cache pourrait provoquer un écran blanc après déploiement.
+const CACHE = "pairwise-shell-v2";
 const PRECACHE = ["/", "/index.html", "/manifest.json", "/icon-192.png", "/icon-512.png"];
 
 self.addEventListener("install", (event) => {
