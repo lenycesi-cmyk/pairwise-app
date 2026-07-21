@@ -1,38 +1,99 @@
 import { useState } from "react";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { useFinance } from "../context/FinanceContext";
 import { useAuth } from "../context/AuthContext";
 import { useTranslation } from "../hooks/useTranslation";
 import { getMemberKey } from "../utils/members";
 import { NAV_TABS_META, NAV_TABS_COUNT, resolveNavTabs } from "../data/navTabsMeta";
 
-// Sélecteur des 4 onglets de la barre du bas (mobile). Ouvert depuis Réglages
-// ou par appui long sur la barre. On impose exactement NAV_TABS_COUNT onglets ;
-// l'ordre d'affichage suit NAV_TABS_META (stable). Sauvegarde par membre.
+const META = Object.fromEntries(NAV_TABS_META.map((m) => [m.key, m]));
+
+// Rangée triable (onglet affiché) : poignée de drag + icône + libellé + retirer.
+function SortableTab({ tabKey, label, icon, onRemove }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: tabKey });
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.6 : 1,
+        display: "flex", alignItems: "center", gap: 10,
+        padding: "11px 12px", borderRadius: "var(--radius-md)",
+        border: "1.5px solid var(--sky)", background: "var(--sky-light)",
+        touchAction: "none",
+      }}
+    >
+      <button
+        {...attributes}
+        {...listeners}
+        aria-label="Déplacer"
+        style={{ background: "none", border: "none", color: "var(--ink-3)", cursor: "grab", display: "flex", touchAction: "none", padding: 0 }}
+      >
+        <i className="ti ti-grip-vertical" style={{ fontSize: 18 }} aria-hidden="true" />
+      </button>
+      <i className={`ti ${icon}`} style={{ fontSize: 19, color: "var(--sky)" }} aria-hidden="true" />
+      <span style={{ flex: 1, fontSize: 14, fontWeight: 600 }}>{label}</span>
+      <button
+        onClick={onRemove}
+        aria-label="Retirer"
+        style={{ background: "none", border: "none", color: "var(--ink-3)", cursor: "pointer", display: "flex", padding: 4 }}
+      >
+        <i className="ti ti-x" style={{ fontSize: 17 }} aria-hidden="true" />
+      </button>
+    </div>
+  );
+}
+
+// Sélecteur des onglets de la barre du bas : liste « affichés » réordonnable par
+// glisser-déposer (l'ordre = ordre gauche→droite dans le footer) + liste des
+// onglets disponibles à ajouter. Exactement NAV_TABS_COUNT onglets. Par membre.
 export default function NavTabsPicker({ onClose }) {
   const t = useTranslation();
   const { members, navTabs, updateMemberNavTabs } = useFinance();
   const { user } = useAuth();
   const myKey = getMemberKey(members.find((m) => m.uid === user?.uid));
 
-  const [selected, setSelected] = useState(() => new Set(resolveNavTabs(navTabs[myKey])));
+  const [selected, setSelected] = useState(() => resolveNavTabs(navTabs[myKey]));
 
-  const toggle = (key) => {
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } })
+  );
+
+  const available = NAV_TABS_META.filter((m) => !selected.includes(m.key));
+  const canAdd = selected.length < NAV_TABS_COUNT;
+  const canSave = selected.length === NAV_TABS_COUNT;
+
+  const onDragEnd = ({ active, over }) => {
+    if (!over || active.id === over.id) return;
     setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else if (next.size < NAV_TABS_COUNT) next.add(key);
-      return next;
+      const from = prev.indexOf(active.id);
+      const to = prev.indexOf(over.id);
+      return from < 0 || to < 0 ? prev : arrayMove(prev, from, to);
     });
   };
 
-  const count = selected.size;
-  const canSave = count === NAV_TABS_COUNT;
+  const remove = (key) => setSelected((prev) => prev.filter((k) => k !== key));
+  const add = (key) => setSelected((prev) => (prev.length < NAV_TABS_COUNT ? [...prev, key] : prev));
 
   const save = async () => {
     if (!canSave) return;
-    // On conserve l'ordre de NAV_TABS_META pour un placement gauche→droite stable.
-    const ordered = NAV_TABS_META.filter((m) => selected.has(m.key)).map((m) => m.key);
-    await updateMemberNavTabs(myKey, ordered);
+    await updateMemberNavTabs(myKey, selected);
     onClose();
   };
 
@@ -63,45 +124,64 @@ export default function NavTabsPicker({ onClose }) {
           {t("nav_customize_hint")}
         </p>
         <p style={{ fontSize: 12, color: canSave ? "var(--sage)" : "var(--ink-3)", fontWeight: 600, marginBottom: 14 }}>
-          {count} / {NAV_TABS_COUNT}
+          {selected.length} / {NAV_TABS_COUNT}
         </p>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {NAV_TABS_META.map((tab) => {
-            const on = selected.has(tab.key);
-            const disabled = !on && count >= NAV_TABS_COUNT;
-            return (
-              <button
-                key={tab.key}
-                onClick={() => toggle(tab.key)}
-                disabled={disabled}
-                style={{
-                  display: "flex", alignItems: "center", gap: 12,
-                  padding: "12px 14px", borderRadius: "var(--radius-md)",
-                  border: on ? "1.5px solid var(--sky)" : "0.5px solid var(--rule)",
-                  background: on ? "var(--sky-light)" : "var(--bg-card)",
-                  color: disabled ? "var(--ink-3)" : "var(--ink)",
-                  opacity: disabled ? 0.55 : 1,
-                  textAlign: "left", cursor: disabled ? "not-allowed" : "pointer",
-                }}
-              >
-                <i className={`ti ${tab.icon}`} style={{ fontSize: 19, color: on ? "var(--sky)" : "var(--ink-2)" }} aria-hidden="true" />
-                <span style={{ flex: 1, fontSize: 14, fontWeight: on ? 600 : 400 }}>{t(tab.labelKey)}</span>
-                <i
-                  className={`ti ${on ? "ti-check" : "ti-circle"}`}
-                  style={{ fontSize: 18, color: on ? "var(--sky)" : "var(--ink-3)" }}
-                  aria-hidden="true"
+        {/* Onglets affichés — réordonnables par glisser-déposer. */}
+        <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase", color: "var(--ink-3)", marginBottom: 8 }}>
+          {t("nav_customize_shown")}
+        </p>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+          <SortableContext items={selected} strategy={verticalListSortingStrategy}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 22 }}>
+              {selected.map((key) => (
+                <SortableTab
+                  key={key}
+                  tabKey={key}
+                  label={t(META[key].labelKey)}
+                  icon={META[key].icon}
+                  onRemove={() => remove(key)}
                 />
-              </button>
-            );
-          })}
-        </div>
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
+
+        {/* Onglets disponibles à ajouter. */}
+        {available.length > 0 && (
+          <>
+            <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase", color: "var(--ink-3)", marginBottom: 8 }}>
+              {t("nav_customize_available")}
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {available.map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => add(tab.key)}
+                  disabled={!canAdd}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 10,
+                    padding: "11px 12px", borderRadius: "var(--radius-md)",
+                    border: "0.5px solid var(--rule)", background: "var(--bg-card)",
+                    color: canAdd ? "var(--ink)" : "var(--ink-3)",
+                    opacity: canAdd ? 1 : 0.55, textAlign: "left",
+                    cursor: canAdd ? "pointer" : "not-allowed",
+                  }}
+                >
+                  <i className={`ti ${tab.icon}`} style={{ fontSize: 19, color: "var(--ink-2)" }} aria-hidden="true" />
+                  <span style={{ flex: 1, fontSize: 14 }}>{t(tab.labelKey)}</span>
+                  <i className="ti ti-plus" style={{ fontSize: 18, color: canAdd ? "var(--sky)" : "var(--ink-3)" }} aria-hidden="true" />
+                </button>
+              ))}
+            </div>
+          </>
+        )}
 
         <button
           onClick={save}
           disabled={!canSave}
           style={{
-            marginTop: 20, width: "100%", padding: "13px 0",
+            marginTop: 22, width: "100%", padding: "13px 0",
             borderRadius: "var(--radius-md)", border: "none",
             background: canSave ? "var(--sky)" : "var(--rule)",
             color: canSave ? "#fff" : "var(--ink-3)",

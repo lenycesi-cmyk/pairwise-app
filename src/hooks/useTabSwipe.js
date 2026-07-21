@@ -10,6 +10,12 @@ import { useEffect, useRef } from "react";
 export function useTabSwipe({ order, active, onChange, enabledRef }) {
   const activeRef = useRef(active);
   activeRef.current = active;
+  // `order`/`onChange` peuvent changer (barre personnalisable) : on les lit via
+  // des refs pour rester dynamiques sans réattacher les écouteurs à chaque rendu.
+  const orderRef = useRef(order);
+  orderRef.current = order;
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
 
   useEffect(() => {
     let x0 = null, y0 = null, t0 = 0;
@@ -34,11 +40,12 @@ export function useTabSwipe({ order, active, onChange, enabledRef }) {
       // que vertical.
       if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.6) return;
 
-      const i = order.indexOf(activeRef.current);
+      const ord = orderRef.current;
+      const i = ord.indexOf(activeRef.current);
       if (i < 0) return;
       const next = dx < 0 ? i + 1 : i - 1;
-      if (next < 0 || next >= order.length) return;
-      onChange(order[next]);
+      if (next < 0 || next >= ord.length) return;
+      onChangeRef.current(ord[next]);
     };
 
     window.addEventListener("touchstart", onStart, { passive: true });

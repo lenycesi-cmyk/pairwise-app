@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect, lazy, Suspense } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
-import { FinanceProvider } from "./context/FinanceContext";
+import { FinanceProvider, useFinance } from "./context/FinanceContext";
+import { getMemberKey } from "./utils/members";
+import { DEFAULT_NAV_TABS, resolveNavTabs } from "./data/navTabsMeta";
 import { useRecurringGenerator } from "./hooks/useRecurringGenerator";
 import { useBudgetAlerts } from "./hooks/useBudgetAlerts";
 import { useBudgetSnapshots } from "./hooks/useBudgetSnapshots";
@@ -21,7 +23,6 @@ import OnboardingFlowPostCouple from "./screens/OnboardingFlowPostCouple";
 import DashboardScreen from "./screens/DashboardScreen";
 import BottomNav from "./components/BottomNav";
 import BottomTabBar from "./components/BottomTabBar";
-import NavTabsPicker from "./components/NavTabsPicker";
 
 const TransactionsScreen = lazy(() => import("./screens/TransactionsScreen"));
 const SettingsScreen = lazy(() => import("./screens/SettingsScreen"));
@@ -41,10 +42,25 @@ const MemberBreakdownScreen = lazy(() => import("./screens/MemberBreakdownScreen
 const InvestmentCalculatorScreen = lazy(() => import("./screens/InvestmentCalculatorScreen"));
 const ThemeScreen = lazy(() => import("./screens/ThemeScreen"));
 const LanguageScreen = lazy(() => import("./screens/LanguageScreen"));
+// Lazy : embarque @dnd-kit (réordonnancement), à garder hors du bundle initial.
+const NavTabsPicker = lazy(() => import("./components/NavTabsPicker"));
 
-// Ordre des onglets principaux pour la navigation par swipe (le « + » central
-// n'est pas un onglet ; Réglages est une modale, hors du cycle).
-const TAB_SWIPE_ORDER = ["dashboard", "reports", "budget", "wealth"];
+// L'ordre de la navigation par swipe suit désormais les onglets choisis dans la
+// barre du bas (par membre). NavSwipeSync (sous FinanceProvider) le remonte à
+// AppContent, qui le passe à useTabSwipe. Défaut : DEFAULT_NAV_TABS.
+function NavSwipeSync({ onOrder }) {
+  const { members, navTabs } = useFinance();
+  const { user } = useAuth();
+  const myKey = getMemberKey(members.find((m) => m.uid === user?.uid));
+  const order = resolveNavTabs(navTabs[myKey]);
+  const key = order.join(",");
+  useEffect(() => {
+    onOrder(order);
+    // `key` capture le contenu de `order` ; on ne dépend que de lui.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+  return null;
+}
 
 function RecurringGeneratorRunner() {
   useRecurringGenerator();
@@ -134,6 +150,9 @@ function AppContent() {
   const { user, coupleId, onboardingComplete, loading } = useAuth();
   const [tab, setTab] = useState("dashboard");
   const [showNavPicker, setShowNavPicker] = useState(false);
+  // Ordre du swipe = onglets de la barre du bas du membre (mis à jour par
+  // NavSwipeSync, rendu sous FinanceProvider).
+  const [swipeOrder, setSwipeOrder] = useState(DEFAULT_NAV_TABS);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [editingTx, setEditingTx] = useState(null);
@@ -196,7 +215,7 @@ function AppContent() {
     showTags || showTheme || showLanguage || showLogin || drawerOpen;
   const swipeEnabledRef = useRef(true);
   swipeEnabledRef.current = !anyOverlay;
-  useTabSwipe({ order: TAB_SWIPE_ORDER, active: tab, onChange: setTab, enabledRef: swipeEnabledRef });
+  useTabSwipe({ order: swipeOrder, active: tab, onChange: setTab, enabledRef: swipeEnabledRef });
 
   // Sens de la transition glissée : « fwd » (depuis la droite) si le nouvel
   // onglet est plus loin dans l'ordre, « back » sinon. On lit l'onglet précédent
@@ -204,7 +223,7 @@ function AppContent() {
   // le met à jour après coup.
   const prevTabRef = useRef(tab);
   const tabDir =
-    TAB_SWIPE_ORDER.indexOf(tab) < TAB_SWIPE_ORDER.indexOf(prevTabRef.current) ? "back" : "fwd";
+    swipeOrder.indexOf(tab) < swipeOrder.indexOf(prevTabRef.current) ? "back" : "fwd";
   useEffect(() => {
     prevTabRef.current = tab;
   }, [tab]);
@@ -275,6 +294,7 @@ function AppContent() {
 
   return (
     <FinanceProvider>
+      <NavSwipeSync onOrder={setSwipeOrder} />
       <RecurringGeneratorRunner />
       <ScrollFocusRunner />
       <BudgetAlertsRunner />
@@ -373,7 +393,9 @@ function AppContent() {
         onLongPressEdit={() => setShowNavPicker(true)}
       />
 
-      {showNavPicker && <NavTabsPicker onClose={() => setShowNavPicker(false)} />}
+      <Suspense fallback={null}>
+        {showNavPicker && <NavTabsPicker onClose={() => setShowNavPicker(false)} />}
+      </Suspense>
 
       <BottomNav
         active={tab}
