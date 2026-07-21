@@ -57,6 +57,8 @@ export const TRANSLATIONS = {
     nav_settings: "Réglages",
     nav_customize_title: "Personnaliser la barre",
     nav_customize_hint: "Choisis les 4 onglets à afficher en accès rapide dans la barre du bas.",
+    nav_customize_shown: "Affichés (glisse pour réorganiser)",
+    nav_customize_available: "Disponibles",
     settings_navbar: "Barre de navigation",
     settings_navbar_customize: "Personnaliser les onglets",
 
@@ -782,6 +784,8 @@ export const TRANSLATIONS = {
     nav_settings: "Settings",
     nav_customize_title: "Customize the bar",
     nav_customize_hint: "Pick the 4 tabs to show as quick access in the bottom bar.",
+    nav_customize_shown: "Shown (drag to reorder)",
+    nav_customize_available: "Available",
     settings_navbar: "Navigation bar",
     settings_navbar_customize: "Customize tabs",
 
