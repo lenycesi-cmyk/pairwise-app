@@ -3,6 +3,7 @@ import { useFinance } from "../context/FinanceContext";
 import { useAuth } from "../context/AuthContext";
 import { useTranslation } from "../hooks/useTranslation";
 import { getMemberKey } from "../utils/members";
+import { showLocalNotification } from "../utils/localNotification";
 
 // Notifie quand le partenaire commente une transaction. Toujours monté via
 // CommentNotifierRunner dans App.jsx (même pattern que BudgetAlertsRunner).
@@ -37,7 +38,7 @@ export function useCommentNotifications() {
         if (newOnes.length > 0 && "Notification" in window && Notification.permission === "granted") {
           const last = newOnes[newOnes.length - 1];
           const author = members.find((m) => getMemberKey(m) === last.memberId);
-          new Notification(`${author?.name || "💬"} — ${tx.description}`, {
+          showLocalNotification(`${author?.name || "💬"} — ${tx.description}`, {
             body: last.gifUrl ? "GIF" : last.text,
             tag: `comment_${tx.id}`,
           });

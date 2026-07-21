@@ -4,6 +4,7 @@ import { useFinance } from "../context/FinanceContext";
 import { useAuth } from "../context/AuthContext";
 import { getMemberKey } from "../utils/members";
 import { sendPushNotification } from "../utils/sendPush";
+import { showLocalNotification } from "../utils/localNotification";
 
 function monthKey() {
   const now = new Date();
@@ -57,7 +58,7 @@ export function useBudgetAlerts() {
         if (localStorage.getItem(storageKey)) continue;
 
         if (concernedKeys.includes(myKey)) {
-          new Notification(level.key === "100" ? "Budget dépassé" : "Alerte budget", {
+          showLocalNotification(level.key === "100" ? "Budget dépassé" : "Alerte budget", {
             body: `${label} : ${Math.round(level.pct)}% du budget atteint.`,
             tag: storageKey,
           });
