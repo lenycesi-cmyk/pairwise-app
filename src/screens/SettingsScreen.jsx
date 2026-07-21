@@ -9,7 +9,7 @@ import { getMemberKey } from "../utils/members";
 import { usePushNotifications } from "../hooks/usePushNotifications";
 import HeaderMenuButton from "../components/HeaderMenuButton";
 
-export default function SettingsScreen({ onOpenMenu, onOpenRecurring, onOpenCategories, onOpenTags, onOpenTheme, onOpenLanguage }) {
+export default function SettingsScreen({ onOpenMenu, onOpenRecurring, onOpenCategories, onOpenTags, onOpenTheme, onOpenLanguage, onOpenNavPicker }) {
   const t = useTranslation();
   const { coupleId, logout, user, updateProfilePhoto, updateDisplayName, deleteAccount, resetHints } = useAuth();
   const {
@@ -138,7 +138,7 @@ export default function SettingsScreen({ onOpenMenu, onOpenRecurring, onOpenCate
   }
 
   return (
-    <div style={{ minHeight: "100dvh", paddingBottom: "6rem" }}>
+    <div style={{ minHeight: "100dvh" }}>
       {/* En-tête d'onglet (Réglages est désormais un onglet plein écran). */}
       <div style={{ position: "sticky", top: 0, zIndex: 10, background: "var(--bg)" }}>
         {/* Grille d'en-tête alignée sur la colonne de contenu (maxWidth 640,
@@ -510,6 +510,24 @@ export default function SettingsScreen({ onOpenMenu, onOpenRecurring, onOpenCate
         >
           <i className="ti ti-hash" style={{ fontSize: 18, color: "var(--sky)" }} aria-hidden="true" />
           <span style={{ fontSize: 14, flex: 1 }}>{t("settings_tags")}</span>
+          <i className="ti ti-chevron-right" style={{ fontSize: 14, color: "var(--ink-3)" }} aria-hidden="true" />
+        </div>
+      </Card>
+
+      <SectionLabel icon="ti-layout-navbar" accent="ocean">{t("settings_navbar")}</SectionLabel>
+      <Card>
+        <div
+          onClick={onOpenNavPicker}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            padding: "4px 0",
+            cursor: "pointer",
+          }}
+        >
+          <i className="ti ti-layout-grid" style={{ fontSize: 18, color: "var(--lavi)" }} aria-hidden="true" />
+          <span style={{ fontSize: 14, flex: 1 }}>{t("settings_navbar_customize")}</span>
           <i className="ti ti-chevron-right" style={{ fontSize: 14, color: "var(--ink-3)" }} aria-hidden="true" />
         </div>
       </Card>

@@ -547,7 +547,7 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
   }
 
   return (
-    <div style={{ minHeight: "100dvh", paddingBottom: "6rem" }}>
+    <div style={{ minHeight: "100dvh" }}>
       {commentsTx && (
         <CommentsModal title={commentsTx.description || t("tx_comments")} onClose={() => setCommentsTx(null)}>
           <TransactionComments txId={commentsTx.id} bare />

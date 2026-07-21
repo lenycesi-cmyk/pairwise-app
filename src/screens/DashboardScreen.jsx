@@ -967,7 +967,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
   const hiddenWidgets = displayList.filter((w) => !w.visible);
 
   return (
-    <div style={{ paddingBottom: "6rem" }}>
+    <div>
       {commentsTx && (
         <CommentsModal title={commentsTx.description || t("tx_comments")} onClose={() => setCommentsTx(null)}>
           <TransactionComments txId={commentsTx.id} bare />

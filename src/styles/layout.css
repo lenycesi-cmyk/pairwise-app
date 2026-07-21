@@ -187,6 +187,73 @@
   margin: 0 auto;
 }
 
+/* ── Barre de navigation du bas (mobile) ─────────────────────────────────────
+   2 onglets · bouton « + » central · 2 onglets. Masquée sur desktop (le rail
+   latéral prend le relais — voir le média ≥1024px plus bas). */
+.tabbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 90;
+  display: flex;
+  align-items: stretch;
+  justify-content: space-around;
+  background: var(--bg-card);
+  border-top: 0.5px solid var(--rule);
+  box-shadow: 0 -6px 20px -14px rgba(10, 21, 32, 0.35);
+  padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
+  min-height: 58px;
+}
+.tabbar-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  background: none;
+  border: none;
+  color: var(--ink-3);
+  padding: 4px 0;
+  min-width: 0;
+}
+.tabbar-item i {
+  font-size: 21px;
+}
+.tabbar-item span {
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.tabbar-item[data-active="true"] {
+  color: var(--tang);
+}
+.tabbar-add {
+  flex: 0 0 auto;
+  width: 52px;
+  height: 52px;
+  margin: -14px 8px 0;
+  border-radius: 50%;
+  border: none;
+  background: var(--tang);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 22px -8px rgba(245, 99, 70, 0.55);
+  align-self: center;
+}
+.tabbar-add i {
+  font-size: 24px;
+}
+.tabbar-add:active {
+  transform: scale(0.95);
+}
+
 @media (min-width: 1024px) {
   .app-modal {
     position: fixed;
@@ -261,7 +328,8 @@
   /* Éléments propres au tiroir mobile : sans objet sur le rail. */
   .nav-scrim,
   .nav-identity,
-  .nav-fab {
+  .nav-fab,
+  .tabbar {
     display: none;
   }
   /* Le ☰ des headers porte un style inline (display:flex) → !important pour le
@@ -415,6 +483,12 @@
 }
 .tab-slide[data-dir="fwd"] { animation: tabSlideFwd var(--dur-base) var(--ease-out); }
 .tab-slide[data-dir="back"] { animation: tabSlideBack var(--dur-base) var(--ease-out); }
+/* Dégagement du bas pour ne pas masquer le dernier contenu derrière la barre de
+   navigation (mobile). Neutralisé sur desktop (rail latéral, pas de barre). */
+.tab-slide { padding-bottom: calc(68px + env(safe-area-inset-bottom)); }
+@media (min-width: 1024px) {
+  .tab-slide { padding-bottom: 0; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .tab-slide[data-dir] { animation: none; }
