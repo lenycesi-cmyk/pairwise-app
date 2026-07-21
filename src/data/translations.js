@@ -55,6 +55,10 @@ export const TRANSLATIONS = {
     nav_wealth: "Patrimoine",
     nav_credits: "Crédits",
     nav_settings: "Réglages",
+    nav_customize_title: "Personnaliser la barre",
+    nav_customize_hint: "Choisis les 4 onglets à afficher en accès rapide dans la barre du bas.",
+    settings_navbar: "Barre de navigation",
+    settings_navbar_customize: "Personnaliser les onglets",
 
     // ── Crédits / emprunts ──────────────────────────────────────────────
     credit_subtitle: "Voici le suivi de tes crédits pour {month}.",
@@ -776,6 +780,10 @@ export const TRANSLATIONS = {
     nav_wealth: "Wealth",
     nav_credits: "Credits",
     nav_settings: "Settings",
+    nav_customize_title: "Customize the bar",
+    nav_customize_hint: "Pick the 4 tabs to show as quick access in the bottom bar.",
+    settings_navbar: "Navigation bar",
+    settings_navbar_customize: "Customize tabs",
 
     // ── Credits / loans ─────────────────────────────────────────────────
     credit_subtitle: "Here's your loan tracker for {month}.",

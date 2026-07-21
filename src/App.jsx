@@ -20,6 +20,8 @@ import OnboardingFlowPreCouple from "./screens/OnboardingFlowPreCouple";
 import OnboardingFlowPostCouple from "./screens/OnboardingFlowPostCouple";
 import DashboardScreen from "./screens/DashboardScreen";
 import BottomNav from "./components/BottomNav";
+import BottomTabBar from "./components/BottomTabBar";
+import NavTabsPicker from "./components/NavTabsPicker";
 
 const TransactionsScreen = lazy(() => import("./screens/TransactionsScreen"));
 const SettingsScreen = lazy(() => import("./screens/SettingsScreen"));
@@ -89,18 +91,6 @@ function PushRunner() {
 
 // Rend une clé de traduction — utilisable comme `title` de ModalWrapper
 // (doit être rendu sous FinanceProvider, ce qui est le cas des modals).
-// FAB « Ajouter » flottant (mobile). Rendu sous FinanceProvider pour accéder à
-// la traduction ; masqué en CSS sur desktop (le rail latéral porte l'ajout).
-function AddFab({ onClick }) {
-  const t = useTranslation();
-  return (
-    <button className="nav-fab" onClick={onClick} aria-label={t("nav_add")}>
-      <i className="ti ti-plus" aria-hidden="true" />
-      <span>{t("nav_add")}</span>
-    </button>
-  );
-}
-
 // Rend une clé de traduction — utilisable comme `title` de ModalWrapper.
 function TranslatedTitle({ k }) {
   const t = useTranslation();
@@ -143,6 +133,7 @@ function ModalWrapper({ onClose, title, children }) {
 function AppContent() {
   const { user, coupleId, onboardingComplete, loading } = useAuth();
   const [tab, setTab] = useState("dashboard");
+  const [showNavPicker, setShowNavPicker] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [editingTx, setEditingTx] = useState(null);
@@ -366,14 +357,23 @@ function AppContent() {
             onOpenTags={() => setShowTags(true)}
             onOpenTheme={() => setShowTheme(true)}
             onOpenLanguage={() => setShowLanguage(true)}
+            onOpenNavPicker={() => setShowNavPicker(true)}
           />
         </Suspense>
       )}
       </div>
 
-      {/* FAB « Ajouter » flottant (mobile) — masqué en CSS sur desktop, où le
-          bouton d'ajout vit dans le rail latéral. */}
-      <AddFab onClick={() => handleCentralAdd(tab)} />
+      {/* Barre de navigation du bas (mobile) : 2 onglets · bouton « + » central ·
+          2 onglets, personnalisables. Masquée en CSS sur desktop (rail latéral).
+          Appui long → sélecteur d'onglets. */}
+      <BottomTabBar
+        active={tab}
+        onChange={setTab}
+        onAddClick={handleCentralAdd}
+        onLongPressEdit={() => setShowNavPicker(true)}
+      />
+
+      {showNavPicker && <NavTabsPicker onClose={() => setShowNavPicker(false)} />}
 
       <BottomNav
         active={tab}

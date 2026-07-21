@@ -56,6 +56,9 @@ export function FinanceProvider({ children }) {
   const [language, setLanguageState] = useState("fr");
   const [debtSettlements, setDebtSettlements] = useState([]);
   const [pushPrefs, setPushPrefs] = useState({});
+  // navTabs.{memberKey} = [tabKey, tabKey, tabKey, tabKey] : les 4 onglets de la
+  // barre de navigation du bas (mobile), personnalisables par membre.
+  const [navTabs, setNavTabs] = useState({});
   // Liste de tags personnalisée du couple (ordonnée). Vide tant que non
   // personnalisée : les suggestions retombent alors sur les presets + historique.
   const [customTags, setCustomTags] = useState([]);
@@ -141,6 +144,7 @@ export function FinanceProvider({ children }) {
         if (data.language) setLanguageState(data.language);
         if (data.debtSettlements) setDebtSettlements(data.debtSettlements);
         if (data.pushPrefs) setPushPrefs(data.pushPrefs);
+        if (data.navTabs) setNavTabs(data.navTabs);
         if (data.customTags) setCustomTags(data.customTags);
       }
     });
@@ -271,6 +275,16 @@ export function FinanceProvider({ children }) {
     await setDoc(
       doc(db, "couples", coupleId),
       { pushPrefs: { [memberKey]: prefs } },
+      { merge: true }
+    );
+  }
+
+  // Onglets de la barre du bas d'UN membre (remplacement complet du tableau).
+  async function updateMemberNavTabs(memberKey, tabs) {
+    if (!coupleId) return;
+    await setDoc(
+      doc(db, "couples", coupleId),
+      { navTabs: { [memberKey]: tabs } },
       { merge: true }
     );
   }
@@ -720,6 +734,8 @@ export function FinanceProvider({ children }) {
     removeTransactionComment,
     pushPrefs,
     updateMemberPushPrefs,
+    navTabs,
+    updateMemberNavTabs,
     updateCategories,
     customTags,
     updateCustomTags,

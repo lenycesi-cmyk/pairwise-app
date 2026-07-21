@@ -29,7 +29,7 @@ export default function GoalsScreen({ onOpenMenu, openSignal }) {
   }, [openSignal]);
 
   return (
-    <div style={{ minHeight: "100dvh", paddingBottom: "6rem" }}>
+    <div style={{ minHeight: "100dvh" }}>
       <div
         style={{
           position: "sticky", top: 0, zIndex: 10, background: "var(--bg)",
