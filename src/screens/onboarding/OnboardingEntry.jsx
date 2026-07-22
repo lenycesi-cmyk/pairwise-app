@@ -15,6 +15,7 @@ import { ALL_CATEGORIES, ALL_CURRENCIES, getCategoryName } from "../../data/cate
 import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { screenWrap, primaryBtn } from "./onboardingStyles";
 import { StepDots } from "./onboardingUI";
+import AmbientBackdrop from "../../components/AmbientBackdrop";
 
 const CHIPS = {
   fr: ["15€ déjeuner hier", "un café 3€", "loyer 800€", "téléphone 20€", "2400€ salaire"],
@@ -396,7 +397,9 @@ export default function OnboardingEntry({ language, onSignIn, onNext }) {
   if (!hasDraft || collapsed) {
     return (
       <div style={{ ...screenWrap, maxWidth: isDesktop ? 760 : 430 }}>
-        <div style={{ flex: 1, overflowY: "auto", padding: "32px 24px 24px", display: "flex", flexDirection: "column" }}>
+        {/* Ambiance décorative en arrière-plan (derrière tout le contenu). */}
+        <AmbientBackdrop />
+        <div style={{ position: "relative", zIndex: 1, flex: 1, overflowY: "auto", padding: "32px 24px 24px", display: "flex", flexDirection: "column" }}>
           <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center" }}>
             {logo(true, true)}
             <div style={{ margin: isDesktop ? "30px 0 52px" : "24px 0" }}>{privacyBadge}</div>
