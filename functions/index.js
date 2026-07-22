@@ -6,6 +6,7 @@ const admin = require("firebase-admin");
 const crypto = require("node:crypto");
 const { KeyManagementServiceClient } = require("@google-cloud/kms");
 const { PlaidApi, PlaidEnvironments, Configuration } = require("plaid");
+const eb = require("./enableBanking");
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -59,6 +60,29 @@ const PLAID_CLIENT_ID = defineSecret("PLAID_CLIENT_ID");
 const PLAID_SECRET = defineSecret("PLAID_SECRET");
 const PLAID_ENV = defineSecret("PLAID_ENV"); // "sandbox" | "production"
 
+// Secrets réellement injectés par le pipeline de déploiement (scripts/
+// deploy-functions.js). On garde ici les 3 secrets Plaid : le provider Enable
+// Banking est opt-in et lu séparément via process.env (voir ebCreds), pour
+// n'ajouter aucune dépendance à un secret inexistant tant qu'il n'est pas
+// provisionné — sinon le déploiement échouerait.
+const BANK_SECRETS = [PLAID_CLIENT_ID, PLAID_SECRET, PLAID_ENV];
+
+// URL de redirection enregistrée dans l'app Enable Banking (le front doit gérer
+// ce retour ?code=…&state=… — lot frontend à venir).
+const ENABLE_BANKING_REDIRECT_URL =
+  process.env.ENABLE_BANKING_REDIRECT_URL || "https://pairwise.finance/bank-callback";
+
+// Credentials Enable Banking depuis l'environnement (ou null si non configuré →
+// provider indisponible, comportement Plaid inchangé). ENABLE_BANKING_KEY = clé
+// privée RSA (PEM) de l'application. Injectés une fois ajoutés à
+// deploy-functions.js, voir CLAUDE.md.
+function ebCreds() {
+  const appId = process.env.ENABLE_BANKING_APP_ID;
+  const privateKey = process.env.ENABLE_BANKING_KEY;
+  if (!appId || !privateKey) return null;
+  return { appId, privateKey };
+}
+
 // URL publique du webhook Plaid (alias cloudfunctions.net de la fonction v2
 // plaidWebhook, en europe-west1). Passée à Plaid dans createLinkToken pour
 // qu'il notifie ce endpoint des événements d'item (re-auth, révocation, MAJ).
@@ -83,11 +107,28 @@ function getPlaidClient(clientId, secret, env) {
  * Called with: { coupleId, assetId, language }
  */
 exports.createLinkToken = onCall(
-  { secrets: [PLAID_CLIENT_ID, PLAID_SECRET, PLAID_ENV] },
+  { secrets: BANK_SECRETS },
   async (request) => {
-    const { coupleId, assetId, language = "fr", update = false } = request.data;
+    const { coupleId, assetId, language = "fr", update = false, provider = "plaid" } = request.data;
     if (!coupleId || !assetId) throw new HttpsError("invalid-argument", "coupleId and assetId required");
     if (!request.auth) throw new HttpsError("unauthenticated", "Authentication required");
+
+    // ── Provider Enable Banking : flux REDIRECT ────────────────────────────
+    // Pas de link_token ni de popup : on renvoie une URL vers la banque. Le
+    // front redirige l'utilisateur, puis rappelle `exchangeToken` avec le `code`.
+    if (provider === "enableBanking") {
+      const creds = ebCreds();
+      if (!creds) throw new HttpsError("failed-precondition", "Enable Banking not configured");
+      const { aspspName, aspspCountry = "FR" } = request.data;
+      if (!aspspName) throw new HttpsError("invalid-argument", "aspspName required");
+      // `state` encode couple+asset pour retrouver la connexion au retour.
+      const state = `${coupleId}:${assetId}:${request.auth.uid}`;
+      const { url, authorizationId } = await eb.startAuth(creds, {
+        redirectUrl: ENABLE_BANKING_REDIRECT_URL,
+        aspspName, aspspCountry, state,
+      });
+      return { provider: "enableBanking", mode: "redirect", url, authorizationId, state };
+    }
 
     const plaid = getPlaidClient(
       PLAID_CLIENT_ID.value(),
@@ -129,13 +170,49 @@ exports.createLinkToken = onCall(
  * Called with: { coupleId, assetId, publicToken, accountId, institutionName }
  */
 exports.exchangeToken = onCall(
-  { secrets: [PLAID_CLIENT_ID, PLAID_SECRET, PLAID_ENV] },
+  { secrets: BANK_SECRETS },
   async (request) => {
-    const { coupleId, assetId, publicToken, accountId, institutionName } = request.data;
-    if (!coupleId || !assetId || !publicToken) {
-      throw new HttpsError("invalid-argument", "coupleId, assetId and publicToken required");
-    }
+    const { coupleId, assetId, publicToken, accountId, institutionName, provider = "plaid" } = request.data;
+    if (!coupleId || !assetId) throw new HttpsError("invalid-argument", "coupleId and assetId required");
     if (!request.auth) throw new HttpsError("unauthenticated", "Authentication required");
+
+    // ── Provider Enable Banking : crée la session depuis le `code` de retour ──
+    if (provider === "enableBanking") {
+      const creds = ebCreds();
+      if (!creds) throw new HttpsError("failed-precondition", "Enable Banking not configured");
+      const { code, accountUid } = request.data;
+      if (!code) throw new HttpsError("invalid-argument", "code required");
+      const session = await eb.createSession(creds, code);
+      const account = accountUid
+        ? session.accounts.find((a) => a.uid === accountUid)
+        : session.accounts[0];
+      if (!account) throw new HttpsError("not-found", "Account not found");
+      const { balance, currency } = await eb.getBalance(creds, account.uid);
+      const instName = institutionName || session.aspsp?.name || "Bank";
+
+      await db.collection("couples").doc(coupleId).collection("bankConnections").doc(assetId).set({
+        provider: "enableBanking",
+        sessionId: session.sessionId,
+        accountUid: account.uid,
+        institutionName: instName,
+        assetId,
+        coupleId,
+        status: "active",
+        lastSync: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      const coupleDoc = await db.collection("couples").doc(coupleId).get();
+      const assets = coupleDoc.data()?.assets || [];
+      const updatedAssets = assets.map((a) =>
+        a.id === assetId
+          ? { ...a, value: balance, currency, bankConnected: true, bankInstitution: instName, lastBankSync: Date.now() }
+          : a
+      );
+      await db.collection("couples").doc(coupleId).set({ assets: updatedAssets }, { merge: true });
+      return { success: true, balance, currency, accountName: account.name || instName };
+    }
+
+    if (!publicToken) throw new HttpsError("invalid-argument", "publicToken required");
 
     const plaid = getPlaidClient(
       PLAID_CLIENT_ID.value(),
@@ -218,7 +295,7 @@ exports.exchangeToken = onCall(
  * Called with: { coupleId, assetId }
  */
 exports.syncBalance = onCall(
-  { secrets: [PLAID_CLIENT_ID, PLAID_SECRET, PLAID_ENV] },
+  { secrets: BANK_SECRETS },
   async (request) => {
     const { coupleId, assetId } = request.data;
     if (!coupleId || !assetId) throw new HttpsError("invalid-argument", "coupleId and assetId required");
@@ -234,7 +311,7 @@ exports.syncBalance = onCall(
  * Called with: { coupleId, assetId }
  */
 exports.disconnectBank = onCall(
-  { secrets: [PLAID_CLIENT_ID, PLAID_SECRET, PLAID_ENV] },
+  { secrets: BANK_SECRETS },
   async (request) => {
     const { coupleId, assetId } = request.data;
     if (!coupleId || !assetId) throw new HttpsError("invalid-argument", "Missing params");
@@ -246,20 +323,26 @@ exports.disconnectBank = onCall(
       .get();
 
     if (connDoc.exists) {
-      const { itemId } = connDoc.data();
-      const accessToken = await decryptToken(connDoc.data());
-      const plaid = getPlaidClient(
-        PLAID_CLIENT_ID.value(),
-        PLAID_SECRET.value(),
-        PLAID_ENV.value()
-      );
-      try {
-        await plaid.itemRemove({ access_token: accessToken });
-      } catch (_) {
-        // ignore Plaid errors on removal
+      const data = connDoc.data();
+      if (data.provider === "enableBanking") {
+        const creds = ebCreds();
+        if (creds) await eb.endSession(creds, data.sessionId);
+      } else {
+        const { itemId } = data;
+        const accessToken = await decryptToken(data);
+        const plaid = getPlaidClient(
+          PLAID_CLIENT_ID.value(),
+          PLAID_SECRET.value(),
+          PLAID_ENV.value()
+        );
+        try {
+          await plaid.itemRemove({ access_token: accessToken });
+        } catch (_) {
+          // ignore Plaid errors on removal
+        }
+        if (itemId) await db.collection("plaidItems").doc(itemId).delete().catch(() => {});
       }
       await connDoc.ref.delete();
-      if (itemId) await db.collection("plaidItems").doc(itemId).delete().catch(() => {});
     }
 
     // Remove bank connection metadata from the asset
@@ -280,7 +363,7 @@ exports.disconnectBank = onCall(
  * Scheduled job — sync all bank balances every hour.
  */
 exports.syncAllBalances = onSchedule(
-  { schedule: "every 60 minutes", secrets: [PLAID_CLIENT_ID, PLAID_SECRET, PLAID_ENV] },
+  { schedule: "every 60 minutes", secrets: BANK_SECRETS },
   async () => {
     const couplesSnap = await db.collection("couples").get();
     for (const coupleDoc of couplesSnap.docs) {
@@ -304,23 +387,32 @@ async function syncAssetBalance(coupleId, assetId) {
   const connDoc = await connRef.get();
   if (!connDoc.exists) throw new HttpsError("not-found", "No bank connection for this asset");
 
-  const { plaidAccountId } = connDoc.data();
-  const accessToken = await decryptToken(connDoc.data());
-  const env = process.env.PLAID_ENV || "sandbox";
-  const plaid = getPlaidClient(
-    process.env.PLAID_CLIENT_ID || PLAID_CLIENT_ID.value(),
-    process.env.PLAID_SECRET || PLAID_SECRET.value(),
-    env
-  );
+  const data = connDoc.data();
+  let balance, isoCurrency;
 
-  const accountsRes = await plaid.accountsGet({ access_token: accessToken });
-  const account = accountsRes.data.accounts.find((a) => a.account_id === plaidAccountId)
-    || accountsRes.data.accounts[0];
+  if (data.provider === "enableBanking") {
+    const creds = ebCreds();
+    if (!creds) throw new HttpsError("failed-precondition", "Enable Banking not configured");
+    ({ balance, currency: isoCurrency } = await eb.getBalance(creds, data.accountUid));
+  } else {
+    const { plaidAccountId } = data;
+    const accessToken = await decryptToken(data);
+    const env = process.env.PLAID_ENV || "sandbox";
+    const plaid = getPlaidClient(
+      process.env.PLAID_CLIENT_ID || PLAID_CLIENT_ID.value(),
+      process.env.PLAID_SECRET || PLAID_SECRET.value(),
+      env
+    );
 
-  if (!account) throw new HttpsError("not-found", "Plaid account not found");
+    const accountsRes = await plaid.accountsGet({ access_token: accessToken });
+    const account = accountsRes.data.accounts.find((a) => a.account_id === plaidAccountId)
+      || accountsRes.data.accounts[0];
 
-  const balance = account.balances.current ?? account.balances.available ?? 0;
-  const isoCurrency = account.balances.iso_currency_code || "EUR";
+    if (!account) throw new HttpsError("not-found", "Plaid account not found");
+
+    balance = account.balances.current ?? account.balances.available ?? 0;
+    isoCurrency = account.balances.iso_currency_code || "EUR";
+  }
 
   // Update asset in couple doc
   const coupleDoc = await db.collection("couples").doc(coupleId).get();
@@ -406,7 +498,7 @@ exports.joinCouple = onCall(async (request) => {
  * Called with: { coupleId }
  */
 exports.purgeBankConnections = onCall(
-  { secrets: [PLAID_CLIENT_ID, PLAID_SECRET, PLAID_ENV] },
+  { secrets: BANK_SECRETS },
   async (request) => {
     if (!request.auth) throw new HttpsError("unauthenticated", "Authentication required");
     const { coupleId } = request.data || {};
@@ -429,17 +521,23 @@ exports.purgeBankConnections = onCall(
       PLAID_ENV.value()
     );
     for (const connDoc of connSnap.docs) {
-      const { itemId } = connDoc.data();
-      const accessToken = await decryptToken(connDoc.data());
-      if (accessToken) {
-        try {
-          await plaid.itemRemove({ access_token: accessToken });
-        } catch (_) {
-          // best-effort: ignore Plaid errors, still delete the local doc
+      const data = connDoc.data();
+      if (data.provider === "enableBanking") {
+        const creds = ebCreds();
+        if (creds) await eb.endSession(creds, data.sessionId);
+      } else {
+        const { itemId } = data;
+        const accessToken = await decryptToken(data);
+        if (accessToken) {
+          try {
+            await plaid.itemRemove({ access_token: accessToken });
+          } catch (_) {
+            // best-effort: ignore Plaid errors, still delete the local doc
+          }
         }
+        if (itemId) await db.collection("plaidItems").doc(itemId).delete().catch(() => {});
       }
       await connDoc.ref.delete();
-      if (itemId) await db.collection("plaidItems").doc(itemId).delete().catch(() => {});
     }
     return { success: true, removed: connSnap.size };
   }

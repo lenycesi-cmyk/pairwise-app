@@ -46,6 +46,35 @@ npm run build && node scripts/deploy.js
 (runs only when `firestore.rules` changed, or on manual `workflow_dispatch`). Storage rules aren't
 automated yet.
 
+### Bank aggregator provider abstraction (Plaid / Enable Banking)
+
+Bank linking is provider-agnostic behind a `provider` field. The callables (`createLinkToken`,
+`exchangeToken`, `syncBalance`, `disconnectBank`, and the `syncAssetBalance`/`purgeBankConnections`
+paths) dispatch on `provider` (default `"plaid"`, so nothing changed for existing connections).
+Each `bankConnections/{assetId}` doc carries `provider`; Plaid docs hold `accessToken(Enc)`/`itemId`,
+Enable Banking docs hold `sessionId`/`accountUid`.
+
+- **Plaid** — unchanged: Link SDK popup → `public_token` → `exchangeToken` exchanges for an
+  `access_token`, webhook-driven re-auth, KMS-encrypted at rest.
+- **Enable Banking** ([functions/enableBanking.js](functions/enableBanking.js)) — a **redirect** flow
+  (no popup): `createLinkToken({provider:"enableBanking", aspspName, aspspCountry})` returns a bank
+  auth `url`; the user consents at their bank; the bank redirects to `ENABLE_BANKING_REDIRECT_URL?code=…&state=…`;
+  the frontend then calls `exchangeToken({provider:"enableBanking", code})` which creates a session and
+  stores it. Auth is a JWT RS256 signed with the app's private key (`kid` = App ID). No webhook — the
+  consent has a time-bound validity (~90 days) after which the user re-links.
+
+**Opt-in / activation (Enable Banking is dormant until configured):** `ebCreds()` reads
+`ENABLE_BANKING_APP_ID` + `ENABLE_BANKING_KEY` (RSA private key PEM) from `process.env`; unset ⇒ the
+provider throws `failed-precondition` and Plaid stays the default. To activate:
+
+1. Create the two secrets in Secret Manager (`ENABLE_BANKING_APP_ID`, `ENABLE_BANKING_KEY`).
+2. Add them to the `secretEnvironmentVariables` list in [scripts/deploy-functions.js](scripts/deploy-functions.js)
+   (the custom REST deploy injects only what's listed there — the `defineSecret`/onCall `secrets` array
+   is bypassed by this pipeline).
+3. Register `ENABLE_BANKING_REDIRECT_URL` (`https://pairwise.finance/bank-callback`) in the Enable
+   Banking app dashboard, and build the **frontend redirect lot** (handle the `?code=…&state=…` return
+   and call `exchangeToken`). Until that lot lands, the backend seam is in place but no UI drives it.
+
 ### Plaid access_token encryption at rest (Cloud KMS)
 
 Plaid `access_token`s live in the `couples/{id}/bankConnections/{assetId}` subcollection (locked to
