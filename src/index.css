@@ -142,8 +142,18 @@
 }
 @keyframes pw-near-l { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(-22px); } }
 @keyframes pw-near-r { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(22px); } }
-@keyframes pw-drift { 0% { transform: translateX(0); } 100% { transform: translateX(-80px); } }
-@keyframes pw-drift2 { 0% { transform: translateX(0); } 100% { transform: translateX(-120px); } }
+/* Collines de l'horizon : dérive douce gauche↔droite + léger bob vertical, si
+   bien que l'extrémité arrondie des bandes affleure par moments (cf. maquette). */
+@keyframes pw-float-a {
+  0%   { transform: translate(-70px, 8px); }
+  50%  { transform: translate(60px, -6px); }
+  100% { transform: translate(-70px, 8px); }
+}
+@keyframes pw-float-b {
+  0%   { transform: translate(80px, 6px); }
+  50%  { transform: translate(-72px, -8px); }
+  100% { transform: translate(80px, 6px); }
+}
 @media (prefers-reduced-motion: reduce) {
   .pw-ambient, .pw-ambient * { animation: none !important; }
 }
