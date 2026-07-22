@@ -1,10 +1,10 @@
 // Ambiance décorative de la page d'accueil (onboarding · écran de saisie).
-// Trois couches périphériques cumulées, toujours DERRIÈRE le contenu (z-index 0,
+// Deux couches périphériques cumulées, toujours DERRIÈRE le contenu (z-index 0,
 // pointer-events:none) et jamais concurrentes du champ de saisie :
-//   A · Le Souffle  — halo qui respire, signature de marque (derrière le logo).
 //   B · Deux âmes   — le couple : deux halos (lui = sky, elle = blush) toujours
 //                     en contact, qui vagabondent lentement sur l'écran.
-//   C · Horizon     — ellipses douces qui dérivent en bas de page.
+//   C · Horizon     — bandes douces empilées en bas, façon collines apaisées
+//                     (cf. maquette), qui dérivent lentement en parallaxe.
 // Palette de l'app uniquement, opacités basses, cycles très lents. Les keyframes
 // (préfixe pw-) et la coupure prefers-reduced-motion vivent dans src/index.css.
 // Purement décoratif : ne touche à aucune logique de saisie.
@@ -15,24 +15,6 @@ export default function AmbientBackdrop() {
       aria-hidden="true"
       style={{ position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none", overflow: "hidden" }}
     >
-      {/* A · Le Souffle — halos qui respirent, centrés vers le logo (haut). */}
-      <div
-        style={{
-          position: "absolute", top: "31%", left: "50%",
-          width: 150, height: 150, marginLeft: -75, marginTop: -75, borderRadius: "50%",
-          background: "radial-gradient(circle, color-mix(in srgb, var(--tang) 38%, transparent), transparent 70%)",
-          filter: "blur(6px)", animation: "pw-breathe 7s ease-in-out infinite",
-        }}
-      />
-      <div
-        style={{
-          position: "absolute", top: "31%", left: "50%",
-          width: 200, height: 200, marginLeft: -100, marginTop: -100, borderRadius: "50%",
-          background: "radial-gradient(circle, color-mix(in srgb, var(--amber) 26%, transparent), transparent 72%)",
-          filter: "blur(10px)", animation: "pw-breathe2 9s ease-in-out infinite",
-        }}
-      />
-
       {/* B · Deux âmes — le couple qui vagabonde (pièce maîtresse). Le groupe
           porte le déplacement plein écran ; chaque lobe un micro-rapprochement. */}
       <div
@@ -70,19 +52,24 @@ export default function AmbientBackdrop() {
         />
       </div>
 
-      {/* C · Horizon calme — ellipses qui dérivent tout en bas, en parallaxe. */}
+      {/* C · Horizon calme — collines douces empilées en bas de page (cf. maquette) :
+          bandes larges à sommet arrondi qui dérivent lentement en parallaxe. */}
+      {/* Colline arrière — sage, légèrement plus haute, dérive vers la gauche. */}
       <div
         style={{
-          position: "absolute", left: -60, right: -60, bottom: -30, height: 150, borderRadius: "50%",
-          background: "color-mix(in srgb, var(--sage) 20%, transparent)", filter: "blur(30px)",
-          animation: "pw-drift 18s ease-in-out infinite alternate",
+          position: "absolute", left: "-15%", right: "-15%", bottom: 0, height: "26vh",
+          borderTopLeftRadius: "100% 90%", borderTopRightRadius: "100% 90%",
+          background: "color-mix(in srgb, var(--sage) 16%, transparent)", filter: "blur(2px)",
+          animation: "pw-drift 26s ease-in-out infinite alternate",
         }}
       />
+      {/* Colline avant — gris chaud plus dense, plus basse, dérive à contre-sens. */}
       <div
         style={{
-          position: "absolute", left: -60, right: -60, bottom: -60, height: 150, borderRadius: "50%",
-          background: "color-mix(in srgb, var(--lavi) 12%, transparent)", filter: "blur(30px)",
-          animation: "pw-drift2 22s ease-in-out infinite alternate",
+          position: "absolute", left: "-20%", right: "-20%", bottom: 0, height: "18vh",
+          borderTopLeftRadius: "100% 88%", borderTopRightRadius: "100% 88%",
+          background: "color-mix(in srgb, var(--sage) 9%, var(--bg-card))", filter: "blur(1px)",
+          animation: "pw-drift2 32s ease-in-out infinite alternate",
         }}
       />
     </div>
