@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import Logo from "../components/Logo";
+import AmbientBackdrop from "../components/AmbientBackdrop";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 import { onboardingT, detectOnboardingLanguage } from "../data/onboardingCopy";
 import { draftEntryView, deriveInsight, formatMoney } from "../utils/onboardingDraft";
@@ -9,7 +10,7 @@ import { draftEntryView, deriveInsight, formatMoney } from "../utils/onboardingD
 // "+N autres" — garde la carte compacte sur mobile (pas de scroll voulu).
 const MAX_DRAFT_ROWS = 4;
 
-export default function AuthScreen({ defaultMode = "login", draft = [], language, onBack = null, joinMode = false, onJoinCode = null }) {
+export default function AuthScreen({ defaultMode = "login", draft = [], language, joinMode = false, onJoinCode = null }) {
   const { login, signup } = useAuth();
   const [mode, setMode] = useState(defaultMode);
   const [email, setEmail] = useState("");
@@ -274,27 +275,13 @@ export default function AuthScreen({ defaultMode = "login", draft = [], language
         padding: draftPanel && !isDesktop ? "1.1rem 1.25rem" : "2rem 1.5rem",
       }}
     >
-      {onBack && (
-        // Flèche retour alignée sur le bord gauche de la colonne de contenu
-        // centrée (comme StepDots sur les autres écrans), et non plus collée au
-        // coin du viewport.
-        <div style={{ position: "absolute", top: 18, left: 0, right: 0, display: "flex", justifyContent: "center", pointerEvents: "none" }}>
-          <div style={{ width: "100%", maxWidth: draftPanel && isDesktop ? 840 : 400 }}>
-            <button
-              onClick={onBack}
-              aria-label={t("auth_back")}
-              style={{ background: "none", border: "none", display: "flex", color: "var(--ink-3)", cursor: "pointer", pointerEvents: "auto", padding: 4 }}
-            >
-              <i className="ti ti-arrow-left" style={{ fontSize: 22 }} aria-hidden="true" />
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Ambiance décorative (mêmes couches que la landing), derrière le contenu. */}
+      <AmbientBackdrop />
 
-      {draftPanel && <div style={{ marginBottom: isDesktop ? 48 : 28 }}><Logo size={36} /></div>}
+      {draftPanel && <div style={{ position: "relative", zIndex: 1, marginBottom: isDesktop ? 48 : 28 }}><Logo size={36} /></div>}
 
       {draftPanel ? (
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1, width: "100%", justifyContent: "center" }}>
+        <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", alignItems: "center", flex: 1, width: "100%", justifyContent: "center" }}>
           <div
             style={{
               display: "flex",
@@ -318,10 +305,10 @@ export default function AuthScreen({ defaultMode = "login", draft = [], language
           <div style={{ marginTop: isDesktop ? 128 : 72 }}>{toggleLink}</div>
         </div>
       ) : (
-        <>
+        <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", alignItems: "center", width: "100%" }}>
           {formCol}
           <div style={{ marginTop: 20 }}>{toggleLink}</div>
-        </>
+        </div>
       )}
     </div>
   );
