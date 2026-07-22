@@ -52,24 +52,26 @@ export default function AmbientBackdrop() {
         />
       </div>
 
-      {/* C · Horizon calme — collines douces empilées en bas de page (cf. maquette) :
-          bandes larges à sommet arrondi qui dérivent lentement en parallaxe. */}
-      {/* Colline arrière — sage, légèrement plus haute, dérive vers la gauche. */}
+      {/* C · Horizon calme — deux bandes larges à crête NETTE (pas de flou) posées
+          en bas (cf. maquette). Elles flottent doucement de gauche à droite et un
+          peu de haut en bas, si bien que leur extrémité arrondie affleure par moments.
+          Ellipses très larges → les bords latéraux sont des pointes arrondies. */}
+      {/* Colline arrière — lavande, plus haute. */}
       <div
         style={{
-          position: "absolute", left: "-15%", right: "-15%", bottom: 0, height: "26vh",
-          borderTopLeftRadius: "100% 90%", borderTopRightRadius: "100% 90%",
-          background: "color-mix(in srgb, var(--sage) 16%, transparent)", filter: "blur(2px)",
-          animation: "pw-drift 26s ease-in-out infinite alternate",
+          position: "absolute", left: "-8%", right: "-8%", bottom: "-32vh", height: "52vh",
+          borderRadius: "50%",
+          background: "color-mix(in srgb, var(--lavi) 18%, var(--bg))",
+          animation: "pw-float-a 30s ease-in-out infinite",
         }}
       />
-      {/* Colline avant — gris chaud plus dense, plus basse, dérive à contre-sens. */}
+      {/* Colline avant — sage, plus basse, flotte à contre-sens. */}
       <div
         style={{
-          position: "absolute", left: "-20%", right: "-20%", bottom: 0, height: "18vh",
-          borderTopLeftRadius: "100% 88%", borderTopRightRadius: "100% 88%",
-          background: "color-mix(in srgb, var(--sage) 9%, var(--bg-card))", filter: "blur(1px)",
-          animation: "pw-drift2 32s ease-in-out infinite alternate",
+          position: "absolute", left: "-10%", right: "-10%", bottom: "-36vh", height: "50vh",
+          borderRadius: "50%",
+          background: "color-mix(in srgb, var(--sage) 16%, var(--bg))",
+          animation: "pw-float-b 38s ease-in-out infinite",
         }}
       />
     </div>
