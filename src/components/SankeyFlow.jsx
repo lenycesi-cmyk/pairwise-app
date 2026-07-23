@@ -14,20 +14,24 @@ import { useRef, useState, useLayoutEffect } from "react";
 // l'SVG garde une largeur minimale et le conteneur défile horizontalement, pour que
 // les libellés restent lisibles plutôt que d'être écrasés.
 
-const MIN_W = 540;
-const LEFT_LABEL_W = 96;
-const RIGHT_LABEL_W = 104;
-const NODE_W = 12;
-const GAP = 12; // écart vertical entre nœuds empilés d'une même colonne
-const PAD_Y = 18; // marge haute/basse (place pour le libellé du nœud central)
-
 function ribbonPath(x0, y0t, y0b, x1, y1t, y1b) {
   const xm = (x0 + x1) / 2;
   return `M ${x0} ${y0t} C ${xm} ${y0t}, ${xm} ${y1t}, ${x1} ${y1t}`
     + ` L ${x1} ${y1b} C ${xm} ${y1b}, ${xm} ${y0b}, ${x0} ${y0b} Z`;
 }
 
-export default function SankeyFlow({ left, right, centralLabel, centralColor = "var(--ink-2)", formatValue = (v) => Math.round(v), height }) {
+// `dense` : variante miniature pour tenir dans une carte de widget — pas de
+// largeur minimale (donc pas de scroll horizontal), gouttières et polices
+// réduites. L'appelant est censé regrouper les petits postes en « Autres ».
+export default function SankeyFlow({ left, right, centralLabel, centralColor = "var(--ink-2)", formatValue = (v) => Math.round(v), height, dense = false }) {
+  const MIN_W = dense ? 0 : 540;
+  const LEFT_LABEL_W = dense ? 78 : 96;
+  const RIGHT_LABEL_W = dense ? 84 : 104;
+  const NODE_W = dense ? 9 : 12;
+  const GAP = dense ? 8 : 12; // écart vertical entre nœuds empilés d'une même colonne
+  const PAD_Y = 18; // marge haute/basse (place pour le libellé du nœud central)
+  const LABEL_FS = dense ? 10.5 : 11.5;
+  const VALUE_FS = dense ? 9.5 : 10.5;
   const ref = useRef(null);
   const [cw, setCw] = useState(MIN_W);
 
@@ -40,12 +44,12 @@ export default function SankeyFlow({ left, right, centralLabel, centralColor = "
     return () => ro.disconnect();
   }, []);
 
-  const W = Math.max(cw, MIN_W);
+  const W = Math.max(cw, MIN_W, 280);
   const leftTotal = left.reduce((s, n) => s + n.value, 0);
   const rightTotal = right.reduce((s, n) => s + n.value, 0);
   const total = Math.max(leftTotal, rightTotal, 1);
   const maxCount = Math.max(left.length, right.length, 1);
-  const H = height || Math.max(240, maxCount * 52);
+  const H = height || Math.max(dense ? 200 : 240, maxCount * (dense ? 42 : 52));
 
   // Échelle commune aux deux côtés (conservation du flux). On réserve la place
   // des écarts du côté le plus fourni.
@@ -78,18 +82,17 @@ export default function SankeyFlow({ left, right, centralLabel, centralColor = "
   const rightSeg = layoutColumn(right);
 
   // Slots contigus sur le nœud central (sans écart), dans l'ordre des colonnes.
-  let inOff = centralTop;
-  const leftLinks = leftSeg.map((s) => {
-    const link = { seg: s, cyt: inOff, cyb: inOff + s.h };
-    inOff += s.h;
-    return link;
-  });
-  let outOff = centralTop;
-  const rightLinks = rightSeg.map((s) => {
-    const link = { seg: s, cyt: outOff, cyb: outOff + s.h };
-    outOff += s.h;
-    return link;
-  });
+  function stackLinks(segs) {
+    const out = [];
+    let off = centralTop;
+    for (const s of segs) {
+      out.push({ seg: s, cyt: off, cyb: off + s.h });
+      off += s.h;
+    }
+    return out;
+  }
+  const leftLinks = stackLinks(leftSeg);
+  const rightLinks = stackLinks(rightSeg);
 
   return (
     <div ref={ref} style={{ width: "100%", overflowX: "auto" }}>
@@ -123,10 +126,10 @@ export default function SankeyFlow({ left, right, centralLabel, centralColor = "
         {leftSeg.map((s) => (
           <g key={`ln-${s.key}`}>
             <rect x={leftNodeX} y={s.y} width={NODE_W} height={s.h} rx={3} fill={`var(--${s.color})`} />
-            <text x={leftNodeX - 8} y={s.y + s.h / 2 - 1} textAnchor="end" fontSize={11.5} fontWeight={600} fill="var(--ink)">
+            <text x={leftNodeX - 8} y={s.y + s.h / 2 - 1} textAnchor="end" fontSize={LABEL_FS} fontWeight={600} fill="var(--ink)">
               {s.label}
             </text>
-            <text x={leftNodeX - 8} y={s.y + s.h / 2 + 12} textAnchor="end" fontSize={10.5} fill="var(--ink-3)">
+            <text x={leftNodeX - 8} y={s.y + s.h / 2 + 11} textAnchor="end" fontSize={VALUE_FS} fill="var(--ink-3)">
               {formatValue(s.value)}
             </text>
           </g>
@@ -136,10 +139,10 @@ export default function SankeyFlow({ left, right, centralLabel, centralColor = "
         {rightSeg.map((s) => (
           <g key={`rn-${s.key}`}>
             <rect x={rightNodeX} y={s.y} width={NODE_W} height={s.h} rx={3} fill={`var(--${s.color})`} />
-            <text x={rightNodeX + NODE_W + 8} y={s.y + s.h / 2 - 1} textAnchor="start" fontSize={11.5} fontWeight={600} fill="var(--ink)">
+            <text x={rightNodeX + NODE_W + 8} y={s.y + s.h / 2 - 1} textAnchor="start" fontSize={LABEL_FS} fontWeight={600} fill="var(--ink)">
               {s.label}
             </text>
-            <text x={rightNodeX + NODE_W + 8} y={s.y + s.h / 2 + 12} textAnchor="start" fontSize={10.5} fill="var(--ink-3)">
+            <text x={rightNodeX + NODE_W + 8} y={s.y + s.h / 2 + 11} textAnchor="start" fontSize={VALUE_FS} fill="var(--ink-3)">
               {formatValue(s.value)}
             </text>
           </g>
