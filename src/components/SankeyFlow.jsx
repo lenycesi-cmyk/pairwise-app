@@ -25,15 +25,15 @@ function ribbonPath(x0, y0t, y0b, x1, y1t, y1b) {
 // réduites. L'appelant est censé regrouper les petits postes en « Autres ».
 // `onRightClick(key)` : rend cliquables les nœuds ET rubans de la colonne de
 // droite (drill-down) — jamais les nœuds techniques (clés "__…").
-export default function SankeyFlow({ left, right, centralLabel, centralColor = "var(--ink-2)", formatValue = (v) => Math.round(v), height, dense = false, onRightClick = null }) {
+export default function SankeyFlow({ left, right, centralLabel, centralColor = "var(--ink-2)", formatValue = (v) => Math.round(v), height, dense = false, large = false, onRightClick = null }) {
   const MIN_W = dense ? 0 : 540;
-  const LEFT_LABEL_W = dense ? 78 : 96;
-  const RIGHT_LABEL_W = dense ? 84 : 104;
+  const LEFT_LABEL_W = large ? 132 : dense ? 78 : 96;
+  const RIGHT_LABEL_W = large ? 140 : dense ? 84 : 104;
   const NODE_W = dense ? 9 : 12;
   const GAP = dense ? 8 : 12; // écart vertical entre nœuds empilés d'une même colonne
   const PAD_Y = 18; // marge haute/basse (place pour le libellé du nœud central)
-  const LABEL_FS = dense ? 10.5 : 11.5;
-  const VALUE_FS = dense ? 9.5 : 10.5;
+  const LABEL_FS = large ? 15 : dense ? 10.5 : 11.5;
+  const VALUE_FS = large ? 13 : dense ? 9.5 : 10.5;
   const ref = useRef(null);
   const [cw, setCw] = useState(MIN_W);
 

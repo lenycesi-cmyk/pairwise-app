@@ -1557,18 +1557,16 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
               </button>
             </div>
 
-            {/* Contrôles : période (toujours) + filtre membre (si couple). En vue
-                détaillée d'un poste on les masque pour rester focalisé. */}
-            {!drilled && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 12, flexShrink: 0 }}>
-                <div style={{ display: "flex", justifyContent: "center" }}>{periodSelector}</div>
-                {members.length > 1 && (
-                  <ScopeFilter members={members} scope={globalScope} onChange={setGlobalScope} size="lg" style={{ marginBottom: 0 }} />
-                )}
-              </div>
-            )}
+            {/* Contrôles : période + filtre membre — conservés y compris en vue
+                détaillée d'un poste (le drill reste synchronisé). */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 12, flexShrink: 0 }}>
+              <div style={{ display: "flex", justifyContent: "center" }}>{periodSelector}</div>
+              {members.length > 1 && (
+                <ScopeFilter members={members} scope={globalScope} onChange={setGlobalScope} size="lg" style={{ marginBottom: 0 }} />
+              )}
+            </div>
 
-            <div style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
+            <div style={{ flex: 1, minHeight: 0, overflow: "auto", display: "flex", flexDirection: "column", justifyContent: drilled ? "center" : "flex-start" }}>
               {view.hasData === false ? (
                 <p style={{ fontSize: 14, color: "var(--ink-3)", textAlign: "center", padding: "3rem 0" }}>{t("reports_no_expenses")}</p>
               ) : (
@@ -1578,11 +1576,17 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
                   centralLabel={drilled ? sankeyDrill.label : t("reports_sankey_central")}
                   formatValue={(v) => `${formatAmount(v)} ${currencySymbol}`}
                   onRightClick={drilled ? null : drillInto}
-                  height={Math.max(
-                    420,
-                    Math.max(view.left.length, view.right.length) * 56,
-                    (typeof window !== "undefined" ? window.innerHeight : 800) - 210
-                  )}
+                  large={drilled}
+                  height={
+                    drilled
+                      // Vue détaillée : plus compacte (rubans moins épais) et centrée.
+                      ? Math.min(560, Math.max(300, view.right.length * 78))
+                      : Math.max(
+                          420,
+                          Math.max(view.left.length, view.right.length) * 56,
+                          (typeof window !== "undefined" ? window.innerHeight : 800) - 260
+                        )
+                  }
                 />
               )}
             </div>
