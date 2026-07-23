@@ -346,6 +346,10 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
   // Drill-down : catégorie d'usage sélectionnée (null = vue d'ensemble). On
   // affiche alors ce poste éclaté en ses sous-catégories.
   const [sankeyDrill, setSankeyDrill] = useState(null);
+  // Facteur de zoom de la vue plein écran (le SVG est rendu à une taille
+  // naturelle fixe puis mis à l'échelle par transform, pour rester net et
+  // permettre de tout voir d'un coup sur mobile ou de zoomer sur un flux).
+  const [sankeyZoom, setSankeyZoom] = useState(1);
 
   // Sankey focalisé sur un poste : source unique (le poste) → ses sous-flux.
   const sankeyDrillData = useMemo(() => {
@@ -371,13 +375,41 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
     ];
   }
 
+  // Largeur naturelle (avant zoom) à laquelle le Sankey plein écran est rendu.
+  const SANKEY_BASE_W = 560;
+
+  // Hauteur naturelle (avant zoom) d'une vue selon son nombre de nœuds.
+  function sankeyNaturalH(view, drilled) {
+    return drilled
+      ? Math.min(560, Math.max(300, view.right.length * 78))
+      : Math.max(420, Math.max(view.left.length, view.right.length) * 56);
+  }
+
+  // Zoom « ajusté » : tout tient dans l'espace dispo (largeur ET hauteur), sans
+  // agrandir au-delà de la taille naturelle.
+  function sankeyFitZoom(view, drilled) {
+    const nH = sankeyNaturalH(view, drilled);
+    const availH = (typeof window !== "undefined" ? window.innerHeight : 800) - 300;
+    const availW = (typeof window !== "undefined" ? window.innerWidth : 400) - 40;
+    return Math.max(0.3, Math.min(1, availH / nH, availW / SANKEY_BASE_W));
+  }
+
   // Ouvre le drill-down d'un poste d'usage (ignore les nœuds techniques et ceux
   // sans sous-flux, ex. Reste). Utilisé au clic sur un nœud/ruban de droite.
   function drillInto(key) {
     if (!key || key.startsWith("__")) return;
     const node = sankeyData.right.find((n) => n.key === key);
-    if (!node || !(sankeyData.subFlows[key]?.length > 1)) return;
+    const subs = sankeyData.subFlows[key];
+    if (!node || !(subs?.length > 1)) return;
     setSankeyDrill({ key: node.key, label: node.label, color: node.color });
+    setSankeyZoom(sankeyFitZoom({ left: [0], right: subs }, true));
+  }
+
+  // Ouvre la vue plein écran sur la vue d'ensemble (bouton « Plein écran »).
+  function openSankeyFull() {
+    setSankeyDrill(null);
+    setSankeyZoom(sankeyFitZoom(sankeyData, false));
+    setShowSankeyFull(true);
   }
 
   // Dépenses par tag sur la période — une transaction peut porter plusieurs
@@ -884,7 +916,7 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
             title={t("reports_sankey")}
             action={!editMode && (
               <button
-                onClick={() => setShowSankeyFull(true)}
+                onClick={openSankeyFull}
                 aria-label={t("reports_sankey_expand")}
                 style={{ background: "none", border: "none", color: "var(--sky)", fontSize: 12, display: "flex", alignItems: "center", gap: 3, flexShrink: 0 }}
               >
@@ -1527,7 +1559,7 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
               <div style={{ display: "flex", alignItems: "center", gap: 9, minWidth: 0 }}>
                 {drilled ? (
                   <button
-                    onClick={() => setSankeyDrill(null)}
+                    onClick={() => { setSankeyDrill(null); setSankeyZoom(sankeyFitZoom(sankeyData, false)); }}
                     aria-label={t("auth_back")}
                     style={{ width: 30, height: 30, borderRadius: 9, background: "var(--bg-card)", border: "0.5px solid var(--rule)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
                   >
@@ -1566,29 +1598,57 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
               )}
             </div>
 
-            <div style={{ flex: 1, minHeight: 0, overflow: "auto", display: "flex", flexDirection: "column", justifyContent: drilled ? "center" : "flex-start" }}>
+            <div style={{ position: "relative", flex: 1, minHeight: 0, overflow: "auto" }}>
               {view.hasData === false ? (
                 <p style={{ fontSize: 14, color: "var(--ink-3)", textAlign: "center", padding: "3rem 0" }}>{t("reports_no_expenses")}</p>
-              ) : (
-                <SankeyFlow
-                  left={view.left}
-                  right={view.right}
-                  centralLabel={drilled ? sankeyDrill.label : t("reports_sankey_central")}
-                  formatValue={(v) => `${formatAmount(v)} ${currencySymbol}`}
-                  onRightClick={drilled ? null : drillInto}
-                  large={drilled}
-                  height={
-                    drilled
-                      // Vue détaillée : plus compacte (rubans moins épais) et centrée.
-                      ? Math.min(560, Math.max(300, view.right.length * 78))
-                      : Math.max(
-                          420,
-                          Math.max(view.left.length, view.right.length) * 56,
-                          (typeof window !== "undefined" ? window.innerHeight : 800) - 260
-                        )
-                  }
-                />
-              )}
+              ) : (() => {
+                const naturalH = sankeyNaturalH(view, !!drilled);
+                // Conteneur « fantôme » à la taille APRÈS zoom (pour le scroll),
+                // contenant le diagramme rendu à sa taille naturelle puis mis à
+                // l'échelle — le texte reste vectoriel donc net à tout zoom.
+                return (
+                  <div style={{ width: SANKEY_BASE_W * sankeyZoom, height: naturalH * sankeyZoom, margin: "0 auto" }}>
+                    <div style={{ width: SANKEY_BASE_W, height: naturalH, transform: `scale(${sankeyZoom})`, transformOrigin: "top left" }}>
+                      <SankeyFlow
+                        left={view.left}
+                        right={view.right}
+                        centralLabel={drilled ? sankeyDrill.label : t("reports_sankey_central")}
+                        formatValue={(v) => `${formatAmount(v)} ${currencySymbol}`}
+                        onRightClick={drilled ? null : drillInto}
+                        large={drilled}
+                        height={naturalH}
+                      />
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Contrôles de zoom flottants. */}
+              <div style={{ position: "sticky", bottom: 6, marginTop: 6, display: "flex", justifyContent: "center", gap: 6, pointerEvents: "none" }}>
+                <div style={{ display: "flex", gap: 4, background: "var(--bg-card)", border: "0.5px solid var(--rule)", borderRadius: 99, padding: 4, boxShadow: "0 2px 10px rgba(0,0,0,0.08)", pointerEvents: "auto" }}>
+                  <button
+                    onClick={() => setSankeyZoom((z) => Math.max(0.3, Math.round((z - 0.2) * 100) / 100))}
+                    aria-label={t("reports_sankey_zoom_out")}
+                    style={zoomBtnStyle}
+                  >
+                    <i className="ti ti-minus" style={{ fontSize: 16 }} aria-hidden="true" />
+                  </button>
+                  <button
+                    onClick={() => setSankeyZoom(sankeyFitZoom(view, !!drilled))}
+                    aria-label={t("reports_sankey_zoom_fit")}
+                    style={zoomBtnStyle}
+                  >
+                    <i className="ti ti-arrows-minimize" style={{ fontSize: 15 }} aria-hidden="true" />
+                  </button>
+                  <button
+                    onClick={() => setSankeyZoom((z) => Math.min(3, Math.round((z + 0.2) * 100) / 100))}
+                    aria-label={t("reports_sankey_zoom_in")}
+                    style={zoomBtnStyle}
+                  >
+                    <i className="ti ti-plus" style={{ fontSize: 16 }} aria-hidden="true" />
+                  </button>
+                </div>
+              </div>
             </div>
             {!drilled && (
               <p style={{ fontSize: 11, color: "var(--ink-3)", textAlign: "center", marginTop: 8, flexShrink: 0 }}>
@@ -1601,3 +1661,9 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
     </div>
   );
 }
+
+const zoomBtnStyle = {
+  width: 34, height: 34, borderRadius: "50%", border: "none",
+  background: "transparent", color: "var(--ink)",
+  display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
+};
