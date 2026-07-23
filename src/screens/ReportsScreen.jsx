@@ -269,39 +269,91 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
   const maxCatTotal = Math.max(1, ...Object.values(categoryTotals).map((c) => c.total));
 
   // ── Flux de trésorerie (Sankey) ────────────────────────────────────────
-  // Sources de revenu (par sous-catégorie) → nœud central → postes de dépense
-  // (par catégorie). On équilibre les deux côtés avec un nœud d'ajustement :
-  // « Épargne » à droite si les revenus dépassent les dépenses, « Épargne
-  // puisée » à gauche dans le cas inverse — le flux se conserve.
+  // Sources de revenu (par sous-catégorie) → nœud central → usages : postes de
+  // dépense (par catégorie) + Investissements + Épargne (transactions de type
+  // « investment » sur les catégories investment/savings). On équilibre avec un
+  // nœud d'ajustement : « Reste » à droite si les revenus dépassent les usages,
+  // « Épargne puisée » à gauche dans le cas inverse — le flux se conserve.
+  // Chaque nœud d'usage porte ses sous-flux (par sous-catégorie) pour le
+  // drill-down. Pondéré par le filtre membre (globalScope).
   const sankeyData = useMemo(() => {
     const clip = (s) => (s.length > 14 ? s.slice(0, 13) + "…" : s);
+    const wfrac = (tx) => (globalScope === null ? 1 : memberShareFraction(tx, globalScope, members));
     const incMap = new Map();
+    const expCatMap = new Map(); // categoryId → { total, subs: Map }
+    const investSubs = new Map();
+    const savingsSubs = new Map();
+    let investTotal = 0;
+    let savingsTotal = 0;
     for (const tx of periodTx) {
-      if (tx.type !== "income") continue;
-      const key = tx.subcategory || t("dashboard_income");
-      incMap.set(key, (incMap.get(key) || 0) + toBase(tx));
+      const w = wfrac(tx);
+      if (!w) continue;
+      const v = toBase(tx) * w;
+      if (!v) continue;
+      if (tx.type === "income") {
+        incMap.set(tx.subcategory || t("dashboard_income"), (incMap.get(tx.subcategory || t("dashboard_income")) || 0) + v);
+      } else if (tx.type === "expense") {
+        let e = expCatMap.get(tx.categoryId);
+        if (!e) { e = { total: 0, subs: new Map() }; expCatMap.set(tx.categoryId, e); }
+        e.total += v;
+        const sk = tx.subcategory || t("reports_sankey_others");
+        e.subs.set(sk, (e.subs.get(sk) || 0) + v);
+      } else if (tx.type === "investment") {
+        const sub = tx.subcategory || t("reports_sankey_others");
+        if (tx.categoryId === "savings") { savingsTotal += v; savingsSubs.set(sub, (savingsSubs.get(sub) || 0) + v); }
+        else { investTotal += v; investSubs.set(sub, (investSubs.get(sub) || 0) + v); }
+      }
     }
     const INCOME_COLORS = ["sage", "mint", "sky", "lavi", "amber", "blush"];
     const left = [...incMap.entries()]
       .sort((a, b) => b[1] - a[1])
       .map(([label, value], i) => ({ key: `inc-${label}`, label: clip(label), value, color: INCOME_COLORS[i % INCOME_COLORS.length] }));
-    const right = Object.values(categoryTotals)
-      .sort((a, b) => b.total - a.total)
-      .map(({ category, total }) => ({ key: category.id, label: clip(category.name), value: total, color: category.color || "tang" }));
+
+    // Sous-flux par nœud d'usage (pour le drill-down au clic).
+    const subFlows = {};
+    const subsFrom = (map, color) =>
+      [...map.entries()].sort((a, b) => b[1] - a[1]).map(([label, value]) => ({ key: `s-${label}`, label: clip(label), value, color }));
+
+    const right = [];
+    for (const [cid, { total, subs }] of [...expCatMap.entries()].sort((a, b) => b[1].total - a[1].total)) {
+      const cat = categories.find((c) => c.id === cid);
+      right.push({ key: cid, label: clip(cat?.name ?? cid), value: total, color: cat?.color || "tang" });
+      subFlows[cid] = subsFrom(subs, cat?.color || "tang");
+    }
+    if (investTotal > 0) {
+      right.push({ key: "investment", label: t("reports_sankey_invest"), value: investTotal, color: "lavi" });
+      subFlows["investment"] = subsFrom(investSubs, "lavi");
+    }
+    if (savingsTotal > 0) {
+      right.push({ key: "savings", label: t("reports_sankey_savings"), value: savingsTotal, color: "mint" });
+      subFlows["savings"] = subsFrom(savingsSubs, "mint");
+    }
+    right.sort((a, b) => b.value - a.value);
 
     const incomeTotal = left.reduce((s, n) => s + n.value, 0);
-    const expenseTotal = right.reduce((s, n) => s + n.value, 0);
-    if (incomeTotal > expenseTotal + 0.5) {
-      right.push({ key: "__savings", label: t("reports_sankey_savings"), value: incomeTotal - expenseTotal, color: "mint" });
-    } else if (expenseTotal > incomeTotal + 0.5) {
-      left.push({ key: "__drawdown", label: t("reports_sankey_drawdown"), value: expenseTotal - incomeTotal, color: "tang" });
+    const outflowTotal = right.reduce((s, n) => s + n.value, 0);
+    if (incomeTotal > outflowTotal + 0.5) {
+      right.push({ key: "__rest", label: t("reports_sankey_rest"), value: incomeTotal - outflowTotal, color: "ink-3" });
+    } else if (outflowTotal > incomeTotal + 0.5) {
+      left.push({ key: "__drawdown", label: t("reports_sankey_drawdown"), value: outflowTotal - incomeTotal, color: "tang" });
     }
-    return { left, right, hasData: left.length > 0 && right.length > 0 };
+    return { left, right, subFlows, hasData: left.length > 0 && right.length > 0 };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [periodTx, categoryTotals, displayCurrency, convert, language]);
+  }, [periodTx, categories, globalScope, members, displayCurrency, convert, language]);
 
   // Vue plein écran du Sankey (le widget n'affiche qu'un aperçu miniature).
   const [showSankeyFull, setShowSankeyFull] = useState(false);
+  // Drill-down : catégorie d'usage sélectionnée (null = vue d'ensemble). On
+  // affiche alors ce poste éclaté en ses sous-catégories.
+  const [sankeyDrill, setSankeyDrill] = useState(null);
+
+  // Sankey focalisé sur un poste : source unique (le poste) → ses sous-flux.
+  const sankeyDrillData = useMemo(() => {
+    if (!sankeyDrill) return null;
+    const subs = sankeyData.subFlows[sankeyDrill.key];
+    if (!subs || subs.length === 0) return null;
+    return { left: [{ key: "__root", label: sankeyDrill.label, value: subs.reduce((s, x) => s + x.value, 0), color: sankeyDrill.color }], right: subs };
+  }, [sankeyDrill, sankeyData]);
 
   // Regroupe les flux au-delà des `n` plus gros en un nœud « Autres », en
   // préservant les nœuds d'ajustement (clés "__…") en fin de liste. Les items
@@ -317,6 +369,15 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
       { key: "__others", label: t("reports_sankey_others"), value: rest.reduce((s, r) => s + r.value, 0), color: "ink-3" },
       ...special,
     ];
+  }
+
+  // Ouvre le drill-down d'un poste d'usage (ignore les nœuds techniques et ceux
+  // sans sous-flux, ex. Reste). Utilisé au clic sur un nœud/ruban de droite.
+  function drillInto(key) {
+    if (!key || key.startsWith("__")) return;
+    const node = sankeyData.right.find((n) => n.key === key);
+    if (!node || !(sankeyData.subFlows[key]?.length > 1)) return;
+    setSankeyDrill({ key: node.key, label: node.label, color: node.color });
   }
 
   // Dépenses par tag sur la période — une transaction peut porter plusieurs
@@ -840,6 +901,7 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
               centralLabel={t("reports_sankey_central")}
               formatValue={(v) => `${formatAmount(v)} ${currencySymbol}`}
               dense
+              onRightClick={(key) => { drillInto(key); setShowSankeyFull(true); }}
             />
           </WidgetCard>
         );
@@ -1449,50 +1511,89 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
         bento
       />
 
-      {/* Vue plein écran du flux de trésorerie — le widget n'est qu'un aperçu. */}
-      {showSankeyFull && (
-        <div
-          style={{
-            position: "fixed", inset: 0, zIndex: 200, background: "var(--bg)",
-            display: "flex", flexDirection: "column", padding: "1rem 1.25rem",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 8, flexShrink: 0 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-              <span style={{ width: 30, height: 30, borderRadius: 9, background: "var(--sky-light)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <i className="ti ti-arrows-split" style={{ fontSize: 15, color: "var(--sky)" }} aria-hidden="true" />
-              </span>
-              <div>
-                <p style={{ fontSize: 15, fontWeight: 700 }}>{t("reports_sankey")}</p>
-                <p style={{ fontSize: 11.5, color: "var(--ink-3)" }}>{range.label}</p>
+      {/* Vue plein écran du flux de trésorerie — le widget n'est qu'un aperçu.
+          Contrôles complets : période + filtre membre, et drill-down par poste. */}
+      {showSankeyFull && (() => {
+        const drilled = sankeyDrill && sankeyDrillData;
+        const view = drilled ? sankeyDrillData : sankeyData;
+        return (
+          <div
+            style={{
+              position: "fixed", inset: 0, zIndex: 200, background: "var(--bg)",
+              display: "flex", flexDirection: "column", padding: "1rem 1.25rem",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 10, flexShrink: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 9, minWidth: 0 }}>
+                {drilled ? (
+                  <button
+                    onClick={() => setSankeyDrill(null)}
+                    aria-label={t("auth_back")}
+                    style={{ width: 30, height: 30, borderRadius: 9, background: "var(--bg-card)", border: "0.5px solid var(--rule)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
+                  >
+                    <i className="ti ti-arrow-left" style={{ fontSize: 16 }} aria-hidden="true" />
+                  </button>
+                ) : (
+                  <span style={{ width: 30, height: 30, borderRadius: 9, background: "var(--sky-light)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <i className="ti ti-arrows-split" style={{ fontSize: 15, color: "var(--sky)" }} aria-hidden="true" />
+                  </span>
+                )}
+                <div style={{ minWidth: 0 }}>
+                  <p style={{ fontSize: 15, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {drilled ? sankeyDrill.label : t("reports_sankey")}
+                  </p>
+                  <p style={{ fontSize: 11.5, color: "var(--ink-3)" }}>{range.label}</p>
+                </div>
               </div>
+              <button
+                onClick={() => { setShowSankeyFull(false); setSankeyDrill(null); }}
+                aria-label={t("common_close")}
+                style={{
+                  width: 34, height: 34, borderRadius: "50%", background: "var(--bg-card)",
+                  border: "0.5px solid var(--rule)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                }}
+              >
+                <i className="ti ti-x" style={{ fontSize: 16 }} aria-hidden="true" />
+              </button>
             </div>
-            <button
-              onClick={() => setShowSankeyFull(false)}
-              aria-label={t("common_close")}
-              style={{
-                width: 34, height: 34, borderRadius: "50%", background: "var(--bg-card)",
-                border: "0.5px solid var(--rule)", display: "flex", alignItems: "center", justifyContent: "center",
-              }}
-            >
-              <i className="ti ti-x" style={{ fontSize: 16 }} aria-hidden="true" />
-            </button>
-          </div>
-          <div style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
-            <SankeyFlow
-              left={sankeyData.left}
-              right={sankeyData.right}
-              centralLabel={t("reports_sankey_central")}
-              formatValue={(v) => `${formatAmount(v)} ${currencySymbol}`}
-              height={Math.max(
-                420,
-                Math.max(sankeyData.left.length, sankeyData.right.length) * 56,
-                (typeof window !== "undefined" ? window.innerHeight : 800) - 130
+
+            {/* Contrôles : période (toujours) + filtre membre (si couple). En vue
+                détaillée d'un poste on les masque pour rester focalisé. */}
+            {!drilled && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 12, flexShrink: 0 }}>
+                <div style={{ display: "flex", justifyContent: "center" }}>{periodSelector}</div>
+                {members.length > 1 && (
+                  <ScopeFilter members={members} scope={globalScope} onChange={setGlobalScope} size="lg" style={{ marginBottom: 0 }} />
+                )}
+              </div>
+            )}
+
+            <div style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
+              {view.hasData === false ? (
+                <p style={{ fontSize: 14, color: "var(--ink-3)", textAlign: "center", padding: "3rem 0" }}>{t("reports_no_expenses")}</p>
+              ) : (
+                <SankeyFlow
+                  left={view.left}
+                  right={view.right}
+                  centralLabel={drilled ? sankeyDrill.label : t("reports_sankey_central")}
+                  formatValue={(v) => `${formatAmount(v)} ${currencySymbol}`}
+                  onRightClick={drilled ? null : drillInto}
+                  height={Math.max(
+                    420,
+                    Math.max(view.left.length, view.right.length) * 56,
+                    (typeof window !== "undefined" ? window.innerHeight : 800) - 210
+                  )}
+                />
               )}
-            />
+            </div>
+            {!drilled && (
+              <p style={{ fontSize: 11, color: "var(--ink-3)", textAlign: "center", marginTop: 8, flexShrink: 0 }}>
+                {t("reports_sankey_drill_hint")}
+              </p>
+            )}
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
