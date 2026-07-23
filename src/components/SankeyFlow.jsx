@@ -23,7 +23,9 @@ function ribbonPath(x0, y0t, y0b, x1, y1t, y1b) {
 // `dense` : variante miniature pour tenir dans une carte de widget — pas de
 // largeur minimale (donc pas de scroll horizontal), gouttières et polices
 // réduites. L'appelant est censé regrouper les petits postes en « Autres ».
-export default function SankeyFlow({ left, right, centralLabel, centralColor = "var(--ink-2)", formatValue = (v) => Math.round(v), height, dense = false }) {
+// `onRightClick(key)` : rend cliquables les nœuds ET rubans de la colonne de
+// droite (drill-down) — jamais les nœuds techniques (clés "__…").
+export default function SankeyFlow({ left, right, centralLabel, centralColor = "var(--ink-2)", formatValue = (v) => Math.round(v), height, dense = false, onRightClick = null }) {
   const MIN_W = dense ? 0 : 540;
   const LEFT_LABEL_W = dense ? 78 : 96;
   const RIGHT_LABEL_W = dense ? 84 : 104;
@@ -107,14 +109,19 @@ export default function SankeyFlow({ left, right, centralLabel, centralColor = "
           />
         ))}
         {/* Rubans central → droite */}
-        {rightLinks.map(({ seg, cyt, cyb }) => (
-          <path
-            key={`r-${seg.key}`}
-            d={ribbonPath(centralX + NODE_W, cyt, cyb, ribRightX, seg.y, seg.y + seg.h)}
-            fill={`var(--${seg.color})`}
-            opacity={0.34}
-          />
-        ))}
+        {rightLinks.map(({ seg, cyt, cyb }) => {
+          const clickable = onRightClick && !seg.key.startsWith("__");
+          return (
+            <path
+              key={`r-${seg.key}`}
+              d={ribbonPath(centralX + NODE_W, cyt, cyb, ribRightX, seg.y, seg.y + seg.h)}
+              fill={`var(--${seg.color})`}
+              opacity={0.34}
+              style={clickable ? { cursor: "pointer" } : undefined}
+              onClick={clickable ? () => onRightClick(seg.key) : undefined}
+            />
+          );
+        })}
 
         {/* Nœud central */}
         <rect x={centralX} y={centralTop} width={NODE_W} height={centralH} rx={3} fill={centralColor} />
@@ -135,18 +142,26 @@ export default function SankeyFlow({ left, right, centralLabel, centralColor = "
           </g>
         ))}
 
-        {/* Nœuds + libellés droite (ancrés à gauche du gouttière) */}
-        {rightSeg.map((s) => (
-          <g key={`rn-${s.key}`}>
+        {/* Nœuds + libellés droite (ancrés à gauche du gouttière). Cliquables
+            pour le drill-down, sauf les nœuds techniques (Autres, Épargne…). */}
+        {rightSeg.map((s) => {
+          const clickable = onRightClick && !s.key.startsWith("__");
+          return (
+          <g
+            key={`rn-${s.key}`}
+            style={clickable ? { cursor: "pointer" } : undefined}
+            onClick={clickable ? () => onRightClick(s.key) : undefined}
+          >
             <rect x={rightNodeX} y={s.y} width={NODE_W} height={s.h} rx={3} fill={`var(--${s.color})`} />
             <text x={rightNodeX + NODE_W + 8} y={s.y + s.h / 2 - 1} textAnchor="start" fontSize={LABEL_FS} fontWeight={600} fill="var(--ink)">
-              {s.label}
+              {clickable ? `${s.label} ›` : s.label}
             </text>
             <text x={rightNodeX + NODE_W + 8} y={s.y + s.h / 2 + 11} textAnchor="start" fontSize={VALUE_FS} fill="var(--ink-3)">
               {formatValue(s.value)}
             </text>
           </g>
-        ))}
+          );
+        })}
       </svg>
     </div>
   );
