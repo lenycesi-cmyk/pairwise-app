@@ -39,6 +39,7 @@ export const DEFAULT_REPORT_WIDGETS = [
   { id: "net_worth", visible: true },
   { id: "spending_evolution", visible: true },
   { id: "income_vs_expense", visible: true },
+  { id: "cashflow_sankey", visible: true },
   { id: "member_comparison", visible: true },
   { id: "poste_trend", visible: true },
   { id: "savings_sim", visible: true },
