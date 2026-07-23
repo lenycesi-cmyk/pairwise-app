@@ -7,6 +7,7 @@ import { useReportsPrefs } from "../hooks/useDashboardPrefs";
 import CategoryRow from "../components/CategoryRow";
 import WidgetCard from "../components/WidgetCard";
 import WidgetCanvas from "../components/WidgetCanvas";
+import SankeyFlow from "../components/SankeyFlow";
 import Avatar from "../components/Avatar";
 import { buildMemberColorMap } from "../utils/memberColors";
 import { ALL_CURRENCIES } from "../data/categories";
@@ -266,6 +267,38 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
   }, [periodTx, categories, displayCurrency, convert]);
 
   const maxCatTotal = Math.max(1, ...Object.values(categoryTotals).map((c) => c.total));
+
+  // ── Flux de trésorerie (Sankey) ────────────────────────────────────────
+  // Sources de revenu (par sous-catégorie) → nœud central → postes de dépense
+  // (par catégorie). On équilibre les deux côtés avec un nœud d'ajustement :
+  // « Épargne » à droite si les revenus dépassent les dépenses, « Épargne
+  // puisée » à gauche dans le cas inverse — le flux se conserve.
+  const sankeyData = useMemo(() => {
+    const clip = (s) => (s.length > 14 ? s.slice(0, 13) + "…" : s);
+    const incMap = new Map();
+    for (const tx of periodTx) {
+      if (tx.type !== "income") continue;
+      const key = tx.subcategory || t("dashboard_income");
+      incMap.set(key, (incMap.get(key) || 0) + toBase(tx));
+    }
+    const INCOME_COLORS = ["sage", "mint", "sky", "lavi", "amber", "blush"];
+    const left = [...incMap.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([label, value], i) => ({ key: `inc-${label}`, label: clip(label), value, color: INCOME_COLORS[i % INCOME_COLORS.length] }));
+    const right = Object.values(categoryTotals)
+      .sort((a, b) => b.total - a.total)
+      .map(({ category, total }) => ({ key: category.id, label: clip(category.name), value: total, color: category.color || "tang" }));
+
+    const incomeTotal = left.reduce((s, n) => s + n.value, 0);
+    const expenseTotal = right.reduce((s, n) => s + n.value, 0);
+    if (incomeTotal > expenseTotal + 0.5) {
+      right.push({ key: "__savings", label: t("reports_sankey_savings"), value: incomeTotal - expenseTotal, color: "mint" });
+    } else if (expenseTotal > incomeTotal + 0.5) {
+      left.push({ key: "__drawdown", label: t("reports_sankey_drawdown"), value: expenseTotal - incomeTotal, color: "tang" });
+    }
+    return { left, right, hasData: left.length > 0 && right.length > 0 };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [periodTx, categoryTotals, displayCurrency, convert, language]);
 
   // Dépenses par tag sur la période — une transaction peut porter plusieurs
   // tags, son montant est compté pour chacun (les totaux par tag peuvent donc
@@ -663,6 +696,7 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
     net_worth: t("reports_net_worth_evolution"),
     spending_evolution: t("reports_evolution"),
     income_vs_expense: t("reports_income_vs_expense"),
+    cashflow_sankey: t("reports_sankey"),
     member_comparison: t("reports_member_comparison"),
     poste_trend: t("reports_poste_trend"),
     savings_sim: t("reports_sim_title"),
@@ -759,6 +793,18 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
                 </ResponsiveContainer>
               </div>
             )}
+          </WidgetCard>
+        );
+      case "cashflow_sankey":
+        if (!sankeyData.hasData) return null;
+        return (
+          <WidgetCard icon="ti-arrows-split" accent="ocean" title={t("reports_sankey")}>
+            <SankeyFlow
+              left={sankeyData.left}
+              right={sankeyData.right}
+              centralLabel={t("reports_sankey_central")}
+              formatValue={(v) => `${formatAmount(v)} ${currencySymbol}`}
+            />
           </WidgetCard>
         );
       case "member_comparison":
