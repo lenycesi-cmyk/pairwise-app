@@ -300,6 +300,25 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [periodTx, categoryTotals, displayCurrency, convert, language]);
 
+  // Vue plein écran du Sankey (le widget n'affiche qu'un aperçu miniature).
+  const [showSankeyFull, setShowSankeyFull] = useState(false);
+
+  // Regroupe les flux au-delà des `n` plus gros en un nœud « Autres », en
+  // préservant les nœuds d'ajustement (clés "__…") en fin de liste. Les items
+  // arrivent déjà triés par valeur décroissante (cf. sankeyData).
+  function groupTopFlows(items, n) {
+    const regular = items.filter((i) => !i.key.startsWith("__"));
+    const special = items.filter((i) => i.key.startsWith("__"));
+    if (regular.length <= n) return items;
+    const kept = regular.slice(0, n - 1);
+    const rest = regular.slice(n - 1);
+    return [
+      ...kept,
+      { key: "__others", label: t("reports_sankey_others"), value: rest.reduce((s, r) => s + r.value, 0), color: "ink-3" },
+      ...special,
+    ];
+  }
+
   // Dépenses par tag sur la période — une transaction peut porter plusieurs
   // tags, son montant est compté pour chacun (les totaux par tag peuvent donc
   // dépasser le total des dépenses, c'est attendu).
@@ -798,12 +817,29 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
       case "cashflow_sankey":
         if (!sankeyData.hasData) return null;
         return (
-          <WidgetCard icon="ti-arrows-split" accent="ocean" title={t("reports_sankey")}>
+          <WidgetCard
+            icon="ti-arrows-split"
+            accent="ocean"
+            title={t("reports_sankey")}
+            action={!editMode && (
+              <button
+                onClick={() => setShowSankeyFull(true)}
+                aria-label={t("reports_sankey_expand")}
+                style={{ background: "none", border: "none", color: "var(--sky)", fontSize: 12, display: "flex", alignItems: "center", gap: 3, flexShrink: 0 }}
+              >
+                {t("reports_sankey_expand")} <i className="ti ti-arrows-maximize" style={{ fontSize: 13 }} aria-hidden="true" />
+              </button>
+            )}
+          >
+            {/* Aperçu miniature : top flux seulement (le reste regroupé en
+                « Autres »), rendu dense sans scroll — le détail complet est
+                dans la vue plein écran. */}
             <SankeyFlow
-              left={sankeyData.left}
-              right={sankeyData.right}
+              left={groupTopFlows(sankeyData.left, 4)}
+              right={groupTopFlows(sankeyData.right, 5)}
               centralLabel={t("reports_sankey_central")}
               formatValue={(v) => `${formatAmount(v)} ${currencySymbol}`}
+              dense
             />
           </WidgetCard>
         );
@@ -1412,6 +1448,51 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
         isDesktop={isDesktop}
         bento
       />
+
+      {/* Vue plein écran du flux de trésorerie — le widget n'est qu'un aperçu. */}
+      {showSankeyFull && (
+        <div
+          style={{
+            position: "fixed", inset: 0, zIndex: 200, background: "var(--bg)",
+            display: "flex", flexDirection: "column", padding: "1rem 1.25rem",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 8, flexShrink: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+              <span style={{ width: 30, height: 30, borderRadius: 9, background: "var(--sky-light)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <i className="ti ti-arrows-split" style={{ fontSize: 15, color: "var(--sky)" }} aria-hidden="true" />
+              </span>
+              <div>
+                <p style={{ fontSize: 15, fontWeight: 700 }}>{t("reports_sankey")}</p>
+                <p style={{ fontSize: 11.5, color: "var(--ink-3)" }}>{range.label}</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowSankeyFull(false)}
+              aria-label={t("common_close")}
+              style={{
+                width: 34, height: 34, borderRadius: "50%", background: "var(--bg-card)",
+                border: "0.5px solid var(--rule)", display: "flex", alignItems: "center", justifyContent: "center",
+              }}
+            >
+              <i className="ti ti-x" style={{ fontSize: 16 }} aria-hidden="true" />
+            </button>
+          </div>
+          <div style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
+            <SankeyFlow
+              left={sankeyData.left}
+              right={sankeyData.right}
+              centralLabel={t("reports_sankey_central")}
+              formatValue={(v) => `${formatAmount(v)} ${currencySymbol}`}
+              height={Math.max(
+                420,
+                Math.max(sankeyData.left.length, sankeyData.right.length) * 56,
+                (typeof window !== "undefined" ? window.innerHeight : 800) - 130
+              )}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
