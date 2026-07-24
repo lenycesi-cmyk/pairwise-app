@@ -58,6 +58,19 @@ export function usePlaid() {
     }
   }, []);
 
+  // Liste les banques (ASPSP) d'un pays pour le sélecteur Enable Banking.
+  const listAspsps = useCallback(async (country = "FR") => {
+    setError(null);
+    try {
+      const fn = httpsCallable(functions, "listAspsps");
+      const res = await fn({ country });
+      return res.data.aspsps || [];
+    } catch (e) {
+      setError(e.message);
+      throw e;
+    }
+  }, []);
+
   // Étape 2 : au retour, on échange le `code` contre une session + le solde. Le
   // back-end écrit la connexion et met l'asset à jour (admin SDK) ; onSnapshot
   // reflète l'état, rien à écrire côté client ici.
@@ -106,5 +119,5 @@ export function usePlaid() {
     }
   }, []);
 
-  return { createLinkToken, exchangeToken, startEnableBanking, finishEnableBanking, syncBalance, disconnectBank, loading, error };
+  return { createLinkToken, exchangeToken, startEnableBanking, finishEnableBanking, listAspsps, syncBalance, disconnectBank, loading, error };
 }
