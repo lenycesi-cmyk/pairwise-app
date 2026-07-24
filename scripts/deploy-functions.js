@@ -179,6 +179,11 @@ async function deployFunction(token, name, storageSource, isScheduled = false) {
         { key: "PLAID_CLIENT_ID", projectId: PROJECT_ID, secret: "PLAID_CLIENT_ID", version: "latest" },
         { key: "PLAID_SECRET", projectId: PROJECT_ID, secret: "PLAID_SECRET", version: "latest" },
         { key: "PLAID_ENV", projectId: PROJECT_ID, secret: "PLAID_ENV", version: "latest" },
+        // Enable Banking (opt-in) : App ID + clé privée RSA. Provisionnés dans
+        // Secret Manager ; ebCreds() les lit via process.env. Absents ⇒ provider
+        // dormant, Plaid inchangé (cf. functions/index.js, CLAUDE.md).
+        { key: "ENABLE_BANKING_APP_ID", projectId: PROJECT_ID, secret: "ENABLE_BANKING_APP_ID", version: "latest" },
+        { key: "ENABLE_BANKING_KEY", projectId: PROJECT_ID, secret: "ENABLE_BANKING_KEY", version: "latest" },
       ],
     },
     ...(isScheduled ? {} : {}), // schedule handled by Cloud Scheduler separately
