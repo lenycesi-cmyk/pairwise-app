@@ -42,6 +42,11 @@ export function FinanceProvider({ children }) {
   const [enabledCurrencies, setEnabledCurrencies] = useState(null);
   const [lastUsedCurrency, setLastUsedCurrency] = useState("EUR");
   const [recurringTx, setRecurringTx] = useState([]);
+  // Dernière génération PAR règle, stockée hors du tableau recurringTx (champ
+  // map dédié) : le générateur écrit ici sans réécrire tout le tableau, ce qui
+  // évitait qu'une génération en vol écrase une édition simultanée de la règle
+  // (ex. changement de devise reverté). Clé = id de règle → date ISO.
+  const [recurringLastGen, setRecurringLastGen] = useState({});
   const [budgets, setBudgets] = useState([]);
   const [loans, setLoans] = useState([]);
   const [goals, setGoals] = useState([]);
@@ -130,6 +135,7 @@ export function FinanceProvider({ children }) {
         // plus au niveau du couple : deux partenaires dans des pays différents
         // gardent chacun leur dernière devise. Chargé dans l'effet dédié.
         if (data.recurringTx) setRecurringTx(data.recurringTx);
+        if (data.recurringLastGen) setRecurringLastGen(data.recurringLastGen);
         if (data.budgets) setBudgets(data.budgets);
         if (data.loans) setLoans(data.loans);
         if (data.goals) setGoals(data.goals);
@@ -727,6 +733,7 @@ export function FinanceProvider({ children }) {
     updateEnabledCurrencies,
     lastUsedCurrency,
     recurringTx,
+    recurringLastGen,
     addTransaction,
     updateTransaction,
     deleteTransaction,
