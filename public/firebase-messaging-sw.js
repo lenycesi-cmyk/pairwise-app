@@ -22,11 +22,20 @@ const messaging = firebase.messaging();
 // sur l'affichage (titre/corps/tag) quel que soit l'état de l'app.
 messaging.onBackgroundMessage((payload) => {
   const d = payload.data || {};
+  // Les boutons d'action sont transmis en JSON (les valeurs data FCM sont des
+  // chaînes) : [{ action, title }]. Ex. rappel d'inactivité → « Ajouter ».
+  let actions;
+  try {
+    if (d.actions) actions = JSON.parse(d.actions);
+  } catch {
+    actions = undefined;
+  }
   self.registration.showNotification(d.title || "Pairwise", {
     body: d.body || "",
     icon: "/icon-192.png",
     badge: "/icon-192.png",
     tag: d.tag || undefined,
+    actions,
     data: { url: d.url || "/" },
   });
 });
@@ -91,16 +100,23 @@ self.addEventListener("fetch", (event) => {
   );
 });
 
-// Clic sur la notification → focus l'app si elle est ouverte, sinon l'ouvre.
+// Clic sur la notification (ou sur un de ses boutons d'action) → focus l'app si
+// elle est ouverte, sinon l'ouvre. Si le deep-link demande l'écran d'ajout
+// (?add=1), on prévient l'app déjà ouverte via postMessage pour qu'elle ouvre
+// le formulaire sans rechargement.
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   const url = event.notification.data?.url || "/";
+  const wantsAdd = /[?&]add=1(\b|&|$)/.test(url) || event.action === "add";
   event.waitUntil(
     clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
       for (const client of list) {
-        if ("focus" in client) return client.focus();
+        if ("focus" in client) {
+          if (wantsAdd) client.postMessage({ type: "pw-open-add" });
+          return client.focus();
+        }
       }
-      return clients.openWindow(url);
+      return clients.openWindow(wantsAdd ? "/?add=1" : url);
     })
   );
 });
