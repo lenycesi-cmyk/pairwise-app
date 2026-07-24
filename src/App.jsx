@@ -155,7 +155,16 @@ function AppContent() {
   // NavSwipeSync, rendu sous FinanceProvider).
   const [swipeOrder, setSwipeOrder] = useState(DEFAULT_NAV_TABS);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [showAdd, setShowAdd] = useState(false);
+  // Deep-link « ajout rapide » : ?add=1 (notification de rappel d'inactivité)
+  // ouvre le formulaire dès le montage — lu dans l'initialiseur pour éviter un
+  // setState synchrone dans un effet (l'URL est nettoyée juste après, en effet).
+  const [showAdd, setShowAdd] = useState(() => {
+    try {
+      return new URLSearchParams(window.location.search).get("add") === "1";
+    } catch {
+      return false;
+    }
+  });
   const [editingTx, setEditingTx] = useState(null);
   const [editReturnTo, setEditReturnTo] = useState(null);
   const [showRecurring, setShowRecurring] = useState(false);
@@ -228,6 +237,22 @@ function AppContent() {
   useEffect(() => {
     prevTabRef.current = tab;
   }, [tab]);
+
+  // Deep-link « ajout rapide » depuis une notification (rappel d'inactivité).
+  // Le montage a déjà ouvert le formulaire si ?add=1 (voir useState ci-dessus) :
+  // ici on nettoie l'URL, et on écoute le service worker pour le cas « app déjà
+  // ouverte » ({ type: "pw-open-add" } → callback asynchrone, pas de setState
+  // synchrone dans le corps de l'effet).
+  useEffect(() => {
+    try {
+      if (new URLSearchParams(window.location.search).get("add") === "1") {
+        window.history.replaceState({}, "", window.location.pathname);
+      }
+    } catch { /* URL illisible : on ignore */ }
+    const onMsg = (e) => { if (e.data?.type === "pw-open-add") setShowAdd(true); };
+    navigator.serviceWorker?.addEventListener("message", onMsg);
+    return () => navigator.serviceWorker?.removeEventListener("message", onMsg);
+  }, []);
 
   if (loading) {
     return (

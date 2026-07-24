@@ -747,6 +747,7 @@ async function sendPushToMembers(coupleId, coupleData, targetMemberKeys, notific
       body: notification.body,
       tag: notification.tag || "",
       url: notification.url || "/",
+      actions: notification.actions || "",
     },
   });
   console.log(`[sendPush] couple=${coupleId} tag=${notification.tag || "-"} targets=[${targetMemberKeys.join(",")}] tokens=${tokens.length} ok=${res.successCount} ko=${res.failureCount} périmés=${stale.length}`);
@@ -1063,6 +1064,80 @@ exports.monthlySummary = onSchedule(
         });
       } catch (err) {
         console.error(`Monthly summary failed for ${coupleDoc.id}:`, err.message);
+      }
+    }
+  }
+);
+
+/**
+ * Cron quotidien (20h Europe/Paris) — rappel d'inactivité : si aucune
+ * transaction n'a été AJOUTÉE depuis INACTIVITY_DAYS jours, on pousse un rappel
+ * doux aux membres pour les inviter à saisir leurs dépenses. Le push porte un
+ * deep-link (?add=1) et un bouton d'action « Ajouter » qui ouvre directement
+ * l'écran d'ajout (géré côté firebase-messaging-sw.js + App.jsx).
+ *
+ * On se base sur createdAt (= Date.now() posé à la création) et NON sur la date
+ * de la transaction, qui peut être antidatée. Dédup par « streak » : on mémorise
+ * le createdAt de la dernière transaction pour laquelle on a déjà rappelé
+ * (inactivityReminderSentFor). Tant qu'aucune nouvelle saisie n'a lieu, on ne
+ * renvoie pas ; dès qu'une transaction est ajoutée, le compteur repart et un
+ * futur silence redéclenche un unique rappel.
+ */
+const INACTIVITY_DAYS = 2;
+
+exports.sendInactivityReminders = onSchedule(
+  { schedule: "0 20 * * *", timeZone: "Europe/Paris" },
+  async () => {
+    const now = Date.now();
+    const couplesSnap = await db.collection("couples").get();
+
+    for (const coupleDoc of couplesSnap.docs) {
+      const data = coupleDoc.data();
+      if (!data.fcmTokens) continue;
+
+      try {
+        // Dernière transaction AJOUTÉE (createdAt). Les docs sans createdAt
+        // (anciens) sont naturellement exclus de l'orderBy — on ne veut de
+        // toute façon que la saisie la plus récente.
+        const latestSnap = await coupleDoc.ref
+          .collection("transactions")
+          .orderBy("createdAt", "desc")
+          .limit(1)
+          .get();
+        if (latestSnap.empty) continue; // pas de donnée exploitable → on ne harcèle pas
+        const lastCreatedAt = latestSnap.docs[0].data().createdAt;
+        if (typeof lastCreatedAt !== "number") continue;
+
+        const days = (now - lastCreatedAt) / 86400000;
+        if (days < INACTIVITY_DAYS) continue;
+
+        // Déjà rappelé pour ce silence (aucune nouvelle saisie depuis) → stop.
+        if (data.inactivityReminderSentFor === lastCreatedAt) continue;
+
+        const targets = (data.members || [])
+          .map(memberKeyOf)
+          .filter((key) => key && prefEnabled(data, key, "inactivityReminder"));
+        if (targets.length === 0) continue;
+
+        const lang = data.language === "en" ? "en" : "fr";
+        const nDays = Math.floor(days);
+        const title = lang === "en" ? "Nothing logged lately 📝" : "Rien de noté récemment 📝";
+        const body = lang === "en"
+          ? `No transaction added in ${nDays} days. Tap to add one.`
+          : `Aucune transaction ajoutée depuis ${nDays} jours. Touchez pour en ajouter une.`;
+        const actionTitle = lang === "en" ? "Add a transaction" : "Ajouter une transaction";
+
+        await sendPushToMembers(coupleDoc.id, data, targets, {
+          title,
+          body,
+          tag: "inactivity_reminder",
+          url: "/?add=1",
+          actions: JSON.stringify([{ action: "add", title: actionTitle }]),
+        });
+
+        await coupleDoc.ref.update({ inactivityReminderSentFor: lastCreatedAt });
+      } catch (err) {
+        console.error(`Inactivity reminder failed for ${coupleDoc.id}:`, err.message);
       }
     }
   }

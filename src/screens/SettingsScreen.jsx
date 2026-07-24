@@ -603,6 +603,7 @@ export default function SettingsScreen({ onOpenMenu, onOpenRecurring, onOpenCate
             { key: "editedTransaction", label: t("settings_push_edited_tx") },
             { key: "comments", label: t("settings_push_comments") },
             { key: "recurringReminders", label: t("settings_push_reminders") },
+            { key: "inactivityReminder", label: t("settings_push_inactivity") },
             { key: "budgetAlerts", label: t("settings_push_budget_alerts") },
             { key: "newBudget", label: t("settings_push_new_budget") },
             { key: "newAsset", label: t("settings_push_new_asset") },
