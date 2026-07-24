@@ -465,6 +465,10 @@ export default function RecurringScreen({ onClose, initialEditId }) {
               key={r.id}
               onClick={() => openEdit(r)}
               className="pw-lift"
+              // Exclu du focus-au-scroll tactile (useScrollFocus) : sur une
+              // liste dense, chaque ligne se soulèverait en passant au centre
+              // de l'écran (« sautillement »). Le hover desktop (CSS) reste actif.
+              data-manual-focus
               style={{
                 background: "var(--bg-card)",
                 borderRadius: "var(--radius-lg)",
