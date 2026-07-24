@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { usePlaid } from "../hooks/usePlaid";
 import { useAuth } from "../context/AuthContext";
 import { useFinance } from "../context/FinanceContext";
@@ -85,14 +86,19 @@ export default function BankPickerModal({ asset, onClose, onPlaid }) {
     b.name.toLowerCase().includes(query.trim().toLowerCase())
   );
 
-  return (
+  // Rendu dans un portail vers <body> : un ancêtre transformé (animations/scale
+  // des widgets) créerait un bloc conteneur pour position:fixed et calerait la
+  // modale sur le widget au lieu du viewport (d'où l'apparition/clignotement
+  // dans la carte). Le portail échappe à cet ancêtre.
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
       style={{
         position: "fixed", inset: 0, zIndex: 300,
         background: "color-mix(in srgb, var(--ink) 40%, transparent)",
-        display: "flex", alignItems: "flex-end", justifyContent: "center",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        padding: 16,
       }}
       onClick={onClose}
     >
@@ -100,9 +106,9 @@ export default function BankPickerModal({ asset, onClose, onPlaid }) {
         onClick={(e) => e.stopPropagation()}
         style={{
           width: "100%", maxWidth: 460, maxHeight: "85vh",
-          background: "var(--bg)", borderRadius: "20px 20px 0 0",
-          display: "flex", flexDirection: "column",
-          boxShadow: "0 -8px 40px color-mix(in srgb, var(--ink) 16%, transparent)",
+          background: "var(--bg)", borderRadius: 20,
+          display: "flex", flexDirection: "column", overflow: "hidden",
+          boxShadow: "0 12px 48px color-mix(in srgb, var(--ink) 22%, transparent)",
         }}
       >
         {/* En-tête */}
@@ -232,7 +238,8 @@ export default function BankPickerModal({ asset, onClose, onPlaid }) {
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
