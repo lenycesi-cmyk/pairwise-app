@@ -14,6 +14,7 @@ import { useBackGuard } from "./hooks/useBackGuard";
 import { useTabSwipe } from "./hooks/useTabSwipe";
 import { useScrollFocus } from "./hooks/useScrollFocus";
 import { useTranslation } from "./hooks/useTranslation";
+import BankCallbackHandler from "./components/BankCallbackHandler";
 import OfflineBanner from "./components/OfflineBanner";
 import Celebration from "./components/Celebration";
 import SuccessCheck from "./components/SuccessCheck";
@@ -303,6 +304,7 @@ function AppContent() {
       <RecurringRemindersRunner />
       <GoalCelebrationRunner />
       <PushRunner />
+      <BankCallbackHandler />
       <OfflineBanner />
       <Celebration />
       <SuccessCheck />

@@ -434,6 +434,14 @@ export const TRANSLATIONS = {
     bank_total_available: "Total disponible",
     wealth_category_total: "Total de la catégorie",
     bank_scope_family: "Famille",
+    // Retour de redirection Enable Banking (…/bank-callback?code=…&state=…)
+    bank_callback_finishing: "Finalisation de la connexion bancaire…",
+    bank_callback_success: "Compte bancaire connecté",
+    bank_callback_success_hint: "Le solde a été récupéré et sera synchronisé automatiquement.",
+    bank_callback_error: "La connexion a échoué",
+    bank_callback_error_hint: "Le lien avec ta banque n'a pas pu être finalisé. Réessaie depuis ton patrimoine.",
+    bank_callback_expired: "Lien expiré ou déjà utilisé",
+    bank_callback_done: "Terminé",
 
     // Advanced split
     split_amount_unit: "Montant",
@@ -1173,6 +1181,14 @@ export const TRANSLATIONS = {
     bank_total_available: "Total available",
     wealth_category_total: "Category total",
     bank_scope_family: "Family",
+    // Enable Banking redirect return (…/bank-callback?code=…&state=…)
+    bank_callback_finishing: "Finishing bank connection…",
+    bank_callback_success: "Bank account connected",
+    bank_callback_success_hint: "The balance has been fetched and will sync automatically.",
+    bank_callback_error: "Connection failed",
+    bank_callback_error_hint: "The link with your bank could not be finalized. Try again from your wealth screen.",
+    bank_callback_expired: "Link expired or already used",
+    bank_callback_done: "Done",
 
     // Advanced split
     split_amount_unit: "Amount",
