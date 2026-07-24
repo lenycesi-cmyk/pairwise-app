@@ -27,6 +27,20 @@ function getFrequencies(t) {
   ];
 }
 
+// Prochaine échéance d'une règle, pour trier la liste par ordre chronologique
+// (la plus proche en premier). Le mensuel a un jour précis ; hebdo/annuel n'ont
+// pas de date stockée → on les rapproche de « maintenant » (ils se regroupent
+// en tête sans casser l'ordre des mensuels, qui sont le cas courant).
+function nextOccurrence(rule, now) {
+  if (rule.frequency === "monthly") {
+    const day = rule.dayOfMonth || 1;
+    const d = new Date(now.getFullYear(), now.getMonth(), day);
+    if (d < now) d.setMonth(d.getMonth() + 1);
+    return d.getTime();
+  }
+  return now.getTime();
+}
+
 export default function RecurringScreen({ onClose, initialEditId }) {
   const t = useTranslation();
   const { catName, subName: tSubName } = useCategoryName();
@@ -36,6 +50,9 @@ export default function RecurringScreen({ onClose, initialEditId }) {
   const { user } = useAuth();
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  // Filtre membre de la liste (null = tous). Filtre sur `paidBy` (qui paie /
+  // à qui le revenu est rattaché).
+  const [memberFilter, setMemberFilter] = useState(null);
 
   const [type, setType] = useState("expense");
   const [amount, setAmount] = useState("");
@@ -59,6 +76,7 @@ export default function RecurringScreen({ onClose, initialEditId }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialEditId]);
 
+  const now = new Date();
   const availableCategories = categories.filter((c) =>
     type === "income" ? c.id === "income" :
     type === "investment" ? (c.id === "investment" || c.id === "savings") :
@@ -417,7 +435,28 @@ export default function RecurringScreen({ onClose, initialEditId }) {
           </p>
         )}
 
-        {!showForm && recurringTx.map((r) => {
+        {/* Filtre par membre (masqué en solo). « Tous » = pas de filtre. */}
+        {!showForm && recurringTx.length > 0 && members.length > 1 && (
+          <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+            <button onClick={() => setMemberFilter(null)} style={segStyle(memberFilter === null, "var(--sky)")}>
+              {t("recurring_filter_all")}
+            </button>
+            {members.map((m) => (
+              <button
+                key={getMemberKey(m)}
+                onClick={() => setMemberFilter(getMemberKey(m))}
+                style={segStyle(memberFilter === getMemberKey(m), "var(--sky)")}
+              >
+                {m.name}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {!showForm && [...recurringTx]
+          .sort((a, b) => nextOccurrence(a, now) - nextOccurrence(b, now))
+          .filter((r) => memberFilter === null || r.paidBy === memberFilter)
+          .map((r) => {
           const cat = getCategory(r.categoryId);
           const freqLabel = FREQUENCIES.find((f) => f.key === r.frequency)?.label || r.frequency;
           const isInactive = r.active === false;

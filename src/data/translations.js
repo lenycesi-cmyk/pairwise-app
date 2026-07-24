@@ -503,6 +503,7 @@ export const TRANSLATIONS = {
     recurring_empty_hint: "Ajoutez votre loyer, vos investissements programmés...",
     recurring_paused: "en pause",
     recurring_resume: "Réactiver",
+    recurring_filter_all: "Tous",
     recurring_pause: "Mettre en pause",
 
     // Investment calculator
@@ -1262,6 +1263,7 @@ export const TRANSLATIONS = {
     recurring_empty_hint: "Add your rent, scheduled investments...",
     recurring_paused: "paused",
     recurring_resume: "Resume",
+    recurring_filter_all: "All",
     recurring_pause: "Pause",
 
     // Investment calculator
