@@ -442,6 +442,18 @@ export const TRANSLATIONS = {
     bank_callback_error_hint: "Le lien avec ta banque n'a pas pu être finalisé. Réessaie depuis ton patrimoine.",
     bank_callback_expired: "Lien expiré ou déjà utilisé",
     bank_callback_done: "Terminé",
+    // Modale de sélection de banque (région → pays → banque)
+    bank_region_title: "Où se trouve ta banque ?",
+    bank_region_hint: "On te connecte via le bon partenaire selon la région de ta banque.",
+    bank_region_europe: "Europe",
+    bank_region_europe_sub: "France, zone euro, UK, Suisse…",
+    bank_region_north_america: "Amérique du Nord",
+    bank_region_north_america_sub: "États-Unis, Canada",
+    bank_pick_country: "Pays",
+    bank_pick_bank: "Choisis ta banque",
+    bank_search_placeholder: "Rechercher une banque…",
+    bank_no_results: "Aucune banque trouvée",
+    bank_eb_unavailable: "La connexion aux banques européennes n'est pas encore activée. Réessaie plus tard.",
 
     // Advanced split
     split_amount_unit: "Montant",
@@ -1189,6 +1201,18 @@ export const TRANSLATIONS = {
     bank_callback_error_hint: "The link with your bank could not be finalized. Try again from your wealth screen.",
     bank_callback_expired: "Link expired or already used",
     bank_callback_done: "Done",
+    // Bank picker modal (region → country → bank)
+    bank_region_title: "Where is your bank?",
+    bank_region_hint: "We'll connect you through the right partner based on your bank's region.",
+    bank_region_europe: "Europe",
+    bank_region_europe_sub: "France, eurozone, UK, Switzerland…",
+    bank_region_north_america: "North America",
+    bank_region_north_america_sub: "United States, Canada",
+    bank_pick_country: "Country",
+    bank_pick_bank: "Choose your bank",
+    bank_search_placeholder: "Search for a bank…",
+    bank_no_results: "No bank found",
+    bank_eb_unavailable: "Connecting European banks isn't enabled yet. Please try again later.",
 
     // Advanced split
     split_amount_unit: "Amount",

@@ -165,6 +165,21 @@ exports.createLinkToken = onCall(
 );
 
 /**
+ * Enable Banking — liste les banques (ASPSP) d'un pays pour peupler le sélecteur
+ * de la modale de connexion. Called with: { country } (code ISO 2 lettres).
+ * Renvoie { aspsps: [{ name, country, logo }] }. Provider dormant si non
+ * configuré (failed-precondition), le front ne propose alors que Plaid.
+ */
+exports.listAspsps = onCall(async (request) => {
+  if (!request.auth) throw new HttpsError("unauthenticated", "Authentication required");
+  const creds = ebCreds();
+  if (!creds) throw new HttpsError("failed-precondition", "Enable Banking not configured");
+  const { country = "FR" } = request.data || {};
+  const aspsps = await eb.listAspsps(creds, country);
+  return { aspsps };
+});
+
+/**
  * Step 2 — Exchange the public_token returned by Plaid Link for an access_token.
  * Stores the connection in Firestore and does an initial balance sync.
  * Called with: { coupleId, assetId, publicToken, accountId, institutionName }

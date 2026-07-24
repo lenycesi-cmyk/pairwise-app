@@ -65,6 +65,18 @@ async function startAuth(creds, { redirectUrl, aspspName, aspspCountry, state, v
   return { url: data.url, authorizationId: data.authorization_id };
 }
 
+// Liste les banques (ASPSP) disponibles, filtrées par pays (code ISO à 2
+// lettres). Renvoie [{ name, country, logo }] — de quoi peupler le sélecteur.
+async function listAspsps(creds, country) {
+  const q = country ? `?country=${encodeURIComponent(country)}` : "";
+  const data = await ebFetch(creds, "GET", `/aspsps${q}`, null);
+  return (data.aspsps || []).map((a) => ({
+    name: a.name,
+    country: a.country,
+    logo: a.logo || null,
+  }));
+}
+
 // Échange le `code` (reçu sur la redirect_url) contre une session + les comptes.
 async function createSession(creds, code) {
   const data = await ebFetch(creds, "POST", "/sessions", { code });
@@ -103,4 +115,4 @@ async function endSession(creds, sessionId) {
   await ebFetch(creds, "DELETE", `/sessions/${sessionId}`, null).catch(() => {});
 }
 
-module.exports = { startAuth, createSession, getBalance, endSession };
+module.exports = { startAuth, createSession, getBalance, endSession, listAspsps };

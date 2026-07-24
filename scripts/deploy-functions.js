@@ -35,6 +35,7 @@ const FUNCTIONS_DIR = join(import.meta.dirname, "..", "functions");
 const FUNCTIONS_TO_DEPLOY = [
   "createLinkToken",
   "exchangeToken",
+  "listAspsps",
   "syncBalance",
   "disconnectBank",
   "syncAllBalances",

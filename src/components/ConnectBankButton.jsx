@@ -3,6 +3,7 @@ import { usePlaid } from "../hooks/usePlaid";
 import { useAuth } from "../context/AuthContext";
 import { useFinance } from "../context/FinanceContext";
 import { useTranslation } from "../hooks/useTranslation";
+import BankPickerModal from "./BankPickerModal";
 
 /**
  * Button that initiates the Plaid Link flow for a given asset.
@@ -20,6 +21,9 @@ export default function ConnectBankButton({ asset, onSuccess, compact = false })
   const { syncBalance, disconnectBank } = usePlaid();
   const [status, setStatus] = useState("idle"); // idle | loading | syncing | error
   const [plaidReady, setPlaidReady] = useState(false);
+  // Modale de choix région → banque. La première connexion passe par elle ;
+  // Amérique du Nord délègue à openPlaidLink (Plaid), Europe à Enable Banking.
+  const [showPicker, setShowPicker] = useState(false);
 
   // Load Plaid Link script once
   useEffect(() => {
@@ -97,7 +101,7 @@ export default function ConnectBankButton({ asset, onSuccess, compact = false })
       await syncBalance(coupleId, asset.id);
       setStatus("idle");
       onSuccess?.();
-    } catch (err) {
+    } catch {
       setStatus("error");
     }
   }
@@ -120,7 +124,7 @@ export default function ConnectBankButton({ asset, onSuccess, compact = false })
       });
       setStatus("idle");
       onSuccess?.();
-    } catch (err) {
+    } catch {
       setStatus("error");
     }
   }
@@ -257,52 +261,62 @@ export default function ConnectBankButton({ asset, onSuccess, compact = false })
       );
     }
     return (
-      <button
-        onClick={openPlaidLink}
-        disabled={status === "loading" || !plaidReady}
-        style={{
-          padding: "5px 10px",
-          fontSize: 12,
-          fontWeight: 500,
-          background: "var(--sky-light)",
-          border: "0.5px solid var(--sky)",
-          borderRadius: 99,
-          color: "var(--sky)",
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 5,
-          whiteSpace: "nowrap",
-          flexShrink: 0,
-        }}
-      >
-        <i className={`ti ${status === "loading" ? "ti-loader-2" : "ti-building-bank"}`} style={chipIcon} aria-hidden="true" />
-        {status === "loading" ? t("bank_connecting") : t("bank_connect")}
-      </button>
+      <>
+        <button
+          onClick={(e) => { e?.stopPropagation(); setShowPicker(true); }}
+          disabled={status === "loading"}
+          style={{
+            padding: "5px 10px",
+            fontSize: 12,
+            fontWeight: 500,
+            background: "var(--sky-light)",
+            border: "0.5px solid var(--sky)",
+            borderRadius: 99,
+            color: "var(--sky)",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 5,
+            whiteSpace: "nowrap",
+            flexShrink: 0,
+          }}
+        >
+          <i className={`ti ${status === "loading" ? "ti-loader-2" : "ti-building-bank"}`} style={chipIcon} aria-hidden="true" />
+          {status === "loading" ? t("bank_connecting") : t("bank_connect")}
+        </button>
+        {showPicker && (
+          <BankPickerModal asset={asset} onClose={() => setShowPicker(false)} onPlaid={openPlaidLink} />
+        )}
+      </>
     );
   }
 
   return (
-    <button
-      onClick={openPlaidLink}
-      disabled={status === "loading" || !plaidReady}
-      style={{
-        marginTop: 10,
-        width: "100%",
-        padding: "9px 0",
-        fontSize: 13,
-        fontWeight: 500,
-        background: "var(--sky-light)",
-        border: "0.5px solid var(--sky)",
-        borderRadius: "var(--radius-md)",
-        color: "var(--sky)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 6,
-      }}
-    >
-      <i className={`ti ${status === "loading" ? "ti-loader-2" : "ti-building-bank"}`} style={{ fontSize: 15 }} aria-hidden="true" />
-      {status === "loading" ? t("bank_connecting") : t("bank_connect")}
-    </button>
+    <>
+      <button
+        onClick={(e) => { e?.stopPropagation(); setShowPicker(true); }}
+        disabled={status === "loading"}
+        style={{
+          marginTop: 10,
+          width: "100%",
+          padding: "9px 0",
+          fontSize: 13,
+          fontWeight: 500,
+          background: "var(--sky-light)",
+          border: "0.5px solid var(--sky)",
+          borderRadius: "var(--radius-md)",
+          color: "var(--sky)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 6,
+        }}
+      >
+        <i className={`ti ${status === "loading" ? "ti-loader-2" : "ti-building-bank"}`} style={{ fontSize: 15 }} aria-hidden="true" />
+        {status === "loading" ? t("bank_connecting") : t("bank_connect")}
+      </button>
+      {showPicker && (
+        <BankPickerModal asset={asset} onClose={() => setShowPicker(false)} onPlaid={openPlaidLink} />
+      )}
+    </>
   );
 }
