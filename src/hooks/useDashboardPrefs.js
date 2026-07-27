@@ -57,6 +57,7 @@ export const DEFAULT_WEALTH_WIDGETS = [
   { id: "net_worth", visible: true },
   { id: "evolution", visible: true },
   { id: "allocation", visible: true },
+  { id: "fx_exposure", visible: true },
   { id: "credits", visible: true },
   { id: "calculator", visible: true },
 ];
@@ -199,7 +200,7 @@ export function useWealthPrefs() {
 }
 
 // Widgets « fixes » de l'onglet Patrimoine (hors cartes d'actifs par type).
-const FIXED_WEALTH_WIDGETS = ["net_worth", "evolution", "allocation", "calculator"];
+const FIXED_WEALTH_WIDGETS = ["net_worth", "evolution", "allocation", "fx_exposure", "calculator"];
 
 // Layout de l'onglet Patrimoine PAR UTILISATEUR, incluant les cartes d'actifs par
 // type comme widgets déplaçables/masquables (id = "asset_<typeId>"), au même titre

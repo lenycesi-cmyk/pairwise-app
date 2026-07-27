@@ -164,6 +164,28 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
     return total;
   }, [totalsByType]);
 
+  // Exposition par devise : sur les actifs à valeur stockée (comptes, liquidités,
+  // AV, immobilier…), regroupés par devise native. On somme le solde natif (même
+  // devise → sommable) et l'équivalent converti (pour le %). Les actifs cotés
+  // (actions/crypto) sont exclus : leur devise native n'est pas suivie ici.
+  const fxExposure = useMemo(() => {
+    const byCur = {};
+    for (const asset of assets) {
+      const type = ASSET_TYPES.find((ty) => ty.id === asset.typeId);
+      if (!type || type.isLiability || type.hasApiPrice) continue;
+      const cur = asset.currency || displayCurrency;
+      const converted = getAssetValue(asset);
+      if (!Number.isFinite(converted)) continue;
+      if (!byCur[cur]) byCur[cur] = { currency: cur, native: 0, converted: 0 };
+      byCur[cur].native += asset.value || 0;
+      byCur[cur].converted += converted;
+    }
+    const list = Object.values(byCur).sort((a, b) => b.converted - a.converted);
+    const total = list.reduce((s, x) => s + x.converted, 0);
+    return { list, total };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assets, livePrices, displayCurrency]);
+
   const totalAssets = useMemo(() => {
     let total = 0;
     for (const type of ASSET_TYPES) {
@@ -207,6 +229,7 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
     net_worth: t("wealth_net_worth"),
     evolution: t("wealth_evolution"),
     allocation: t("wealth_allocation"),
+    fx_exposure: t("wealth_fx_exposure"),
     credits: t("nav_credits"),
     calculator: t("wealth_calculator_cta"),
     // Cartes d'actifs par type (widgets déplaçables "asset_<typeId>").
@@ -331,6 +354,34 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
       return (
         <WidgetCard icon="ti-chart-donut" accent="amber" title={t("wealth_allocation")}>
           <AllocationChart totalsByType={tbt} totalAssets={ta} />
+        </WidgetCard>
+      );
+    }
+
+    if (id === "fx_exposure") {
+      // Une seule devise → rien à montrer (le widget disparaît de la grille).
+      if (fxExposure.list.length < 2) return null;
+      return (
+        <WidgetCard icon="ti-world" accent="sky" title={t("wealth_fx_exposure")}>
+          <div>
+            {fxExposure.list.map((x) => {
+              const pct = fxExposure.total > 0 ? (x.converted / fxExposure.total) * 100 : 0;
+              const sym = ALL_CURRENCIES.find((c) => c.code === x.currency)?.symbol || x.currency;
+              return (
+                <div key={x.currency} style={{ marginBottom: 12 }}>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 5 }}>
+                    <span style={{ fontSize: 13, fontWeight: 600, flex: 1 }}>{x.currency}</span>
+                    <span style={{ fontSize: 12, color: "var(--ink-2)" }}>{formatAmount(x.native)} {sym}</span>
+                    <span style={{ fontSize: 11, color: "var(--ink-3)", width: 40, textAlign: "right" }}>{pct.toFixed(0)}%</span>
+                  </div>
+                  <div style={{ width: "100%", height: 6, background: "var(--rule)", borderRadius: 4, overflow: "hidden" }}>
+                    <div style={{ width: `${Math.max(0, Math.min(100, pct))}%`, height: 6, background: "var(--sky)" }} />
+                  </div>
+                </div>
+              );
+            })}
+            <p style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 4 }}>{t("wealth_fx_exposure_hint")}</p>
+          </div>
         </WidgetCard>
       );
     }
@@ -466,6 +517,15 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
             // API-priced asset with no live price and no stored value: price couldn't be fetched
             const priceUnavailable =
               !!asset.apiId && livePrices[asset.id] === undefined && !Number.isFinite(asset.value) && !(asset.manualPrice > 0);
+            // Affichage devise native : pour les actifs à valeur stockée (comptes,
+            // liquidités, AV, immobilier…) libellés dans une devise ≠ devise de
+            // résumé, on montre le solde dans SA devise (gros) + l'équivalent
+            // converti (petit). Les actifs cotés (actions/crypto) restent en devise
+            // de résumé (pas de devise native pertinente ici).
+            const nativeCur = asset.currency || displayCurrency;
+            const showNative = !type.hasApiPrice && nativeCur !== displayCurrency;
+            const nativeSymbol = ALL_CURRENCIES.find((c) => c.code === nativeCur)?.symbol || nativeCur;
+            const sign = type.isLiability ? "−" : "";
             const ownerLabel =
               asset.ownership === "shared"
                 ? "Partagé"
@@ -517,9 +577,18 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
                       <p style={{ fontSize: 13, fontWeight: 500, color: "var(--ink-3)" }} title={t("wealth_price_unavailable")}>
                         {t("wealth_price_unavailable_short")}
                       </p>
+                    ) : showNative ? (
+                      <>
+                        <p style={{ fontSize: 12, fontWeight: 500, color: type.isLiability ? "var(--red)" : "var(--ink)" }}>
+                          {sign}{formatAmount(asset.value)} {nativeSymbol}
+                        </p>
+                        <p style={{ fontSize: 10, color: "var(--ink-3)", marginTop: 1 }}>
+                          ≈ {sign}{formatAmount(val)} {currencySymbol}
+                        </p>
+                      </>
                     ) : (
                       <p style={{ fontSize: 12, fontWeight: 500, color: type.isLiability ? "var(--red)" : "var(--ink)" }}>
-                        {type.isLiability ? "−" : ""}{formatAmount(val)} {currencySymbol}
+                        {sign}{formatAmount(val)} {currencySymbol}
                       </p>
                     )}
                     {liveChanges[asset.id] !== undefined && (
