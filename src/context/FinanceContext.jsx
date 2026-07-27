@@ -51,6 +51,8 @@ export function FinanceProvider({ children }) {
   // Versements programmés vers des actifs (lot 3) + suivi d'application par période.
   const [assetContributions, setAssetContributions] = useState([]);
   const [assetContributionsApplied, setAssetContributionsApplied] = useState({});
+  // Allocation cible du patrimoine par type d'actif ({ typeId: pourcentage }).
+  const [targetAllocation, setTargetAllocationState] = useState({});
   const [budgets, setBudgets] = useState([]);
   const [loans, setLoans] = useState([]);
   const [goals, setGoals] = useState([]);
@@ -148,6 +150,7 @@ export function FinanceProvider({ children }) {
         if (data.assets) setAssets(data.assets);
         if (data.assetContributions) setAssetContributions(data.assetContributions);
         if (data.assetContributionsApplied) setAssetContributionsApplied(data.assetContributionsApplied);
+        if (data.targetAllocation) setTargetAllocationState(data.targetAllocation);
         if (data.netWorthHistory) setNetWorthHistory(data.netWorthHistory);
         if (data.wealthDisplayCurrency) setWealthDisplayCurrency(data.wealthDisplayCurrency);
         if (data.dashboardDisplayCurrency) setDashboardDisplayCurrency(data.dashboardDisplayCurrency);
@@ -653,6 +656,14 @@ export function FinanceProvider({ children }) {
     await setDoc(doc(db, "couples", coupleId), { assets: updatedAssets, assetContributionsApplied: applied }, { merge: true });
   }
 
+  // Allocation cible : la carte envoie la map complète (tous les types), donc un
+  // simple merge suffit (les types remis à 0 restent, ignorés à l'affichage).
+  async function updateTargetAllocation(map) {
+    if (!coupleId) return;
+    setTargetAllocationState(map);
+    await setDoc(doc(db, "couples", coupleId), { targetAllocation: map }, { merge: true });
+  }
+
   // Discussion sur un actif : même modèle que les commentaires de transaction
   // (tableau `comments` sur l'objet), mais l'actif vit dans le doc couple → on
   // read-modify-merge le tableau `assets`. Notifie le partenaire (kind "comment").
@@ -846,6 +857,8 @@ export function FinanceProvider({ children }) {
     addAssetContribution,
     removeAssetContribution,
     applyAssetContributions,
+    targetAllocation,
+    updateTargetAllocation,
     addAssetComment,
     removeAssetComment,
     netWorthHistory,
