@@ -186,6 +186,26 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [assets, livePrices, displayCurrency]);
 
+  // Plus-value latente agrégée (lot 2) : sur les actifs avec un coût investi,
+  // somme (valeur actuelle − coût investi), le tout en devise de résumé.
+  const unrealized = useMemo(() => {
+    let invested = 0;
+    let current = 0;
+    let any = false;
+    for (const asset of assets) {
+      const type = ASSET_TYPES.find((ty) => ty.id === asset.typeId);
+      if (!type || type.isLiability || !asset.costBasis) continue;
+      const cb = convert(asset.costBasis, asset.currency || displayCurrency, displayCurrency);
+      const cur = getAssetValue(asset);
+      if (!Number.isFinite(cb) || cb <= 0 || !Number.isFinite(cur)) continue;
+      invested += cb;
+      current += cur;
+      any = true;
+    }
+    return { any, gain: current - invested, pct: invested > 0 ? ((current - invested) / invested) * 100 : 0 };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assets, livePrices, displayCurrency]);
+
   const totalAssets = useMemo(() => {
     let total = 0;
     for (const type of ASSET_TYPES) {
@@ -280,6 +300,14 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
                 <p style={{ fontSize: 11, color: "var(--ink-3)" }}>{t("wealth_liabilities")}</p>
                 <p style={{ fontSize: 13, fontWeight: 500, color: "var(--red)" }}>
                   −{formatAmount(totalLiabilities)} {currencySymbol}
+                </p>
+              </div>
+            )}
+            {unrealized.any && (
+              <div>
+                <p style={{ fontSize: 11, color: "var(--ink-3)" }}>{t("wealth_unrealized_gain")}</p>
+                <p style={{ fontSize: 13, fontWeight: 500, color: unrealized.gain >= 0 ? "var(--sage)" : "var(--red)" }}>
+                  {unrealized.gain >= 0 ? "+" : "−"}{formatAmount(Math.abs(unrealized.gain))} {currencySymbol} ({unrealized.gain >= 0 ? "+" : ""}{unrealized.pct.toFixed(1)}%)
                 </p>
               </div>
             )}
@@ -526,6 +554,17 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
             const showNative = !type.hasApiPrice && nativeCur !== displayCurrency;
             const nativeSymbol = ALL_CURRENCIES.find((c) => c.code === nativeCur)?.symbol || nativeCur;
             const sign = type.isLiability ? "−" : "";
+            // Carte « Compte en banque » : nom en colonne de largeur fixe pour
+            // que les boutons « Connecter » soient tous alignés (cf. plus bas).
+            const isAccount = type.id === "account";
+            // Plus-value latente (lot 2) : coût investi (devise de l'actif) ramené
+            // en devise de résumé, comparé à la valeur actuelle (déjà en devise de
+            // résumé). % de rendement total depuis l'achat.
+            const costBasisDisplay = asset.costBasis
+              ? convert(asset.costBasis, asset.currency || displayCurrency, displayCurrency)
+              : 0;
+            const hasCost = costBasisDisplay > 0 && Number.isFinite(val) && !priceUnavailable;
+            const gainPct = hasCost ? ((val - costBasisDisplay) / costBasisDisplay) * 100 : 0;
             const ownerLabel =
               asset.ownership === "shared"
                 ? "Partagé"
@@ -555,24 +594,26 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
                   >
                     <i className={`ti ${type.icon}`} style={{ fontSize: 16, color: colors.text }} aria-hidden="true" />
                   </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontSize: 12 }}>{asset.name}</p>
-                    <p style={{ fontSize: 10, color: "var(--ink-3)" }}>
+                  <div style={isAccount ? { width: 128, flexShrink: 0, minWidth: 0 } : { flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: 12, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{asset.name}</p>
+                    <p style={{ fontSize: 10, color: "var(--ink-3)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                       {asset.apiId && `${asset.quantity} ${asset.apiId.toUpperCase()} · `}
                       {ownerLabel}
                       {asset.ownership === "shared" && ` (${asset.sharePct ?? 50}/${100 - (asset.sharePct ?? 50)})`}
                     </p>
                   </div>
-                  {/* Bouton bancaire inline entre le nom et le solde : puce
-                      "Connecter" si non connecté, sinon actions rafraîchir /
-                      déconnecter — toujours visibles sans dérouler de bloc. */}
-                  {type.id === "account" && (
+                  {/* Bouton bancaire juste à côté du nom. La colonne de nom a une
+                      largeur fixe (isAccount) → tous les boutons « Connecter »
+                      démarrent au même x, quelle que soit la longueur du nom ; le
+                      spacer qui suit repousse le solde à droite. */}
+                  {isAccount && (
                     <ConnectBankButton asset={asset} compact onSuccess={() => setEditingAsset(null)} />
                   )}
+                  {isAccount && <div style={{ flex: 1 }} />}
                   {asset.comments?.length > 0 && (
                     <CommentBubble count={asset.comments.length} onClick={() => setCommentsAsset(asset)} />
                   )}
-                  <div style={{ textAlign: "right" }}>
+                  <div style={{ textAlign: "right", flexShrink: 0 }}>
                     {priceUnavailable ? (
                       <p style={{ fontSize: 13, fontWeight: 500, color: "var(--ink-3)" }} title={t("wealth_price_unavailable")}>
                         {t("wealth_price_unavailable_short")}
@@ -591,11 +632,17 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
                         {sign}{formatAmount(val)} {currencySymbol}
                       </p>
                     )}
-                    {liveChanges[asset.id] !== undefined && (
+                    {/* Rendement total depuis l'achat (si coût investi renseigné),
+                        sinon variation 24h pour les actifs cotés. */}
+                    {hasCost ? (
+                      <p style={{ fontSize: 11, color: gainPct >= 0 ? "var(--sage)" : "var(--tang)", marginTop: 1 }} title={t("wealth_since_purchase")}>
+                        {gainPct >= 0 ? "+" : ""}{gainPct.toFixed(1)}%
+                      </p>
+                    ) : liveChanges[asset.id] !== undefined ? (
                       <p style={{ fontSize: 11, color: liveChanges[asset.id] >= 0 ? "var(--sage)" : "var(--tang)", marginTop: 1 }}>
                         {liveChanges[asset.id] >= 0 ? "+" : ""}{liveChanges[asset.id].toFixed(2)}%
                       </p>
-                    )}
+                    ) : null}
                   </div>
                 </div>
               </div>
