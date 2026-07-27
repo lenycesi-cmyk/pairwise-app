@@ -11,6 +11,7 @@ import ConnectBankButton from "../components/ConnectBankButton";
 import NetWorthChart from "../components/NetWorthChart";
 import AllocationChart from "../components/AllocationChart";
 import AllocationTargetCard from "../components/AllocationTargetCard";
+import ProjectionCard from "../components/ProjectionCard";
 import Avatar from "../components/Avatar";
 import { buildMemberColorMap } from "../utils/memberColors";
 import { useTranslation } from "../hooks/useTranslation";
@@ -55,6 +56,7 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
     updateWealthDisplayCurrency,
     targetAllocation,
     updateTargetAllocation,
+    assetContributions,
   } = useFinance();
 
   // La devise d'affichage du patrimoine peut différer de la devise des transactions
@@ -215,6 +217,20 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [assets, livePrices, displayCurrency]);
 
+  // Équivalent mensuel des versements programmés (lot 3), en devise de résumé —
+  // alimente la projection. daily ≈ 30,44/mois, weekly ≈ 4,345/mois.
+  const monthlyContribution = useMemo(() => {
+    let sum = 0;
+    for (const c of assetContributions || []) {
+      if (c.active === false) continue;
+      const factor = c.frequency === "daily" ? 30.44 : c.frequency === "weekly" ? 4.345 : 1;
+      const conv = convert(c.amount * factor, c.currency || displayCurrency, displayCurrency);
+      if (Number.isFinite(conv)) sum += conv;
+    }
+    return sum;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assetContributions, displayCurrency]);
+
   const totalAssets = useMemo(() => {
     let total = 0;
     for (const type of ASSET_TYPES) {
@@ -259,6 +275,7 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
     evolution: t("wealth_evolution"),
     allocation: t("wealth_allocation"),
     allocation_target: t("alloc_target_title"),
+    projection: t("projection_title"),
     fx_exposure: t("wealth_fx_exposure"),
     credits: t("nav_credits"),
     calculator: t("wealth_calculator_cta"),
@@ -393,6 +410,18 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
         <WidgetCard icon="ti-chart-donut" accent="amber" title={t("wealth_allocation")}>
           <AllocationChart totalsByType={tbt} totalAssets={ta} />
         </WidgetCard>
+      );
+    }
+
+    if (id === "projection") {
+      if (assets.length === 0) return null;
+      return (
+        <ProjectionCard
+          base={totalAssets}
+          monthlyContribution={monthlyContribution}
+          currencySymbol={currencySymbol}
+          formatAmount={formatAmount}
+        />
       );
     }
 
