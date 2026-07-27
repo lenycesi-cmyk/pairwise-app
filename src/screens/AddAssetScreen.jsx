@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useFinance } from "../context/FinanceContext";
+import { useAuth } from "../context/AuthContext";
 import { ASSET_TYPES, getAssetSubtypes } from "../data/assetTypes";
 import { searchCrypto, searchStocks } from "../utils/assetSearch";
 import { useTranslation } from "../hooks/useTranslation";
@@ -55,7 +56,9 @@ export default function AddAssetScreen({ onClose, editingAsset, initialTypeId })
   const {
     addAsset, updateAsset, removeAsset, defaultCurrency, members,
     contributeToAsset, addAssetContribution, removeAssetContribution, assetContributions,
+    recurringTx, addRecurring, removeRecurring,
   } = useFinance();
+  const { user } = useAuth();
   const isEditing = !!editingAsset;
 
   const [typeId, setTypeId] = useState(editingAsset?.typeId || initialTypeId || "cash");
@@ -101,6 +104,48 @@ export default function AddAssetScreen({ onClose, editingAsset, initialTypeId })
       console.error(err);
     } finally {
       setContribBusy(false);
+    }
+  }
+
+  // Revenu d'actif (loyer / dividende / intérêts) — enregistré comme règle
+  // récurrente de revenu rattachée à l'actif (assetId), générée automatiquement
+  // par useRecurringGenerator (transactions de revenu → visibles dans les
+  // revenus et rapports, et créditent un compte si la sous-catégorie y est liée).
+  const [incAmount, setIncAmount] = useState("");
+  const [incCurrency, setIncCurrency] = useState(editingAsset?.currency || defaultCurrency);
+  const [incFreq, setIncFreq] = useState("monthly");
+  const [incKind, setIncKind] = useState("rent");
+  const [incBusy, setIncBusy] = useState(false);
+
+  async function handleAddIncome() {
+    const amt = parseFloat(incAmount);
+    if (!(amt > 0) || !editingAsset) return;
+    setIncBusy(true);
+    try {
+      const label = t(`asset_income_${incKind}`);
+      const owner = editingAsset.ownership && editingAsset.ownership !== "shared"
+        ? editingAsset.ownership
+        : user.uid;
+      await addRecurring({
+        type: "income",
+        amount: amt,
+        currency: incCurrency,
+        categoryId: "income",
+        subcategory: label,
+        description: `${label} · ${editingAsset.name}`,
+        frequency: incFreq,
+        dayOfMonth: 1,
+        paidBy: owner,
+        split: "100",
+        active: true,
+        lastGenerated: null,
+        assetId: editingAsset.id,
+      });
+      setIncAmount("");
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIncBusy(false);
     }
   }
   const [apiId, setApiId] = useState(editingAsset?.apiId || "");
@@ -552,6 +597,68 @@ export default function AddAssetScreen({ onClose, editingAsset, initialTypeId })
                       {Math.round(c.amount).toLocaleString("fr-FR")} {c.currency} · {t(`asset_contrib_${c.frequency}`)}
                     </span>
                     <button onClick={() => removeAssetContribution(c.id)} aria-label={t("asset_delete_button")} style={{ background: "none", border: "none", color: "var(--red)", cursor: "pointer" }}>
+                      <i className="ti ti-trash" style={{ fontSize: 15 }} aria-hidden="true" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </SectionCard>
+        )}
+
+        {/* Revenus générés par l'actif (loyer / dividende / intérêts) : règle de
+            revenu récurrente rattachée à l'actif, générée automatiquement dans
+            les revenus (et rapports). Disponible pour tous les types. */}
+        {isEditing && (
+          <SectionCard accent="var(--good)" icon="ti-cash-banknote" title={t("asset_income_title")}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
+              {[["rent", "asset_income_rent"], ["dividend", "asset_income_dividend"], ["interest", "asset_income_interest"], ["other", "asset_income_other"]].map(([k, tk]) => (
+                <button key={k} onClick={() => setIncKind(k)} style={{ ...segStyle(incKind === k, "var(--good)"), flex: "1 1 40%" }}>
+                  {t(tk)}
+                </button>
+              ))}
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
+              {[["weekly", "asset_contrib_weekly"], ["monthly", "asset_contrib_monthly"], ["yearly", "asset_income_yearly"]].map(([f, tk]) => (
+                <button key={f} onClick={() => setIncFreq(f)} style={{ ...segStyle(incFreq === f, "var(--good)"), flex: "1 1 30%" }}>
+                  {t(tk)}
+                </button>
+              ))}
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <input
+                type="number"
+                inputMode="decimal"
+                value={incAmount}
+                onChange={(e) => setIncAmount(e.target.value)}
+                placeholder="0"
+                style={{ ...bareInput, flex: 1, fontSize: 16 }}
+              />
+              <CurrencyField value={incCurrency} onChange={setIncCurrency} />
+              <button
+                onClick={handleAddIncome}
+                disabled={incBusy || !(parseFloat(incAmount) > 0)}
+                style={{
+                  padding: "8px 14px", borderRadius: "var(--radius-md)", border: "none",
+                  background: "var(--good)", color: "#fff", fontSize: 13, fontWeight: 600,
+                  whiteSpace: "nowrap",
+                  opacity: incBusy || !(parseFloat(incAmount) > 0) ? 0.5 : 1,
+                }}
+              >
+                {t("asset_income_add")}
+              </button>
+            </div>
+            <p style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 8 }}>{t("asset_income_hint")}</p>
+
+            {recurringTx.filter((r) => r.assetId === editingAsset.id).length > 0 && (
+              <div style={{ marginTop: 12, borderTop: "0.5px solid var(--rule)", paddingTop: 8 }}>
+                {recurringTx.filter((r) => r.assetId === editingAsset.id).map((r) => (
+                  <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 0" }}>
+                    <i className="ti ti-cash-banknote" style={{ fontSize: 14, color: "var(--good)" }} aria-hidden="true" />
+                    <span style={{ fontSize: 13, flex: 1 }}>
+                      {Math.round(r.amount).toLocaleString("fr-FR")} {r.currency} · {r.subcategory} · {t(r.frequency === "yearly" ? "asset_income_yearly" : `asset_contrib_${r.frequency}`)}
+                    </span>
+                    <button onClick={() => removeRecurring(r.id)} aria-label={t("asset_delete_button")} style={{ background: "none", border: "none", color: "var(--red)", cursor: "pointer" }}>
                       <i className="ti ti-trash" style={{ fontSize: 15 }} aria-hidden="true" />
                     </button>
                   </div>
