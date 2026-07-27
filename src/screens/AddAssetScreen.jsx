@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { useFinance } from "../context/FinanceContext";
 import { ASSET_TYPES } from "../data/assetTypes";
-import { CURRENCIES } from "../data/categories";
 import { searchCrypto, searchStocks } from "../utils/assetSearch";
 import { useTranslation } from "../hooks/useTranslation";
 import AdvancedSplitSelector from "../components/AdvancedSplitSelector";
+import CurrencyField from "../components/CurrencyField";
 import AssetComments from "../components/AssetComments";
 import { getMemberKey } from "../utils/members";
 import { notifySuccess } from "../utils/successCheck";
@@ -48,10 +48,6 @@ const bareInput = {
   fontSize: 14, outline: "none", color: "var(--ink)",
 };
 
-const currencySelectStyle = {
-  padding: "6px 8px", borderRadius: "var(--radius-sm)",
-  border: "0.5px solid var(--rule)", fontSize: 13, background: "var(--bg)", color: "var(--ink)",
-};
 
 export default function AddAssetScreen({ onClose, editingAsset, initialTypeId }) {
   const t = useTranslation();
@@ -295,18 +291,7 @@ export default function AddAssetScreen({ onClose, editingAsset, initialTypeId })
                 placeholder="0"
                 style={{ ...bareInput, flex: 1, fontSize: 18 }}
               />
-              <select
-                value={currency}
-                onChange={(e) => setCurrency(e.target.value)}
-                style={{
-                  padding: "6px 8px", borderRadius: "var(--radius-sm)",
-                  border: "0.5px solid var(--rule)", fontSize: 13, background: "var(--bg)", color: "var(--ink)",
-                }}
-              >
-                {CURRENCIES.map((c) => (
-                  <option key={c.code} value={c.code}>{c.code}</option>
-                ))}
-              </select>
+              <CurrencyField value={currency} onChange={setCurrency} />
             </div>
           </SectionCard>
         ) : (
@@ -433,21 +418,7 @@ export default function AddAssetScreen({ onClose, editingAsset, initialTypeId })
               style={{ ...bareInput, flex: 1, fontSize: 16 }}
             />
             {usesApi ? (
-              <>
-                <select
-                  value={currency}
-                  onChange={(e) => setCurrency(e.target.value)}
-                  style={{
-                    padding: "6px 8px", borderRadius: "var(--radius-sm)",
-                    border: "0.5px solid var(--rule)", fontSize: 13, background: "var(--bg)", color: "var(--ink)",
-                  }}
-                >
-                  {CURRENCIES.map((c) => (
-                    <option key={c.code} value={c.code}>{c.code}</option>
-                  ))}
-                </select>
-                <span style={{ fontSize: 13, color: "var(--ink-3)" }}>/ u.</span>
-              </>
+              <CurrencyField value={currency} onChange={setCurrency} suffix="/ u." />
             ) : (
               <span style={{ fontSize: 13, color: "var(--ink-3)" }}>{currency}</span>
             )}
@@ -527,11 +498,7 @@ export default function AddAssetScreen({ onClose, editingAsset, initialTypeId })
                 placeholder="0"
                 style={{ ...bareInput, flex: 1, fontSize: 16 }}
               />
-              <select value={contribCurrency} onChange={(e) => setContribCurrency(e.target.value)} style={currencySelectStyle}>
-                {CURRENCIES.map((c) => (
-                  <option key={c.code} value={c.code}>{c.code}</option>
-                ))}
-              </select>
+              <CurrencyField value={contribCurrency} onChange={setContribCurrency} />
               <button
                 onClick={handleAddContribution}
                 disabled={contribBusy || !(parseFloat(contribAmount) > 0)}
