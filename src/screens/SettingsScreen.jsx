@@ -7,6 +7,7 @@ import { AVATAR_COLOR_PALETTE, buildMemberColorMap, getInitial } from "../utils/
 import { useTranslation } from "../hooks/useTranslation";
 import { getMemberKey } from "../utils/members";
 import { usePushNotifications } from "../hooks/usePushNotifications";
+import { getNavOffset, setNavOffset } from "../utils/navOffset";
 import HeaderMenuButton from "../components/HeaderMenuButton";
 
 export default function SettingsScreen({ onOpenMenu, onOpenRecurring, onOpenCategories, onOpenTags, onOpenTheme, onOpenLanguage, onOpenNavPicker }) {
@@ -43,6 +44,7 @@ export default function SettingsScreen({ onOpenMenu, onOpenRecurring, onOpenCate
   );
   const push = usePushNotifications();
   const [showPushPrefs, setShowPushPrefs] = useState(false);
+  const [navOffset, setNavOffsetState] = useState(getNavOffset());
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletePassword, setDeletePassword] = useState("");
   const [deleteError, setDeleteError] = useState("");
@@ -727,13 +729,39 @@ export default function SettingsScreen({ onOpenMenu, onOpenRecurring, onOpenCate
             display: "flex",
             alignItems: "center",
             gap: 10,
-            padding: "12px 0 4px",
+            padding: "12px 0",
             cursor: "pointer",
+            borderBottom: "0.5px solid var(--rule)",
           }}
         >
           <i className="ti ti-language" style={{ fontSize: 18, color: "var(--sky)" }} aria-hidden="true" />
           <span style={{ fontSize: 14, flex: 1 }}>{t("settings_language")}</span>
           <i className="ti ti-chevron-right" style={{ fontSize: 14, color: "var(--ink-3)" }} aria-hidden="true" />
+        </div>
+        {/* Décalage bas de la barre d'onglets (par appareil) — à activer si la
+            barre est cachée derrière les boutons système du téléphone. */}
+        <div
+          onClick={() => { const v = !navOffset; setNavOffsetState(v); setNavOffset(v); }}
+          style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 0 4px", cursor: "pointer" }}
+        >
+          <i className="ti ti-arrow-bar-up" style={{ fontSize: 18, color: "var(--lavi)" }} aria-hidden="true" />
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: 14, margin: 0 }}>{t("settings_bottom_nav_offset")}</p>
+            <p style={{ fontSize: 11, color: "var(--ink-3)", margin: "2px 0 0" }}>{t("settings_bottom_nav_offset_hint")}</p>
+          </div>
+          <span
+            role="switch"
+            aria-checked={navOffset}
+            aria-label={t("settings_bottom_nav_offset")}
+            style={{
+              display: "flex", alignItems: "center", padding: 3,
+              borderRadius: 13, flexShrink: 0,
+              border: navOffset ? "0.5px solid var(--sky)" : "1px solid var(--ink-3)",
+              background: navOffset ? "var(--sky)" : "var(--bg-card)",
+            }}
+          >
+            <span style={{ width: 16, height: 16, borderRadius: "50%", background: navOffset ? "var(--bg)" : "var(--ink-3)", transform: navOffset ? "translateX(14px)" : "translateX(0)", transition: "transform .16s ease" }} />
+          </span>
         </div>
       </Card>
 

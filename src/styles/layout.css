@@ -202,11 +202,10 @@
   background: var(--bg-card);
   border-top: 0.5px solid var(--rule);
   box-shadow: 0 -6px 20px -14px rgba(10, 21, 32, 0.35);
-  /* Dégagement bas = inset système (env) + un secours DYNAMIQUE (--nav-fallback,
-     posé en JS, cf. applyNavFallback dans App.jsx). Le secours ne vaut 48px que
-     sur les appareils où l'OS n'expose PAS l'inset (PWA Android 3 boutons où
-     env=0 → la barre passait derrière la nav système) ; il vaut 0 partout où
-     l'inset fonctionne, pour ne pas sur-décaler la barre (hauteur d'origine). */
+  /* Dégagement bas = inset système (env) + un décalage MANUEL par appareil
+     (--nav-fallback, posé depuis utils/navOffset via un réglage). Par défaut 0
+     (hauteur d'origine) ; l'utilisateur dont la barre est cachée derrière la
+     barre système Android peut la remonter de 48px depuis les Réglages. */
   padding: 6px 6px calc(6px + env(safe-area-inset-bottom) + var(--nav-fallback, 0px));
   min-height: 58px;
 }
