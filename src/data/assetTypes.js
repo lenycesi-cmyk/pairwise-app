@@ -52,6 +52,16 @@ export const ASSET_TYPES = [
     descriptionEn: "Euro funds, unit-linked contracts",
   },
   {
+    id: "bonds",
+    name: "Obligations & taux",
+    nameEn: "Bonds & fixed income",
+    icon: "ti-percentage",
+    color: "lavi",
+    hasApiPrice: false,
+    description: "Obligations, fonds obligataires, fonds monétaires",
+    descriptionEn: "Bonds, bond funds, money market funds",
+  },
+  {
     id: "real_estate",
     name: "Immobilier",
     nameEn: "Real Estate",
@@ -60,6 +70,16 @@ export const ASSET_TYPES = [
     hasApiPrice: false,
     description: "Résidence principale, locatif",
     descriptionEn: "Primary residence, rental property",
+  },
+  {
+    id: "vehicle",
+    name: "Véhicule",
+    nameEn: "Vehicle",
+    icon: "ti-car",
+    color: "amber",
+    hasApiPrice: false,
+    description: "Voiture, moto (valeur qui se déprécie)",
+    descriptionEn: "Car, motorcycle (a depreciating asset)",
   },
   {
     id: "retirement",
@@ -96,6 +116,61 @@ export const ASSET_TYPES = [
 
 export function getAssetType(typeId) {
   return ASSET_TYPES.find((t) => t.id === typeId) || ASSET_TYPES[0];
+}
+
+// Sous-types / enveloppes fiscales par type d'actif (optionnel). Permet de
+// préciser PEA vs CTO, fonds euros vs UC, 401(k) vs Roth IRA, locatif vs SCPI…
+// sans multiplier les types principaux. `fr`/`en` = libellés d'affichage.
+export const ASSET_SUBTYPES = {
+  account: [
+    { id: "current", fr: "Compte courant", en: "Checking" },
+    { id: "livret_a", fr: "Livret A", en: "Livret A" },
+    { id: "ldds", fr: "LDDS", en: "LDDS" },
+    { id: "pel", fr: "PEL", en: "PEL" },
+    { id: "cel", fr: "CEL", en: "CEL" },
+    { id: "savings", fr: "Épargne", en: "Savings" },
+  ],
+  stocks: [
+    { id: "pea", fr: "PEA", en: "PEA" },
+    { id: "pea_pme", fr: "PEA-PME", en: "PEA-PME" },
+    { id: "cto", fr: "CTO", en: "Brokerage" },
+  ],
+  life_insurance: [
+    { id: "fonds_euros", fr: "Fonds euros", en: "Euro fund" },
+    { id: "uc", fr: "Unités de compte", en: "Unit-linked" },
+  ],
+  retirement: [
+    { id: "per", fr: "PER", en: "PER" },
+    { id: "perp", fr: "PERP", en: "PERP" },
+    { id: "pee", fr: "PEE / PERCO", en: "PEE / PERCO" },
+    { id: "401k", fr: "401(k)", en: "401(k)" },
+    { id: "ira", fr: "IRA", en: "Traditional IRA" },
+    { id: "roth_ira", fr: "Roth IRA", en: "Roth IRA" },
+    { id: "hsa", fr: "HSA", en: "HSA" },
+    { id: "rrsp", fr: "RRSP", en: "RRSP" },
+    { id: "tfsa", fr: "TFSA", en: "TFSA" },
+  ],
+  real_estate: [
+    { id: "primary", fr: "Résidence principale", en: "Primary residence" },
+    { id: "rental", fr: "Locatif", en: "Rental" },
+    { id: "scpi", fr: "SCPI / pierre-papier", en: "REIT / SCPI" },
+  ],
+  bonds: [
+    { id: "gov", fr: "Obligations d'État", en: "Government bonds" },
+    { id: "corp", fr: "Obligations d'entreprise", en: "Corporate bonds" },
+    { id: "fund", fr: "Fonds obligataire", en: "Bond fund" },
+    { id: "money_market", fr: "Fonds monétaire", en: "Money market" },
+  ],
+};
+
+export function getAssetSubtypes(typeId) {
+  return ASSET_SUBTYPES[typeId] || [];
+}
+
+export function getSubtypeLabel(typeId, subtypeId, lang) {
+  if (!subtypeId) return null;
+  const s = (ASSET_SUBTYPES[typeId] || []).find((x) => x.id === subtypeId);
+  return s ? (lang === "en" ? s.en : s.fr) : null;
 }
 
 // Quelques cryptos courantes pour faciliter la saisie (CoinGecko IDs)
