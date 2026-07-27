@@ -10,6 +10,7 @@ import WidgetCard from "../components/WidgetCard";
 import ConnectBankButton from "../components/ConnectBankButton";
 import NetWorthChart from "../components/NetWorthChart";
 import AllocationChart from "../components/AllocationChart";
+import AllocationTargetCard from "../components/AllocationTargetCard";
 import Avatar from "../components/Avatar";
 import { buildMemberColorMap } from "../utils/memberColors";
 import { useTranslation } from "../hooks/useTranslation";
@@ -52,6 +53,8 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
     members,
     wealthDisplayCurrency,
     updateWealthDisplayCurrency,
+    targetAllocation,
+    updateTargetAllocation,
   } = useFinance();
 
   // La devise d'affichage du patrimoine peut différer de la devise des transactions
@@ -255,6 +258,7 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
     net_worth: t("wealth_net_worth"),
     evolution: t("wealth_evolution"),
     allocation: t("wealth_allocation"),
+    allocation_target: t("alloc_target_title"),
     fx_exposure: t("wealth_fx_exposure"),
     credits: t("nav_credits"),
     calculator: t("wealth_calculator_cta"),
@@ -389,6 +393,21 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
         <WidgetCard icon="ti-chart-donut" accent="amber" title={t("wealth_allocation")}>
           <AllocationChart totalsByType={tbt} totalAssets={ta} />
         </WidgetCard>
+      );
+    }
+
+    if (id === "allocation_target") {
+      if (assets.length === 0) return null;
+      return (
+        <AllocationTargetCard
+          totalsByType={totalsByType}
+          totalAssets={totalAssets}
+          currencySymbol={currencySymbol}
+          formatAmount={formatAmount}
+          targetAllocation={targetAllocation}
+          onSave={updateTargetAllocation}
+          language={language}
+        />
       );
     }
 
