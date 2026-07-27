@@ -18,6 +18,7 @@ import { db } from "../firebase";
 import { applyTheme } from "../data/themes";
 import { useAuth } from "./AuthContext";
 import { ALL_CATEGORIES } from "../data/categories";
+import { ASSET_TYPES } from "../data/assetTypes";
 import { getExchangeRate } from "../utils/currencyConversion";
 import { sendPushNotification } from "../utils/sendPush";
 import { dedupeTags } from "../utils/tags";
@@ -47,6 +48,9 @@ export function FinanceProvider({ children }) {
   // évitait qu'une génération en vol écrase une édition simultanée de la règle
   // (ex. changement de devise reverté). Clé = id de règle → date ISO.
   const [recurringLastGen, setRecurringLastGen] = useState({});
+  // Versements programmés vers des actifs (lot 3) + suivi d'application par période.
+  const [assetContributions, setAssetContributions] = useState([]);
+  const [assetContributionsApplied, setAssetContributionsApplied] = useState({});
   const [budgets, setBudgets] = useState([]);
   const [loans, setLoans] = useState([]);
   const [goals, setGoals] = useState([]);
@@ -142,6 +146,8 @@ export function FinanceProvider({ children }) {
         if (data.budgetHistory) setBudgetHistory(data.budgetHistory);
         if (data.incomeAccountLinks) setIncomeAccountLinksState(data.incomeAccountLinks);
         if (data.assets) setAssets(data.assets);
+        if (data.assetContributions) setAssetContributions(data.assetContributions);
+        if (data.assetContributionsApplied) setAssetContributionsApplied(data.assetContributionsApplied);
         if (data.netWorthHistory) setNetWorthHistory(data.netWorthHistory);
         if (data.wealthDisplayCurrency) setWealthDisplayCurrency(data.wealthDisplayCurrency);
         if (data.dashboardDisplayCurrency) setDashboardDisplayCurrency(data.dashboardDisplayCurrency);
@@ -586,6 +592,67 @@ export function FinanceProvider({ children }) {
     await setDoc(doc(db, "couples", coupleId), { assets: updated }, { merge: true });
   }
 
+  // ── Versements vers des actifs (lot 3) ──────────────────────────────────────
+  // Crédite immédiatement un actif à valeur stockée d'un montant (converti dans
+  // la devise de l'actif) et alimente son coût investi (plus-value latente). Sert
+  // au versement « ponctuel » et est réutilisé par le générateur récurrent.
+  async function contributeToAsset(assetId, amount, currency) {
+    if (!coupleId || !(amount > 0)) return;
+    const asset = assets.find((a) => a.id === assetId);
+    if (!asset) return;
+    const assetCur = asset.currency || defaultCurrency;
+    const { rate } = await getExchangeRate(currency, assetCur);
+    const credit = amount * rate;
+    await updateAsset(assetId, {
+      value: (asset.value || 0) + credit,
+      costBasis: (asset.costBasis || 0) + credit,
+    });
+  }
+
+  // Enregistre une règle de versement récurrent (quotidien/hebdo/mensuel) vers un
+  // actif. Le versement ponctuel ne passe PAS par ici (crédit immédiat).
+  async function addAssetContribution(c) {
+    if (!coupleId) return;
+    const newC = { ...c, id: `contrib_${Date.now()}`, active: c.active ?? true, createdAt: Date.now() };
+    const updated = [...assetContributions, newC];
+    await setDoc(doc(db, "couples", coupleId), { assetContributions: updated }, { merge: true });
+  }
+
+  async function removeAssetContribution(id) {
+    if (!coupleId) return;
+    const updated = assetContributions.filter((c) => c.id !== id);
+    const applied = { ...assetContributionsApplied };
+    delete applied[id];
+    await setDoc(doc(db, "couples", coupleId), { assetContributions: updated, assetContributionsApplied: applied }, { merge: true });
+  }
+
+  // Applique une liste de versements récurrents dus (calculée par le générateur) :
+  // crédite chaque actif à valeur stockée + coût investi, et mémorise la période
+  // appliquée (idempotence). Les actifs cotés sont ignorés ici (le crédit en
+  // quantité au cours du jour est un lot ultérieur).
+  async function applyAssetContributions(due) {
+    if (!coupleId || !due?.length) return;
+    const updatedAssets = assets.map((a) => ({ ...a }));
+    const applied = { ...assetContributionsApplied };
+    let changed = false;
+    for (const { contribution: c, periodKey } of due) {
+      const asset = updatedAssets.find((a) => a.id === c.assetId);
+      if (!asset) continue;
+      const type = ASSET_TYPES.find((ty) => ty.id === asset.typeId);
+      if (!type || type.hasApiPrice) continue; // cotés : non gérés ici
+      const assetCur = asset.currency || defaultCurrency;
+      const { rate } = await getExchangeRate(c.currency, assetCur);
+      const credit = c.amount * rate;
+      asset.value = (asset.value || 0) + credit;
+      asset.costBasis = (asset.costBasis || 0) + credit;
+      asset.lastUpdated = Date.now();
+      applied[c.id] = periodKey;
+      changed = true;
+    }
+    if (!changed) return;
+    await setDoc(doc(db, "couples", coupleId), { assets: updatedAssets, assetContributionsApplied: applied }, { merge: true });
+  }
+
   // Discussion sur un actif : même modèle que les commentaires de transaction
   // (tableau `comments` sur l'objet), mais l'actif vit dans le doc couple → on
   // read-modify-merge le tableau `assets`. Notifie le partenaire (kind "comment").
@@ -773,6 +840,12 @@ export function FinanceProvider({ children }) {
     addAsset,
     updateAsset,
     removeAsset,
+    assetContributions,
+    assetContributionsApplied,
+    contributeToAsset,
+    addAssetContribution,
+    removeAssetContribution,
+    applyAssetContributions,
     addAssetComment,
     removeAssetComment,
     netWorthHistory,

@@ -48,10 +48,18 @@ const bareInput = {
   fontSize: 14, outline: "none", color: "var(--ink)",
 };
 
+const currencySelectStyle = {
+  padding: "6px 8px", borderRadius: "var(--radius-sm)",
+  border: "0.5px solid var(--rule)", fontSize: 13, background: "var(--bg)", color: "var(--ink)",
+};
+
 export default function AddAssetScreen({ onClose, editingAsset, initialTypeId }) {
   const t = useTranslation();
   const { language } = useFinance();
-  const { addAsset, updateAsset, removeAsset, defaultCurrency, members } = useFinance();
+  const {
+    addAsset, updateAsset, removeAsset, defaultCurrency, members,
+    contributeToAsset, addAssetContribution, removeAssetContribution, assetContributions,
+  } = useFinance();
   const isEditing = !!editingAsset;
 
   const [typeId, setTypeId] = useState(editingAsset?.typeId || initialTypeId || "cash");
@@ -68,6 +76,36 @@ export default function AddAssetScreen({ onClose, editingAsset, initialTypeId })
       ? (editingAsset.costBasis / editingAsset.quantity).toString()
       : ""
   );
+  // Versements vers l'actif (lot 3) — édition uniquement (il faut un id).
+  const [contribAmount, setContribAmount] = useState("");
+  const [contribCurrency, setContribCurrency] = useState(editingAsset?.currency || defaultCurrency);
+  const [contribFreq, setContribFreq] = useState("monthly");
+  const [contribBusy, setContribBusy] = useState(false);
+
+  async function handleAddContribution() {
+    const amt = parseFloat(contribAmount);
+    if (!(amt > 0) || !editingAsset) return;
+    setContribBusy(true);
+    try {
+      if (contribFreq === "once") {
+        // Ponctuel : crédit immédiat (pas de règle stockée).
+        await contributeToAsset(editingAsset.id, amt, contribCurrency);
+        notifySuccess();
+      } else {
+        await addAssetContribution({
+          assetId: editingAsset.id,
+          amount: amt,
+          currency: contribCurrency,
+          frequency: contribFreq,
+        });
+      }
+      setContribAmount("");
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setContribBusy(false);
+    }
+  }
   const [apiId, setApiId] = useState(editingAsset?.apiId || "");
   const [apiLabel, setApiLabel] = useState(editingAsset?.apiLabel || "");
   const [busy, setBusy] = useState(false);
@@ -394,7 +432,25 @@ export default function AddAssetScreen({ onClose, editingAsset, initialTypeId })
               placeholder="0"
               style={{ ...bareInput, flex: 1, fontSize: 16 }}
             />
-            <span style={{ fontSize: 13, color: "var(--ink-3)" }}>{usesApi ? `${currency} / u.` : currency}</span>
+            {usesApi ? (
+              <>
+                <select
+                  value={currency}
+                  onChange={(e) => setCurrency(e.target.value)}
+                  style={{
+                    padding: "6px 8px", borderRadius: "var(--radius-sm)",
+                    border: "0.5px solid var(--rule)", fontSize: 13, background: "var(--bg)", color: "var(--ink)",
+                  }}
+                >
+                  {CURRENCIES.map((c) => (
+                    <option key={c.code} value={c.code}>{c.code}</option>
+                  ))}
+                </select>
+                <span style={{ fontSize: 13, color: "var(--ink-3)" }}>/ u.</span>
+              </>
+            ) : (
+              <span style={{ fontSize: 13, color: "var(--ink-3)" }}>{currency}</span>
+            )}
           </div>
           <p style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 8 }}>
             {usesApi ? t("asset_avg_price_hint") : t("asset_cost_basis_hint")}
@@ -446,6 +502,65 @@ export default function AddAssetScreen({ onClose, editingAsset, initialTypeId })
                   }
                 }}
               />
+            )}
+          </SectionCard>
+        )}
+
+        {/* Versements vers l'actif (édition, actifs à valeur stockée) : ponctuel
+            (crédit immédiat) ou récurrent (quotidien/hebdo/mensuel, appliqué par
+            le runner). Chaque versement alimente aussi le coût investi. */}
+        {isEditing && !usesApi && (
+          <SectionCard accent="var(--sage)" icon="ti-pig-money" title={t("asset_contrib_title")}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
+              {[["once", "asset_contrib_once"], ["daily", "asset_contrib_daily"], ["weekly", "asset_contrib_weekly"], ["monthly", "asset_contrib_monthly"]].map(([f, k]) => (
+                <button key={f} onClick={() => setContribFreq(f)} style={{ ...segStyle(contribFreq === f, "var(--sage)"), flex: "1 1 40%" }}>
+                  {t(k)}
+                </button>
+              ))}
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <input
+                type="number"
+                inputMode="decimal"
+                value={contribAmount}
+                onChange={(e) => setContribAmount(e.target.value)}
+                placeholder="0"
+                style={{ ...bareInput, flex: 1, fontSize: 16 }}
+              />
+              <select value={contribCurrency} onChange={(e) => setContribCurrency(e.target.value)} style={currencySelectStyle}>
+                {CURRENCIES.map((c) => (
+                  <option key={c.code} value={c.code}>{c.code}</option>
+                ))}
+              </select>
+              <button
+                onClick={handleAddContribution}
+                disabled={contribBusy || !(parseFloat(contribAmount) > 0)}
+                style={{
+                  padding: "8px 14px", borderRadius: "var(--radius-md)", border: "none",
+                  background: "var(--sage)", color: "#fff", fontSize: 13, fontWeight: 600,
+                  whiteSpace: "nowrap",
+                  opacity: contribBusy || !(parseFloat(contribAmount) > 0) ? 0.5 : 1,
+                }}
+              >
+                {contribFreq === "once" ? t("asset_contrib_add_once") : t("asset_contrib_add")}
+              </button>
+            </div>
+            <p style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 8 }}>{t("asset_contrib_hint")}</p>
+
+            {assetContributions.filter((c) => c.assetId === editingAsset.id).length > 0 && (
+              <div style={{ marginTop: 12, borderTop: "0.5px solid var(--rule)", paddingTop: 8 }}>
+                {assetContributions.filter((c) => c.assetId === editingAsset.id).map((c) => (
+                  <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 0" }}>
+                    <i className="ti ti-repeat" style={{ fontSize: 14, color: "var(--sage)" }} aria-hidden="true" />
+                    <span style={{ fontSize: 13, flex: 1 }}>
+                      {Math.round(c.amount).toLocaleString("fr-FR")} {c.currency} · {t(`asset_contrib_${c.frequency}`)}
+                    </span>
+                    <button onClick={() => removeAssetContribution(c.id)} aria-label={t("asset_delete_button")} style={{ background: "none", border: "none", color: "var(--red)", cursor: "pointer" }}>
+                      <i className="ti ti-trash" style={{ fontSize: 15 }} aria-hidden="true" />
+                    </button>
+                  </div>
+                ))}
+              </div>
             )}
           </SectionCard>
         )}

@@ -4,6 +4,7 @@ import { FinanceProvider, useFinance } from "./context/FinanceContext";
 import { getMemberKey } from "./utils/members";
 import { DEFAULT_NAV_TABS, resolveNavTabs } from "./data/navTabsMeta";
 import { useRecurringGenerator } from "./hooks/useRecurringGenerator";
+import { useAssetContributions } from "./hooks/useAssetContributions";
 import { useBudgetAlerts } from "./hooks/useBudgetAlerts";
 import { useBudgetSnapshots } from "./hooks/useBudgetSnapshots";
 import { useCommentNotifications } from "./hooks/useCommentNotifications";
@@ -65,6 +66,11 @@ function NavSwipeSync({ onOrder }) {
 
 function RecurringGeneratorRunner() {
   useRecurringGenerator();
+  return null;
+}
+
+function AssetContributionsRunner() {
+  useAssetContributions();
   return null;
 }
 
@@ -322,6 +328,7 @@ function AppContent() {
     <FinanceProvider>
       <NavSwipeSync onOrder={setSwipeOrder} />
       <RecurringGeneratorRunner />
+      <AssetContributionsRunner />
       <ScrollFocusRunner />
       <BudgetAlertsRunner />
       <BudgetSnapshotRunner />
