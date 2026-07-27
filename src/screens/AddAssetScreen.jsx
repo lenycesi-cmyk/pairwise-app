@@ -60,6 +60,14 @@ export default function AddAssetScreen({ onClose, editingAsset, initialTypeId })
   const [currency, setCurrency] = useState(editingAsset?.currency || defaultCurrency);
   const [quantity, setQuantity] = useState(editingAsset?.quantity?.toString() || "");
   const [manualPrice, setManualPrice] = useState(editingAsset?.manualPrice?.toString() || "");
+  // Coût investi (lot 2) : montant total investi pour les actifs à valeur stockée,
+  // prix d'achat MOYEN par unité pour les actifs cotés (× quantité à la sauvegarde).
+  const [costBasisInput, setCostBasisInput] = useState(editingAsset?.costBasis?.toString() || "");
+  const [avgPrice, setAvgPrice] = useState(
+    editingAsset?.costBasis && editingAsset?.quantity
+      ? (editingAsset.costBasis / editingAsset.quantity).toString()
+      : ""
+  );
   const [apiId, setApiId] = useState(editingAsset?.apiId || "");
   const [apiLabel, setApiLabel] = useState(editingAsset?.apiLabel || "");
   const [busy, setBusy] = useState(false);
@@ -121,6 +129,11 @@ export default function AddAssetScreen({ onClose, editingAsset, initialTypeId })
 
     setBusy(true);
     try {
+      // Coût investi normalisé (devise de l'actif). Cotés : prix moyen × quantité.
+      const costBasisVal = usesApi
+        ? (avgPrice && quantity ? parseFloat(avgPrice) * parseFloat(quantity) : null)
+        : (costBasisInput ? parseFloat(costBasisInput) : null);
+
       const payload = {
         typeId,
         name: name.trim() || typeName || "Actif",
@@ -128,6 +141,7 @@ export default function AddAssetScreen({ onClose, editingAsset, initialTypeId })
         ownership,
         sharePct: ownership === "shared" ? sharePct : 100,
         sharePctDetails: ownership === "shared" ? sharePctDetails : null,
+        costBasis: Number.isFinite(costBasisVal) ? costBasisVal : null,
         ...(usesApi
           ? { quantity: parseFloat(quantity), apiId, apiLabel, manualPrice: parseFloat(manualPrice) || null }
           : { value: parseFloat(value) }),
@@ -362,6 +376,30 @@ export default function AddAssetScreen({ onClose, editingAsset, initialTypeId })
             <p style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 6 }}>{t("asset_manual_price_hint")}</p>
           </SectionCard>
         )}
+
+        {/* Coût investi / prix d'achat (optionnel) — sert au calcul de la
+            plus-value latente affichée dans le Patrimoine (lot 2). */}
+        <SectionCard
+          accent="var(--amber)"
+          icon="ti-receipt"
+          title={usesApi ? t("asset_avg_price_label") : t("asset_cost_basis_label")}
+          extra={<span style={{ fontSize: 11.5, color: "var(--ink-3)", fontWeight: 400 }}>· {t("tx_optional")}</span>}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <input
+              type="number"
+              inputMode="decimal"
+              value={usesApi ? avgPrice : costBasisInput}
+              onChange={(e) => (usesApi ? setAvgPrice(e.target.value) : setCostBasisInput(e.target.value))}
+              placeholder="0"
+              style={{ ...bareInput, flex: 1, fontSize: 16 }}
+            />
+            <span style={{ fontSize: 13, color: "var(--ink-3)" }}>{usesApi ? `${currency} / u.` : currency}</span>
+          </div>
+          <p style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 8 }}>
+            {usesApi ? t("asset_avg_price_hint") : t("asset_cost_basis_hint")}
+          </p>
+        </SectionCard>
 
         {/* Propriété / partage */}
         {members.length > 0 && (
