@@ -202,12 +202,12 @@
   background: var(--bg-card);
   border-top: 0.5px solid var(--rule);
   box-shadow: 0 -6px 20px -14px rgba(10, 21, 32, 0.35);
-  /* En PWA standalone sur Android + viewport-fit=cover, safe-area-inset-bottom
-     renvoie 0 : la barre d'onglets se retrouvait derrière la barre système
-     (3 boutons ~48px), seul le haut du bouton « + » dépassait. On garantit un
-     dégagement minimal de 56px via max() (même correctif que .nav-fab), tout en
-     respectant l'inset iOS plus grand quand il est présent. */
-  padding: 6px 6px max(calc(6px + env(safe-area-inset-bottom)), 56px);
+  /* Dégagement bas = inset système (env) + un secours DYNAMIQUE (--nav-fallback,
+     posé en JS, cf. applyNavFallback dans App.jsx). Le secours ne vaut 48px que
+     sur les appareils où l'OS n'expose PAS l'inset (PWA Android 3 boutons où
+     env=0 → la barre passait derrière la nav système) ; il vaut 0 partout où
+     l'inset fonctionne, pour ne pas sur-décaler la barre (hauteur d'origine). */
+  padding: 6px 6px calc(6px + env(safe-area-inset-bottom) + var(--nav-fallback, 0px));
   min-height: 58px;
 }
 .tabbar-item {
@@ -490,7 +490,7 @@
 .tab-slide[data-dir="back"] { animation: tabSlideBack var(--dur-base) var(--ease-out); }
 /* Dégagement du bas pour ne pas masquer le dernier contenu derrière la barre de
    navigation (mobile). Neutralisé sur desktop (rail latéral, pas de barre). */
-.tab-slide { padding-bottom: max(calc(68px + env(safe-area-inset-bottom)), 116px); }
+.tab-slide { padding-bottom: calc(68px + env(safe-area-inset-bottom) + var(--nav-fallback, 0px)); }
 @media (min-width: 1024px) {
   .tab-slide { padding-bottom: 0; }
 }
