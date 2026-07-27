@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useFinance } from "../context/FinanceContext";
 import { useExchangeRates } from "../hooks/useExchangeRates";
-import { ASSET_TYPES } from "../data/assetTypes";
+import { ASSET_TYPES, getSubtypeLabel } from "../data/assetTypes";
 import { getCryptoPrice, getStockPrice } from "../utils/assetPrices";
 import { ALL_CURRENCIES } from "../data/categories";
 import CurrencyPicker from "../components/CurrencyPicker";
@@ -575,6 +575,7 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
               asset.ownership === "shared"
                 ? "Partagé"
                 : members.find((m) => getMemberKey(m) === asset.ownership)?.name || "";
+            const subtypeLabel = getSubtypeLabel(asset.typeId, asset.subtype, language);
 
             return (
               <div
@@ -603,6 +604,7 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
                   <div style={isAccount ? { width: 96, flexShrink: 0, minWidth: 0 } : { flex: 1, minWidth: 0 }}>
                     <p style={{ fontSize: 12, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{asset.name}</p>
                     <p style={{ fontSize: 10, color: "var(--ink-3)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {subtypeLabel && `${subtypeLabel} · `}
                       {asset.apiId && `${asset.quantity} ${asset.apiId.toUpperCase()} · `}
                       {ownerLabel}
                       {asset.ownership === "shared" && ` (${asset.sharePct ?? 50}/${100 - (asset.sharePct ?? 50)})`}

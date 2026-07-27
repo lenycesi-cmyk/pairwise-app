@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useFinance } from "../context/FinanceContext";
-import { ASSET_TYPES } from "../data/assetTypes";
+import { ASSET_TYPES, getAssetSubtypes } from "../data/assetTypes";
 import { searchCrypto, searchStocks } from "../utils/assetSearch";
 import { useTranslation } from "../hooks/useTranslation";
 import AdvancedSplitSelector from "../components/AdvancedSplitSelector";
@@ -59,6 +59,7 @@ export default function AddAssetScreen({ onClose, editingAsset, initialTypeId })
   const isEditing = !!editingAsset;
 
   const [typeId, setTypeId] = useState(editingAsset?.typeId || initialTypeId || "cash");
+  const [subtype, setSubtype] = useState(editingAsset?.subtype || "");
   const [name, setName] = useState(editingAsset?.name || "");
   const [value, setValue] = useState(editingAsset?.value?.toString() || "");
   const [currency, setCurrency] = useState(editingAsset?.currency || defaultCurrency);
@@ -170,6 +171,7 @@ export default function AddAssetScreen({ onClose, editingAsset, initialTypeId })
 
       const payload = {
         typeId,
+        subtype: subtype || null,
         name: name.trim() || typeName || "Actif",
         currency,
         ownership,
@@ -249,7 +251,7 @@ export default function AddAssetScreen({ onClose, editingAsset, initialTypeId })
               return (
                 <button
                   key={at.id}
-                  onClick={() => { setTypeId(at.id); setApiId(""); setApiLabel(""); }}
+                  onClick={() => { setTypeId(at.id); setSubtype(""); setApiId(""); setApiLabel(""); }}
                   style={segStyle(sel, "var(--sky)")}
                 >
                   <i className={`ti ${at.icon}`} style={{ fontSize: 15 }} aria-hidden="true" />
@@ -262,6 +264,33 @@ export default function AddAssetScreen({ onClose, editingAsset, initialTypeId })
             {language === "en" && selectedType?.descriptionEn ? selectedType.descriptionEn : selectedType?.description}
           </p>
         </SectionCard>
+
+        {/* Sous-type / enveloppe (optionnel) — PEA vs CTO, fonds euros vs UC,
+            401(k) vs Roth IRA, locatif vs SCPI… Un clic sur la puce sélectionnée
+            la désélectionne (retour à « aucun »). */}
+        {getAssetSubtypes(typeId).length > 0 && (
+          <SectionCard
+            accent="var(--amber)"
+            icon="ti-license"
+            title={t("asset_subtype_label")}
+            extra={<span style={{ fontSize: 11.5, color: "var(--ink-3)", fontWeight: 400 }}>· {t("tx_optional")}</span>}
+          >
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {getAssetSubtypes(typeId).map((s) => {
+                const sel = subtype === s.id;
+                return (
+                  <button
+                    key={s.id}
+                    onClick={() => setSubtype(sel ? "" : s.id)}
+                    style={segStyle(sel, "var(--amber)")}
+                  >
+                    {language === "en" ? s.en : s.fr}
+                  </button>
+                );
+              })}
+            </div>
+          </SectionCard>
+        )}
 
         {/* Nom */}
         <SectionCard
