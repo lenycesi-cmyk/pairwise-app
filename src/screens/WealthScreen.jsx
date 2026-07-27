@@ -594,7 +594,7 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
                   >
                     <i className={`ti ${type.icon}`} style={{ fontSize: 16, color: colors.text }} aria-hidden="true" />
                   </div>
-                  <div style={isAccount ? { width: 128, flexShrink: 0, minWidth: 0 } : { flex: 1, minWidth: 0 }}>
+                  <div style={isAccount ? { width: 96, flexShrink: 0, minWidth: 0 } : { flex: 1, minWidth: 0 }}>
                     <p style={{ fontSize: 12, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{asset.name}</p>
                     <p style={{ fontSize: 10, color: "var(--ink-3)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                       {asset.apiId && `${asset.quantity} ${asset.apiId.toUpperCase()} · `}
