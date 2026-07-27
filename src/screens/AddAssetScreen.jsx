@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useFinance } from "../context/FinanceContext";
 import { useAuth } from "../context/AuthContext";
 import { ASSET_TYPES, getAssetSubtypes } from "../data/assetTypes";
+import { loanType } from "../data/loanTypes";
 import { searchCrypto, searchStocks } from "../utils/assetSearch";
 import { useTranslation } from "../hooks/useTranslation";
 import AdvancedSplitSelector from "../components/AdvancedSplitSelector";
@@ -56,13 +57,14 @@ export default function AddAssetScreen({ onClose, editingAsset, initialTypeId })
   const {
     addAsset, updateAsset, removeAsset, defaultCurrency, members,
     contributeToAsset, addAssetContribution, removeAssetContribution, assetContributions,
-    recurringTx, addRecurring, removeRecurring,
+    recurringTx, addRecurring, removeRecurring, loans,
   } = useFinance();
   const { user } = useAuth();
   const isEditing = !!editingAsset;
 
   const [typeId, setTypeId] = useState(editingAsset?.typeId || initialTypeId || "cash");
   const [subtype, setSubtype] = useState(editingAsset?.subtype || "");
+  const [loanId, setLoanId] = useState(editingAsset?.loanId || "");
   const [name, setName] = useState(editingAsset?.name || "");
   const [value, setValue] = useState(editingAsset?.value?.toString() || "");
   const [currency, setCurrency] = useState(editingAsset?.currency || defaultCurrency);
@@ -217,6 +219,7 @@ export default function AddAssetScreen({ onClose, editingAsset, initialTypeId })
       const payload = {
         typeId,
         subtype: subtype || null,
+        loanId: (typeId === "real_estate" || typeId === "vehicle") ? (loanId || null) : null,
         name: name.trim() || typeName || "Actif",
         currency,
         ownership,
@@ -501,6 +504,36 @@ export default function AddAssetScreen({ onClose, editingAsset, initialTypeId })
             {usesApi ? t("asset_avg_price_hint") : t("asset_cost_basis_hint")}
           </p>
         </SectionCard>
+
+        {/* Prêt lié (immobilier / véhicule) : permet d'afficher l'equity nette
+            (valeur du bien − capital restant dû) sur la ligne d'actif. */}
+        {(typeId === "real_estate" || typeId === "vehicle") && (
+          <SectionCard
+            accent="var(--tang)"
+            icon="ti-link"
+            title={t("asset_loan_link_label")}
+            extra={<span style={{ fontSize: 11.5, color: "var(--ink-3)", fontWeight: 400 }}>· {t("tx_optional")}</span>}
+          >
+            {loans && loans.length > 0 ? (
+              <select
+                value={loanId}
+                onChange={(e) => setLoanId(e.target.value)}
+                style={{
+                  width: "100%", padding: "9px 10px", borderRadius: "var(--radius-md)",
+                  border: "0.5px solid var(--rule)", background: "var(--bg)", color: "var(--ink)", fontSize: 14,
+                }}
+              >
+                <option value="">{t("asset_loan_none")}</option>
+                {loans.map((l) => (
+                  <option key={l.id} value={l.id}>{l.name || t(`loan_type_${loanType(l.type).id}`)}</option>
+                ))}
+              </select>
+            ) : (
+              <p style={{ fontSize: 12, color: "var(--ink-3)" }}>{t("asset_loan_empty")}</p>
+            )}
+            <p style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 8 }}>{t("asset_loan_link_hint")}</p>
+          </SectionCard>
+        )}
 
         {/* Propriété / partage */}
         {members.length > 0 && (
