@@ -595,6 +595,11 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
                 ? "Partagé"
                 : members.find((m) => getMemberKey(m) === asset.ownership)?.name || "";
             const subtypeLabel = getSubtypeLabel(asset.typeId, asset.subtype, language);
+            // Equity nette : pour un bien lié à un prêt (asset.loanId), valeur du
+            // bien − capital restant dû. Le prêt reste comptabilisé une seule fois
+            // au niveau du patrimoine (loanAgg) : ici c'est un affichage par bien.
+            const linkedLoan = asset.loanId ? loanItems.find((li) => li.loan.id === asset.loanId) : null;
+            const equity = linkedLoan ? val - linkedLoan.conv.balance : null;
 
             return (
               <div
@@ -670,6 +675,12 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
                         {liveChanges[asset.id] >= 0 ? "+" : ""}{liveChanges[asset.id].toFixed(2)}%
                       </p>
                     ) : null}
+                    {/* Equity nette (bien − prêt lié). */}
+                    {equity !== null && (
+                      <p style={{ fontSize: 10, color: "var(--ink-3)", marginTop: 1 }}>
+                        {t("wealth_net_equity")} {formatAmount(equity)} {currencySymbol}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
