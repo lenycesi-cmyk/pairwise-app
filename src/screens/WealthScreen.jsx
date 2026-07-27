@@ -94,15 +94,18 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
 
       if (type.priceSource === "crypto") {
         const { price, change24h, success } = await getCryptoPrice(asset.apiId, displayCurrency.toLowerCase());
-        if (success) {
+        // On n'enregistre qu'un cours strictement positif : un 0 (ou un cours
+        // invalide renvoyé par une clé API limitée) ne doit PAS écraser le repli
+        // sur le prix unitaire manuel (cf. getAssetValue).
+        if (success && price > 0) {
           updates[asset.id] = price * (asset.quantity || 1);
           if (change24h !== null) changes[asset.id] = change24h;
         }
       } else if (type.priceSource === "stocks") {
         const { price, change24h, success } = await getStockPrice(asset.apiId);
-        if (success) {
+        if (success && price > 0) {
           const converted = convert(price, "USD", displayCurrency);
-          updates[asset.id] = converted * (asset.quantity || 1);
+          if (converted > 0) updates[asset.id] = converted * (asset.quantity || 1);
           // percent_change is currency-independent, no conversion needed
           if (change24h !== null) changes[asset.id] = change24h;
         }
@@ -120,7 +123,10 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
   }, [assets.length, ratesLoading, displayCurrency]);
 
   function getAssetValue(asset) {
-    if (livePrices[asset.id] !== undefined) return livePrices[asset.id];
+    // Un cours live valide (> 0) prime ; sinon on retombe sur le prix manuel puis
+    // la valeur stockée. Le « > 0 » (plutôt que « !== undefined ») évite qu'un
+    // cours nul/invalide masque le prix unitaire manuel.
+    if (livePrices[asset.id] > 0) return livePrices[asset.id];
     // Repli sur un prix unitaire manuel quand l'API n'a pas coté l'actif
     // (clé "demo" limitée) : valeur = prix manuel × quantité.
     if (asset.manualPrice > 0) {
@@ -544,7 +550,7 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
             const val = getAssetValue(asset);
             // API-priced asset with no live price and no stored value: price couldn't be fetched
             const priceUnavailable =
-              !!asset.apiId && livePrices[asset.id] === undefined && !Number.isFinite(asset.value) && !(asset.manualPrice > 0);
+              !!asset.apiId && !(livePrices[asset.id] > 0) && !Number.isFinite(asset.value) && !(asset.manualPrice > 0);
             // Affichage devise native : pour les actifs à valeur stockée (comptes,
             // liquidités, AV, immobilier…) libellés dans une devise ≠ devise de
             // résumé, on montre le solde dans SA devise (gros) + l'équivalent
