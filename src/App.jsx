@@ -490,7 +490,36 @@ function AppContent() {
   );
 }
 
+// Dégagement bas dynamique de la barre d'onglets. Sur certains Android en PWA
+// standalone, safe-area-inset-bottom n'est PAS exposé (renvoie 0) alors qu'une
+// barre système à 3 boutons occupe le bas → la barre d'onglets passait derrière.
+// On mesure l'inset réellement exposé par l'OS via une sonde env() : s'il est
+// nul en mode standalone, on pose un secours de 48px (--nav-fallback) ; sinon 0,
+// pour ne PAS sur-décaler les téléphones où l'inset fonctionne (hauteur d'origine).
+function applyNavFallback() {
+  const probe = document.createElement("div");
+  probe.style.cssText =
+    "position:fixed;left:0;bottom:0;width:0;height:env(safe-area-inset-bottom,0px);visibility:hidden;pointer-events:none;";
+  document.body.appendChild(probe);
+  const inset = probe.getBoundingClientRect().height;
+  document.body.removeChild(probe);
+  const standalone =
+    window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+  const fallback = standalone && inset < 8 ? 48 : 0;
+  document.documentElement.style.setProperty("--nav-fallback", `${fallback}px`);
+}
+
 export default function App() {
+  useEffect(() => {
+    applyNavFallback();
+    window.addEventListener("resize", applyNavFallback);
+    window.addEventListener("orientationchange", applyNavFallback);
+    return () => {
+      window.removeEventListener("resize", applyNavFallback);
+      window.removeEventListener("orientationchange", applyNavFallback);
+    };
+  }, []);
+
   return (
     <AuthProvider>
       <AppContent />
