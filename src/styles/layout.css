@@ -256,9 +256,11 @@
   flex: 0 0 auto;
   width: 54px;
   height: 54px;
-  /* Remonté → le bouton flotte dans l'encoche concave dessinée par .tabbar-bg,
-     l'arrière-plan de l'app restant visible entre l'encoche et le bouton. */
-  margin: -24px 10px 0;
+  /* Fixé par rapport au HAUT de la barre (indépendant de la hauteur variable)
+     pour rester concentrique au demi-cercle de l'encoche : centre du bouton sur
+     l'axe y=0. L'arrière-plan de l'app reste visible entre l'encoche et le bouton. */
+  align-self: flex-start;
+  margin: -33px 10px 0;
   border-radius: 50%;
   border: none;
   background: var(--tang);
@@ -267,7 +269,6 @@
   align-items: center;
   justify-content: center;
   box-shadow: 0 6px 14px -4px rgba(245, 99, 70, 0.5);
-  align-self: center;
 }
 .tabbar-add i {
   font-size: 24px;

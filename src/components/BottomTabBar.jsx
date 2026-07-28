@@ -36,14 +36,11 @@ export default function BottomTabBar({ active, onChange, onAddClick, onLongPress
   }, []);
   const { w, h } = dims;
   const cx = w / 2;
-  const HW = 46; // demi-largeur de l'encoche
-  const D = 26; // profondeur de l'encoche
-  const SH = 14; // longueur des épaules (transition douce)
-  const CPO = 28; // décalage des points de contrôle du berceau
-  const notchPath =
-    w > 0
-      ? `M0,0 H${cx - HW} C${cx - HW + SH},0 ${cx - CPO},${D} ${cx},${D} C${cx + CPO},${D} ${cx + HW - SH},0 ${cx + HW},0 H${w} V${h} H0 Z`
-      : "";
+  // Encoche = vrai demi-cercle concentrique au bouton : rayon = rayon du bouton
+  // (27px) + marge (~7px). Le bouton, fixé par rapport au haut de la barre
+  // (align-self flex-start), a son centre sur l'axe y=0 → gap uniforme partout.
+  const R = 34;
+  const notchPath = w > 0 ? `M0,0 H${cx - R} A${R},${R} 0 0 0 ${cx + R},0 H${w} V${h} H0 Z` : "";
 
   // Appui long → édition. On mémorise pour supprimer le tap de navigation qui
   // suivrait le relâchement, sinon un appui long naviguerait aussi.
