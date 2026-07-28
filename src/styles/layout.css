@@ -238,9 +238,10 @@
 }
 .tabbar-add {
   flex: 0 0 auto;
-  width: 52px;
-  height: 52px;
-  margin: -14px 8px 0;
+  width: 54px;
+  height: 54px;
+  /* Remonté au-dessus de la barre → le bouton « flotte » dans une encoche. */
+  margin: -22px 10px 0;
   border-radius: 50%;
   border: none;
   background: var(--tang);
@@ -248,7 +249,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 10px 22px -8px rgba(245, 99, 70, 0.55);
+  /* Halo de la couleur de fond de page : « retire » la matière de la barre tout
+     autour du bouton (effet d'encoche), puis ombre portée pour le relief. */
+  box-shadow: 0 0 0 6px var(--bg), 0 8px 18px -6px rgba(245, 99, 70, 0.5);
   align-self: center;
 }
 .tabbar-add i {
