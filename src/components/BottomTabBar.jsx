@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useFinance } from "../context/FinanceContext";
 import { useAuth } from "../context/AuthContext";
 import { useTranslation } from "../hooks/useTranslation";
@@ -19,6 +19,31 @@ export default function BottomTabBar({ active, onChange, onAddClick, onLongPress
   const tabs = keys
     .map((k) => NAV_TABS_META.find((m) => m.key === k))
     .filter(Boolean);
+
+  // Dimensions mesurées de la barre → tracé SVG du fond avec encoche concave
+  // centrée sous le bouton « + » (le trait suit la courbe, l'arrière-plan de
+  // l'app est visible entre l'encoche et le bouton).
+  const navRef = useRef(null);
+  const [dims, setDims] = useState({ w: 0, h: 0 });
+  useEffect(() => {
+    const el = navRef.current;
+    if (!el) return;
+    // Le RO déclenche un 1er callback à l'observe (async) → pas de setState
+    // synchrone dans le corps de l'effet.
+    const ro = new ResizeObserver(() => setDims({ w: el.offsetWidth, h: el.offsetHeight }));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const { w, h } = dims;
+  const cx = w / 2;
+  const HW = 46; // demi-largeur de l'encoche
+  const D = 26; // profondeur de l'encoche
+  const SH = 14; // longueur des épaules (transition douce)
+  const CPO = 28; // décalage des points de contrôle du berceau
+  const notchPath =
+    w > 0
+      ? `M0,0 H${cx - HW} C${cx - HW + SH},0 ${cx - CPO},${D} ${cx},${D} C${cx + CPO},${D} ${cx + HW - SH},0 ${cx + HW},0 H${w} V${h} H0 Z`
+      : "";
 
   // Appui long → édition. On mémorise pour supprimer le tap de navigation qui
   // suivrait le relâchement, sinon un appui long naviguerait aussi.
@@ -58,6 +83,7 @@ export default function BottomTabBar({ active, onChange, onAddClick, onLongPress
 
   return (
     <nav
+      ref={navRef}
       className="tabbar"
       aria-label={t("nav_menu")}
       onTouchStart={startPress}
@@ -65,6 +91,11 @@ export default function BottomTabBar({ active, onChange, onAddClick, onLongPress
       onTouchMove={cancelPress}
       onContextMenu={(e) => { e.preventDefault(); onLongPressEdit?.(); }}
     >
+      <svg className="tabbar-bg" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" aria-hidden="true">
+        {notchPath && (
+          <path d={notchPath} fill="var(--bg-card)" stroke="var(--rule)" strokeWidth="1" vectorEffect="non-scaling-stroke" />
+        )}
+      </svg>
       {tabs.slice(0, 2).map(renderTab)}
       <button
         className="tabbar-add"
