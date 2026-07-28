@@ -65,6 +65,9 @@ export default function AddAssetScreen({ onClose, editingAsset, initialTypeId })
   const [typeId, setTypeId] = useState(editingAsset?.typeId || initialTypeId || "cash");
   const [subtype, setSubtype] = useState(editingAsset?.subtype || "");
   const [loanId, setLoanId] = useState(editingAsset?.loanId || "");
+  // Mode « surprise » (cadeau) : actif visible uniquement par son auteur·rice.
+  const myMemberKey = getMemberKey(members.find((m) => m.uid === user?.uid)) || user?.uid;
+  const [isPrivate, setIsPrivate] = useState(!!editingAsset?.privateTo);
   const [name, setName] = useState(editingAsset?.name || "");
   const [value, setValue] = useState(editingAsset?.value?.toString() || "");
   const [currency, setCurrency] = useState(editingAsset?.currency || defaultCurrency);
@@ -225,6 +228,7 @@ export default function AddAssetScreen({ onClose, editingAsset, initialTypeId })
         ownership,
         sharePct: ownership === "shared" ? sharePct : 100,
         sharePctDetails: ownership === "shared" ? sharePctDetails : null,
+        privateTo: isPrivate ? myMemberKey : null,
         costBasis: Number.isFinite(costBasisVal) ? costBasisVal : null,
         ...(usesApi
           ? { quantity: parseFloat(quantity), apiId, apiLabel, manualPrice: parseFloat(manualPrice) || null }
@@ -271,6 +275,23 @@ export default function AddAssetScreen({ onClose, editingAsset, initialTypeId })
         <h1 style={{ flex: 1, textAlign: "center", margin: 0, fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 16, color: "var(--ink)" }}>
           {isEditing ? t("asset_edit_title") : t("asset_new_title")}
         </h1>
+        {/* Mode surprise (cadeau) : bascule discrète, s'il y a un·e partenaire. */}
+        {members.length > 1 && (
+          <button
+            onClick={() => setIsPrivate((v) => !v)}
+            aria-pressed={isPrivate}
+            aria-label={t("private_toggle")}
+            title={isPrivate ? t("private_on_hint_asset") : t("private_toggle")}
+            style={{
+              width: 32, height: 32, borderRadius: 99, flexShrink: 0,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              background: isPrivate ? "color-mix(in srgb, var(--lavi) 15%, transparent)" : "transparent",
+              border: "none", color: isPrivate ? "var(--lavi)" : "var(--ink-3)", cursor: "pointer",
+            }}
+          >
+            <i className={`ti ${isPrivate ? "ti-gift" : "ti-gift-off"}`} style={{ fontSize: 17 }} aria-hidden="true" />
+          </button>
+        )}
         {isEditing ? (
           <button
             onClick={handleDelete}
@@ -286,6 +307,16 @@ export default function AddAssetScreen({ onClose, editingAsset, initialTypeId })
 
       {/* Corps défilant */}
       <div style={{ flex: 1, overflowY: "auto", padding: "18px 20px 22px", display: "flex", flexDirection: "column", gap: 14 }}>
+        {isPrivate && (
+          <div style={{
+            display: "flex", alignItems: "center", gap: 8, padding: "9px 12px",
+            borderRadius: "var(--radius-md)", background: "color-mix(in srgb, var(--lavi) 12%, transparent)",
+          }}>
+            <i className="ti ti-gift" style={{ fontSize: 15, color: "var(--lavi)", flexShrink: 0 }} aria-hidden="true" />
+            <span style={{ fontSize: 12, color: "var(--lavi)", lineHeight: 1.4 }}>{t("private_on_hint_asset")}</span>
+          </div>
+        )}
+
         {/* Type d'actif */}
         <SectionCard accent="var(--sky)" icon="ti-category-2" title={t("asset_type_label")}>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
