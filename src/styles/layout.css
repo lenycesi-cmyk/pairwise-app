@@ -199,9 +199,9 @@
   display: flex;
   align-items: stretch;
   justify-content: space-around;
-  background: var(--bg-card);
-  border-top: 0.5px solid var(--rule);
-  box-shadow: 0 -6px 20px -14px rgba(10, 21, 32, 0.35);
+  /* Fond, bordure haute (avec l'encoche) et ombre sont dessinés par le SVG
+     .tabbar-bg (voir BottomTabBar) — la barre elle-même reste transparente pour
+     laisser voir l'app dans l'encoche, autour du bouton flottant. */
   /* Dégagement bas = inset système (env) + un décalage MANUEL par appareil
      (--nav-fallback, posé depuis utils/navOffset via un réglage). Par défaut 0
      (hauteur d'origine) ; l'utilisateur dont la barre est cachée derrière la
@@ -209,7 +209,21 @@
   padding: 6px 6px calc(6px + env(safe-area-inset-bottom) + var(--nav-fallback, 0px));
   min-height: 58px;
 }
+/* Fond SVG (rectangle + encoche concave centrée) : porte le remplissage, le
+   trait du bord haut qui suit l'encoche, et l'ombre. Derrière les items/bouton. */
+.tabbar-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+  overflow: visible;
+  filter: drop-shadow(0 -3px 8px rgba(10, 21, 32, 0.12));
+}
 .tabbar-item {
+  position: relative;
+  z-index: 1;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -237,11 +251,14 @@
   color: var(--tang);
 }
 .tabbar-add {
+  position: relative;
+  z-index: 2;
   flex: 0 0 auto;
   width: 54px;
   height: 54px;
-  /* Remonté au-dessus de la barre → le bouton « flotte » dans une encoche. */
-  margin: -22px 10px 0;
+  /* Remonté → le bouton flotte dans l'encoche concave dessinée par .tabbar-bg,
+     l'arrière-plan de l'app restant visible entre l'encoche et le bouton. */
+  margin: -24px 10px 0;
   border-radius: 50%;
   border: none;
   background: var(--tang);
@@ -249,9 +266,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  /* Halo de la couleur de fond de page : « retire » la matière de la barre tout
-     autour du bouton (effet d'encoche), puis ombre portée pour le relief. */
-  box-shadow: 0 0 0 6px var(--bg), 0 8px 18px -6px rgba(245, 99, 70, 0.5);
+  box-shadow: 0 6px 14px -4px rgba(245, 99, 70, 0.5);
   align-self: center;
 }
 .tabbar-add i {
