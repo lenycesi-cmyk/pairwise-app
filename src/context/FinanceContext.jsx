@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect, useMemo } from "react";
 import {
   collection,
   query,
@@ -19,6 +19,7 @@ import { applyTheme } from "../data/themes";
 import { useAuth } from "./AuthContext";
 import { ALL_CATEGORIES } from "../data/categories";
 import { ASSET_TYPES } from "../data/assetTypes";
+import { getMemberKey } from "../utils/members";
 import { getExchangeRate } from "../utils/currencyConversion";
 import { sendPushNotification } from "../utils/sendPush";
 import { dedupeTags } from "../utils/tags";
@@ -796,8 +797,27 @@ export function FinanceProvider({ children }) {
     }
   }
 
+  // ── Éléments « surprise » (cadeaux) ─────────────────────────────────────────
+  // Une transaction/un actif peut porter `privateTo: <memberKey>` : seul ce
+  // membre le voit. On filtre UNIQUEMENT à l'exposition — les tableaux bruts
+  // (transactions/assets) restent intacts en interne, sinon les fonctions
+  // d'écriture qui font un read-modify-write du tableau complet (updateAsset,
+  // addAsset…) effaceraient les éléments cachés du partenaire.
+  const myKey = getMemberKey(members.find((m) => m.uid === user?.uid)) || user?.uid;
+  const isVisibleToMe = (x) => !x?.privateTo || x.privateTo === myKey;
+  const visibleTransactions = useMemo(
+    () => transactions.filter(isVisibleToMe),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [transactions, myKey]
+  );
+  const visibleAssets = useMemo(
+    () => assets.filter(isVisibleToMe),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [assets, myKey]
+  );
+
   const value = {
-    transactions,
+    transactions: visibleTransactions,
     categories,
     members,
     coupleName,
@@ -847,7 +867,7 @@ export function FinanceProvider({ children }) {
     removeGoal,
     incomeAccountLinks,
     setIncomeAccountLinks,
-    assets,
+    assets: visibleAssets,
     addAsset,
     updateAsset,
     removeAsset,

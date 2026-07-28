@@ -182,6 +182,10 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
   const [busy, setBusy] = useState(false);
   const [receiptFile, setReceiptFile] = useState(null);
   const [receiptPreview, setReceiptPreview] = useState(editingTx?.receiptURL || null);
+  // Mode « surprise » (cadeau) : la transaction n'est visible que par son
+  // auteur·rice, jamais par le/la partenaire (voir le filtre dans FinanceContext).
+  const myMemberKey = getMemberKey(members.find((m) => m.uid === user?.uid)) || user?.uid;
+  const [isPrivate, setIsPrivate] = useState(!!editingTx?.privateTo);
   const [uploadingReceipt, setUploadingReceipt] = useState(false);
   const receiptInputRef = useRef(null);
   const bodyRef = useRef(null);
@@ -453,9 +457,15 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
         // Tags explicites (chips) + #hashtags éventuellement tapés dans la description
         tags: dedupeTags([...tags, ...extractTagsFromText(description)]),
         paidBy,
-        split: type === "expense" || needsMemberAttribution ? split : "100",
-        splitDetails: splitMode === "advanced" ? splitDetails : null,
+        // En mode surprise, la dépense est portée à 100 % par l'acheteur·se :
+        // un partage laisserait une dette visible d'un seul côté (le/la
+        // partenaire ne voit pas la transaction) → soldes divergents.
+        split: isPrivate
+          ? paidBy
+          : type === "expense" || needsMemberAttribution ? split : "100",
+        splitDetails: isPrivate || splitMode !== "advanced" ? null : splitDetails,
         date: isoDate,
+        privateTo: isPrivate ? myMemberKey : null,
       };
 
       let txId = editingTx?.id;
@@ -1202,6 +1212,24 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
         <h1 style={{ flex: 1, textAlign: "center", margin: 0, fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 16, color: "var(--ink)" }}>
           {isEditing ? t("tx_edit") : t("tx_new")}
         </h1>
+        {/* Mode surprise (cadeau) : petite bascule discrète, uniquement s'il y a
+            un·e partenaire à qui cacher la transaction. */}
+        {members.length > 1 && (
+          <button
+            onClick={() => { haptic(); setIsPrivate((v) => !v); }}
+            aria-pressed={isPrivate}
+            aria-label={t("private_toggle")}
+            title={isPrivate ? t("private_on_hint") : t("private_toggle")}
+            style={{
+              width: 32, height: 32, borderRadius: 99, flexShrink: 0,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              background: isPrivate ? "color-mix(in srgb, var(--lavi) 15%, transparent)" : "transparent",
+              border: "none", color: isPrivate ? "var(--lavi)" : "var(--ink-3)", cursor: "pointer",
+            }}
+          >
+            <i className={`ti ${isPrivate ? "ti-gift" : "ti-gift-off"}`} style={{ fontSize: 17 }} aria-hidden="true" />
+          </button>
+        )}
         {isEditing ? (
           <button
             onClick={async () => {
@@ -1222,6 +1250,16 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
 
       {/* Corps défilant */}
       <div ref={bodyRef} style={{ flex: 1, overflowY: "auto", padding: "18px 20px 22px", display: "flex", flexDirection: "column", gap: 14 }}>
+        {isPrivate && (
+          <div style={{
+            display: "flex", alignItems: "center", gap: 8, padding: "9px 12px",
+            borderRadius: "var(--radius-md)", background: "color-mix(in srgb, var(--lavi) 12%, transparent)",
+          }}>
+            <i className="ti ti-gift" style={{ fontSize: 15, color: "var(--lavi)", flexShrink: 0 }} aria-hidden="true" />
+            <span style={{ fontSize: 12, color: "var(--lavi)", lineHeight: 1.4 }}>{t("private_on_hint")}</span>
+          </div>
+        )}
+
         {!isEditing && (
           <QuickAddBar language={language} onApply={applyNaturalLanguage} />
         )}
