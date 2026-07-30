@@ -316,6 +316,11 @@
 html {
   font-size: 16px;
   -webkit-text-size-adjust: 100%;
+  /* Pas de zoom dans l'app : le pinch/double-tap décalait la mise en page en
+     PWA (le footer fixe finissait sous la barre système Android). Le meta
+     viewport le bloque déjà, mais iOS l'ignore — `touch-action` coupe le
+     double-tap et le pinch côté CSS. */
+  touch-action: manipulation;
 }
 
 body {
