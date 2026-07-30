@@ -596,9 +596,16 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
           })()}
           {typeAssets.map((asset, i) => {
             const val = getAssetValue(asset);
-            // API-priced asset with no live price and no stored value: price couldn't be fetched
+            // Actif dont la valeur dérive d'un cours (actions/crypto) sans aucune
+            // source exploitable : ni cours live, ni prix unitaire manuel, ni
+            // valeur stockée POSITIVE. Le test portait sur `Number.isFinite`, donc
+            // une valeur à 0 laissée en base faisait afficher un « 0 » affirmatif
+            // au lieu de reconnaître qu'aucun prix n'est disponible.
             const priceUnavailable =
-              !!asset.apiId && !(livePrices[asset.id] > 0) && !Number.isFinite(asset.value) && !(asset.manualPrice > 0);
+              type.hasApiPrice &&
+              !(livePrices[asset.id] > 0) &&
+              !(asset.manualPrice > 0) &&
+              !(asset.value > 0);
             // Affichage devise native : pour les actifs à valeur stockée (comptes,
             // liquidités, AV, immobilier…) libellés dans une devise ≠ devise de
             // résumé, on montre le solde dans SA devise (gros) + l'équivalent

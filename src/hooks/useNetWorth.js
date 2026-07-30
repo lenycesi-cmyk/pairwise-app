@@ -39,11 +39,14 @@ export function useNetWorth(displayCurrency) {
             asset.apiId,
             displayCurrency.toLowerCase()
           );
-          if (success) updates[asset.id] = price * (asset.quantity || 1);
+          // Comme dans WealthScreen : on n'enregistre qu'un cours strictement
+          // positif, sinon un 0 masquerait le repli sur le prix unitaire manuel.
+          if (success && price > 0) updates[asset.id] = price * (asset.quantity || 1);
         } else if (type.priceSource === "stocks") {
           const { price, success } = await getStockPrice(asset.apiId);
-          if (success) {
-            updates[asset.id] = convert(price, "USD", displayCurrency) * (asset.quantity || 1);
+          if (success && price > 0) {
+            const converted = convert(price, "USD", displayCurrency);
+            if (converted > 0) updates[asset.id] = converted * (asset.quantity || 1);
           }
         }
       }
@@ -57,12 +60,16 @@ export function useNetWorth(displayCurrency) {
   }, [assets.length, ratesLoading, displayCurrency]);
 
   function getAssetValue(asset) {
-    if (livePrices[asset.id] !== undefined) return livePrices[asset.id];
+    // « > 0 » et non « !== undefined » : un cours stocké à 0 est défini, il
+    // masquait donc le prix unitaire manuel au lieu de laisser la main au repli.
+    if (livePrices[asset.id] > 0) return livePrices[asset.id];
     // Repli sur un prix unitaire manuel quand l'API n'a pas coté l'actif.
     if (asset.manualPrice > 0) {
-      return convert(asset.manualPrice * (asset.quantity || 1), asset.currency || displayCurrency, displayCurrency);
+      const converted = convert(asset.manualPrice * (asset.quantity || 1), asset.currency || displayCurrency, displayCurrency);
+      return Number.isFinite(converted) ? converted : 0;
     }
-    return convert(asset.value ?? 0, asset.currency || displayCurrency, displayCurrency);
+    const converted = convert(asset.value ?? 0, asset.currency || displayCurrency, displayCurrency);
+    return Number.isFinite(converted) ? converted : 0;
   }
 
   function getMemberShare(asset, memberUid) {

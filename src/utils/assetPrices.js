@@ -1,6 +1,15 @@
 const PRICE_CACHE_PREFIX = "pairwise_asset_price_v3_";
 const PRICE_CACHE_DURATION = 1000 * 60 * 30; // 30 min
 
+// Un cours n'est valide que s'il est strictement positif. Une clé API limitée
+// (Twelve Data en mode "demo") peut répondre 200 avec un `close` à 0 : sans ce
+// garde-fou on le prenait pour une cotation réussie, on l'écrivait dans le cache
+// pour 30 min, et il écrasait le repli sur le prix unitaire manuel — l'actif
+// s'affichait alors à 0 pendant une demi-heure, même après correction du code.
+function isValidPrice(price) {
+  return Number.isFinite(price) && price > 0;
+}
+
 /**
  * Récupère le prix actuel d'une cryptomonnaie via CoinGecko (gratuit, sans clé API).
  * @param {string} coinId - ID CoinGecko (ex: "bitcoin", "ethereum")
@@ -13,7 +22,9 @@ export async function getCryptoPrice(coinId, vsCurrency = "eur") {
     const cached = localStorage.getItem(cacheKey);
     if (cached) {
       const parsed = JSON.parse(cached);
-      if (Date.now() - parsed.timestamp < PRICE_CACHE_DURATION) {
+      // Une entrée à 0 (écrite par une version antérieure) est ignorée plutôt que
+      // servie : sinon le cache continue d'empoisonner l'affichage.
+      if (Date.now() - parsed.timestamp < PRICE_CACHE_DURATION && isValidPrice(parsed.price)) {
         return { price: parsed.price, change24h: parsed.change24h ?? null, success: true };
       }
     }
@@ -29,7 +40,7 @@ export async function getCryptoPrice(coinId, vsCurrency = "eur") {
     const json = await res.json();
     const price = json[coinId]?.[vsCurrency];
     const change24h = json[coinId]?.[`${vsCurrency}_24h_change`] ?? null;
-    if (price === undefined) throw new Error("crypto_price_not_found");
+    if (!isValidPrice(price)) throw new Error("crypto_price_not_found");
 
     try {
       localStorage.setItem(cacheKey, JSON.stringify({ price, change24h, timestamp: Date.now() }));
@@ -57,7 +68,7 @@ export async function getStockPrice(symbol, apiKey = "") {
     const cached = localStorage.getItem(cacheKey);
     if (cached) {
       const parsed = JSON.parse(cached);
-      if (Date.now() - parsed.timestamp < PRICE_CACHE_DURATION) {
+      if (Date.now() - parsed.timestamp < PRICE_CACHE_DURATION && isValidPrice(parsed.price)) {
         return { price: parsed.price, change24h: parsed.change24h ?? null, success: true };
       }
     }
@@ -75,7 +86,7 @@ export async function getStockPrice(symbol, apiKey = "") {
     if (!res.ok) throw new Error("stock_fetch_failed");
     const json = await res.json();
     const price = parseFloat(json.close);
-    if (isNaN(price)) throw new Error("stock_price_invalid");
+    if (!isValidPrice(price)) throw new Error("stock_price_invalid");
     const parsedChange = parseFloat(json.percent_change);
     const change24h = Number.isFinite(parsedChange) ? parsedChange : null;
 
