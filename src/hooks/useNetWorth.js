@@ -65,7 +65,9 @@ export function useNetWorth(displayCurrency) {
     if (livePrices[asset.id] > 0) return livePrices[asset.id];
     // Repli sur un prix unitaire manuel quand l'API n'a pas coté l'actif.
     if (asset.manualPrice > 0) {
-      const converted = convert(asset.manualPrice * (asset.quantity || 1), asset.currency || displayCurrency, displayCurrency);
+      // Cf. WealthScreen : devise propre au prix manuel si renseignée.
+      const priceCur = asset.manualPriceCurrency || asset.currency || displayCurrency;
+      const converted = convert(asset.manualPrice * (asset.quantity || 1), priceCur, displayCurrency);
       return Number.isFinite(converted) ? converted : 0;
     }
     const converted = convert(asset.value ?? 0, asset.currency || displayCurrency, displayCurrency);

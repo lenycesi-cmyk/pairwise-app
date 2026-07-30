@@ -468,7 +468,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
         return (
           <WidgetCard
             icon="ti-heart"
-            accent="coral"
+            accent="red"
             title={summaryLabel}
           >
             <p className="pw-num" style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 46, lineHeight: 1, letterSpacing: "-0.02em", marginTop: 4, color: totals.net >= 0 ? "var(--good)" : "var(--over)" }}>
