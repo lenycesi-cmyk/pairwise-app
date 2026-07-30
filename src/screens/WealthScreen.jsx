@@ -429,8 +429,8 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
       if (assets.length === 0) return null;
       return (
         <AllocationTargetCard
-          totalsByType={totalsByType}
-          totalAssets={totalAssets}
+          assets={assets}
+          getAssetValue={getAssetValue}
           currencySymbol={currencySymbol}
           formatAmount={formatAmount}
           targetAllocation={targetAllocation}

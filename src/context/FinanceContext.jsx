@@ -657,12 +657,19 @@ export function FinanceProvider({ children }) {
     await setDoc(doc(db, "couples", coupleId), { assets: updatedAssets, assetContributionsApplied: applied }, { merge: true });
   }
 
-  // Allocation cible : la carte envoie la map complète (tous les types), donc un
-  // simple merge suffit (les types remis à 0 restent, ignorés à l'affichage).
-  async function updateTargetAllocation(map) {
+  // Allocation cible : la carte envoie la map complète (toutes les classes de
+  // risque), donc un simple merge suffit (les classes remises à 0 restent,
+  // ignorées à l'affichage). `profileId` est le profil standard reconnu
+  // (prudent/équilibré/…) ou null si la grille a été personnalisée — stocké pour
+  // information, l'affichage sait le redéduire de la grille.
+  async function updateTargetAllocation(map, profileId = null) {
     if (!coupleId) return;
     setTargetAllocationState(map);
-    await setDoc(doc(db, "couples", coupleId), { targetAllocation: map }, { merge: true });
+    await setDoc(
+      doc(db, "couples", coupleId),
+      { targetAllocation: map, targetAllocationProfile: profileId },
+      { merge: true }
+    );
   }
 
   // Discussion sur un actif : même modèle que les commentaires de transaction
