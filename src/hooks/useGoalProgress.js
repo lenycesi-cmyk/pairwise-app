@@ -10,13 +10,18 @@ import { useExchangeRates } from "./useExchangeRates";
 // + rythme mensuel requis (si deadline) et date d'atteinte projetée (si
 // contribution mensuelle définie). Devise d'affichage unique pour comparer des
 // objectifs de devises différentes.
+//
+// Retourne `{ items, ready }`. `ready` est false tant que taux de change et
+// prix live n'ont pas atterri : pendant cette fenêtre les `current` sont
+// sous-évalués et `reached` peut être faussement false — à ne pas confondre
+// avec un vrai passage sous la cible.
 export function useGoalProgress(displayCurrency) {
   const { goals, assets, defaultCurrency } = useFinance();
   const base = displayCurrency || defaultCurrency;
-  const { getAssetValue } = useNetWorth(base);
+  const { getAssetValue, pricesReady } = useNetWorth(base);
   const { convert } = useExchangeRates(base);
 
-  return useMemo(() => {
+  const items = useMemo(() => {
     const now = new Date();
     const assetById = new Map(assets.map((a) => [a.id, a]));
 
@@ -58,4 +63,6 @@ export function useGoalProgress(displayCurrency) {
       return { goal, current, target, remaining, pct, reached, monthlyNeeded, projectedDate, onTrack, base };
     });
   }, [goals, assets, base, getAssetValue, convert]);
+
+  return { items, ready: pricesReady };
 }

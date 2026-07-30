@@ -14,6 +14,16 @@ export function useNetWorth(displayCurrency) {
   const { assets, members } = useFinance();
   const { convert, loading: ratesLoading } = useExchangeRates(displayCurrency);
   const [livePrices, setLivePrices] = useState({});
+  const [pricesFetched, setPricesFetched] = useState(false);
+
+  // Les valeurs ne sont fiables qu'une fois les taux ET les prix live arrivés :
+  // avant ça, un actif coté vaut 0 et tout total est sous-évalué. Les
+  // consommateurs qui déclenchent des effets sur ces montants (célébration
+  // d'objectif atteint…) doivent attendre `pricesReady`.
+  const hasApiAssets = assets.some(
+    (a) => ASSET_TYPES.find((t) => t.id === a.typeId)?.hasApiPrice && a.apiId
+  );
+  const pricesReady = !ratesLoading && (!hasApiAssets || pricesFetched);
 
   useEffect(() => {
     if (ratesLoading || assets.length === 0) return;
@@ -37,7 +47,10 @@ export function useNetWorth(displayCurrency) {
           }
         }
       }
-      if (!cancelled) setLivePrices(updates);
+      if (!cancelled) {
+        setLivePrices(updates);
+        setPricesFetched(true);
+      }
     })();
 
     return () => { cancelled = true; };
@@ -127,5 +140,5 @@ export function useNetWorth(displayCurrency) {
     return { totalsByType: tbt, totalAssets: total };
   }
 
-  return { netWorth, netWorthByMember, totalsByType, totalAssets, totalsByTypeFor, getAssetValue, livePrices };
+  return { netWorth, netWorthByMember, totalsByType, totalAssets, totalsByTypeFor, getAssetValue, livePrices, pricesReady };
 }
