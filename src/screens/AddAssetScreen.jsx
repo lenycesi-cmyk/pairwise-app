@@ -73,6 +73,13 @@ export default function AddAssetScreen({ onClose, editingAsset, initialTypeId })
   const [currency, setCurrency] = useState(editingAsset?.currency || defaultCurrency);
   const [quantity, setQuantity] = useState(editingAsset?.quantity?.toString() || "");
   const [manualPrice, setManualPrice] = useState(editingAsset?.manualPrice?.toString() || "");
+  // Devise du prix unitaire manuel. Distincte de `currency` (qui porte le prix
+  // d'achat moyen) : un titre peut être coté dans une devise et avoir été acheté
+  // dans une autre. Non renseignée ⇒ on retombe sur la devise de l'actif, donc
+  // le comportement des actifs existants ne change pas.
+  const [manualPriceCurrency, setManualPriceCurrency] = useState(
+    editingAsset?.manualPriceCurrency || editingAsset?.currency || defaultCurrency
+  );
   // Coût investi (lot 2) : montant total investi pour les actifs à valeur stockée,
   // prix d'achat MOYEN par unité pour les actifs cotés (× quantité à la sauvegarde).
   const [costBasisInput, setCostBasisInput] = useState(editingAsset?.costBasis?.toString() || "");
@@ -231,7 +238,13 @@ export default function AddAssetScreen({ onClose, editingAsset, initialTypeId })
         privateTo: isPrivate ? myMemberKey : null,
         costBasis: Number.isFinite(costBasisVal) ? costBasisVal : null,
         ...(usesApi
-          ? { quantity: parseFloat(quantity), apiId, apiLabel, manualPrice: parseFloat(manualPrice) || null }
+          ? {
+              quantity: parseFloat(quantity),
+              apiId,
+              apiLabel,
+              manualPrice: parseFloat(manualPrice) || null,
+              manualPriceCurrency: parseFloat(manualPrice) > 0 ? manualPriceCurrency : null,
+            }
           : { value: parseFloat(value) }),
       };
 
@@ -496,14 +509,17 @@ export default function AddAssetScreen({ onClose, editingAsset, initialTypeId })
             {/* Prix unitaire manuel (repli) : utilisé quand l'API de cotation ne
                 price pas l'actif (clé "demo" limitée) → le montant s'affiche quand même. */}
             <p style={{ fontSize: 12, color: "var(--ink-2)", margin: "14px 0 4px" }}>{t("asset_manual_price_label")}</p>
-            <input
-              type="number"
-              inputMode="decimal"
-              value={manualPrice}
-              onChange={(e) => setManualPrice(e.target.value)}
-              placeholder="0"
-              style={{ ...bareInput, fontSize: 16 }}
-            />
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <input
+                type="number"
+                inputMode="decimal"
+                value={manualPrice}
+                onChange={(e) => setManualPrice(e.target.value)}
+                placeholder="0"
+                style={{ ...bareInput, flex: 1, fontSize: 16 }}
+              />
+              <CurrencyField value={manualPriceCurrency} onChange={setManualPriceCurrency} suffix="/ u." />
+            </div>
             <p style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 6 }}>{t("asset_manual_price_hint")}</p>
           </SectionCard>
         )}

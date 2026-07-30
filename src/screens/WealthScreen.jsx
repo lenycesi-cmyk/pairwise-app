@@ -135,7 +135,10 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
     // Repli sur un prix unitaire manuel quand l'API n'a pas coté l'actif
     // (clé "demo" limitée) : valeur = prix manuel × quantité.
     if (asset.manualPrice > 0) {
-      const converted = convert(asset.manualPrice * (asset.quantity || 1), asset.currency || displayCurrency, displayCurrency);
+      // Devise propre au prix manuel si renseignée, sinon devise de l'actif : un
+      // titre peut être coté dans une devise et acheté dans une autre.
+      const priceCur = asset.manualPriceCurrency || asset.currency || displayCurrency;
+      const converted = convert(asset.manualPrice * (asset.quantity || 1), priceCur, displayCurrency);
       return Number.isFinite(converted) ? converted : 0;
     }
     // API-priced assets (stocks/crypto) store no `value` — only quantity + apiId.

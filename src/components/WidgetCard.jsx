@@ -10,6 +10,11 @@ const WIDGET_ACCENTS = {
   amber: ["var(--amber)", "var(--amber-light)"],
   mint: ["var(--sage)", "var(--sage-light)"],
   pink: ["var(--blush)", "var(--blush-light)"],
+  // `red` est volontairement distinct de `coral` : le corail est la couleur des
+  // éléments actionnables (bouton « Ajouter », onglet actif), donc une pastille
+  // corail pleine se lit comme un bouton. Les cartes purement informatives
+  // utilisent ce rouge.
+  red: ["var(--red)", "var(--red-light)"],
 };
 
 // `bodyStyle` : styles supplémentaires sur la zone de contenu. La carte est une

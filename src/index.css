@@ -440,6 +440,7 @@ button[style*="background: var(--ink)"] {
 .pw-card[data-accent="amber"]::before { background: var(--amber); }
 .pw-card[data-accent="mint"]::before { background: var(--sage); }
 .pw-card[data-accent="pink"]::before { background: var(--blush); }
+.pw-card[data-accent="red"]::before { background: var(--red); }
 .pw-card:active {
   transform: translateY(-1px);
 }
@@ -456,6 +457,7 @@ button[style*="background: var(--ink)"] {
   .pw-card[data-accent="amber"]:hover { border-color: var(--amber) !important; }
   .pw-card[data-accent="mint"]:hover { border-color: var(--sage) !important; }
   .pw-card[data-accent="pink"]:hover { border-color: var(--blush) !important; }
+  .pw-card[data-accent="red"]:hover { border-color: var(--red) !important; }
 }
 
 /* Équivalent tactile du survol : sur mobile (pas de curseur), la carte au
@@ -474,6 +476,7 @@ button[style*="background: var(--ink)"] {
   .pw-card--focus[data-accent="amber"] { border-color: var(--amber) !important; }
   .pw-card--focus[data-accent="mint"] { border-color: var(--sage) !important; }
   .pw-card--focus[data-accent="pink"] { border-color: var(--blush) !important; }
+  .pw-card--focus[data-accent="red"] { border-color: var(--red) !important; }
   .pw-card--focus .pw-chip {
     transform: scale(1.06);
     background: var(--pw-chip, var(--tang)) !important;
