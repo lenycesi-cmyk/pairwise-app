@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "../hooks/useTranslation";
 import { getAssetType } from "../data/assetTypes";
 import {
@@ -96,12 +97,19 @@ export default function AllocationTargetModal({
       })
       .join(", ");
 
-  return (
+  // Rendu dans un portail vers <body> : la carte est ouverte DEPUIS un widget, et
+  // `.pw-card:hover` applique un `transform`. Un ancêtre transformé crée un bloc
+  // conteneur pour `position: fixed` → la modale se calerait sur la carte (et
+  // serait rognée par son `overflow: hidden`), en clignotant au rythme du survol
+  // qui apparaît/disparaît. Le portail échappe à cet ancêtre.
+  return createPortal(
     <div
       onClick={onClose}
+      role="dialog"
+      aria-modal="true"
       className="pw-dialog-backdrop"
       style={{
-        position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,0.4)",
+        position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.4)",
         display: "flex", alignItems: "center", justifyContent: "center", padding: "0 12px",
       }}
     >
@@ -303,6 +311,7 @@ export default function AllocationTargetModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
