@@ -16,7 +16,7 @@ export default function GoalsScreen({ onOpenMenu, openSignal }) {
   const t = useTranslation();
   const { assets, defaultCurrency, dashboardDisplayCurrency, addGoal, updateGoal, removeGoal, language } = useFinance();
   const displayCurrency = dashboardDisplayCurrency || defaultCurrency;
-  const progress = useGoalProgress(displayCurrency);
+  const { items: progress } = useGoalProgress(displayCurrency);
   const locale = language === "en" ? "en-US" : "fr-FR";
   const symbol = currencySymbol(displayCurrency);
   const fmt = (n) => Math.round(n).toLocaleString(locale);
