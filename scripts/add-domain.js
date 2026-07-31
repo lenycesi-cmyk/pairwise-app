@@ -95,8 +95,11 @@ async function main() {
   }
 
   console.log(`\nAjout de "${DOMAIN}"...`);
+  // `site` attend l'identifiant nu, pas le chemin `sites/{id}` : l'API rejette
+  // ce dernier avec « Mismatched sites in request ». C'est bien la forme que
+  // renvoie le GET ci-dessus (`"site": "pairwise-12df2"`).
   const created = await api(token, "POST", domainsUrl(), {
-    site: `sites/${SITE_ID}`,
+    site: SITE_ID,
     domainName: DOMAIN,
   });
   console.log("Domaine créé.");

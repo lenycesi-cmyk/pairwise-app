@@ -6,7 +6,8 @@
 // encore leur propre copie de cette logique. Les migrer serait souhaitable,
 // mais ce sont des chemins critiques — à faire dans un lot dédié.
 import { createSign } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
 
 export const HOSTING_API = "https://firebasehosting.googleapis.com/v1beta1";
 
@@ -23,7 +24,30 @@ function loadServiceAccountKey() {
   return JSON.parse(readFileSync(KEY_PATH, "utf8"));
 }
 
+// Repli sur les identifiants de `gcloud` quand aucune clé n'est fournie. Utile
+// dans Cloud Shell, où l'utilisateur est déjà authentifié et où déposer une clé
+// de compte de service n'aurait aucun intérêt.
+function gcloudAccessToken() {
+  try {
+    return execFileSync("gcloud", ["auth", "print-access-token"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+  } catch {
+    return null;
+  }
+}
+
 export async function getAccessToken() {
+  if (!process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON && !existsSync(KEY_PATH)) {
+    const token = gcloudAccessToken();
+    if (token) return token;
+    throw new Error(
+      `Aucune clé de compte de service (${KEY_PATH}) et \`gcloud auth print-access-token\` ` +
+        "indisponible. Définissez GOOGLE_APPLICATION_CREDENTIALS(_JSON) ou authentifiez gcloud."
+    );
+  }
+
   const key = loadServiceAccountKey();
   const now = Math.floor(Date.now() / 1000);
   const header = Buffer.from(JSON.stringify({ alg: "RS256", typ: "JWT" })).toString(
