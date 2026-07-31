@@ -2,6 +2,12 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Communication
+
+Spell out every acronym in parentheses the first time it appears in a reply — e.g. "CMS (Content
+Management System)", "CSP (Content Security Policy)", "FCM (Firebase Cloud Messaging)". This applies
+to chat replies, not to code or commit messages.
+
 ## Commands
 
 ```bash
