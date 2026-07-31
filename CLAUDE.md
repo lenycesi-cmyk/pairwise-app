@@ -52,6 +52,20 @@ npm run build && node scripts/deploy.js
 (runs only when `firestore.rules` changed, or on manual `workflow_dispatch`). Storage rules aren't
 automated yet.
 
+**Preview channels.** `scripts/deploy.js` also publishes to a Firebase Hosting *preview channel* —
+an ephemeral, separate URL that leaves the live site untouched:
+
+```bash
+npm run deploy            # live (production)
+npm run deploy:preview    # channel "preview", 7-day TTL (Time To Live)
+node scripts/deploy.js --channel=demo --ttl=30   # custom channel, 30-day TTL (30 = Firebase max)
+```
+
+Redeploying to an existing channel extends its TTL rather than failing. **A preview channel is not a
+staging environment**: it belongs to the same Firebase project, so it hits the *production* Firestore,
+accounts and Cloud Functions. Real staging would need a second Firebase project and the currently
+hardcoded `projectId` in [src/firebase.js](src/firebase.js) moved to a build-time env var.
+
 ### Bank aggregator provider abstraction (Plaid / Enable Banking)
 
 Bank linking is provider-agnostic behind a `provider` field. The callables (`createLinkToken`,
