@@ -4,3 +4,9 @@ dist
 .env.local
 *.log
 functions/.env
+
+# Émulateurs Firebase (artefacts locaux)
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+.firebase/

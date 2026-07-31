@@ -80,6 +80,15 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Les règles de sécurité sont exercées contre les émulateurs avant tout
+      # déploiement. Motif : une règle peut se déployer sans la moindre erreur
+      # et refuser TOUT à l'évaluation (cf. `firestore.exists`, indisponible
+      # dans les règles Storage mais acceptée à la compilation). Cette étape
+      # est bloquante — un échec ici doit empêcher la mise en production.
+      # `ubuntu-latest` fournit le Java requis par les émulateurs.
+      - name: Test security rules
+        run: npm test
+
       - name: Build frontend
         env:
           # Clé GIPHY pour le picker GIF des commentaires. Vite fige les
