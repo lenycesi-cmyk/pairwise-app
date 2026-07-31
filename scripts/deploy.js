@@ -103,7 +103,19 @@ async function main() {
     `${HOSTING_API}/sites/${SITE_ID}/versions`,
     {
       config: {
-        rewrites: [{ glob: "**", path: "/index.html" }],
+        // ATTENTION : c'est CETTE configuration qui est déployée, pas la
+        // section `hosting` de firebase.json — le déploiement passe par l'API
+        // REST et ignore ce fichier. Les deux sont gardées en phase à la main.
+        //
+        // Pas de réécriture « ** » : l'app n'a pas de routeur, sa seule URL est
+        // `/`. Tout renvoyer vers index.html ferait répondre 200 à n'importe
+        // quelle adresse inexistante — un « soft 404 » que Google pénalise.
+        // Sans catch-all, Hosting sert 404.html avec un vrai code 404.
+        //
+        // Seule exception : le retour de consentement bancaire, seul chemin
+        // profond réellement utilisé (cf. components/BankCallbackHandler.jsx,
+        // qui lit `?code=…&state=…` puis remet l'URL à `/`).
+        rewrites: [{ glob: "/bank-callback", path: "/index.html" }],
         // Cache : index.html / SW / manifest jamais mis en cache (pour que
         // chaque déploiement soit visible immédiatement), assets hashés par
         // Vite mis en cache un an (immuables, le hash change à chaque build).

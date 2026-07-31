@@ -56,6 +56,15 @@ through the same script with `--target=storage`, which points at the per-bucket 
 `projects/{p}/releases/firebase.storage/{bucket}`; it has its own change-detection step in
 `deploy.yml`.
 
+**`firebase.json` does NOT drive hosting deploys.** `scripts/deploy.js` sends its own `config` (rewrites
++ cache headers) through the REST API and never reads `firebase.json`; the two are kept in sync by hand,
+so change **both**. There is deliberately **no `**` catch-all rewrite** — the app has no router, its only
+URL is `/`, and a catch-all made every non-existent path answer HTTP 200 with the app (a *soft 404*
+Google penalises). Hosting now serves `public/404.html` instead. The single deep path that is rewritten
+is `/bank-callback` (see [BankCallbackHandler](src/components/BankCallbackHandler.jsx)). Consequence for
+the service worker: its navigation handler must only cache **`res.ok`** responses, otherwise a 404 page
+gets stored as the offline app shell.
+
 **Preview channels.** `scripts/deploy.js` also publishes to a Firebase Hosting *preview channel* —
 an ephemeral, separate URL that leaves the live site untouched:
 

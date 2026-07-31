@@ -1,0 +1,15 @@
+# Pairwise — https://pairwise.finance
+#
+# Rien à protéger du crawl aujourd'hui : l'application est derrière
+# authentification, un robot n'y voit que la coquille de chargement. Les seules
+# pages publiques sont /privacy.html et /terms.html.
+#
+# À REVOIR lors de la séparation des domaines : ce fichier est servi par le
+# build de l'app, donc aujourd'hui par pairwise.finance ET
+# app.pairwise.finance. Une fois le site marketing sur la racine, le build de
+# l'app devra passer en `Disallow: /` (rien à y indexer, et le sous-domaine
+# concurrencerait la racine), et le site marketing gardera son propre
+# robots.txt avec un sitemap.
+
+User-agent: *
+Allow: /
