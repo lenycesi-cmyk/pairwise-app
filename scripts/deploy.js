@@ -14,21 +14,17 @@
 // MÊME base Firestore, les MÊMES comptes et les MÊMES Cloud Functions que la
 // production. Tout ce qu'on y écrit est écrit pour de vrai. Une vraie
 // préproduction demanderait un second projet Firebase.
-import { createSign } from "node:crypto";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { gzipSync } from "node:zlib";
 import { createHash } from "node:crypto";
+import { getAccessToken, api, HOSTING_API } from "./lib/firebaseApi.js";
 
 // Site Hosting visé. Un projet Firebase peut en héberger plusieurs (l'app d'un
 // côté, le site marketing de l'autre) ; `--site=` permet de choisir sans
 // toucher au script. `argValue` est une déclaration de fonction, donc hissée.
 const SITE_ID = argValue("site") || process.env.FIREBASE_HOSTING_SITE || "pairwise-12df2";
-const KEY_PATH =
-  process.env.GOOGLE_APPLICATION_CREDENTIALS ||
-  "C:\\Users\\Chenipe\\Documents\\Projet Pairwise\\Keys\\pairwise-12df2-97a5d677db9b.json";
 const DIST_DIR = join(import.meta.dirname, "..", "dist");
-const HOSTING_API = "https://firebasehosting.googleapis.com/v1beta1";
 
 function argValue(name) {
   const prefix = `--${name}=`;
@@ -61,48 +57,6 @@ function validateArgs() {
   }
 }
 
-function loadServiceAccountKey() {
-  // En CI/cloud il n'y a pas de système de fichiers persistant pour y déposer la clé:
-  // on accepte aussi le JSON brut de la clé via une variable d'environnement.
-  if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
-    return JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
-  }
-  return JSON.parse(readFileSync(KEY_PATH, "utf8"));
-}
-
-async function getAccessToken() {
-  const key = loadServiceAccountKey();
-  const now = Math.floor(Date.now() / 1000);
-  const header = Buffer.from(JSON.stringify({ alg: "RS256", typ: "JWT" })).toString(
-    "base64url"
-  );
-  const claim = Buffer.from(
-    JSON.stringify({
-      iss: key.client_email,
-      scope: "https://www.googleapis.com/auth/cloud-platform",
-      aud: "https://oauth2.googleapis.com/token",
-      exp: now + 3600,
-      iat: now,
-    })
-  ).toString("base64url");
-  const sig = createSign("RSA-SHA256")
-    .update(`${header}.${claim}`)
-    .sign(key.private_key, "base64url");
-  const jwt = `${header}.${claim}.${sig}`;
-
-  const res = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
-      assertion: jwt,
-    }),
-  });
-  const data = await res.json();
-  if (!data.access_token) throw new Error("Auth failed: " + JSON.stringify(data));
-  return data.access_token;
-}
-
 function walk(dir) {
   let files = [];
   for (const entry of readdirSync(dir)) {
@@ -111,26 +65,6 @@ function walk(dir) {
     else files.push(full);
   }
   return files;
-}
-
-async function api(token, method, url, body) {
-  const res = await fetch(url, {
-    method,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      ...(body ? { "Content-Type": "application/json" } : {}),
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  const text = await res.text();
-  if (!res.ok) {
-    const err = new Error(`${method} ${url} -> ${res.status}: ${text}`);
-    // Exposé à part : `ensureChannel` distingue un 409 (canal déjà créé, cas
-    // normal quand on redéploie sur le même canal) d'une vraie erreur.
-    err.status = res.status;
-    throw err;
-  }
-  return text ? JSON.parse(text) : null;
 }
 
 // Crée le canal de prévisualisation, ou repousse sa date d'expiration s'il
