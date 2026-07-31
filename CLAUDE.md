@@ -232,16 +232,19 @@ pattern for new cross-tab background effects instead of embedding them in a spec
 **i18n is a flat key lookup**, not a library: `data/translations.js` holds FR/EN strings, `useTranslation()`
 reads `language` off FinanceContext and returns a `t(key)` function.
 
-**Security rules are membership-scoped, with known gaps.** [firestore.rules](firestore.rules) keys
-access off `memberUids` on the couple doc — only members read/write a couple's data. Two deliberate
-holes remain, both to be closed before signups open:
+**Security rules are membership-scoped.** [firestore.rules](firestore.rules) keys access off
+`memberUids` on the couple doc — only members read/write a couple's data, and a doc *without* that
+field is now denied to everyone (`allow create` makes it impossible to produce one). Joining is
+handled **only** by the `joinCouple` Cloud Function; the client-side self-add clause that used to sit
+in `allow update` is gone — it let anyone who guessed a couple id overwrite `memberUids` and lock the
+real owners out.
 
-- A couple doc *without* `memberUids` (legacy) is readable/writable by any authenticated user. The
-  self-heal in `FinanceContext` backfills the field on first load, but a space never reopened stays
-  exposed.
-- `allow update` also passes when the caller adds themselves to `memberUids`, which is how join-by-code
-  works client-side. The couple id doubles as the invite secret — 20 random characters, so not
-  guessable, but it never expires and is not single-use.
+The couple id doubles as the 6-character invite code, so it can never be rotated. What protects it is
+`inviteExpiresAt` on the couple doc: set 7 days at creation, reset to `0` by `joinCouple` the moment a
+member joins, reopenable for 7 days from Settings. Outside that window no code works, which is what
+makes enumeration impractical. A doc with the field *absent* is treated as open (pre-dates the
+protection) and is still covered by the 2-member `couple-full` check. Codes come from
+[utils/coupleCode.js](src/utils/coupleCode.js) — `crypto.getRandomValues`, never `Math.random`.
 
 **Cross-service rules gotchas** (they cost a long debugging session): in **Storage** rules,
 `firestore.get` is the only cross-service function — `firestore.exists` does **not** exist there, and

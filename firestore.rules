@@ -13,16 +13,22 @@ service cloud.firestore {
 
     // Un membre est un utilisateur dont l'uid figure dans memberUids du couple.
     // memberUids est maintenu à la création, à la jointure et à la reprise d'un
-    // placeholder (voir CoupleSetupScreen), et backfillé au chargement pour les
-    // espaces hérités (self-heal dans FinanceContext). Tant que le champ manque
-    // sur un doc ancien, on tolère l'accès de tout utilisateur authentifié
-    // (comportement historique) pour ne jamais verrouiller un couple existant —
-    // le self-heal referme cette fenêtre dès la première ouverture par un membre.
+    // placeholder (voir CoupleSetupScreen), et resynchronisé au chargement
+    // depuis `members` (FinanceContext).
+    //
+    // Un document SANS memberUids était auparavant toléré — considéré accessible
+    // à tout utilisateur authentifié — pour ne pas verrouiller les espaces créés
+    // avant l'introduction du champ. Cette tolérance ouvrait en lecture ET en
+    // écriture l'intégralité d'un couple, transactions comprises, à qui devinait
+    // son identifiant.
+    //
+    // Elle est retirée : plus aucun document n'est dans ce cas (vérifié), et
+    // `allow create` ci-dessous exige que l'appelant figure dans le memberUids
+    // du document créé — il est donc désormais impossible d'en créer un sans.
+    // L'absence du champ vaut maintenant refus, pour tout le monde.
     function isCoupleMember(coupleId) {
-      return isSignedIn() && (
-        !('memberUids' in coupleData(coupleId))
-        || request.auth.uid in coupleData(coupleId).memberUids
-      );
+      return isSignedIn()
+        && request.auth.uid in coupleData(coupleId).memberUids;
     }
 
     // Chaque utilisateur authentifié peut lire/modifier son propre profil.
