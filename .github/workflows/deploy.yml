@@ -72,6 +72,25 @@ jobs:
             echo "changed=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Detect rules test-relevant changes
+        id: rules_tests_needed
+        run: |
+          # Les tests de règles démarrent les émulateurs Firebase (JVM), ~2 min :
+          # on ne les lance que si le sujet testé a bougé. La condition inclut
+          # volontairement `tests/rules/` — sinon un test mal écrit ne serait
+          # jamais exécuté et le garde-fou deviendrait décoratif.
+          before="${{ github.event.before }}"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          elif [ -z "$before" ] || [ "$before" = "0000000000000000000000000000000000000000" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          elif git diff --name-only "$before" "${{ github.sha }}" \
+               | grep -qE '^(firestore\.rules|storage\.rules|tests/rules/|firebase\.json$|package(-lock)?\.json$)'; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: actions/setup-node@v5
         with:
           node-version: 22
@@ -80,6 +99,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Logique métier pure (prêts, allocation, tables de change) : ~250 ms,
+      # ni émulateur ni Java. Délibérément NON conditionnée — la gater sur les
+      # fichiers modifiés coûterait plus cher à maintenir que la suite à
+      # exécuter, et une suite qui ne tourne que parfois est précisément le
+      # mécanisme par lequel une régression passe.
+      - name: Test business logic
+        run: npm run test:unit
+
       # Les règles de sécurité sont exercées contre les émulateurs avant tout
       # déploiement. Motif : une règle peut se déployer sans la moindre erreur
       # et refuser TOUT à l'évaluation (cf. `firestore.exists`, indisponible
@@ -87,7 +114,8 @@ jobs:
       # est bloquante — un échec ici doit empêcher la mise en production.
       # `ubuntu-latest` fournit le Java requis par les émulateurs.
       - name: Test security rules
-        run: npm test
+        if: steps.rules_tests_needed.outputs.changed == 'true'
+        run: npm run test:rules
 
       - name: Build frontend
         env:

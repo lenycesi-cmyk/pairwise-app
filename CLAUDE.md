@@ -32,7 +32,11 @@ npm run test:rules # règles contre les émulateurs Firestore + Storage
 `deploy.yml` before any deploy**. This exists because a rules file can deploy with no error at all and
 still deny everything at evaluation — cross-service function names are not resolved at compile time.
 `storage.rules.test.js` keeps a deliberately broken rule (`firestore.exists`) as a regression guard for
-exactly that failure. Emulators need Java, which `ubuntu-latest` provides; note `firebase deploy` is
+exactly that failure. In `deploy.yml` the two suites are **separate steps with different triggers**:
+`test:unit` runs on every push (250 ms, no gate — a suite that runs only sometimes is how regressions
+slip through), while `test:rules` (~2 min, JVM startup dominates) is gated on a change to
+`*.rules`, `tests/rules/`, `firebase.json` or the lockfile. The `tests/rules/` part of that condition is
+deliberate: gating on the rules files alone would mean a badly written test never executes. Emulators need Java, which `ubuntu-latest` provides; note `firebase deploy` is
 still unusable on the dev machine (Node 24), but `firebase emulators:exec` is fine.
 
 `tests/unit/` covers the money-critical pure logic (82 tests total with the rules suite). Two
