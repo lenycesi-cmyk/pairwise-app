@@ -68,9 +68,12 @@ const PLAID_ENV = defineSecret("PLAID_ENV"); // "sandbox" | "production"
 const BANK_SECRETS = [PLAID_CLIENT_ID, PLAID_SECRET, PLAID_ENV];
 
 // URL de redirection enregistrée dans l'app Enable Banking (le front doit gérer
-// ce retour ?code=…&state=… — lot frontend à venir).
+// ce retour ?code=…&state=… — lot frontend à venir). Pointe sur le sous-domaine
+// de l'app : la racine est destinée au site marketing, qui ne sait pas traiter
+// ce callback. Doit rester identique à l'URL déclarée dans le dashboard Enable
+// Banking, sinon la banque refuse la redirection.
 const ENABLE_BANKING_REDIRECT_URL =
-  process.env.ENABLE_BANKING_REDIRECT_URL || "https://pairwise.finance/bank-callback";
+  process.env.ENABLE_BANKING_REDIRECT_URL || "https://app.pairwise.finance/bank-callback";
 
 // Credentials Enable Banking depuis l'environnement (ou null si non configuré →
 // provider indisponible, comportement Plaid inchangé). ENABLE_BANKING_KEY = clé

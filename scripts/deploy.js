@@ -6,6 +6,7 @@
 //   node scripts/deploy.js                          → déploiement live (production)
 //   node scripts/deploy.js --channel=ma-preview      → canal de prévisualisation, TTL 7 j
 //   node scripts/deploy.js --channel=demo --ttl=30   → canal de prévisualisation, TTL 30 j
+//   node scripts/deploy.js --site=pairwise-www        → autre site Hosting du même projet
 //
 // Un canal de prévisualisation sert le même build sur une URL éphémère et
 // distincte, sans toucher au site live. ATTENTION : ce n'est PAS une
@@ -19,8 +20,10 @@ import { join, relative } from "node:path";
 import { gzipSync } from "node:zlib";
 import { createHash } from "node:crypto";
 
-const PROJECT_ID = "pairwise-12df2";
-const SITE_ID = "pairwise-12df2";
+// Site Hosting visé. Un projet Firebase peut en héberger plusieurs (l'app d'un
+// côté, le site marketing de l'autre) ; `--site=` permet de choisir sans
+// toucher au script. `argValue` est une déclaration de fonction, donc hissée.
+const SITE_ID = argValue("site") || process.env.FIREBASE_HOSTING_SITE || "pairwise-12df2";
 const KEY_PATH =
   process.env.GOOGLE_APPLICATION_CREDENTIALS ||
   "C:\\Users\\Chenipe\\Documents\\Projet Pairwise\\Keys\\pairwise-12df2-97a5d677db9b.json";
@@ -42,6 +45,9 @@ const CHANNEL_ID = rawChannel && rawChannel !== "live" ? rawChannel : null;
 const TTL_DAYS = Number(argValue("ttl") ?? 7);
 
 function validateArgs() {
+  if (!/^[a-z0-9][a-z0-9-]{0,29}$/.test(SITE_ID)) {
+    throw new Error(`--site invalide: "${SITE_ID}" (minuscules, chiffres et -, 30 caractères max)`);
+  }
   if (!CHANNEL_ID) return;
   // Le nom du canal se retrouve dans l'URL générée (`{site}--{canal}-{hash}.web.app`) :
   // Firebase rejette tout ce qui n'est pas un slug minuscule.
