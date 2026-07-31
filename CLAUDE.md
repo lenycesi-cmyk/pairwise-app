@@ -20,11 +20,13 @@ npm run preview   # Serve the dist/ build locally
 ```
 
 ```bash
-npm test          # règles de sécurité contre les émulateurs Firestore + Storage
+npm test          # tout : logique métier puis règles de sécurité
+npm run test:unit # logique pure seulement — rapide, sans émulateur ni Java
 npm run test:watch
+npm run test:rules # règles contre les émulateurs Firestore + Storage
 ```
 
-**Security rules are tested, application code is not.** `tests/*.rules.test.js` exercise
+**Security rules and money-critical logic are tested; screens and hooks are not.** `tests/rules/*.test.js` exercise
 `firestore.rules` and `storage.rules` against the real rules engine via
 `@firebase/rules-unit-testing` + `firebase emulators:exec`, and the suite is a **blocking step in
 `deploy.yml` before any deploy**. This exists because a rules file can deploy with no error at all and
@@ -33,8 +35,15 @@ still deny everything at evaluation — cross-service function names are not res
 exactly that failure. Emulators need Java, which `ubuntu-latest` provides; note `firebase deploy` is
 still unusable on the dev machine (Node 24), but `firebase emulators:exec` is fine.
 
-There is **no test coverage of application logic yet** — `loanMath`, `useBudgetProgress`,
-`currencyConversion`, `allocationModels` are all unverified by automated tests.
+`tests/unit/` covers the money-critical pure logic (82 tests total with the rules suite). Two
+deliberate choices there: assertions lean on **invariants** (`principalRepaid + balance === principal`,
+`totalCost === principal + totalInterest`) rather than hand-computed magic numbers, which would only
+encode the author's own arithmetic; and `fxFallback.test.js` compares the **two** `FALLBACK_RATES_EUR_BASE`
+tables (`utils/currencyConversion.js` and `hooks/useExchangeRates.js`) character for character, since a
+silent drift between them makes the same amount render differently on different screens.
+
+Still untested: `useBudgetProgress` and the other hooks (they need a React renderer),
+`recurrence.js`, and every screen.
 
 ### Pull requests
 
