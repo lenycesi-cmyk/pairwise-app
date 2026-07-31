@@ -66,6 +66,10 @@ async function main() {
   const testCase = {
     expectation: "ALLOW",
     expressionReportLevel: "FULL",
+    // Sans ça, le simulateur encode les chemins et `(default)` devient
+    // `%28default%29` dans l'argument de `firestore.get` — un artefact du test
+    // qui fait échouer l'appel et laisse croire à un bug de la règle.
+    pathEncoding: "PLAIN",
     request: {
       auth: { uid: UID, token: { firebase: { sign_in_provider: "password" } } },
       path: `/b/${BUCKET}/o/${objectPath}`,
