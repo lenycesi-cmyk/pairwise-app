@@ -89,7 +89,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
     updateEnabledCurrencies,
     language,
   } = useFinance();
-  const { user, coupleId } = useAuth();
+  const { user } = useAuth();
   // Desktop large → corps en 2 colonnes (même breakpoint que le modal élargi).
   const wide = useMediaQuery("(min-width: 1024px)");
 
@@ -496,10 +496,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
       }
 
       // Upload du reçu après avoir l'ID de la transaction (nouveau fichier choisi)
-      // `coupleId` est garanti ici (l'écran vit sous FinanceProvider, monté
-      // seulement une fois le couple créé) ; la garde évite d'écrire un chemin
-      // `receipts/null/…` si cette invariante venait à changer.
-      if (receiptFile && txId && coupleId) {
+      if (receiptFile && txId && user?.uid) {
         setUploadingReceipt(true);
         // L'échec de l'envoi du reçu ne doit PAS faire échouer l'enregistrement :
         // la transaction est déjà écrite à ce stade. Sans ce try/catch, une
@@ -507,10 +504,10 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
         // ouverte sur une transaction pourtant enregistrée — l'utilisateur
         // croyait à un échec complet et risquait de ressaisir.
         try {
-          // Rangé par couple : storage.rules vérifie l'appartenance à partir du
-          // coupleId présent dans le chemin. L'ancien chemin à plat ne le
-          // permettait pas, d'où un reçu lisible par tout compte authentifié.
-          const path = `receipts/${coupleId}/${txId}.jpg`;
+          // Rangé par UID de l'auteur : storage.rules n'autorise l'écriture que
+          // dans son propre dossier. Le/la partenaire voit quand même le reçu,
+          // l'affichage passant par `receiptURL` (URL à jeton), pas par le SDK.
+          const path = `receipts/${user.uid}/${txId}.jpg`;
           const url = await uploadPhoto(receiptFile, path);
           await updateTransaction(txId, { receiptURL: url });
         } catch (err) {

@@ -7,30 +7,22 @@ service firebase.storage {
       return request.auth != null;
     }
 
-    // Appartenance au couple, lue depuis Firestore : même source de vérité que
-    // firestore.rules (`memberUids` sur le doc couple), pour que les deux jeux
-    // de règles ne puissent pas diverger.
-    // Contrairement à firestore.rules, on NE tolère PAS un doc sans memberUids :
-    // cette tolérance est précisément le trou qu'on referme. Le self-heal de
-    // FinanceContext écrit memberUids dès la première ouverture par un membre.
+    // ── Pourquoi PAS de vérification d'appartenance au couple ────────────────
+    // Une première version cloisonnait les reçus par couple, en lisant
+    // `memberUids` dans Firestore depuis ces règles (`firestore.get`). Ça n'a
+    // jamais fonctionné sur ce projet : l'appel inter-services échoue à
+    // l'évaluation, ce qui fait échouer TOUTE la règle et refuse tout — sans
+    // aucune erreur au déploiement, les noms de fonctions inter-services
+    // n'étant pas résolus à la compilation.
     //
-    // ATTENTION : `firestore.get` est la SEULE fonction inter-services
-    // disponible ici. `firestore.exists` n'existe pas dans les règles Storage
-    // (elle existe dans les règles Firestore) — et le déploiement l'accepte
-    // sans broncher : les noms de fonctions inter-services ne sont pas
-    // vérifiés à la compilation, l'échec ne survient qu'à l'évaluation, où il
-    // fait échouer TOUTE la règle. Un document absent lève donc une erreur, qui
-    // vaut refus : c'est le comportement voulu.
-    function coupleDoc(coupleId) {
-      return firestore.get(/databases/(default)/documents/couples/$(coupleId)).data;
-    }
-
-    function isCoupleMember(coupleId) {
-      return isSignedIn()
-        && 'memberUids' in coupleDoc(coupleId)
-        && request.auth.uid in coupleDoc(coupleId).memberUids;
-    }
-
+    // Le cloisonnement par couple était de toute façon inutile : rien dans
+    // l'app ne lit un reçu par son chemin. `TransactionsScreen` les affiche
+    // depuis `receiptURL`, une URL de téléchargement à jeton qui court-circuite
+    // ces règles. Aucun accès SDK en lecture n'est donc nécessaire, y compris
+    // pour le/la partenaire.
+    //
+    // On range donc par AUTEUR DU DÉPÔT. C'est plus simple, sans dépendance à
+    // Firestore ni à un rôle IAM, et plus strict que le cloisonnement visé.
     function isValidImage() {
       return request.resource.size < 10 * 1024 * 1024
         && request.resource.contentType.matches('image/.*');
@@ -47,12 +39,12 @@ service firebase.storage {
       allow read, write: if isSignedIn() && fileName == request.auth.uid + '.jpg';
     }
 
-    // Reçus, rangés par couple. Ce sont des pièces financières : seuls les
-    // membres du couple y accèdent. Avant, tout compte authentifié pouvait lire
-    // le reçu de n'importe qui.
-    match /receipts/{coupleId}/{fileName} {
-      allow read: if isCoupleMember(coupleId);
-      allow write: if isCoupleMember(coupleId) && isValidImage();
+    // Reçus, rangés par UID de l'auteur du dépôt. Ce sont des pièces
+    // financières : personne d'autre n'y accède par le SDK. Avant, tout compte
+    // authentifié pouvait lire le reçu de n'importe qui.
+    match /receipts/{uid}/{fileName} {
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow write: if isSignedIn() && request.auth.uid == uid && isValidImage();
     }
 
     // Note sur l'ancien emplacement à plat (`receipts/{txId}.jpg`) : il n'a
