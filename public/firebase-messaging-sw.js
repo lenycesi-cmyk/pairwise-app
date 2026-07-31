@@ -49,7 +49,7 @@ messaging.onBackgroundMessage((payload) => {
 // Version du cache : à incrémenter pour purger tout l'app-shell précédent lors
 // de l'activation (voir handler "activate"). Utile quand un ancien index/chunk
 // en cache pourrait provoquer un écran blanc après déploiement.
-const CACHE = "pairwise-shell-v2";
+const CACHE = "pairwise-shell-v3";
 const PRECACHE = ["/", "/index.html", "/manifest.json", "/icon-192.png", "/icon-512.png"];
 
 self.addEventListener("install", (event) => {
@@ -75,8 +75,14 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       fetch(req)
         .then((res) => {
-          const copy = res.clone();
-          caches.open(CACHE).then((c) => c.put("/index.html", copy));
+          // On ne mémorise QUE une réponse réussie. Depuis la suppression de la
+          // réécriture « ** », une URL inconnue renvoie 404.html : la stocker
+          // comme app-shell ferait afficher « page introuvable » à la place de
+          // l'app au prochain démarrage hors ligne.
+          if (res.ok) {
+            const copy = res.clone();
+            caches.open(CACHE).then((c) => c.put("/index.html", copy));
+          }
           return res;
         })
         .catch(() => caches.match(req).then((r) => r || caches.match("/index.html")))
