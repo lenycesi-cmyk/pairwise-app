@@ -3,6 +3,7 @@ import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
   signOut,
   updateProfile,
   deleteUser,
@@ -68,6 +69,14 @@ export function AuthProvider({ children }) {
 
   async function logout() {
     await signOut(auth);
+  }
+
+  // Envoi du lien de réinitialisation. Firebase renvoie une erreur explicite
+  // quand l'adresse est inconnue (`auth/user-not-found`) ; l'appelant est
+  // responsable de ne PAS la répercuter telle quelle, sous peine de transformer
+  // ce formulaire en oracle permettant de tester si un email est inscrit.
+  async function resetPassword(email) {
+    await sendPasswordResetEmail(auth, email);
   }
 
   async function joinCouple(newCoupleId) {
@@ -169,6 +178,7 @@ export function AuthProvider({ children }) {
     signup,
     login,
     logout,
+    resetPassword,
     joinCouple,
     setCoupleId,
     updateProfilePhoto,
