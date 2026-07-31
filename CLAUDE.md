@@ -19,7 +19,22 @@ npm run lint      # ESLint
 npm run preview   # Serve the dist/ build locally
 ```
 
-There is no test suite configured.
+```bash
+npm test          # règles de sécurité contre les émulateurs Firestore + Storage
+npm run test:watch
+```
+
+**Security rules are tested, application code is not.** `tests/*.rules.test.js` exercise
+`firestore.rules` and `storage.rules` against the real rules engine via
+`@firebase/rules-unit-testing` + `firebase emulators:exec`, and the suite is a **blocking step in
+`deploy.yml` before any deploy**. This exists because a rules file can deploy with no error at all and
+still deny everything at evaluation — cross-service function names are not resolved at compile time.
+`storage.rules.test.js` keeps a deliberately broken rule (`firestore.exists`) as a regression guard for
+exactly that failure. Emulators need Java, which `ubuntu-latest` provides; note `firebase deploy` is
+still unusable on the dev machine (Node 24), but `firebase emulators:exec` is fine.
+
+There is **no test coverage of application logic yet** — `loanMath`, `useBudgetProgress`,
+`currencyConversion`, `allocationModels` are all unverified by automated tests.
 
 ### Pull requests
 
