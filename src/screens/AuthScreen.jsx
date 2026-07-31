@@ -11,7 +11,7 @@ import { draftEntryView, deriveInsight, formatMoney } from "../utils/onboardingD
 const MAX_DRAFT_ROWS = 4;
 
 export default function AuthScreen({ defaultMode = "login", draft = [], language, joinMode = false, onJoinCode = null }) {
-  const { login, signup } = useAuth();
+  const { login, signup, resetPassword } = useAuth();
   const [mode, setMode] = useState(defaultMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -20,6 +20,7 @@ export default function AuthScreen({ defaultMode = "login", draft = [], language
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
   const isDesktop = useMediaQuery("(min-width: 760px)");
   const lang = language || detectOnboardingLanguage();
   const t = onboardingT(lang);
@@ -31,7 +32,18 @@ export default function AuthScreen({ defaultMode = "login", draft = [], language
     setError("");
     setBusy(true);
     try {
-      if (mode === "login") {
+      if (mode === "reset") {
+        // On NE distingue PAS le cas « adresse inconnue » : répercuter
+        // `auth/user-not-found` transformerait ce formulaire en oracle
+        // permettant de tester quelles adresses sont inscrites. Message
+        // identique dans les deux cas.
+        try {
+          await resetPassword(email);
+        } catch (err) {
+          if (err.code !== "auth/user-not-found") throw err;
+        }
+        setResetSent(true);
+      } else if (mode === "login") {
         await login(email, password);
       } else {
         // Parcours "j'ai reçu un code" : on mémorise le code avant de créer le
@@ -171,6 +183,7 @@ export default function AuthScreen({ defaultMode = "login", draft = [], language
           required
           style={inputStyle}
         />
+        {mode !== "reset" && (
         <div style={{ position: "relative" }}>
           <input
             type={showPassword ? "text" : "password"}
@@ -204,6 +217,29 @@ export default function AuthScreen({ defaultMode = "login", draft = [], language
             />
           </button>
         </div>
+        )}
+
+        {mode === "login" && (
+          <button
+            type="button"
+            onClick={() => { setMode("reset"); setError(""); setResetSent(false); }}
+            style={{ background: "none", border: "none", padding: "2px", fontSize: 13.5, color: "var(--sky)", textAlign: "right" }}
+          >
+            {t("auth_forgot")}
+          </button>
+        )}
+
+        {mode === "reset" && !resetSent && (
+          <p style={{ fontSize: 13.5, color: "var(--ink-3)", padding: "0 2px", lineHeight: 1.5 }}>
+            {t("auth_reset_intro")}
+          </p>
+        )}
+
+        {resetSent && (
+          <p style={{ fontSize: 13.5, color: "var(--sage)", padding: "4px 2px", lineHeight: 1.5 }}>
+            {t("auth_reset_sent")}
+          </p>
+        )}
 
         {error && (
           <p style={{ fontSize: 13, color: "var(--red)", padding: "4px 2px" }}>
@@ -226,7 +262,13 @@ export default function AuthScreen({ defaultMode = "login", draft = [], language
             opacity: busy ? 0.6 : 1,
           }}
         >
-          {busy ? "..." : mode === "login" ? t("auth_login") : t("auth_create")}
+          {busy
+            ? "..."
+            : mode === "reset"
+            ? t("auth_reset_send")
+            : mode === "login"
+            ? t("auth_login")
+            : t("auth_create")}
         </button>
       </form>
     </div>
@@ -237,6 +279,7 @@ export default function AuthScreen({ defaultMode = "login", draft = [], language
       onClick={() => {
         setMode(mode === "login" ? "signup" : "login");
         setError("");
+        setResetSent(false);
       }}
       style={{
         marginTop: 0,
@@ -247,7 +290,9 @@ export default function AuthScreen({ defaultMode = "login", draft = [], language
         textAlign: "center",
       }}
     >
-      {mode === "login" ? (
+      {mode === "reset" ? (
+        <span style={{ fontWeight: 700, color: "var(--sky)" }}>{t("auth_reset_back")}</span>
+      ) : mode === "login" ? (
         <>{t("auth_no_account_q")} <span style={{ fontWeight: 700, color: "var(--sky)" }}>{t("auth_no_account_cta")}</span></>
       ) : (
         <>{t("auth_have_account_q")} <span style={{ fontWeight: 700, color: "var(--sky)" }}>{t("auth_have_account_cta")}</span></>
