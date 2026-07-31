@@ -61,6 +61,10 @@ npm run deploy:preview    # channel "preview", 7-day TTL (Time To Live)
 node scripts/deploy.js --channel=demo --ttl=30   # custom channel, 30-day TTL (30 = Firebase max)
 ```
 
+`--site=<id>` (or `FIREBASE_HOSTING_SITE`) targets another Hosting site in the same project — the
+project is meant to hold two: the app on `app.pairwise.finance`, and later a marketing site on the
+apex `pairwise.finance`. Default stays the historical `pairwise-12df2` site, which is the app.
+
 Redeploying to an existing channel extends its TTL rather than failing. **A preview channel is not a
 staging environment**: it belongs to the same Firebase project, so it hits the *production* Firestore,
 accounts and Cloud Functions. Real staging would need a second Firebase project and the currently
@@ -91,7 +95,7 @@ provider throws `failed-precondition` and Plaid stays the default. To activate:
 2. Add them to the `secretEnvironmentVariables` list in [scripts/deploy-functions.js](scripts/deploy-functions.js)
    (the custom REST deploy injects only what's listed there — the `defineSecret`/onCall `secrets` array
    is bypassed by this pipeline).
-3. Register `ENABLE_BANKING_REDIRECT_URL` (`https://pairwise.finance/bank-callback`) in the Enable
+3. Register `ENABLE_BANKING_REDIRECT_URL` (`https://app.pairwise.finance/bank-callback`) in the Enable
    Banking app dashboard, and build the **frontend redirect lot** (handle the `?code=…&state=…` return
    and call `exchangeToken`). Until that lot lands, the backend seam is in place but no UI drives it.
 
