@@ -501,12 +501,22 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
       // `receipts/null/…` si cette invariante venait à changer.
       if (receiptFile && txId && coupleId) {
         setUploadingReceipt(true);
-        // Rangé par couple : storage.rules vérifie l'appartenance à partir du
-        // coupleId présent dans le chemin. L'ancien chemin à plat ne le
-        // permettait pas, d'où un reçu lisible par tout compte authentifié.
-        const path = `receipts/${coupleId}/${txId}.jpg`;
-        const url = await uploadPhoto(receiptFile, path);
-        await updateTransaction(txId, { receiptURL: url });
+        // L'échec de l'envoi du reçu ne doit PAS faire échouer l'enregistrement :
+        // la transaction est déjà écrite à ce stade. Sans ce try/catch, une
+        // erreur ici sautait par-dessus `onClose()` et laissait la modale
+        // ouverte sur une transaction pourtant enregistrée — l'utilisateur
+        // croyait à un échec complet et risquait de ressaisir.
+        try {
+          // Rangé par couple : storage.rules vérifie l'appartenance à partir du
+          // coupleId présent dans le chemin. L'ancien chemin à plat ne le
+          // permettait pas, d'où un reçu lisible par tout compte authentifié.
+          const path = `receipts/${coupleId}/${txId}.jpg`;
+          const url = await uploadPhoto(receiptFile, path);
+          await updateTransaction(txId, { receiptURL: url });
+        } catch (err) {
+          console.error("Upload du reçu échoué:", err);
+          alert(t("tx_receipt_failed"));
+        }
         setUploadingReceipt(false);
       } else if (receiptPreview === null && editingTx?.receiptURL) {
         // L'utilisateur a retiré le reçu existant

@@ -335,6 +335,7 @@ export const TRANSLATIONS = {
     tx_update: "Mettre à jour",
     tx_saving: "Enregistrement...",
     tx_uploading_receipt: "Upload du reçu...",
+    tx_receipt_failed: "Transaction enregistrée, mais l'envoi du reçu a échoué. Tu peux le réessayer en modifiant la transaction.",
 
     // Transactions list
     tx_list_title: "Transactions",
@@ -1175,6 +1176,7 @@ export const TRANSLATIONS = {
     tx_update: "Update",
     tx_saving: "Saving...",
     tx_uploading_receipt: "Uploading receipt...",
+    tx_receipt_failed: "Transaction saved, but the receipt upload failed. You can retry it by editing the transaction.",
 
     // Transactions list
     tx_list_title: "Transactions",
