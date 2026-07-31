@@ -234,6 +234,16 @@ holes remain, both to be closed before signups open:
   works client-side. The couple id doubles as the invite secret — 20 random characters, so not
   guessable, but it never expires and is not single-use.
 
+**Cross-service rules gotchas** (they cost a long debugging session): in **Storage** rules,
+`firestore.get` is the only cross-service function — `firestore.exists` does **not** exist there, and
+the ruleset still deploys clean because those names aren't resolved at compile time. The failure only
+shows up at evaluation, where it aborts the whole rule and denies everything. They also need an IAM
+binding the REST deploy never creates: `service-{projectNumber}@firebase-rules.iam.gserviceaccount.com`
+must hold `roles/firebaserules.firestoreServiceAgent` (create the agent with
+`gcloud beta services identity create --service=firebaserules.googleapis.com`). Use
+`scripts/diagnose-rules.js` to simulate a request against the deployed ruleset rather than guessing
+from a browser-side `storage/unauthorized`.
+
 [storage.rules](storage.rules) is stricter: profile photos are writable only by their owner
 (`profiles/{uid}.jpg`), and receipts live under `receipts/{coupleId}/{txId}.jpg` with membership
 checked via `firestore.get`. It does **not** tolerate a missing `memberUids`. Receipts written before

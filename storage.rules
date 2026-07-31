@@ -11,17 +11,22 @@ service firebase.storage {
     // firestore.rules (`memberUids` sur le doc couple), pour que les deux jeux
     // de règles ne puissent pas diverger.
     // Contrairement à firestore.rules, on NE tolère PAS un doc sans memberUids :
-    // cette tolérance est précisément le trou qu'on referme. On teste donc
-    // l'existence du doc et du champ avant de lire, pour refuser proprement au
-    // lieu de lever une erreur d'évaluation. Le self-heal de FinanceContext
-    // écrit memberUids dès la première ouverture par un membre.
+    // cette tolérance est précisément le trou qu'on referme. Le self-heal de
+    // FinanceContext écrit memberUids dès la première ouverture par un membre.
+    //
+    // ATTENTION : `firestore.get` est la SEULE fonction inter-services
+    // disponible ici. `firestore.exists` n'existe pas dans les règles Storage
+    // (elle existe dans les règles Firestore) — et le déploiement l'accepte
+    // sans broncher : les noms de fonctions inter-services ne sont pas
+    // vérifiés à la compilation, l'échec ne survient qu'à l'évaluation, où il
+    // fait échouer TOUTE la règle. Un document absent lève donc une erreur, qui
+    // vaut refus : c'est le comportement voulu.
     function coupleDoc(coupleId) {
       return firestore.get(/databases/(default)/documents/couples/$(coupleId)).data;
     }
 
     function isCoupleMember(coupleId) {
       return isSignedIn()
-        && firestore.exists(/databases/(default)/documents/couples/$(coupleId))
         && 'memberUids' in coupleDoc(coupleId)
         && request.auth.uid in coupleDoc(coupleId).memberUids;
     }
