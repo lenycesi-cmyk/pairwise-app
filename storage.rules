@@ -3,17 +3,63 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
 
-    // Photos de profil et reçus : tout utilisateur authentifié peut lire/écrire.
-    // Simplifié pour fiabilité — même logique que les règles Firestore.
-    match /profiles/{fileName} {
-      allow read, write: if request.auth != null;
+    function isSignedIn() {
+      return request.auth != null;
     }
 
-    match /receipts/{fileName} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null &&
-        request.resource.size < 10 * 1024 * 1024 &&
-        request.resource.contentType.matches('image/.*');
+    // Appartenance au couple, lue depuis Firestore : même source de vérité que
+    // firestore.rules (`memberUids` sur le doc couple), pour que les deux jeux
+    // de règles ne puissent pas diverger.
+    // Contrairement à firestore.rules, on NE tolère PAS un doc sans memberUids :
+    // cette tolérance est précisément le trou qu'on referme. On teste donc
+    // l'existence du doc et du champ avant de lire, pour refuser proprement au
+    // lieu de lever une erreur d'évaluation. Le self-heal de FinanceContext
+    // écrit memberUids dès la première ouverture par un membre.
+    function coupleDoc(coupleId) {
+      return firestore.get(/databases/(default)/documents/couples/$(coupleId)).data;
     }
+
+    function isCoupleMember(coupleId) {
+      return isSignedIn()
+        && firestore.exists(/databases/(default)/documents/couples/$(coupleId))
+        && 'memberUids' in coupleDoc(coupleId)
+        && request.auth.uid in coupleDoc(coupleId).memberUids;
+    }
+
+    function isValidImage() {
+      return request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // Photo de profil : chacun n'écrit que la sienne, le nom du fichier étant
+    // `{uid}.jpg`. Avant, n'importe quel compte authentifié pouvait ÉCRASER la
+    // photo de n'importe qui.
+    //
+    // Le partenaire n'a besoin d'aucun accès ici : la photo est affichée depuis
+    // l'URL de téléchargement stockée sur le doc couple, qui porte son propre
+    // jeton et ne passe pas par ces règles.
+    match /profiles/{fileName} {
+      allow read, write: if isSignedIn() && fileName == request.auth.uid + '.jpg';
+    }
+
+    // Reçus, rangés par couple. Ce sont des pièces financières : seuls les
+    // membres du couple y accèdent. Avant, tout compte authentifié pouvait lire
+    // le reçu de n'importe qui.
+    match /receipts/{coupleId}/{fileName} {
+      allow read: if isCoupleMember(coupleId);
+      allow write: if isCoupleMember(coupleId) && isValidImage();
+    }
+
+    // Note sur l'ancien emplacement à plat (`receipts/{txId}.jpg`) : il n'a
+    // volontairement AUCUNE règle. Le chemin ne dit pas à quel couple le
+    // fichier appartient, on ne peut donc pas y vérifier l'appartenance ;
+    // l'absence de règle vaut refus, ce qui ferme l'accès par le SDK.
+    //
+    // Les reçus déjà enregistrés continuent de s'afficher : l'app les rend
+    // depuis `receiptURL`, une URL à jeton qui court-circuite ces règles. Ces
+    // fichiers restent donc lisibles par qui possède l'URL — les règles ne
+    // peuvent pas révoquer un jeton déjà émis. Pour vraiment les reprendre en
+    // main, il faut les redéposer sous le nouveau chemin et supprimer les
+    // anciens objets.
   }
 }

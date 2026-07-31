@@ -1,111 +1,89 @@
 #!/usr/bin/env node
-// Déploie firestore.rules via l'API REST firebaserules.googleapis.com, en
-// contournant firebase-tools (incompatible Node 24 sur cette machine, cf.
-// deploy.js / CLAUDE.md). Le service account de déploiement a le rôle
+// Déploie les règles de sécurité via l'API REST firebaserules.googleapis.com,
+// en contournant firebase-tools (incompatible Node 24 sur cette machine, cf.
+// deploy.js / CLAUDE.md). Le compte de service de déploiement a le rôle
 // `Firebase Rules Admin`. Deux appels : création d'un ruleset, puis mise à jour
-// de la release `cloud.firestore` pour pointer dessus.
-import { createSign } from "node:crypto";
+// de la release qui pointe dessus.
+//
+// Usage :
+//   node scripts/deploy-rules.js                  → firestore.rules (défaut)
+//   node scripts/deploy-rules.js --target=storage → storage.rules
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { getAccessToken, api } from "./lib/firebaseApi.js";
 
 const PROJECT_ID = "pairwise-12df2";
-const KEY_PATH =
-  process.env.GOOGLE_APPLICATION_CREDENTIALS ||
-  "C:\\Users\\Chenipe\\Documents\\Projet Pairwise\\Keys\\pairwise-12df2-97a5d677db9b.json";
-const RULES_PATH = join(import.meta.dirname, "..", "firestore.rules");
-const RELEASE_NAME = `projects/${PROJECT_ID}/releases/cloud.firestore`;
+const STORAGE_BUCKET = process.env.FIREBASE_STORAGE_BUCKET || "pairwise-12df2.firebasestorage.app";
 
-function loadServiceAccountKey() {
-  if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
-    return JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
-  }
-  return JSON.parse(readFileSync(KEY_PATH, "utf8"));
+// Chaque produit a sa propre release. Firestore en a une seule pour le projet ;
+// Storage en a une par bucket, d'où le suffixe.
+const TARGETS = {
+  firestore: {
+    file: "firestore.rules",
+    release: `projects/${PROJECT_ID}/releases/cloud.firestore`,
+  },
+  storage: {
+    file: "storage.rules",
+    release: `projects/${PROJECT_ID}/releases/firebase.storage/${STORAGE_BUCKET}`,
+  },
+};
+
+function argValue(name) {
+  const prefix = `--${name}=`;
+  const hit = process.argv.slice(2).find((a) => a.startsWith(prefix));
+  return hit ? hit.slice(prefix.length) : null;
 }
 
-async function getAccessToken() {
-  const key = loadServiceAccountKey();
-  const now = Math.floor(Date.now() / 1000);
-  const header = Buffer.from(JSON.stringify({ alg: "RS256", typ: "JWT" })).toString("base64url");
-  const claim = Buffer.from(
-    JSON.stringify({
-      iss: key.client_email,
-      scope: "https://www.googleapis.com/auth/cloud-platform",
-      aud: "https://oauth2.googleapis.com/token",
-      exp: now + 3600,
-      iat: now,
-    })
-  ).toString("base64url");
-  const sig = createSign("RSA-SHA256").update(`${header}.${claim}`).sign(key.private_key, "base64url");
-  const jwt = `${header}.${claim}.${sig}`;
-
-  const res = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
-      assertion: jwt,
-    }),
-  });
-  const data = await res.json();
-  if (!data.access_token) throw new Error("Auth failed: " + JSON.stringify(data));
-  return data.access_token;
-}
-
-async function api(token, method, url, body, { allow404 = false } = {}) {
-  const res = await fetch(url, {
-    method,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      ...(body ? { "Content-Type": "application/json" } : {}),
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  if (allow404 && res.status === 404) return { _notFound: true };
-  const text = await res.text();
-  if (!res.ok) throw new Error(`${method} ${url} -> ${res.status}: ${text}`);
-  return text ? JSON.parse(text) : null;
-}
+const TARGET_NAME = argValue("target") || "firestore";
 
 async function main() {
+  const target = TARGETS[TARGET_NAME];
+  if (!target) {
+    throw new Error(
+      `--target inconnu: "${TARGET_NAME}" (attendu: ${Object.keys(TARGETS).join(" ou ")})`
+    );
+  }
+
   console.log("Auth...");
   const token = await getAccessToken();
 
-  const source = readFileSync(RULES_PATH, "utf8");
-  console.log("Création du ruleset...");
+  const source = readFileSync(join(import.meta.dirname, "..", target.file), "utf8");
+  console.log(`Création du ruleset (${target.file})...`);
   const ruleset = await api(
     token,
     "POST",
     `https://firebaserules.googleapis.com/v1/projects/${PROJECT_ID}/rulesets`,
-    { source: { files: [{ name: "firestore.rules", content: source }] } }
+    { source: { files: [{ name: target.file, content: source }] } }
   );
   console.log("Ruleset:", ruleset.name);
 
   // On tente de mettre à jour la release existante ; si elle n'existe pas
   // encore (premier déploiement), on la crée.
-  console.log("Mise à jour de la release cloud.firestore...");
-  const patch = await api(
-    token,
-    "PATCH",
-    `https://firebaserules.googleapis.com/v1/${RELEASE_NAME}`,
-    // Corps de type UpdateReleaseRequest : la Release est imbriquée sous
-    // `release` (un `rulesetName` au premier niveau est rejeté en 400).
-    { release: { name: RELEASE_NAME, rulesetName: ruleset.name }, updateMask: "rulesetName" },
-    { allow404: true }
-  );
-  if (patch && patch._notFound) {
+  console.log(`Mise à jour de la release ${target.release}...`);
+  try {
+    await api(
+      token,
+      "PATCH",
+      `https://firebaserules.googleapis.com/v1/${target.release}`,
+      // Corps de type UpdateReleaseRequest : la Release est imbriquée sous
+      // `release` (un `rulesetName` au premier niveau est rejeté en 400).
+      { release: { name: target.release, rulesetName: ruleset.name }, updateMask: "rulesetName" }
+    );
+  } catch (err) {
+    if (err.status !== 404) throw err;
     console.log("Release absente → création...");
     await api(
       token,
       "POST",
       `https://firebaserules.googleapis.com/v1/projects/${PROJECT_ID}/releases`,
-      { name: RELEASE_NAME, rulesetName: ruleset.name }
+      { name: target.release, rulesetName: ruleset.name }
     );
   }
 
-  console.log("Règles Firestore déployées ✓");
+  console.log(`Règles ${TARGET_NAME} déployées ✓`);
 }
 
 main().catch((err) => {
-  console.error(err);
+  console.error(err.message || err);
   process.exit(1);
 });

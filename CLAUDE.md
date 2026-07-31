@@ -8,6 +8,8 @@ Spell out every acronym in parentheses the first time it appears in a reply — 
 Management System)", "CSP (Content Security Policy)", "FCM (Firebase Cloud Messaging)". This applies
 to chat replies, not to code or commit messages.
 
+Address the user informally in French — use "tu", never "vous".
+
 ## Commands
 
 ```bash
@@ -49,8 +51,10 @@ npm run build && node scripts/deploy.js
 (`pairwise-deploy@pairwise-12df2.iam.gserviceaccount.com`) has `Firebase Hosting Admin` and
 `Firebase Rules Admin`. **Firestore rules** are deployed by `scripts/deploy-rules.js` (REST API
 `firebaserules.googleapis.com`, same service-account auth as `deploy.js`), wired into `deploy.yml`
-(runs only when `firestore.rules` changed, or on manual `workflow_dispatch`). Storage rules aren't
-automated yet.
+(runs only when `firestore.rules` changed, or on manual `workflow_dispatch`). **Storage rules** go
+through the same script with `--target=storage`, which points at the per-bucket release
+`projects/{p}/releases/firebase.storage/{bucket}`; it has its own change-detection step in
+`deploy.yml`.
 
 **Preview channels.** `scripts/deploy.js` also publishes to a Firebase Hosting *preview channel* —
 an ephemeral, separate URL that leaves the live site untouched:
@@ -219,6 +223,20 @@ pattern for new cross-tab background effects instead of embedding them in a spec
 **i18n is a flat key lookup**, not a library: `data/translations.js` holds FR/EN strings, `useTranslation()`
 reads `language` off FinanceContext and returns a `t(key)` function.
 
-**Firestore rules are deliberately permissive** ([firestore.rules](firestore.rules)): any authenticated
-user can read/write any couple's data. This is intentional for now (private two-person usage, not
-sensitive third-party data) and should be tightened if the app grows beyond that.
+**Security rules are membership-scoped, with known gaps.** [firestore.rules](firestore.rules) keys
+access off `memberUids` on the couple doc — only members read/write a couple's data. Two deliberate
+holes remain, both to be closed before signups open:
+
+- A couple doc *without* `memberUids` (legacy) is readable/writable by any authenticated user. The
+  self-heal in `FinanceContext` backfills the field on first load, but a space never reopened stays
+  exposed.
+- `allow update` also passes when the caller adds themselves to `memberUids`, which is how join-by-code
+  works client-side. The couple id doubles as the invite secret — 20 random characters, so not
+  guessable, but it never expires and is not single-use.
+
+[storage.rules](storage.rules) is stricter: profile photos are writable only by their owner
+(`profiles/{uid}.jpg`), and receipts live under `receipts/{coupleId}/{txId}.jpg` with membership
+checked via `firestore.get`. It does **not** tolerate a missing `memberUids`. Receipts written before
+that layout sit at the flat `receipts/{txId}.jpg` path, which has no rule at all (so the SDK denies
+it); they still display because the app renders `receiptURL`, a tokenized download URL that bypasses
+rules entirely — and for the same reason those old objects stay readable to anyone holding the URL.

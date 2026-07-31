@@ -89,7 +89,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
     updateEnabledCurrencies,
     language,
   } = useFinance();
-  const { user } = useAuth();
+  const { user, coupleId } = useAuth();
   // Desktop large → corps en 2 colonnes (même breakpoint que le modal élargi).
   const wide = useMediaQuery("(min-width: 1024px)");
 
@@ -496,9 +496,15 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
       }
 
       // Upload du reçu après avoir l'ID de la transaction (nouveau fichier choisi)
-      if (receiptFile && txId) {
+      // `coupleId` est garanti ici (l'écran vit sous FinanceProvider, monté
+      // seulement une fois le couple créé) ; la garde évite d'écrire un chemin
+      // `receipts/null/…` si cette invariante venait à changer.
+      if (receiptFile && txId && coupleId) {
         setUploadingReceipt(true);
-        const path = `receipts/${txId}.jpg`;
+        // Rangé par couple : storage.rules vérifie l'appartenance à partir du
+        // coupleId présent dans le chemin. L'ancien chemin à plat ne le
+        // permettait pas, d'où un reçu lisible par tout compte authentifié.
+        const path = `receipts/${coupleId}/${txId}.jpg`;
         const url = await uploadPhoto(receiptFile, path);
         await updateTransaction(txId, { receiptURL: url });
         setUploadingReceipt(false);
