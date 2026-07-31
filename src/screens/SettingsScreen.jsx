@@ -30,8 +30,10 @@ export default function SettingsScreen({ onOpenMenu, onOpenRecurring, onOpenCate
     pushPrefs,
     updateMemberPushPrefs,
   } = useFinance();
+  const { inviteExpiresAt, reopenInvite } = useFinance();
   const [showCode, setShowCode] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [reopening, setReopening] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const fileInputRef = useRef(null);
   const [editingName, setEditingName] = useState(false);
@@ -130,6 +132,26 @@ export default function SettingsScreen({ onOpenMenu, onOpenRecurring, onOpenCate
       alert("Impossible d'uploader la photo. Réessayez.");
     } finally {
       setUploadingPhoto(false);
+    }
+  }
+
+  // Une invitation consommée (0) ou périmée rend le code inopérant : sans ce
+  // repère, l'utilisateur partagerait un code qui ne marche pas.
+  // `Date.now()` est impur : on le fige au montage plutôt que de l'appeler
+  // pendant le rendu. La précision à la seconde n'a aucune importance ici.
+  const [mountedAt] = useState(() => Date.now());
+  const inviteActive = typeof inviteExpiresAt === "number"
+    ? inviteExpiresAt > mountedAt
+    : true; // champ absent = espace créé avant cette protection
+
+  async function handleReopenInvite() {
+    setReopening(true);
+    try {
+      await reopenInvite();
+    } catch (err) {
+      console.error("Réouverture de l'invitation échouée:", err);
+    } finally {
+      setReopening(false);
     }
   }
 
@@ -383,6 +405,30 @@ export default function SettingsScreen({ onOpenMenu, onOpenRecurring, onOpenCate
                 aria-hidden="true"
               />
             </button>
+          </div>
+        )}
+        {showCode && (
+          <div style={{ paddingBottom: 12 }}>
+            <p style={{ fontSize: 12.5, color: "var(--ink-3)", lineHeight: 1.5, marginBottom: 8 }}>
+              {inviteActive ? t("settings_invite_active") : t("settings_invite_closed")}
+            </p>
+            {!inviteActive && (
+              <button
+                onClick={handleReopenInvite}
+                disabled={reopening}
+                style={{
+                  background: "none",
+                  border: "0.5px solid var(--rule)",
+                  borderRadius: "var(--radius-md)",
+                  padding: "8px 14px",
+                  fontSize: 13,
+                  color: "var(--sky)",
+                  opacity: reopening ? 0.6 : 1,
+                }}
+              >
+                {reopening ? "..." : t("settings_invite_reopen")}
+              </button>
+            )}
           </div>
         )}
       </Card>

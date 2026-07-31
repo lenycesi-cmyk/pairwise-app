@@ -4,18 +4,10 @@ import { db } from "../firebase";
 import { useAuth } from "../context/AuthContext";
 import { getInitial } from "../utils/memberColors";
 import { saveMeta } from "../utils/onboardingDraft";
+import { generateCoupleCode, newInviteExpiry } from "../utils/coupleCode";
 
 function newPlaceholderId() {
   return `ph_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-}
-
-function generateCoupleCode() {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let code = "";
-  for (let i = 0; i < 6; i++) {
-    code += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return code;
 }
 
 export default function CoupleSetupScreen({ autoJoinCode = null }) {
@@ -46,6 +38,9 @@ export default function CoupleSetupScreen({ autoJoinCode = null }) {
         ],
         memberUids: [user.uid],
         defaultCurrency: "EUR",
+        // Fenêtre pendant laquelle le code est acceptable. Consommée par
+        // `joinCouple` dès qu'un membre entre, rouvrable depuis les Réglages.
+        inviteExpiresAt: newInviteExpiry(),
       });
       // onboardingComplete: false triggers the setup wizard right after this
       // screen (see App.jsx) — only set on a genuinely new couple.
@@ -110,6 +105,7 @@ export default function CoupleSetupScreen({ autoJoinCode = null }) {
     const msg = err?.message || "";
     if (msg.includes("couple-not-found")) return "Code introuvable. Vérifiez l'orthographe.";
     if (msg.includes("couple-full")) return "Cet espace est déjà complet (2 membres maximum).";
+    if (msg.includes("invite-expired")) return "Ce code n'est plus actif. Demande à ton/ta partenaire de le réactiver depuis ses Réglages.";
     if (msg.includes("placeholder-unavailable")) return "Cette place n'est plus disponible.";
     return `Erreur: ${err?.code || msg}`;
   }

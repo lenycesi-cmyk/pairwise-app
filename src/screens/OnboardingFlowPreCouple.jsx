@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import { db } from "../firebase";
+import { generateCoupleCode, newInviteExpiry } from "../utils/coupleCode";
 import { useAuth } from "../context/AuthContext";
 import AuthScreen from "./AuthScreen";
 import CoupleSetupScreen from "./CoupleSetupScreen";
@@ -17,13 +18,6 @@ import {
   saveOnbLang,
   guessDefaultCurrency,
 } from "../utils/onboardingDraft";
-
-function generateCoupleCode() {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let code = "";
-  for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
-  return code;
-}
 
 // Orchestrateur de la phase PRÉ-couple de l'onboarding "valeur d'abord" :
 // Saisie langage naturel + Aha → Solo/Couple → (Mode de partage si couple) →
@@ -70,6 +64,7 @@ export default function OnboardingFlowPreCouple({ onSignIn }) {
           createdAt: Date.now(),
           members: [{ uid: user.uid, memberId: user.uid, name: user.displayName || "Moi" }],
           memberUids: [user.uid],
+          inviteExpiresAt: newInviteExpiry(),
           defaultCurrency: guessDefaultCurrency(),
           financeMode: meta.shareMode || "shared",
         },

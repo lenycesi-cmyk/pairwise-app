@@ -15,6 +15,7 @@ import {
   writeBatch,
 } from "firebase/firestore";
 import { db } from "../firebase";
+import { newInviteExpiry } from "../utils/coupleCode";
 import { applyTheme } from "../data/themes";
 import { useAuth } from "./AuthContext";
 import { ALL_CATEGORIES } from "../data/categories";
@@ -39,6 +40,7 @@ export function FinanceProvider({ children }) {
   // (split + debt tracker). "common" : compte commun, pas de dette entre
   // partenaires — on garde le suivi "qui dépense quoi et pour qui".
   const [financeMode, setFinanceMode] = useState("shared");
+  const [inviteExpiresAt, setInviteExpiresAt] = useState(null);
   // Devises proposées dans les sélecteurs (ajout de transaction...). null =
   // toutes les devises (défaut) ; sinon la liste blanche choisie par le couple.
   const [enabledCurrencies, setEnabledCurrencies] = useState(null);
@@ -137,6 +139,9 @@ export function FinanceProvider({ children }) {
         if (data.coupleName !== undefined) setCoupleName(data.coupleName);
         if (data.currencyMode) setCurrencyMode(data.currencyMode);
         if (data.financeMode) setFinanceMode(data.financeMode);
+        setInviteExpiresAt(
+          typeof data.inviteExpiresAt === "number" ? data.inviteExpiresAt : null
+        );
         if (Array.isArray(data.enabledCurrencies)) setEnabledCurrencies(data.enabledCurrencies);
         // lastUsedCurrency est désormais PAR UTILISATEUR (users/{uid}) et non
         // plus au niveau du couple : deux partenaires dans des pays différents
@@ -751,6 +756,16 @@ export function FinanceProvider({ children }) {
     await setDoc(doc(db, "couples", coupleId), { coupleName: name }, { merge: true });
   }
 
+  // Rouvre la fenêtre d'invitation pour 7 jours. Le code lui-même ne change
+  // pas — c'est l'id du document couple — mais il redevient acceptable par
+  // `joinCouple`, qui le referme dès qu'un membre entre.
+  async function reopenInvite() {
+    if (!coupleId) return;
+    const expiry = newInviteExpiry();
+    await setDoc(doc(db, "couples", coupleId), { inviteExpiresAt: expiry }, { merge: true });
+    return expiry;
+  }
+
   async function updateMemberAvatarColor(uid, avatarColor) {
     if (!coupleId) return;
     const updatedMembers = members.map((m) =>
@@ -829,6 +844,8 @@ export function FinanceProvider({ children }) {
     members,
     coupleName,
     updateCoupleName,
+    inviteExpiresAt,
+    reopenInvite,
     loading,
     defaultCurrency,
     currencyMode,

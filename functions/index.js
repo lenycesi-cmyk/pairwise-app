@@ -471,7 +471,22 @@ exports.joinCouple = onCall(async (request) => {
   const snap = await ref.get();
   if (!snap.exists) throw new HttpsError("not-found", "couple-not-found");
 
-  const members = snap.data().members || [];
+  const data = snap.data();
+
+  // Le code d'invitation n'est acceptable que dans sa fenêtre de validité.
+  // `inviteExpiresAt` est mis à 0 dès qu'un membre entre (invitation
+  // consommée) et rouvert pour 7 jours depuis les Réglages. C'est ce qui
+  // limite l'énumération : hors fenêtre, aucun code ne fonctionne.
+  //
+  // Champ absent = espace créé avant cette protection. On laisse passer pour
+  // ne pas casser ces espaces ; le garde-fou `couple-full` ci-dessous les
+  // protège déjà, un couple complet n'acceptant plus personne.
+  const expiresAt = data.inviteExpiresAt;
+  if (typeof expiresAt === "number" && expiresAt <= Date.now()) {
+    throw new HttpsError("failed-precondition", "invite-expired");
+  }
+
+  const members = data.members || [];
 
   // Already a member (e.g. re-joining after a refresh) — no-op.
   if (members.find((m) => m.uid === uid)) return { status: "joined" };
@@ -501,7 +516,12 @@ exports.joinCouple = onCall(async (request) => {
   }
 
   await ref.set(
-    { members: updated, memberUids: updated.map((m) => m.uid).filter(Boolean) },
+    {
+      members: updated,
+      memberUids: updated.map((m) => m.uid).filter(Boolean),
+      // Invitation consommée : le code cesse d'être acceptable.
+      inviteExpiresAt: 0,
+    },
     { merge: true }
   );
   return { status: "joined" };
