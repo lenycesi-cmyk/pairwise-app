@@ -125,10 +125,16 @@ export function FinanceProvider({ children }) {
         if (data.defaultCurrency) setDefaultCurrency(data.defaultCurrency);
         if (data.members) {
           setMembers(data.members);
-          // Self-heal : backfille le memberUids du doc couple pour les espaces
-          // anciens, afin que les règles Firestore durcies (accès réservé aux
-          // membres) ne verrouillent jamais un couple hérité. Idempotent : ne
-          // réécrit que si le champ manque ou diverge des membres réels.
+          // Resynchronise memberUids sur les membres réels. À l'origine un
+          // backfill pour les espaces créés avant l'existence du champ ; ce rôle
+          // est caduc (plus aucun document sans memberUids, et `allow create`
+          // interdit d'en produire). Il reste utile comme garde-fou de cohérence
+          // si members et memberUids venaient à diverger. Idempotent : ne réécrit
+          // que sur divergence.
+          //
+          // ATTENTION : depuis le retrait de la tolérance dans firestore.rules,
+          // un memberUids incorrect verrouille le couple pour de bon. Ne jamais
+          // faire écrire ici une liste qui ne dérive pas des `members` réels.
           const realUids = data.members.map((m) => m.uid).filter(Boolean);
           const current = Array.isArray(data.memberUids) ? data.memberUids.filter(Boolean) : null;
           const same = current && current.length === realUids.length && realUids.every((u) => current.includes(u));
