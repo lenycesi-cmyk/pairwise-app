@@ -10,6 +10,25 @@ to chat replies, not to code or commit messages.
 
 Address the user informally in French — use "tu", never "vous".
 
+## Design work: mock up before coding
+
+**Any change to what the user sees goes through a mockup first — published as an Artifact, approved by
+the user — before a single line of app code is written and before any pull request is opened.** This
+covers new widgets, screen restructuring, layout or information-hierarchy changes. It does not cover
+copy fixes, bug fixes, or refactors with no visual outcome.
+
+Mock up at the app's real dimensions (390 px of usable width inside the 480 px shell — see
+`--app-shell-width`) and with the real tokens from `src/index.css`, so the mockup is judged as the
+thing itself rather than as an illustration of it. Where a design has a genuine fork, show the
+variants side by side and recommend one instead of asking an open question.
+
+Read the code the change would touch *before* drawing. The Wealth-tab redesign is the case in point:
+the requested monthly breakdown table turned out to be unbuildable from `netWorthHistory`, which
+stores only `{ date, value, currency }` — one aggregate per day, with no per-asset detail and no way
+to reconstruct it after the fact (asset values are manual entries that overwrite each other). That
+constraint changed the whole plan, and it would have surfaced as rework rather than as a design
+decision had the mockup come first.
+
 ## Commands
 
 ```bash
