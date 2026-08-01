@@ -23,6 +23,7 @@ import { useMediaQuery } from "../hooks/useMediaQuery";
 import { useLoanProgress } from "../hooks/useLoanProgress";
 import { loanType } from "../data/loanTypes";
 import { netWorthMonthlyDelta } from "../utils/netWorthDelta";
+import { shareForMember } from "../utils/memberShare";
 import { useWealthLayout } from "../hooks/useDashboardPrefs";
 import WidgetCanvas from "../components/WidgetCanvas";
 import ScopeFilter from "../components/ScopeFilter";
@@ -150,14 +151,19 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
   }
 
   function getMemberShare(asset, memberUid) {
-    const total = getAssetValue(asset);
-    if (asset.ownership === memberUid) return total;
-    if (asset.ownership === "shared") {
-      const isFirstMember = getMemberKey(members[0]) === memberUid;
-      const pct = isFirstMember ? (asset.sharePct ?? 50) : 100 - (asset.sharePct ?? 50);
-      return total * (pct / 100);
-    }
-    return 0;
+    return shareForMember(
+      getAssetValue(asset),
+      asset.ownership,
+      asset.sharePct,
+      memberUid,
+      getMemberKey(members[0])
+    );
+  }
+
+  // Part d'un crédit revenant à un membre. Les crédits ne portent pas de
+  // `sharePct` : un prêt partagé se partage donc en deux.
+  function getLoanShare(item, memberUid) {
+    return shareForMember(item.conv.balance, item.loan.ownership, undefined, memberUid, getMemberKey(members[0]));
   }
 
   const totalsByType = useMemo(() => {
@@ -247,21 +253,51 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
   // Passifs = dettes du Patrimoine + capital restant dû des crédits en cours.
   const totalLiabilities = (totalsByType["debt"] || 0) + loanAgg.balance;
 
+  // Vue filtrée par le sélecteur de membre. Elle ne sert QU'À L'AFFICHAGE du
+  // widget : `netWorthAll` reste le patrimoine du couple, parce que c'est lui
+  // qu'on enregistre dans l'historique. Un instantané par membre n'aurait aucun
+  // sens rétroactif et fausserait le graphique d'évolution.
+  const scoped = useMemo(() => {
+    if (globalScope === null) {
+      return { byType: totalsByType, assets: totalAssets, liabilities: totalLiabilities };
+    }
+    const byType = {};
+    for (const ty of ASSET_TYPES) byType[ty.id] = 0;
+    for (const a of assets) byType[a.typeId] = (byType[a.typeId] || 0) + getMemberShare(a, globalScope);
+    let assetsTotal = 0;
+    for (const ty of ASSET_TYPES) if (!ty.isLiability) assetsTotal += byType[ty.id] || 0;
+    let loanBalance = 0;
+    for (const item of loanItems) {
+      if (item.state.isPaidOff) continue;
+      loanBalance += getLoanShare(item, globalScope);
+    }
+    return { byType, assets: assetsTotal, liabilities: (byType.debt || 0) + loanBalance };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [globalScope, totalsByType, totalAssets, totalLiabilities, loanItems, assets, livePrices, displayCurrency, members]);
+
+  const scopedNetWorth = scoped.assets - scoped.liabilities;
+
+  // Nom du membre sélectionné, pour titrer « Total Nicolas » plutôt que
+  // « Total du foyer ». null en vue famille.
+  const scopeName = globalScope === null
+    ? null
+    : members.find((m) => getMemberKey(m) === globalScope)?.name || null;
+
   // Ventilation du widget « Patrimoine net » : une ligne par poste, du plus
   // lourd au plus léger, avec sa part du total de sa colonne. Les postes vides
   // sortent de la liste — une ligne à 0 € n'apprend rien et allonge la carte.
   const assetRows = useMemo(() => {
     return ASSET_TYPES
-      .filter((ty) => !ty.isLiability && (totalsByType[ty.id] || 0) > 0)
+      .filter((ty) => !ty.isLiability && (scoped.byType[ty.id] || 0) > 0)
       .map((ty) => ({
         key: ty.id,
         icon: ty.icon,
         color: ty.color,
         label: language === "en" && ty.nameEn ? ty.nameEn : ty.name,
-        value: totalsByType[ty.id] || 0,
+        value: scoped.byType[ty.id] || 0,
       }))
       .sort((a, b) => b.value - a.value);
-  }, [totalsByType, language]);
+  }, [scoped, language]);
 
   // Côté passifs, deux sources cohabitent : le type d'actif « dette » du
   // Patrimoine et les crédits de l'onglet Crédits, regroupés par type de prêt
@@ -269,20 +305,22 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
   const liabilityRows = useMemo(() => {
     const rows = [];
     const debtType = ASSET_TYPES.find((ty) => ty.id === "debt");
-    if (debtType && (totalsByType.debt || 0) > 0) {
+    if (debtType && (scoped.byType.debt || 0) > 0) {
       rows.push({
         key: "debt",
         icon: debtType.icon,
         color: debtType.color,
         label: language === "en" && debtType.nameEn ? debtType.nameEn : debtType.name,
-        value: totalsByType.debt,
+        value: scoped.byType.debt,
       });
     }
     const byLoanType = {};
-    for (const { loan, state, conv } of loanItems) {
-      if (state.isPaidOff || !(conv.balance > 0)) continue;
-      const id = loan.typeId || "other";
-      byLoanType[id] = (byLoanType[id] || 0) + conv.balance;
+    for (const item of loanItems) {
+      if (item.state.isPaidOff) continue;
+      const share = globalScope === null ? item.conv.balance : getLoanShare(item, globalScope);
+      if (!(share > 0)) continue;
+      const id = item.loan.typeId || "other";
+      byLoanType[id] = (byLoanType[id] || 0) + share;
     }
     for (const [id, value] of Object.entries(byLoanType)) {
       rows.push({
@@ -295,7 +333,7 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
     }
     return rows.sort((a, b) => b.value - a.value);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [totalsByType, loanItems, language]);
+  }, [scoped, loanItems, globalScope, language]);
   // Patrimoine net « tout compris » : actifs − passifs (crédits déduits).
   const netWorthAll = netWorth - loanAgg.balance;
 
@@ -323,10 +361,16 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
   // Variation sur un mois glissant. `null` tant que l'historique ne remonte pas
   // assez loin : on masque alors la ligne plutôt que d'afficher « +0 € », qui se
   // lirait comme une stagnation.
+  // L'historique est celui du COUPLE : il n'existe pas de série par membre à
+  // comparer. Sous filtre membre, la ligne disparaît donc au lieu d'afficher une
+  // variation qui ne correspondrait pas au total affiché juste au-dessus.
   const monthlyDelta = useMemo(
-    () => netWorthMonthlyDelta(netWorthHistory, netWorthAll, displayCurrency, convert),
+    () =>
+      globalScope !== null
+        ? null
+        : netWorthMonthlyDelta(netWorthHistory, netWorthAll, displayCurrency, convert),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [netWorthHistory, netWorthAll, displayCurrency]
+    [netWorthHistory, netWorthAll, displayCurrency, globalScope]
   );
 
   function formatAmount(n) {
@@ -400,9 +444,17 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
             background: "var(--bg-card)",
             borderRadius: "var(--radius-lg)",
             border: "0.5px solid var(--rule)",
-            padding: "1.25rem",
+            // Même structure que WidgetCard : en-tête et pied figés, corps
+            // défilant entre les deux. Sans la bande de pied, la dernière ligne
+            // de la ventilation butait sur le bord de la carte dès que le
+            // contenu débordait (grille bento à hauteur plafonnée).
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+            padding: "1.25rem 1.25rem 0",
           }}
         >
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <span className="pw-chip" style={{ width: 32, height: 32, borderRadius: 10, background: "var(--lavi-light)", "--pw-chip": "var(--lavi)", flexShrink: 0 }}>
@@ -415,10 +467,10 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
             )}
           </div>
           <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ink-3)", marginBottom: 3 }}>
-            {t("wealth_household_total")}
+            {scopeName ? t("wealth_member_total").replace("{name}", scopeName) : t("wealth_household_total")}
           </p>
-          <p style={{ fontSize: 30, fontWeight: 500, color: netWorthAll >= 0 ? "var(--sage)" : "var(--tang)" }}>
-            <AnimatedNumber value={netWorthAll} format={formatAmount} /> {currencySymbol}
+          <p style={{ fontSize: 30, fontWeight: 500, color: scopedNetWorth >= 0 ? "var(--sage)" : "var(--tang)" }}>
+            <AnimatedNumber value={scopedNetWorth} format={formatAmount} /> {currencySymbol}
           </p>
           {monthlyDelta && (
             <p style={{ fontSize: 12.5, fontWeight: 600, marginTop: 3, color: monthlyDelta.amount >= 0 ? "var(--sage)" : "var(--tang)" }}>
@@ -443,7 +495,7 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
                 {t("wealth_assets")}
               </p>
               <p style={{ fontSize: 17, fontWeight: 600 }}>
-                {formatAmount(totalAssets)} {currencySymbol}
+                {formatAmount(scoped.assets)} {currencySymbol}
               </p>
             </div>
             <div style={{ padding: "12px 0 2px 14px", borderLeft: "0.5px solid var(--rule)" }}>
@@ -451,25 +503,25 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
                 <span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--tang)", flexShrink: 0 }} />
                 {t("wealth_liabilities")}
               </p>
-              <p style={{ fontSize: 17, fontWeight: 600, color: totalLiabilities > 0 ? "var(--tang)" : "var(--ink-3)" }}>
-                {formatAmount(totalLiabilities)} {currencySymbol}
+              <p style={{ fontSize: 17, fontWeight: 600, color: scoped.liabilities > 0 ? "var(--tang)" : "var(--ink-3)" }}>
+                {formatAmount(scoped.liabilities)} {currencySymbol}
               </p>
             </div>
           </div>
 
-          {totalAssets + totalLiabilities > 0 && (
+          {scoped.assets + scoped.liabilities > 0 && (
             <div style={{ display: "flex", height: 7, borderRadius: 4, background: "var(--rule)", overflow: "hidden", marginTop: 14 }}>
-              <span style={{ height: 7, background: "var(--sage)", width: `${(totalAssets / (totalAssets + totalLiabilities)) * 100}%` }} />
-              <span style={{ height: 7, background: "var(--tang)", width: `${(totalLiabilities / (totalAssets + totalLiabilities)) * 100}%` }} />
+              <span style={{ height: 7, background: "var(--sage)", width: `${(scoped.assets / (scoped.assets + scoped.liabilities)) * 100}%` }} />
+              <span style={{ height: 7, background: "var(--tang)", width: `${(scoped.liabilities / (scoped.assets + scoped.liabilities)) * 100}%` }} />
             </div>
           )}
 
           {/* Ventilation par poste. Le détail des actifs individuels reste dans
               les widgets dédiés par catégorie, plus bas dans la page. */}
           {assetRows.length > 0 &&
-            renderBreakdown(t("wealth_assets"), "var(--sage)", totalAssets, assetRows, false)}
+            renderBreakdown(t("wealth_assets"), "var(--sage)", scoped.assets, assetRows, false)}
           {liabilityRows.length > 0 &&
-            renderBreakdown(t("wealth_liabilities"), "var(--tang)", totalLiabilities, liabilityRows, true)}
+            renderBreakdown(t("wealth_liabilities"), "var(--tang)", scoped.liabilities, liabilityRows, true)}
 
           {/* Fusion « Répartition par membre » : par membre, valeur nette +
               part (%) + barre de répartition. */}
@@ -501,6 +553,10 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
               })}
             </div>
           )}
+        </div>
+        {/* Bande de pied figée, de la même hauteur que le dégagement d'en-tête :
+            la dernière ligne de la ventilation ne bute plus sur le bord. */}
+        <div style={{ flexShrink: 0, height: "1.25rem" }} aria-hidden="true" />
         </div>
       );
     }
