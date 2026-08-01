@@ -124,26 +124,50 @@ export function movementsBetween(prev, curr, liabilityTypeIds) {
   if (!prev) return null;
 
   const prevByAsset = new Map((prev.entries || []).map((e) => [e.assetId, e]));
+  const currByAsset = new Map((curr.entries || []).map((e) => [e.assetId, e]));
   const groups = new Map();
 
-  for (const entry of curr.entries || []) {
-    const isLiability = liabilityTypeIds.has(entry.typeId);
-    const before = prevByAsset.get(entry.assetId);
-    // Actif apparu depuis : aucune variation à annoncer. Le montrer à 0 serait
-    // faux, le montrer à sa valeur entière ferait passer une création pour un gain.
-    const isNew = !before;
-    const delta = isNew
-      ? null
-      : isLiability
-        // Règle 1 : une dette qui baisse enrichit → signe inversé.
-        ? Math.abs(before.value) - Math.abs(entry.value)
-        : entry.value - before.value;
+  // On parcourt l'UNION des deux instantanés, pas seulement le plus récent. Un
+  // actif SUPPRIMÉ n'apparaît que dans `prev` : ne lire que `curr` le rendait
+  // invisible, alors que sa disparition fait bel et bien baisser le patrimoine.
+  // L'écran affichait donc une chute sans aucune ligne pour l'expliquer — le
+  // contraire de ce que ce widget existe pour faire.
+  const allIds = new Set([...prevByAsset.keys(), ...currByAsset.keys()]);
 
-    if (!groups.has(entry.typeId)) {
-      groups.set(entry.typeId, { typeId: entry.typeId, isLiability, delta: 0, assets: [] });
+  for (const assetId of allIds) {
+    const before = prevByAsset.get(assetId);
+    const after = currByAsset.get(assetId);
+    // Le libellé et le type viennent de l'instantané le plus récent qui les
+    // porte : pour un actif supprimé, c'est celui d'avant. Ils y ont été recopiés
+    // à l'écriture, donc une suppression reste lisible.
+    const ref = after || before;
+    const isLiability = liabilityTypeIds.has(ref.typeId);
+    const isNew = !before;
+    const isRemoved = !after;
+
+    let delta;
+    if (isNew) {
+      // Rien à quoi comparer une création : null, et surtout pas sa valeur
+      // entière, qui ferait passer un ajout pour un gain.
+      delta = null;
+    } else if (isRemoved) {
+      // Sortie du patrimoine : on perd sa valeur. Sauf s'il s'agit d'une dette,
+      // dont la disparition enrichit — règle 1, encore.
+      delta = isLiability ? Math.abs(before.value) : -before.value;
+    } else {
+      delta = isLiability
+        ? Math.abs(before.value) - Math.abs(after.value)
+        : after.value - before.value;
     }
-    const g = groups.get(entry.typeId);
-    g.assets.push({ assetId: entry.assetId, label: entry.label, value: entry.value, delta, isNew });
+
+    if (!groups.has(ref.typeId)) {
+      groups.set(ref.typeId, { typeId: ref.typeId, isLiability, delta: 0, assets: [] });
+    }
+    const g = groups.get(ref.typeId);
+    g.assets.push({
+      assetId, label: ref.label, value: after ? after.value : 0,
+      delta, isNew, isRemoved,
+    });
     if (Number.isFinite(delta)) g.delta += delta;
   }
 
@@ -162,13 +186,13 @@ export function movementsBetween(prev, curr, liabilityTypeIds) {
   // Un poste dont la valeur n'a pas bougé d'un centime n'est pas un mouvement :
   // il est listé à part plutôt que de gonfler la liste des contributions.
   //
-  // Exception : un type qui contient un actif APPARU ce mois-ci reste dans les
-  // mouvements même si sa variation chiffrée est nulle. Une création ne produit
-  // aucun delta (rien à quoi la comparer) mais c'est bien quelque chose qui s'est
-  // passé — la ranger dans « inchangé » la ferait disparaître de l'écran.
-  const hasNew = (g) => g.assets.some((a) => a.isNew);
-  const moved = all.filter((g) => Math.abs(g.delta) >= 0.005 || hasNew(g));
-  const unchanged = all.filter((g) => Math.abs(g.delta) < 0.005 && !hasNew(g));
+  // Exception : un type qui contient un actif APPARU ou RETIRÉ ce mois-ci reste
+  // dans les mouvements même si sa variation chiffrée est nulle. Une création ne
+  // produit aucun delta (rien à quoi la comparer) mais c'est bien quelque chose
+  // qui s'est passé — la ranger dans « inchangé » la ferait disparaître.
+  const notable = (g) => g.assets.some((a) => a.isNew || a.isRemoved);
+  const moved = all.filter((g) => Math.abs(g.delta) >= 0.005 || notable(g));
+  const unchanged = all.filter((g) => Math.abs(g.delta) < 0.005 && !notable(g));
 
   return {
     total: Number.isFinite(curr.value) && Number.isFinite(prev.value) ? curr.value - prev.value : null,

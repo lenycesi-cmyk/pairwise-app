@@ -192,3 +192,13 @@ describe("movementsBetween", () => {
     expect(movementsBetween(snap("2026-07-31", [e("a", "account", 1)]), null, LIAB)).toBeNull();
   });
 });
+
+describe("movementsBetween — actif supprimé", () => {
+  it("rend compte d'un actif retiré du patrimoine", () => {
+    const prev = snap("2026-07-31", [e("a", "account", 1000), e("gone", "crypto", 4000, "Vendu")]);
+    const curr = snap("2026-08-31", [e("a", "account", 1000)]);
+    const m = movementsBetween(prev, curr, LIAB);
+    // L'invariant : la somme des mouvements DOIT reconstituer la variation.
+    expect(m.byType.reduce((s, g) => s + g.delta, 0)).toBeCloseTo(m.total, 10);
+  });
+});
