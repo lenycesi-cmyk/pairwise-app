@@ -584,13 +584,15 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
         </div>
         {/* Détail par actif : possible seulement parce que l'instantané est
             stocké par actif et non par type. */}
-        {group.assets.filter((a) => a.isNew || Math.abs(a.delta ?? 0) >= 0.005).map((a) => (
+        {group.assets.filter((a) => a.isNew || a.isRemoved || Math.abs(a.delta ?? 0) >= 0.005).map((a) => (
           <div key={a.assetId} style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 0 4px 30px" }}>
             <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: "var(--ink-2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {a.label}
             </span>
+            {/* Un actif retiré garde son montant : c'est ce qui explique la
+                baisse. L'étiquette dit pourquoi il a disparu. */}
             <span style={{ fontSize: 12.5, fontWeight: 500, color: a.isNew ? "var(--ink-3)" : a.delta >= 0 ? "var(--sage)" : "var(--tang)" }}>
-              {a.isNew ? t("wealth_new_asset") : signed(a.delta)}
+              {a.isNew ? t("wealth_new_asset") : a.isRemoved ? `${signed(a.delta)} · ${t("wealth_removed_asset")}` : signed(a.delta)}
             </span>
           </div>
         ))}
