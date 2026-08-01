@@ -485,13 +485,14 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
               <i className="ti ti-refresh" style={{ fontSize: 13, color: "var(--ink-3)" }} aria-hidden="true" />
             )}
           </div>
-          {/* Total à gauche, insights en colonne à droite. `alignItems: flex-end`
-              pose la dernière pastille sur la ligne de base du total. La colonne
-              ne rétrécit pas (flexShrink 0) et le total porte minWidth 0 : sur un
-              patrimoine à huit chiffres, c'est le total qui réduit d'un cran
-              plutôt que l'insight qui passe à la ligne — sinon le gain de place
-              s'annule de lui-même. */}
-          <div style={{ display: "flex", alignItems: "flex-end", gap: 14 }}>
+          {/* Total à gauche, insights en colonne à droite. L'alignement vit dans
+              .pw-networth-head (index.css) parce qu'il demande deux déclarations
+              `align-items` — un repli et `last baseline` — qu'un objet de style
+              inline ne peut pas porter. La colonne ne rétrécit pas (flexShrink 0)
+              et le total porte minWidth 0 : sur un patrimoine à huit chiffres,
+              c'est le total qui réduit d'un cran plutôt que l'insight qui passe à
+              la ligne — sinon le gain de place s'annule de lui-même. */}
+          <div className="pw-networth-head">
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ink-3)", marginBottom: 3 }}>
                 {scopeName ? t("wealth_member_total").replace("{name}", scopeName) : t("wealth_household_total")}
