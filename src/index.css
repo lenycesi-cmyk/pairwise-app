@@ -434,6 +434,22 @@ button[style*="background: var(--ink)"] {
 }
 /* Barre d'accent supprimée à la demande (ex. widget « Vue d'ensemble » budget). */
 .pw-card[data-nobar]::before { display: none; }
+
+/* Tête du widget « Patrimoine net » : le total à gauche, les insights à droite.
+   `flex-end` alignerait les BOÎTES, pas les chiffres — et la boîte d'un texte de
+   30 px descend nettement sous le bas des glyphes, ce qui fait flotter les
+   pastilles trop bas. Mesuré : 3,3 px d'écart de ligne de base pour 0 px d'écart
+   de boîte, et l'écart grandit avec la taille de police.
+   `last baseline` aligne les LIGNES DE BASE des dernières lignes : la pastille de
+   plus-value se pose exactement sur celle du total, quelle que soit la police. La
+   première déclaration sert de repli aux navigateurs qui ignorent la seconde —
+   d'où la duplication, qui n'est pas une étourderie. */
+.pw-networth-head {
+  display: flex;
+  gap: 14px;
+  align-items: flex-end;
+  align-items: last baseline;
+}
 .pw-card[data-accent="coral"]::before { background: var(--tang); }
 .pw-card[data-accent="ocean"]::before { background: var(--lavi); }
 .pw-card[data-accent="sky"]::before { background: var(--sky); }
