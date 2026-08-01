@@ -485,46 +485,39 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
               <i className="ti ti-refresh" style={{ fontSize: 13, color: "var(--ink-3)" }} aria-hidden="true" />
             )}
           </div>
-          {/* Total à gauche, insights en colonne à droite. L'alignement vit dans
-              .pw-networth-head (index.css) parce qu'il demande deux déclarations
-              `align-items` — un repli et `last baseline` — qu'un objet de style
-              inline ne peut pas porter. La colonne ne rétrécit pas (flexShrink 0)
-              et le total porte minWidth 0 : sur un patrimoine à huit chiffres,
-              c'est le total qui réduit d'un cran plutôt que l'insight qui passe à
-              la ligne — sinon le gain de place s'annule de lui-même. */}
+          {/* Tête en grille : chaque insight partage sa ligne avec l'élément de
+              gauche correspondant, et .pw-networth-head (index.css) aligne les
+              lignes de base. Voir le commentaire là-bas — l'alignement est la
+              raison d'être de la grille, il ne survivrait pas à un retour au flex. */}
           <div className="pw-networth-head">
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ink-3)", marginBottom: 3 }}>
-                {scopeName ? t("wealth_member_total").replace("{name}", scopeName) : t("wealth_household_total")}
-              </p>
-              <p style={{ fontSize: 30, fontWeight: 500, color: scopedNetWorth >= 0 ? "var(--sage)" : "var(--tang)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                <AnimatedNumber value={scopedNetWorth} format={formatAmount} /> {currencySymbol}
-              </p>
-            </div>
-            {(monthlyDelta || unrealized.any) && (
-              <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", gap: 5, alignItems: "flex-end" }}>
-                {monthlyDelta && (
-                  <span style={{ display: "flex", alignItems: "center", gap: 7, whiteSpace: "nowrap" }}>
-                    <span style={{ fontSize: 10, fontWeight: 600, color: "var(--ink-3)" }}>{t("wealth_over_month")}</span>
-                    {renderInsightTag(
-                      `${monthlyDelta.amount >= 0 ? "↑ +" : "↓ −"}${formatAmount(Math.abs(monthlyDelta.amount))} ${currencySymbol}`,
-                      monthlyDelta.amount >= 0 ? "sage" : "tang"
-                    )}
-                  </span>
+            <p className="pw-nw-label" style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ink-3)" }}>
+              {scopeName ? t("wealth_member_total").replace("{name}", scopeName) : t("wealth_household_total")}
+            </p>
+            {monthlyDelta && (
+              // Seul insight présent ⇒ il rejoint la ligne du montant, pour ne pas
+              // laisser une ligne vide en face du total.
+              <span className="pw-nw-ins" style={{ gridRow: unrealized.any ? 1 : 2 }}>
+                <span style={{ fontSize: 10, fontWeight: 600, color: "var(--ink-3)" }}>{t("wealth_over_month")}</span>
+                {renderInsightTag(
+                  `${monthlyDelta.amount >= 0 ? "↑ +" : "↓ −"}${formatAmount(Math.abs(monthlyDelta.amount))} ${currencySymbol}`,
+                  monthlyDelta.amount >= 0 ? "sage" : "tang"
                 )}
-                {unrealized.any && (
-                  <span style={{ display: "flex", alignItems: "center", gap: 7, whiteSpace: "nowrap" }}>
-                    <span style={{ fontSize: 10, fontWeight: 600, color: "var(--ink-3)" }}>{t("wealth_gain_short")}</span>
-                    {/* Le pourcentage seul, pas le montant : la colonne est déjà
-                        la plus large des variantes testées, et y ajouter le
-                        montant ferait déborder un total à huit chiffres. */}
-                    {renderInsightTag(
-                      `${unrealized.gain >= 0 ? "+" : ""}${unrealized.pct.toFixed(1)}%`,
-                      unrealized.gain >= 0 ? "lavi" : "tang"
-                    )}
-                  </span>
+              </span>
+            )}
+            <p className="pw-nw-total" style={{ fontSize: 30, fontWeight: 500, color: scopedNetWorth >= 0 ? "var(--sage)" : "var(--tang)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              <AnimatedNumber value={scopedNetWorth} format={formatAmount} /> {currencySymbol}
+            </p>
+            {unrealized.any && (
+              <span className="pw-nw-ins" style={{ gridRow: 2 }}>
+                <span style={{ fontSize: 10, fontWeight: 600, color: "var(--ink-3)" }}>{t("wealth_gain_short")}</span>
+                {/* Le pourcentage seul, pas le montant : la colonne est déjà la
+                    plus large des dispositions testées, et y ajouter le montant
+                    ferait déborder un total à huit chiffres. */}
+                {renderInsightTag(
+                  `${unrealized.gain >= 0 ? "+" : ""}${unrealized.pct.toFixed(1)}%`,
+                  unrealized.gain >= 0 ? "lavi" : "tang"
                 )}
-              </div>
+              </span>
             )}
           </div>
 
