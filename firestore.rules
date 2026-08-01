@@ -65,6 +65,21 @@ service cloud.firestore {
       match /bankConnections/{connectionId} {
         allow read, write: if false;
       }
+
+      // Instantanés quotidiens du patrimoine, un document par jour (l'id EST la
+      // date). Lisibles par les membres : le tableau d'évolution les interroge
+      // par plage de dates. Écriture INTERDITE au client — ils sont produits par
+      // la fonction planifiée `recordNetWorthSnapshots`, qui passe par l'admin
+      // SDK et contourne donc ces règles.
+      //
+      // Ce n'est pas une précaution de principe : un instantané est un chiffre
+      // historique que rien ne recalcule. Autoriser le client à en écrire, c'est
+      // lui permettre de réécrire son propre passé, et rendre le tableau
+      // d'évolution invérifiable.
+      match /netWorthSnapshots/{snapshotDate} {
+        allow read: if isCoupleMember(coupleId);
+        allow write: if false;
+      }
     }
 
     // Correspondance item Plaid → couple/asset, écrite/lue uniquement par les
