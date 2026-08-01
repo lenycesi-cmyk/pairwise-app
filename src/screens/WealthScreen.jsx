@@ -25,6 +25,8 @@ import { loanType } from "../data/loanTypes";
 import { netWorthMonthlyDelta } from "../utils/netWorthDelta";
 import { shareForMember } from "../utils/memberShare";
 import { valueOfAsset } from "../utils/assetValuation";
+import { buildMonthlyTable, lastSnapshotPerMonth, movementsBetween } from "../utils/netWorthEvolution";
+import { useNetWorthSnapshots } from "../hooks/useNetWorthSnapshots";
 import { useWealthLayout } from "../hooks/useDashboardPrefs";
 import WidgetCanvas from "../components/WidgetCanvas";
 import ScopeFilter from "../components/ScopeFilter";
@@ -89,6 +91,15 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
   const toggleGroup = (key) =>
     setOpenGroups((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
   const { widgets, saveWidgets } = useWealthLayout();
+  // Historique détaillé (sous-collection). Chargé à la demande, hors du temps
+  // réel : ces documents ne changent qu'une fois par jour.
+  const { snapshots } = useNetWorthSnapshots();
+  // Profondeur du tableau mensuel : 6 mois par défaut, le pas de lecture le plus
+  // courant. "all" ⇒ tout l'historique chargé.
+  const [monthlyRange, setMonthlyRange] = useState(6);
+  const [monthlyFull, setMonthlyFull] = useState(false);
+  // Mois sélectionné dans « Ce qui a bougé » (clé YYYY-MM). null = le plus récent.
+  const [movingMonth, setMovingMonth] = useState(null);
 
   const currencySymbol = ALL_CURRENCIES.find((c) => c.code === displayCurrency)?.symbol || displayCurrency;
 
@@ -374,9 +385,266 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
     fx_exposure: t("wealth_fx_exposure"),
     credits: t("nav_credits"),
     calculator: t("wealth_calculator_cta"),
+    whats_moving: t("wealth_whats_moving"),
+    monthly_table: t("wealth_monthly_title"),
     my_assets: t("wealth_my_assets"),
     my_liabilities: t("wealth_my_liabilities"),
   };
+
+  // Types d'actifs qui comptent comme passif — l'historique ne stocke que des
+  // typeId, la nature se relit donc ici.
+  const liabilityTypeIds = useMemo(
+    () => new Set(ASSET_TYPES.filter((ty) => ty.isLiability).map((ty) => ty.id)),
+    []
+  );
+
+  const monthlyTable = useMemo(
+    () => buildMonthlyTable(snapshots, liabilityTypeIds, { limit: monthlyRange || undefined }),
+    [snapshots, liabilityTypeIds, monthlyRange]
+  );
+
+  // « Ce qui a bougé » : le mois choisi comparé au précédent.
+  const moving = useMemo(() => {
+    const byMonth = lastSnapshotPerMonth(snapshots);
+    const months = [...byMonth.keys()].sort();
+    if (months.length < 2) return { months, month: null, data: null };
+    const month = movingMonth && byMonth.has(movingMonth) ? movingMonth : months.at(-1);
+    const idx = months.indexOf(month);
+    return {
+      months,
+      month,
+      // Patrimoine net du mois choisi : c'est LUI le chiffre dominant de la
+      // carte, la variation ne fait que l'accompagner.
+      value: byMonth.get(month)?.value ?? null,
+      // Le premier mois enregistré n'a pas d'antécédent : movementsBetween rend
+      // null et l'écran affiche l'explication plutôt qu'une liste vide.
+      data: idx > 0 ? movementsBetween(byMonth.get(months[idx - 1]), byMonth.get(month), liabilityTypeIds) : null,
+    };
+  }, [snapshots, movingMonth, liabilityTypeIds]);
+
+  // « 2026-08 » → « Août ». Le mois seul suffit sur six colonnes ; l'année
+  // apparaît dans le sous-titre de la vue « Ce qui a bougé ».
+  function monthLabel(key, withYear = false) {
+    if (!key) return "";
+    const [y, m] = key.split("-").map(Number);
+    const raw = new Date(y, m - 1, 1).toLocaleDateString(language === "en" ? "en-US" : "fr-FR",
+      withYear ? { month: "long", year: "numeric" } : { month: "short" });
+    return raw.charAt(0).toUpperCase() + raw.slice(1).replace(".", "");
+  }
+
+  function typeLabelOf(typeId) {
+    if (typeId === "__loans") return t("wealth_credits_row");
+    const ty = ASSET_TYPES.find((x) => x.id === typeId);
+    if (!ty) return typeId;
+    return language === "en" && ty.nameEn ? ty.nameEn : ty.name;
+  }
+
+  function signed(n) {
+    return `${n >= 0 ? "+" : "−"}${formatAmount(Math.abs(n))} ${currencySymbol}`;
+  }
+
+  // Corps du tableau mensuel, partagé entre la carte et la vue plein écran :
+  // c'est le MÊME tableau, seule la place disponible change.
+  function renderMonthlyTable(table) {
+    const { months, assetRows, liabilityRows, totals } = table;
+    const cell = { padding: "7px 6px", textAlign: "right", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" };
+    const firstCell = { ...cell, textAlign: "left", paddingLeft: 0, position: "sticky", left: 0, background: "var(--bg-card)", fontVariantNumeric: "normal" };
+    const num = (v) => (Number.isFinite(v) ? formatAmount(v) : "—");
+    return (
+      <table style={{ borderCollapse: "collapse", fontSize: 12.5, width: "100%", minWidth: 340 }}>
+        <thead>
+          <tr>
+            <th scope="col" style={{ ...firstCell, fontSize: 10.5, letterSpacing: "0.07em", textTransform: "uppercase", color: "var(--ink-3)", fontWeight: 700, borderBottom: "1px solid var(--rule)" }}>
+              {t("wealth_table_item")}
+            </th>
+            {months.map((m) => (
+              <th key={m} scope="col" style={{ ...cell, fontSize: 10.5, letterSpacing: "0.07em", textTransform: "uppercase", color: "var(--ink-3)", fontWeight: 700, borderBottom: "1px solid var(--rule)" }}>
+                {monthLabel(m)}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style={{ ...firstCell, fontSize: 10.5, letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 700, paddingTop: 13, color: "var(--sage)" }}>{t("wealth_assets")}</td>
+            {months.map((m) => <td key={m} style={cell} />)}
+          </tr>
+          {assetRows.map((row) => (
+            <tr key={row.key}>
+              <td style={firstCell}>{typeLabelOf(row.typeId)}</td>
+              {row.values.map((v, i) => (
+                <td key={months[i]} style={{ ...cell, color: Number.isFinite(v) ? undefined : "var(--ink-4)" }}>{num(v)}</td>
+              ))}
+            </tr>
+          ))}
+          <tr>
+            <td style={{ ...firstCell, borderTop: "1px solid var(--rule)", fontWeight: 700 }}>{t("wealth_total_assets")}</td>
+            {totals.totalAssets.map((v, i) => (
+              <td key={months[i]} style={{ ...cell, borderTop: "1px solid var(--rule)", fontWeight: 700 }}>{num(v)}</td>
+            ))}
+          </tr>
+
+          {liabilityRows.length > 0 && (
+            <>
+              <tr>
+                <td style={{ ...firstCell, fontSize: 10.5, letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 700, paddingTop: 13, color: "var(--tang)" }}>{t("wealth_liabilities")}</td>
+                {months.map((m) => <td key={m} style={cell} />)}
+              </tr>
+              {liabilityRows.map((row) => (
+                <tr key={row.key}>
+                  <td style={firstCell}>{row.isLoans ? t("wealth_credits_row") : typeLabelOf(row.typeId)}</td>
+                  {row.values.map((v, i) => (
+                    <td key={months[i]} style={{ ...cell, color: Number.isFinite(v) ? undefined : "var(--ink-4)" }}>{num(v)}</td>
+                  ))}
+                </tr>
+              ))}
+              <tr>
+                <td style={{ ...firstCell, borderTop: "1px solid var(--rule)", fontWeight: 700 }}>{t("wealth_total_liabilities")}</td>
+                {totals.totalLiabilities.map((v, i) => (
+                  <td key={months[i]} style={{ ...cell, borderTop: "1px solid var(--rule)", fontWeight: 700 }}>{num(v)}</td>
+                ))}
+              </tr>
+            </>
+          )}
+
+          <tr>
+            <td style={{ ...firstCell, borderTop: "2px solid var(--ink)", fontWeight: 700, fontSize: 13.5 }}>{t("wealth_net_worth")}</td>
+            {totals.net.map((v, i) => (
+              <td key={months[i]} style={{ ...cell, borderTop: "2px solid var(--ink)", fontWeight: 700, fontSize: 13.5 }}>{num(v)}</td>
+            ))}
+          </tr>
+          <tr>
+            <td style={{ ...firstCell, fontSize: 10.5, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: "0.07em" }}>{t("wealth_change")}</td>
+            {totals.change.map((v, i) => (
+              <td key={months[i]} style={{ ...cell, fontSize: 10.5, fontWeight: 600, color: v == null ? "var(--ink-4)" : v >= 0 ? "var(--sage)" : "var(--tang)" }}>
+                {/* « — » et non « 0 » : rien avant ce mois à quoi le comparer. */}
+                {v == null ? "—" : signed(v)}
+              </td>
+            ))}
+          </tr>
+        </tbody>
+      </table>
+    );
+  }
+
+  const SEG = {
+    wrap: { display: "flex", gap: 4, background: "var(--rule)", borderRadius: 9, padding: 3, marginBottom: 13 },
+    btn: (on) => ({
+      flex: 1, textAlign: "center", fontSize: 11.5, fontWeight: 600, padding: "6px 2px",
+      borderRadius: 7, border: 0, fontFamily: "inherit", cursor: "pointer",
+      background: on ? "var(--bg-card)" : "none", color: on ? "var(--ink)" : "var(--ink-2)",
+      boxShadow: on ? "0 1px 2px rgba(43,38,33,.08)" : "none",
+    }),
+  };
+
+  function renderRangePicker() {
+    const options = [[6, t("wealth_period_6m")], [12, t("wealth_period_1y")], [0, t("wealth_period_all")]];
+    return (
+      <div style={SEG.wrap}>
+        {options.map(([value, label]) => (
+          <button key={label} type="button" style={SEG.btn(monthlyRange === value)}
+            aria-pressed={monthlyRange === value} onClick={() => setMonthlyRange(value)}>
+            {label}
+          </button>
+        ))}
+      </div>
+    );
+  }
+
+  function renderMonthPicker() {
+    // Les quatre derniers mois : au-delà, les pastilles deviennent illisibles sur
+    // 390 px. Le tableau, lui, couvre les périodes longues.
+    const shown = moving.months.slice(-4);
+    return (
+      <div style={SEG.wrap}>
+        {shown.map((m) => (
+          <button key={m} type="button" style={SEG.btn(m === moving.month)}
+            aria-pressed={m === moving.month} onClick={() => setMovingMonth(m)}>
+            {monthLabel(m)}
+          </button>
+        ))}
+      </div>
+    );
+  }
+
+  function renderMovementGroup(group) {
+    const ty = ASSET_TYPES.find((x) => x.id === group.typeId);
+    const colors = COLOR_MAP[ty?.color] || COLOR_MAP.sky;
+    return (
+      <div key={group.typeId}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0" }}>
+          <i className={`ti ${group.isLoans ? "ti-credit-card" : ty?.icon || "ti-circle"}`}
+            style={{ fontSize: 14, width: 20, textAlign: "center", flexShrink: 0, color: group.isLoans ? "var(--tang)" : colors.text }} aria-hidden="true" />
+          <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {typeLabelOf(group.typeId)}
+          </span>
+          <span style={{ fontSize: 13.5, fontWeight: 600, color: group.delta >= 0 ? "var(--sage)" : "var(--tang)" }}>
+            {signed(group.delta)}
+          </span>
+        </div>
+        {/* Détail par actif : possible seulement parce que l'instantané est
+            stocké par actif et non par type. */}
+        {group.assets.filter((a) => a.isNew || Math.abs(a.delta ?? 0) >= 0.005).map((a) => (
+          <div key={a.assetId} style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 0 4px 30px" }}>
+            <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: "var(--ink-2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {a.label}
+            </span>
+            <span style={{ fontSize: 12.5, fontWeight: 500, color: a.isNew ? "var(--ink-3)" : a.delta >= 0 ? "var(--sage)" : "var(--tang)" }}>
+              {a.isNew ? t("wealth_new_asset") : signed(a.delta)}
+            </span>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  function renderMovements() {
+    if (!moving.data) {
+      return (
+        <p style={{ fontSize: 12.5, color: "var(--ink-3)", lineHeight: 1.5 }}>
+          {t("wealth_first_month").replace("{month}", monthLabel(moving.month, true))}
+        </p>
+      );
+    }
+    const { total, byType, unchanged } = moving.data;
+    const gained = byType.filter((g) => g.delta >= 0);
+    const lost = byType.filter((g) => g.delta < 0);
+    const heading = (label) => (
+      <div style={{ display: "flex", alignItems: "baseline", margin: "15px 0 6px", fontSize: 11, fontWeight: 700, letterSpacing: "0.09em", textTransform: "uppercase", color: "var(--ink-2)" }}>
+        {label}
+      </div>
+    );
+    return (
+      <div>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 9 }}>
+          <span style={{ fontSize: 26, fontWeight: 500, color: moving.value >= 0 ? "var(--sage)" : "var(--tang)" }}>
+            {formatAmount(moving.value ?? 0)} {currencySymbol}
+          </span>
+          {total != null && (
+            <span style={{ fontSize: 13, fontWeight: 600, color: total >= 0 ? "var(--sage)" : "var(--tang)" }}>
+              {signed(total)}
+            </span>
+          )}
+        </div>
+        <p style={{ fontSize: 11.5, color: "var(--ink-3)", marginTop: 2 }}>
+          {t("wealth_net_worth")} — {monthLabel(moving.month, true)}
+        </p>
+        {gained.length > 0 && heading(t("wealth_carried"))}
+        {gained.map(renderMovementGroup)}
+        {lost.length > 0 && heading(t("wealth_weighed"))}
+        {lost.map(renderMovementGroup)}
+        {unchanged.length > 0 && heading(t("wealth_unchanged"))}
+        {unchanged.map((g) => (
+          <div key={g.typeId} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0" }}>
+            <i className={`ti ${ASSET_TYPES.find((x) => x.id === g.typeId)?.icon || "ti-circle"}`}
+              style={{ fontSize: 14, width: 20, textAlign: "center", flexShrink: 0, color: "var(--ink-3)" }} aria-hidden="true" />
+            <span style={{ flex: 1, minWidth: 0, fontSize: 13.5 }}>{typeLabelOf(g.typeId)}</span>
+            <span style={{ fontSize: 13.5, fontWeight: 500, color: "var(--ink-3)" }}>{t("wealth_unchanged").toLowerCase()}</span>
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   // Pastille d'insight du widget Patrimoine net : teinte du sens à faible
   // saturation (vert = ça monte, lavande = plus-value, corail = ça baisse). Elle
@@ -732,6 +1000,46 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
               );
             })}
           </div>
+        </WidgetCard>
+      );
+    }
+
+    if (id === "monthly_table") {
+      // Un seul mois enregistré ne fait pas une évolution : on le dit au lieu
+      // d'afficher une colonne solitaire sans variation.
+      if (monthlyTable.months.length < 2) return null;
+      return (
+        <WidgetCard
+          icon="ti-table"
+          accent="sky"
+          title={t("wealth_monthly_title")}
+          action={!editMode && (
+            <button
+              onClick={() => setMonthlyFull(true)}
+              aria-label={t("wealth_expand")}
+              style={{ background: "none", border: "none", color: "var(--sky)", fontSize: 12, display: "flex", alignItems: "center", gap: 3, flexShrink: 0 }}
+            >
+              {t("wealth_expand")} <i className="ti ti-arrows-maximize" style={{ fontSize: 13 }} aria-hidden="true" />
+            </button>
+          )}
+        >
+          {renderRangePicker()}
+          {/* La colonne des postes reste collée à gauche pendant qu'on fait
+              glisser les mois : sur 390 px, c'est ce qui rend la grille lisible
+              au pouce plutôt qu'illisible à 8 px. */}
+          <div style={{ overflowX: "auto", margin: "0 -18px", padding: "0 18px" }}>
+            {renderMonthlyTable(monthlyTable)}
+          </div>
+        </WidgetCard>
+      );
+    }
+
+    if (id === "whats_moving") {
+      if (moving.months.length < 2) return null;
+      return (
+        <WidgetCard icon="ti-arrows-sort" accent="mint" title={t("wealth_whats_moving")}>
+          {renderMonthPicker()}
+          {renderMovements()}
         </WidgetCard>
       );
     }
@@ -1147,6 +1455,44 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
           addButtonRef && { ref: addButtonRef, text: t("hint_wealth_add") },
         ].filter(Boolean)}
       />
+
+      {/* Vue plein écran du tableau : même contenu, plus de place. Sur 390 px, six
+          colonnes de mois se lisent au prix d'un défilement ; à l'horizontale ou
+          sur desktop, elles tiennent d'un coup d'œil. Le calque suit le motif de
+          la vue plein écran du Sankey (Rapports). */}
+      {monthlyFull && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 200, background: "var(--bg)", display: "flex", flexDirection: "column", padding: "1rem 1.25rem" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 10, flexShrink: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 9, minWidth: 0 }}>
+              <span style={{ width: 30, height: 30, borderRadius: 9, background: "var(--sky-light)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <i className="ti ti-table" style={{ fontSize: 15, color: "var(--sky)" }} aria-hidden="true" />
+              </span>
+              <div style={{ minWidth: 0 }}>
+                <p style={{ fontSize: 15, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  {t("wealth_monthly_title")}
+                </p>
+                <p style={{ fontSize: 11.5, color: "var(--ink-3)" }}>
+                  {monthlyTable.months.length > 0
+                    ? `${monthLabel(monthlyTable.months[0], true)} → ${monthLabel(monthlyTable.months.at(-1), true)}`
+                    : ""}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setMonthlyFull(false)}
+              aria-label={t("common_close")}
+              style={{ width: 30, height: 30, borderRadius: 9, background: "var(--bg-card)", border: "0.5px solid var(--rule)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
+            >
+              <i className="ti ti-x" style={{ fontSize: 16 }} aria-hidden="true" />
+            </button>
+          </div>
+          {renderRangePicker()}
+          <div style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
+            {renderMonthlyTable(monthlyTable)}
+          </div>
+        </div>
+      )}
+
 
       {showCurrencyPicker && (
         <div

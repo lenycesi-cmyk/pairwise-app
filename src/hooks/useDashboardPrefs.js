@@ -203,7 +203,7 @@ export function useWealthPrefs() {
 
 // Widgets de l'onglet Patrimoine. Liste complète depuis que les catégories
 // d'actifs sont des lignes repliables de « Mes actifs » / « Mes passifs ».
-const FIXED_WEALTH_WIDGETS = ["net_worth", "evolution", "my_assets", "my_liabilities", "allocation", "allocation_target", "projection", "fx_exposure", "calculator"];
+const FIXED_WEALTH_WIDGETS = ["net_worth", "evolution", "whats_moving", "monthly_table", "my_assets", "my_liabilities", "allocation", "allocation_target", "projection", "fx_exposure", "calculator"];
 
 // Layout de l'onglet Patrimoine PAR UTILISATEUR. La liste des widgets est
 // désormais fixe : les catégories d'actifs, qui occupaient chacune un widget
