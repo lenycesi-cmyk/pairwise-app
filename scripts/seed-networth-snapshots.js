@@ -13,10 +13,17 @@
 // — le total est toujours la somme de ses lignes — sans prétendre refléter ce qui
 // s'est réellement passé.
 //
+// Le couple CIBLE est OBLIGATOIRE. La première version parcourait tous les
+// couples de la base, par mimétisme avec la fonction planifiée — qui a de bonnes
+// raisons de le faire, elle. Pour des données inventées c'est exactement
+// l'inverse qu'il faut : elles ont atterri chez de vrais utilisateurs, qui ont vu
+// un historique fabriqué dans leur propre patrimoine. D'où cette obligation.
+//
 // À lancer DEPUIS LA RACINE DU DÉPÔT :
-//   node scripts/seed-networth-snapshots.js            # 6 mois d'historique
-//   node scripts/seed-networth-snapshots.js --months=12
-//   node scripts/seed-networth-snapshots.js --purge    # supprime les seeds
+//   node scripts/seed-networth-snapshots.js --couple=ABC123
+//   node scripts/seed-networth-snapshots.js --couple=ABC123 --months=12
+//   node scripts/seed-networth-snapshots.js --couple=ABC123 --purge
+//   node scripts/seed-networth-snapshots.js --purge --all   # purge TOUTE la base
 //
 // Comme scripts/deploy.js, il passe par l'API REST Firestore et signe un JWT
 // avec la clé du compte de service — PAS par firebase-admin, qui n'est pas une
@@ -35,7 +42,22 @@ const BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databas
 
 const args = process.argv.slice(2);
 const PURGE = args.includes("--purge");
+const ALL = args.includes("--all");
+const COUPLE = args.find((a) => a.startsWith("--couple="))?.split("=")[1] || null;
 const MONTHS = Number(args.find((a) => a.startsWith("--months="))?.split("=")[1]) || 6;
+
+// `--all` n'est autorisé qu'avec `--purge` : nettoyer largement est sans danger,
+// écrire largement ne l'est pas.
+if (!COUPLE && !(PURGE && ALL)) {
+  console.error(
+    "\n❌ Cible manquante.\n\n" +
+    "   Ce script écrit des données INVENTÉES : il refuse de le faire sans couple explicite.\n\n" +
+    "   node scripts/seed-networth-snapshots.js --couple=ABC123\n" +
+    "   node scripts/seed-networth-snapshots.js --couple=ABC123 --purge\n" +
+    "   node scripts/seed-networth-snapshots.js --purge --all   (nettoyage global)\n"
+  );
+  process.exit(1);
+}
 
 // Dérive mensuelle indicative par type : la crypto bouge beaucoup, l'immobilier
 // presque pas, un prêt se rembourse. Purement décoratif — c'est ce qui rend
@@ -152,8 +174,12 @@ async function main() {
   console.log("   OK");
 
   const liabilityIds = new Set(ASSET_TYPES.filter((t) => t.isLiability).map((t) => t.id));
-  const couples = (await api(token, "GET", `${BASE}/couples?pageSize=300`))?.documents || [];
-  console.log(`2. ${couples.length} couple(s) trouvé(s).`);
+  let couples = (await api(token, "GET", `${BASE}/couples?pageSize=300`))?.documents || [];
+  if (COUPLE) {
+    couples = couples.filter((d) => d.name.split("/").pop() === COUPLE);
+    if (couples.length === 0) throw new Error(`Couple « ${COUPLE} » introuvable.`);
+  }
+  console.log(`2. ${couples.length} couple(s) ciblé(s)${COUPLE ? ` (${COUPLE})` : " — TOUTE LA BASE"}.`);
 
   for (const doc of couples) {
     const coupleId = doc.name.split("/").pop();
