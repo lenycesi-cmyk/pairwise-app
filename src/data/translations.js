@@ -417,6 +417,10 @@ export const TRANSLATIONS = {
     wealth_my_assets: "Mes actifs",
     wealth_my_liabilities: "Mes passifs",
     wealth_since_last_month: "depuis le mois dernier",
+    // Intitulés courts des pastilles d'insight, en minuscules : ils accompagnent
+    // le chiffre au lieu de le titrer.
+    wealth_over_month: "sur le mois",
+    wealth_gain_short: "plus-value",
     wealth_unrealized_gain: "Plus-value latente",
     wealth_since_purchase: "Depuis l'achat",
     wealth_net_equity: "Net",
@@ -1266,6 +1270,8 @@ export const TRANSLATIONS = {
     wealth_my_assets: "My assets",
     wealth_my_liabilities: "My liabilities",
     wealth_since_last_month: "since last month",
+    wealth_over_month: "this month",
+    wealth_gain_short: "unrealized",
     wealth_unrealized_gain: "Unrealized gain",
     wealth_since_purchase: "Since purchase",
     wealth_net_equity: "Net",
