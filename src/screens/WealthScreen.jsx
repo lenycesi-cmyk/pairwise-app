@@ -22,6 +22,7 @@ import { getMemberKey } from "../utils/members";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 import { useLoanProgress } from "../hooks/useLoanProgress";
 import { loanType } from "../data/loanTypes";
+import { netWorthMonthlyDelta } from "../utils/netWorthDelta";
 import { useWealthLayout } from "../hooks/useDashboardPrefs";
 import WidgetCanvas from "../components/WidgetCanvas";
 import ScopeFilter from "../components/ScopeFilter";
@@ -245,6 +246,56 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
 
   // Passifs = dettes du Patrimoine + capital restant dû des crédits en cours.
   const totalLiabilities = (totalsByType["debt"] || 0) + loanAgg.balance;
+
+  // Ventilation du widget « Patrimoine net » : une ligne par poste, du plus
+  // lourd au plus léger, avec sa part du total de sa colonne. Les postes vides
+  // sortent de la liste — une ligne à 0 € n'apprend rien et allonge la carte.
+  const assetRows = useMemo(() => {
+    return ASSET_TYPES
+      .filter((ty) => !ty.isLiability && (totalsByType[ty.id] || 0) > 0)
+      .map((ty) => ({
+        key: ty.id,
+        icon: ty.icon,
+        color: ty.color,
+        label: language === "en" && ty.nameEn ? ty.nameEn : ty.name,
+        value: totalsByType[ty.id] || 0,
+      }))
+      .sort((a, b) => b.value - a.value);
+  }, [totalsByType, language]);
+
+  // Côté passifs, deux sources cohabitent : le type d'actif « dette » du
+  // Patrimoine et les crédits de l'onglet Crédits, regroupés par type de prêt
+  // (un foyer a rarement un seul prêt immobilier, mais il les lit comme un poste).
+  const liabilityRows = useMemo(() => {
+    const rows = [];
+    const debtType = ASSET_TYPES.find((ty) => ty.id === "debt");
+    if (debtType && (totalsByType.debt || 0) > 0) {
+      rows.push({
+        key: "debt",
+        icon: debtType.icon,
+        color: debtType.color,
+        label: language === "en" && debtType.nameEn ? debtType.nameEn : debtType.name,
+        value: totalsByType.debt,
+      });
+    }
+    const byLoanType = {};
+    for (const { loan, state, conv } of loanItems) {
+      if (state.isPaidOff || !(conv.balance > 0)) continue;
+      const id = loan.typeId || "other";
+      byLoanType[id] = (byLoanType[id] || 0) + conv.balance;
+    }
+    for (const [id, value] of Object.entries(byLoanType)) {
+      rows.push({
+        key: `loan_${id}`,
+        icon: loanType(id).icon,
+        color: loanType(id).color,
+        label: t(`loan_type_${id}`),
+        value,
+      });
+    }
+    return rows.sort((a, b) => b.value - a.value);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [totalsByType, loanItems, language]);
   // Patrimoine net « tout compris » : actifs − passifs (crédits déduits).
   const netWorthAll = netWorth - loanAgg.balance;
 
@@ -269,6 +320,15 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
     }
   }, [netWorthAll, ratesLoading]);
 
+  // Variation sur un mois glissant. `null` tant que l'historique ne remonte pas
+  // assez loin : on masque alors la ligne plutôt que d'afficher « +0 € », qui se
+  // lirait comme une stagnation.
+  const monthlyDelta = useMemo(
+    () => netWorthMonthlyDelta(netWorthHistory, netWorthAll, displayCurrency, convert),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [netWorthHistory, netWorthAll, displayCurrency]
+  );
+
   function formatAmount(n) {
     return Math.round(n).toLocaleString("fr-FR");
   }
@@ -287,6 +347,47 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
       ASSET_TYPES.map((ty) => [`asset_${ty.id}`, language === "en" && ty.nameEn ? ty.nameEn : ty.name])
     ),
   };
+
+  // Une section « Actifs » ou « Passifs » du widget Patrimoine net : un en-tête
+  // coloré portant le total de la colonne, puis une ligne par poste avec sa part.
+  // Le pourcentage se rapporte au total de la section, pas au patrimoine net —
+  // sinon les parts des passifs dépasseraient 100 % dès que le foyer est endetté.
+  function renderBreakdown(label, color, sectionTotal, rows, isLiability) {
+    return (
+      <div>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 8, margin: "16px 0 8px" }}>
+          <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.09em", textTransform: "uppercase", color }}>
+            {label}
+          </span>
+          <span style={{ marginLeft: "auto", fontSize: 12.5, fontWeight: 700, color }}>
+            {formatAmount(sectionTotal)} {currencySymbol}
+          </span>
+        </div>
+        {rows.map((row) => {
+          const pct = sectionTotal > 0 ? (row.value / sectionTotal) * 100 : 0;
+          const rowColors = COLOR_MAP[row.color] || COLOR_MAP.sky;
+          return (
+            <div key={row.key} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0" }}>
+              <i
+                className={`ti ${row.icon}`}
+                style={{ fontSize: 15, width: 20, textAlign: "center", flexShrink: 0, color: rowColors.text }}
+                aria-hidden="true"
+              />
+              <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {row.label}
+              </span>
+              <span style={{ fontSize: 13.5, fontWeight: 600, color: isLiability ? "var(--tang)" : "var(--ink)" }}>
+                {formatAmount(row.value)} {currencySymbol}
+              </span>
+              <span style={{ fontSize: 11, color: "var(--ink-3)", width: 34, textAlign: "right", flexShrink: 0 }}>
+                {Math.round(pct)}%
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
 
   // Contenu d'un widget personnalisable de l'onglet Patrimoine pour
   // WidgetCanvas (null quand il n'y a rien à montrer → placeholder en édition).
@@ -315,33 +416,62 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
               <i className="ti ti-refresh" style={{ fontSize: 13, color: "var(--ink-3)" }} aria-hidden="true" />
             )}
           </div>
+          <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ink-3)", marginBottom: 3 }}>
+            {t("wealth_household_total")}
+          </p>
           <p style={{ fontSize: 30, fontWeight: 500, color: netWorthAll >= 0 ? "var(--sage)" : "var(--tang)" }}>
             <AnimatedNumber value={netWorthAll} format={formatAmount} /> {currencySymbol}
           </p>
-          <div style={{ display: "flex", gap: 16, marginTop: 8 }}>
-            <div>
-              <p style={{ fontSize: 11, color: "var(--ink-3)" }}>{t("wealth_assets")}</p>
-              <p style={{ fontSize: 13, fontWeight: 500, color: "var(--sage)" }}>
+          {monthlyDelta && (
+            <p style={{ fontSize: 12.5, fontWeight: 600, marginTop: 3, color: monthlyDelta.amount >= 0 ? "var(--sage)" : "var(--tang)" }}>
+              {monthlyDelta.amount >= 0 ? "↑ +" : "↓ −"}{formatAmount(Math.abs(monthlyDelta.amount))} {currencySymbol} {t("wealth_since_last_month")}
+            </p>
+          )}
+          {unrealized.any && (
+            <p style={{ fontSize: 11.5, color: "var(--ink-3)", marginTop: 3 }}>
+              {t("wealth_unrealized_gain")}{" "}
+              <span style={{ fontWeight: 600, color: unrealized.gain >= 0 ? "var(--sage)" : "var(--red)" }}>
+                {unrealized.gain >= 0 ? "+" : "−"}{formatAmount(Math.abs(unrealized.gain))} {currencySymbol} ({unrealized.gain >= 0 ? "+" : ""}{unrealized.pct.toFixed(1)}%)
+              </span>
+            </p>
+          )}
+
+          {/* Actifs / passifs côte à côte, puis la barre de proportion : le
+              ratio d'endettement se lit avant tout chiffre détaillé. */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", marginTop: 15, borderTop: "0.5px solid var(--rule)" }}>
+            <div style={{ padding: "12px 0 2px" }}>
+              <p style={{ fontSize: 11, color: "var(--ink-3)", display: "flex", alignItems: "center", gap: 5, marginBottom: 2 }}>
+                <span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--sage)", flexShrink: 0 }} />
+                {t("wealth_assets")}
+              </p>
+              <p style={{ fontSize: 17, fontWeight: 600 }}>
                 {formatAmount(totalAssets)} {currencySymbol}
               </p>
             </div>
-            {totalLiabilities > 0 && (
-              <div>
-                <p style={{ fontSize: 11, color: "var(--ink-3)" }}>{t("wealth_liabilities")}</p>
-                <p style={{ fontSize: 13, fontWeight: 500, color: "var(--red)" }}>
-                  −{formatAmount(totalLiabilities)} {currencySymbol}
-                </p>
-              </div>
-            )}
-            {unrealized.any && (
-              <div>
-                <p style={{ fontSize: 11, color: "var(--ink-3)" }}>{t("wealth_unrealized_gain")}</p>
-                <p style={{ fontSize: 13, fontWeight: 500, color: unrealized.gain >= 0 ? "var(--sage)" : "var(--red)" }}>
-                  {unrealized.gain >= 0 ? "+" : "−"}{formatAmount(Math.abs(unrealized.gain))} {currencySymbol} ({unrealized.gain >= 0 ? "+" : ""}{unrealized.pct.toFixed(1)}%)
-                </p>
-              </div>
-            )}
+            <div style={{ padding: "12px 0 2px 14px", borderLeft: "0.5px solid var(--rule)" }}>
+              <p style={{ fontSize: 11, color: "var(--ink-3)", display: "flex", alignItems: "center", gap: 5, marginBottom: 2 }}>
+                <span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--tang)", flexShrink: 0 }} />
+                {t("wealth_liabilities")}
+              </p>
+              <p style={{ fontSize: 17, fontWeight: 600, color: totalLiabilities > 0 ? "var(--tang)" : "var(--ink-3)" }}>
+                {formatAmount(totalLiabilities)} {currencySymbol}
+              </p>
+            </div>
           </div>
+
+          {totalAssets + totalLiabilities > 0 && (
+            <div style={{ display: "flex", height: 7, borderRadius: 4, background: "var(--rule)", overflow: "hidden", marginTop: 14 }}>
+              <span style={{ height: 7, background: "var(--sage)", width: `${(totalAssets / (totalAssets + totalLiabilities)) * 100}%` }} />
+              <span style={{ height: 7, background: "var(--tang)", width: `${(totalLiabilities / (totalAssets + totalLiabilities)) * 100}%` }} />
+            </div>
+          )}
+
+          {/* Ventilation par poste. Le détail des actifs individuels reste dans
+              les widgets dédiés par catégorie, plus bas dans la page. */}
+          {assetRows.length > 0 &&
+            renderBreakdown(t("wealth_assets"), "var(--sage)", totalAssets, assetRows, false)}
+          {liabilityRows.length > 0 &&
+            renderBreakdown(t("wealth_liabilities"), "var(--tang)", totalLiabilities, liabilityRows, true)}
 
           {/* Fusion « Répartition par membre » : par membre, valeur nette +
               part (%) + barre de répartition. */}
