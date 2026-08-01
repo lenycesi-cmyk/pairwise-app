@@ -80,13 +80,13 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
   // sous le header et appliqué à tous les widgets scopables (répartition + totaux
   // par catégorie) — remplace les anciens sélecteurs par widget.
   const [globalScope, setGlobalScope] = useState(null);
-  // Ids des types d'actifs réellement présents (chaque catégorie devient un widget
-  // déplaçable "asset_<typeId>" dans la grille bento) — mémorisé sur `assets`.
-  const assetTypeIds = useMemo(
-    () => ASSET_TYPES.filter((ty) => assets.some((a) => a.typeId === ty.id)).map((ty) => ty.id),
-    [assets]
-  );
-  const { widgets, saveWidgets } = useWealthLayout(assetTypeIds);
+  // Catégories dépliées dans « Mes actifs » / « Mes passifs ». Volontairement
+  // non mémorisé d'une visite à l'autre : la vue de référence est la liste des
+  // catégories, pas l'état dans lequel on a laissé la page.
+  const [openGroups, setOpenGroups] = useState([]);
+  const toggleGroup = (key) =>
+    setOpenGroups((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
+  const { widgets, saveWidgets } = useWealthLayout();
 
   const currencySymbol = ALL_CURRENCIES.find((c) => c.code === displayCurrency)?.symbol || displayCurrency;
 
@@ -342,10 +342,8 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
     fx_exposure: t("wealth_fx_exposure"),
     credits: t("nav_credits"),
     calculator: t("wealth_calculator_cta"),
-    // Cartes d'actifs par type (widgets déplaçables "asset_<typeId>").
-    ...Object.fromEntries(
-      ASSET_TYPES.map((ty) => [`asset_${ty.id}`, language === "en" && ty.nameEn ? ty.nameEn : ty.name])
-    ),
+    my_assets: t("wealth_my_assets"),
+    my_liabilities: t("wealth_my_liabilities"),
   };
 
   // Une section « Actifs » ou « Passifs » du widget Patrimoine net : un en-tête
@@ -657,208 +655,324 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
       );
     }
 
-    if (id.startsWith("asset_")) {
-      const type = ASSET_TYPES.find((ty) => `asset_${ty.id}` === id);
-      return type ? renderAssetTypeCard(type) : null;
-    }
+    if (id === "my_assets") return renderAssetGroupCard(false);
+    if (id === "my_liabilities") return renderAssetGroupCard(true);
 
     return null;
   }
 
-  // Carte d'une catégorie d'actifs (Compte en banque, Assurance-vie…), rendue
-  // comme widget déplaçable dans la grille bento (id "asset_<typeId>"). Renvoie
-  // null si la catégorie est vide → le widget disparaît de la grille.
-  function renderAssetTypeCard(type) {
-    // Filtre membre global : on ne montre que les actifs du membre choisi (+ les
-    // partagés / sans propriétaire), comme le widget Liquidités de l'Accueil.
-    const typeAssets = assets.filter(
-      (a) => a.typeId === type.id &&
+  // Actifs d'un type, filtre membre global appliqué : on ne montre que ceux du
+  // membre choisi (+ les partagés / sans propriétaire), comme le widget
+  // Liquidités de l'Accueil.
+  function assetsOfType(typeId) {
+    return assets.filter(
+      (a) => a.typeId === typeId &&
         (globalScope == null || a.ownership === globalScope || a.ownership === "shared" || a.ownership == null)
     );
-    if (typeAssets.length === 0) return null;
+  }
+
+  // Ligne d'un actif individuel, telle qu'elle s'affiche dans le panneau déplié
+  // d'une catégorie. Extraite sans changement de l'ancienne carte par type.
+  function renderAssetRow(asset, type, isLast) {
     const colors = COLOR_MAP[type.color] || COLOR_MAP.sky;
+    const val = getAssetValue(asset);
+    // Actif dont la valeur dérive d'un cours (actions/crypto) sans aucune
+    // source exploitable : ni cours live, ni prix unitaire manuel, ni
+    // valeur stockée POSITIVE. Le test portait sur `Number.isFinite`, donc
+    // une valeur à 0 laissée en base faisait afficher un « 0 » affirmatif
+    // au lieu de reconnaître qu'aucun prix n'est disponible.
+    const priceUnavailable =
+      type.hasApiPrice &&
+      !(livePrices[asset.id] > 0) &&
+      !(asset.manualPrice > 0) &&
+      !(asset.value > 0);
+    // Affichage devise native : pour les actifs à valeur stockée (comptes,
+    // liquidités, AV, immobilier…) libellés dans une devise ≠ devise de
+    // résumé, on montre le solde dans SA devise (gros) + l'équivalent
+    // converti (petit). Les actifs cotés (actions/crypto) restent en devise
+    // de résumé (pas de devise native pertinente ici).
+    const nativeCur = asset.currency || displayCurrency;
+    const showNative = !type.hasApiPrice && nativeCur !== displayCurrency;
+    const nativeSymbol = ALL_CURRENCIES.find((c) => c.code === nativeCur)?.symbol || nativeCur;
+    const sign = type.isLiability ? "−" : "";
+    // Carte « Compte en banque » : nom en colonne de largeur fixe pour
+    // que les boutons « Connecter » soient tous alignés (cf. plus bas).
+    const isAccount = type.id === "account";
+    // Plus-value latente (lot 2) : coût investi (devise de l'actif) ramené
+    // en devise de résumé, comparé à la valeur actuelle (déjà en devise de
+    // résumé). % de rendement total depuis l'achat.
+    const costBasisDisplay = asset.costBasis
+      ? convert(asset.costBasis, asset.currency || displayCurrency, displayCurrency)
+      : 0;
+    const hasCost = costBasisDisplay > 0 && Number.isFinite(val) && !priceUnavailable;
+    const gainPct = hasCost ? ((val - costBasisDisplay) / costBasisDisplay) * 100 : 0;
+    const ownerLabel =
+      asset.ownership === "shared"
+        ? "Partagé"
+        : members.find((m) => getMemberKey(m) === asset.ownership)?.name || "";
+    const subtypeLabel = getSubtypeLabel(asset.typeId, asset.subtype, language);
+    // Equity nette : pour un bien lié à un prêt (asset.loanId), valeur du
+    // bien − capital restant dû. Le prêt reste comptabilisé une seule fois
+    // au niveau du patrimoine (loanAgg) : ici c'est un affichage par bien.
+    const linkedLoan = asset.loanId ? loanItems.find((li) => li.loan.id === asset.loanId) : null;
+    const equity = linkedLoan ? val - linkedLoan.conv.balance : null;
+
+    return (
+      <div
+        key={asset.id}
+        style={{ borderBottom: isLast ? "none" : "0.5px solid var(--rule)" }}
+      >
+        <div
+          onClick={() => setEditingAsset(asset)}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            padding: "12px 14px",
+            cursor: "pointer",
+          }}
+        >
+          <div
+            style={{
+              width: 36, height: 36, borderRadius: "var(--radius-md)",
+              background: colors.bg, display: "flex",
+              alignItems: "center", justifyContent: "center", flexShrink: 0,
+            }}
+          >
+            <i className={`ti ${type.icon}`} style={{ fontSize: 16, color: colors.text }} aria-hidden="true" />
+          </div>
+          <div style={isAccount ? { width: 96, flexShrink: 0, minWidth: 0 } : { flex: 1, minWidth: 0 }}>
+            <p style={{ fontSize: 12, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{asset.name}</p>
+            <p style={{ fontSize: 10, color: "var(--ink-3)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              {subtypeLabel && `${subtypeLabel} · `}
+              {asset.apiId && `${asset.quantity} ${asset.apiId.toUpperCase()} · `}
+              {ownerLabel}
+              {asset.ownership === "shared" && ` (${asset.sharePct ?? 50}/${100 - (asset.sharePct ?? 50)})`}
+            </p>
+          </div>
+          {/* Bouton bancaire juste à côté du nom. La colonne de nom a une
+              largeur fixe (isAccount) → tous les boutons « Connecter »
+              démarrent au même x, quelle que soit la longueur du nom ; le
+              spacer qui suit repousse le solde à droite. */}
+          {isAccount && (
+            <ConnectBankButton asset={asset} compact onSuccess={() => setEditingAsset(null)} />
+          )}
+          {isAccount && <div style={{ flex: 1 }} />}
+          {asset.comments?.length > 0 && (
+            <CommentBubble count={asset.comments.length} onClick={() => setCommentsAsset(asset)} />
+          )}
+          <div style={{ textAlign: "right", flexShrink: 0 }}>
+            {priceUnavailable ? (
+              <p style={{ fontSize: 13, fontWeight: 500, color: "var(--ink-3)" }} title={t("wealth_price_unavailable")}>
+                {t("wealth_price_unavailable_short")}
+              </p>
+            ) : showNative ? (
+              <>
+                <p style={{ fontSize: 12, fontWeight: 500, color: type.isLiability ? "var(--red)" : "var(--ink)" }}>
+                  {sign}{formatAmount(asset.value)} {nativeSymbol}
+                </p>
+                <p style={{ fontSize: 10, color: "var(--ink-3)", marginTop: 1 }}>
+                  ≈ {sign}{formatAmount(val)} {currencySymbol}
+                </p>
+              </>
+            ) : (
+              <p style={{ fontSize: 12, fontWeight: 500, color: type.isLiability ? "var(--red)" : "var(--ink)" }}>
+                {sign}{formatAmount(val)} {currencySymbol}
+              </p>
+            )}
+            {/* Rendement total depuis l'achat (si coût investi renseigné),
+                sinon variation 24h pour les actifs cotés. */}
+            {hasCost ? (
+              <p style={{ fontSize: 11, color: gainPct >= 0 ? "var(--sage)" : "var(--tang)", marginTop: 1 }} title={t("wealth_since_purchase")}>
+                {gainPct >= 0 ? "+" : ""}{gainPct.toFixed(1)}%
+              </p>
+            ) : liveChanges[asset.id] !== undefined ? (
+              <p style={{ fontSize: 11, color: liveChanges[asset.id] >= 0 ? "var(--sage)" : "var(--tang)", marginTop: 1 }}>
+                {liveChanges[asset.id] >= 0 ? "+" : ""}{liveChanges[asset.id].toFixed(2)}%
+              </p>
+            ) : null}
+            {/* Equity nette (bien − prêt lié). */}
+            {equity !== null && (
+              <p style={{ fontSize: 10, color: "var(--ink-3)", marginTop: 1 }}>
+                {t("wealth_net_equity")} {formatAmount(equity)} {currencySymbol}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Bandeau de reconnexion : comptes dont la connexion Plaid est à réparer
+  // (statut poussé par le webhook). Le bouton « Reconnecter » vit dans chaque
+  // ligne concernée ; ce bandeau ne fait que résumer.
+  function renderBankBanner(typeAssets) {
+    const attention = typeAssets.filter((a) => a.bankConnected && a.bankStatus && a.bankStatus !== "active");
+    if (attention.length === 0) return null;
+    const msg = attention.length === 1
+      ? t("bank_banner_one")
+      : t("bank_banner_many").replace("{count}", attention.length);
+    return (
+      <div style={{
+        display: "flex", alignItems: "center", gap: 8,
+        padding: "10px 14px", borderBottom: "0.5px solid var(--rule)",
+        background: "var(--amber-light, #fff4e0)",
+      }}>
+        <i className="ti ti-alert-triangle" style={{ fontSize: 15, color: "var(--amber, #e0932f)", flexShrink: 0 }} aria-hidden="true" />
+        <span style={{ fontSize: 12.5, color: "var(--amber, #e0932f)", fontWeight: 600 }}>{msg}</span>
+      </div>
+    );
+  }
+
+  // Ligne repliable d'une catégorie, dans « Mes actifs » / « Mes passifs » :
+  // icône, nom, nombre d'entrées, total, chevron. Le panneau déplié contient les
+  // lignes individuelles rendues par `children`.
+  function renderGroupRow({ key, icon, color, label, count, total, isLiability, children, isLast }) {
+    const open = openGroups.includes(key);
+    const colors = COLOR_MAP[color] || COLOR_MAP.sky;
+    return (
+      <div key={key}>
+        <button
+          type="button"
+          onClick={() => toggleGroup(key)}
+          aria-expanded={open}
+          style={{
+            display: "flex", alignItems: "center", gap: 10, width: "100%",
+            padding: "11px 14px", border: 0, background: open ? colors.bg : "none",
+            font: "inherit", color: "inherit", textAlign: "left", cursor: "pointer",
+            borderBottom: open || !isLast ? "0.5px solid var(--rule)" : "none",
+          }}
+        >
+          <i className={`ti ${icon}`} style={{ fontSize: 16, width: 22, textAlign: "center", flexShrink: 0, color: colors.text }} aria-hidden="true" />
+          <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {label}
+          </span>
+          <span style={{ fontSize: 11, color: "var(--ink-3)", background: "var(--rule)", borderRadius: 20, padding: "1px 7px", flexShrink: 0 }}>
+            {count}
+          </span>
+          <span style={{ fontSize: 13.5, fontWeight: 600, flexShrink: 0, color: isLiability ? "var(--tang)" : "var(--ink)" }}>
+            {isLiability ? "−" : ""}{formatAmount(total)} {currencySymbol}
+          </span>
+          <i
+            className="ti ti-chevron-right"
+            style={{
+              fontSize: 14, color: "var(--ink-4)", flexShrink: 0,
+              transform: open ? "rotate(90deg)" : "none", transition: "transform 0.18s ease",
+            }}
+            aria-hidden="true"
+          />
+        </button>
+        {open && <div style={{ borderBottom: isLast ? "none" : "0.5px solid var(--rule)" }}>{children()}</div>}
+      </div>
+    );
+  }
+
+  // Carte « Mes actifs » / « Mes passifs » : une ligne repliable par catégorie,
+  // là où chaque catégorie occupait auparavant un widget de premier rang. Onze
+  // cartes possibles se replient ainsi en deux, et le patrimoine net cesse
+  // d'être noyé au milieu de cartes qui pèsent visuellement autant que lui.
+  function renderAssetGroupCard(isLiability) {
+    // Catégories d'actifs non vides, de la plus lourde à la plus légère.
+    const typeRows = ASSET_TYPES
+      .filter((ty) => !!ty.isLiability === isLiability)
+      .map((ty) => ({ type: ty, list: assetsOfType(ty.id) }))
+      .filter(({ list }) => list.length > 0)
+      .map(({ type, list }) => ({
+        key: `type_${type.id}`,
+        icon: type.icon,
+        color: type.color,
+        label: language === "en" && type.nameEn ? type.nameEn : type.name,
+        count: list.length,
+        total: list.reduce((s, a) => s + (globalScope === null ? getAssetValue(a) : getMemberShare(a, globalScope)), 0),
+        render: () => (
+          <>
+            {type.id === "account" && renderBankBanner(list)}
+            {list.map((a, i) => renderAssetRow(a, type, i === list.length - 1))}
+          </>
+        ),
+      }))
+      .sort((a, b) => b.total - a.total);
+
+    // Côté passifs, les crédits rejoignent les dettes du Patrimoine : le foyer
+    // les lit comme un même poste, regroupés par type de prêt. Le rendu "credits"
+    // de renderWealthWidget existe toujours mais son id n'est pas dans
+    // FIXED_WEALTH_WIDGETS, donc il ne s'affiche pas sur cet onglet : cette carte
+    // est bien le seul endroit où les crédits pèsent ici. Un clic sur une ligne
+    // ouvre l'onglet Crédits, qui porte l'avancement et les échéances.
+    if (isLiability) {
+      const byLoanType = {};
+      for (const item of loanItems) {
+        if (item.state.isPaidOff || !(item.conv.balance > 0)) continue;
+        const id = item.loan.typeId || "other";
+        (byLoanType[id] ||= []).push(item);
+      }
+      for (const [id, items] of Object.entries(byLoanType)) {
+        typeRows.push({
+          key: `loan_${id}`,
+          icon: loanType(id).icon,
+          color: loanType(id).color,
+          label: t(`loan_type_${id}`),
+          count: items.length,
+          total: items.reduce((s, it) => s + it.conv.balance, 0),
+          render: () => (
+            <>
+              {items.map((it, i) => (
+                <div
+                  key={it.loan.id}
+                  onClick={onOpenCredits}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 10, padding: "10px 14px 10px 36px",
+                    cursor: onOpenCredits ? "pointer" : "default",
+                    borderBottom: i === items.length - 1 ? "none" : "0.5px solid var(--rule)",
+                  }}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: 12, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {it.loan.name || t(`loan_type_${id}`)}
+                    </p>
+                    <p style={{ fontSize: 10, color: "var(--ink-3)" }}>
+                      {t("loan_repaid_pct").replace("{pct}", Math.round((it.state.progress || 0) * 100))}
+                    </p>
+                  </div>
+                  <p style={{ fontSize: 12, fontWeight: 500, color: "var(--tang)", flexShrink: 0 }}>
+                    −{formatAmount(it.conv.balance)} {currencySymbol}
+                  </p>
+                </div>
+              ))}
+            </>
+          ),
+        });
+      }
+      typeRows.sort((a, b) => b.total - a.total);
+    }
+
+    if (typeRows.length === 0) return null;
+    const sectionTotal = typeRows.reduce((s, r) => s + r.total, 0);
+
     return (
       <WidgetCard
-        icon={type.icon}
-        accent={type.isLiability ? "pink" : "mint"}
-        title={language === "en" && type.nameEn ? type.nameEn : type.name}
+        icon={isLiability ? "ti-credit-card" : "ti-wallet"}
+        accent={isLiability ? "pink" : "ocean"}
+        title={isLiability ? t("wealth_my_liabilities") : t("wealth_my_assets")}
         flush
       >
         <div>
-          {/* Bandeau de reconnexion : comptes dont la connexion Plaid est à
-              réparer (statut poussé par le webhook). Le bouton "Reconnecter"
-              vit dans chaque ligne concernée ; ce bandeau ne fait que résumer. */}
-          {type.id === "account" && (() => {
-            const attention = typeAssets.filter((a) => a.bankConnected && a.bankStatus && a.bankStatus !== "active");
-            if (attention.length === 0) return null;
-            const msg = attention.length === 1
-              ? t("bank_banner_one")
-              : t("bank_banner_many").replace("{count}", attention.length);
-            return (
-              <div style={{
-                display: "flex", alignItems: "center", gap: 8,
-                padding: "10px 14px", borderBottom: "0.5px solid var(--rule)",
-                background: "var(--amber-light, #fff4e0)",
-              }}>
-                <i className="ti ti-alert-triangle" style={{ fontSize: 15, color: "var(--amber, #e0932f)", flexShrink: 0 }} aria-hidden="true" />
-                <span style={{ fontSize: 12.5, color: "var(--amber, #e0932f)", fontWeight: 600 }}>{msg}</span>
-              </div>
-            );
-          })()}
-          {/* Total de la catégorie : sur les comptes en banque toujours,
-              et sur toute autre catégorie contenant au moins deux entrées.
-              Filtrable par membre (Famille / A / B) quand la catégorie
-              comporte des entrées pour plus d'un membre. */}
-          {(type.id === "account" || typeAssets.length >= 2) && (() => {
-            const scope = globalScope;
-            const catTotal = typeAssets.reduce(
-              (s, a) => s + (scope === null ? getAssetValue(a) : getMemberShare(a, scope)),
-              0
-            );
-            const label = type.id === "account" ? t("bank_total_available") : t("wealth_category_total");
-            return (
-              <div style={{ padding: "12px 14px", borderBottom: "0.5px solid var(--rule)" }}>
-                <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10 }}>
-                  <span style={{ fontSize: 13.5, color: "var(--ink-2)", fontWeight: 600 }}>{label}</span>
-                  <span style={{ fontSize: 18, fontWeight: 700, color: type.isLiability ? "var(--red)" : "var(--ink)" }}>
-                    {type.isLiability ? "−" : ""}{formatAmount(catTotal)} {currencySymbol}
-                  </span>
-                </div>
-              </div>
-            );
-          })()}
-          {typeAssets.map((asset, i) => {
-            const val = getAssetValue(asset);
-            // Actif dont la valeur dérive d'un cours (actions/crypto) sans aucune
-            // source exploitable : ni cours live, ni prix unitaire manuel, ni
-            // valeur stockée POSITIVE. Le test portait sur `Number.isFinite`, donc
-            // une valeur à 0 laissée en base faisait afficher un « 0 » affirmatif
-            // au lieu de reconnaître qu'aucun prix n'est disponible.
-            const priceUnavailable =
-              type.hasApiPrice &&
-              !(livePrices[asset.id] > 0) &&
-              !(asset.manualPrice > 0) &&
-              !(asset.value > 0);
-            // Affichage devise native : pour les actifs à valeur stockée (comptes,
-            // liquidités, AV, immobilier…) libellés dans une devise ≠ devise de
-            // résumé, on montre le solde dans SA devise (gros) + l'équivalent
-            // converti (petit). Les actifs cotés (actions/crypto) restent en devise
-            // de résumé (pas de devise native pertinente ici).
-            const nativeCur = asset.currency || displayCurrency;
-            const showNative = !type.hasApiPrice && nativeCur !== displayCurrency;
-            const nativeSymbol = ALL_CURRENCIES.find((c) => c.code === nativeCur)?.symbol || nativeCur;
-            const sign = type.isLiability ? "−" : "";
-            // Carte « Compte en banque » : nom en colonne de largeur fixe pour
-            // que les boutons « Connecter » soient tous alignés (cf. plus bas).
-            const isAccount = type.id === "account";
-            // Plus-value latente (lot 2) : coût investi (devise de l'actif) ramené
-            // en devise de résumé, comparé à la valeur actuelle (déjà en devise de
-            // résumé). % de rendement total depuis l'achat.
-            const costBasisDisplay = asset.costBasis
-              ? convert(asset.costBasis, asset.currency || displayCurrency, displayCurrency)
-              : 0;
-            const hasCost = costBasisDisplay > 0 && Number.isFinite(val) && !priceUnavailable;
-            const gainPct = hasCost ? ((val - costBasisDisplay) / costBasisDisplay) * 100 : 0;
-            const ownerLabel =
-              asset.ownership === "shared"
-                ? "Partagé"
-                : members.find((m) => getMemberKey(m) === asset.ownership)?.name || "";
-            const subtypeLabel = getSubtypeLabel(asset.typeId, asset.subtype, language);
-            // Equity nette : pour un bien lié à un prêt (asset.loanId), valeur du
-            // bien − capital restant dû. Le prêt reste comptabilisé une seule fois
-            // au niveau du patrimoine (loanAgg) : ici c'est un affichage par bien.
-            const linkedLoan = asset.loanId ? loanItems.find((li) => li.loan.id === asset.loanId) : null;
-            const equity = linkedLoan ? val - linkedLoan.conv.balance : null;
-
-            return (
-              <div
-                key={asset.id}
-                style={{ borderBottom: i === typeAssets.length - 1 ? "none" : "0.5px solid var(--rule)" }}
-              >
-                <div
-                  onClick={() => setEditingAsset(asset)}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    padding: "12px 14px",
-                    cursor: "pointer",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: 36, height: 36, borderRadius: "var(--radius-md)",
-                      background: colors.bg, display: "flex",
-                      alignItems: "center", justifyContent: "center", flexShrink: 0,
-                    }}
-                  >
-                    <i className={`ti ${type.icon}`} style={{ fontSize: 16, color: colors.text }} aria-hidden="true" />
-                  </div>
-                  <div style={isAccount ? { width: 96, flexShrink: 0, minWidth: 0 } : { flex: 1, minWidth: 0 }}>
-                    <p style={{ fontSize: 12, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{asset.name}</p>
-                    <p style={{ fontSize: 10, color: "var(--ink-3)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                      {subtypeLabel && `${subtypeLabel} · `}
-                      {asset.apiId && `${asset.quantity} ${asset.apiId.toUpperCase()} · `}
-                      {ownerLabel}
-                      {asset.ownership === "shared" && ` (${asset.sharePct ?? 50}/${100 - (asset.sharePct ?? 50)})`}
-                    </p>
-                  </div>
-                  {/* Bouton bancaire juste à côté du nom. La colonne de nom a une
-                      largeur fixe (isAccount) → tous les boutons « Connecter »
-                      démarrent au même x, quelle que soit la longueur du nom ; le
-                      spacer qui suit repousse le solde à droite. */}
-                  {isAccount && (
-                    <ConnectBankButton asset={asset} compact onSuccess={() => setEditingAsset(null)} />
-                  )}
-                  {isAccount && <div style={{ flex: 1 }} />}
-                  {asset.comments?.length > 0 && (
-                    <CommentBubble count={asset.comments.length} onClick={() => setCommentsAsset(asset)} />
-                  )}
-                  <div style={{ textAlign: "right", flexShrink: 0 }}>
-                    {priceUnavailable ? (
-                      <p style={{ fontSize: 13, fontWeight: 500, color: "var(--ink-3)" }} title={t("wealth_price_unavailable")}>
-                        {t("wealth_price_unavailable_short")}
-                      </p>
-                    ) : showNative ? (
-                      <>
-                        <p style={{ fontSize: 12, fontWeight: 500, color: type.isLiability ? "var(--red)" : "var(--ink)" }}>
-                          {sign}{formatAmount(asset.value)} {nativeSymbol}
-                        </p>
-                        <p style={{ fontSize: 10, color: "var(--ink-3)", marginTop: 1 }}>
-                          ≈ {sign}{formatAmount(val)} {currencySymbol}
-                        </p>
-                      </>
-                    ) : (
-                      <p style={{ fontSize: 12, fontWeight: 500, color: type.isLiability ? "var(--red)" : "var(--ink)" }}>
-                        {sign}{formatAmount(val)} {currencySymbol}
-                      </p>
-                    )}
-                    {/* Rendement total depuis l'achat (si coût investi renseigné),
-                        sinon variation 24h pour les actifs cotés. */}
-                    {hasCost ? (
-                      <p style={{ fontSize: 11, color: gainPct >= 0 ? "var(--sage)" : "var(--tang)", marginTop: 1 }} title={t("wealth_since_purchase")}>
-                        {gainPct >= 0 ? "+" : ""}{gainPct.toFixed(1)}%
-                      </p>
-                    ) : liveChanges[asset.id] !== undefined ? (
-                      <p style={{ fontSize: 11, color: liveChanges[asset.id] >= 0 ? "var(--sage)" : "var(--tang)", marginTop: 1 }}>
-                        {liveChanges[asset.id] >= 0 ? "+" : ""}{liveChanges[asset.id].toFixed(2)}%
-                      </p>
-                    ) : null}
-                    {/* Equity nette (bien − prêt lié). */}
-                    {equity !== null && (
-                      <p style={{ fontSize: 10, color: "var(--ink-3)", marginTop: 1 }}>
-                        {t("wealth_net_equity")} {formatAmount(equity)} {currencySymbol}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+          <div style={{ padding: "12px 14px", borderBottom: "0.5px solid var(--rule)" }}>
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10 }}>
+              <span style={{ fontSize: 13.5, color: "var(--ink-2)", fontWeight: 600 }}>{t("wealth_category_total")}</span>
+              <span style={{ fontSize: 18, fontWeight: 700, color: isLiability ? "var(--tang)" : "var(--ink)" }}>
+                {isLiability ? "−" : ""}{formatAmount(sectionTotal)} {currencySymbol}
+              </span>
+            </div>
+          </div>
+          {typeRows.map((row, i) =>
+            renderGroupRow({ ...row, isLiability, children: row.render, isLast: i === typeRows.length - 1 })
+          )}
         </div>
       </WidgetCard>
     );
   }
+
 
   if (editingAsset) {
     return (

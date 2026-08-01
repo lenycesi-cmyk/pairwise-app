@@ -201,17 +201,21 @@ export function useWealthPrefs() {
   return useWidgetPrefs("wealthLayout", DEFAULT_WEALTH_WIDGETS);
 }
 
-// Widgets « fixes » de l'onglet Patrimoine (hors cartes d'actifs par type).
-const FIXED_WEALTH_WIDGETS = ["net_worth", "evolution", "allocation", "allocation_target", "projection", "fx_exposure", "calculator"];
+// Widgets de l'onglet Patrimoine. Liste complète depuis que les catégories
+// d'actifs sont des lignes repliables de « Mes actifs » / « Mes passifs ».
+const FIXED_WEALTH_WIDGETS = ["net_worth", "evolution", "my_assets", "my_liabilities", "allocation", "allocation_target", "projection", "fx_exposure", "calculator"];
 
-// Layout de l'onglet Patrimoine PAR UTILISATEUR, incluant les cartes d'actifs par
-// type comme widgets déplaçables/masquables (id = "asset_<typeId>"), au même titre
-// que les widgets fixes. Même mécanique que useBudgetLayout : on compose
-// [widgets fixes, ...cartes d'actifs présentes] et on fusionne avec la disposition
-// enregistrée (users/{uid}.wealthLayout) — nouveaux ids ajoutés (visibles) à la
-// fin, ids disparus retirés. Rétro-compatible avec l'ancien format (mêmes ids
-// pour les widgets fixes ; member_allocation, absent de la base, est ignoré).
-export function useWealthLayout(assetTypeIds) {
+// Layout de l'onglet Patrimoine PAR UTILISATEUR. La liste des widgets est
+// désormais fixe : les catégories d'actifs, qui occupaient chacune un widget
+// « asset_<typeId> », vivent maintenant comme lignes repliables dans les deux
+// cartes « Mes actifs » et « Mes passifs ».
+//
+// Les ids « asset_* » enregistrés dans users/{uid}.wealthLayout ne figurent plus
+// dans la base et sont donc simplement ignorés à la lecture — un utilisateur qui
+// avait masqué ou réordonné ses cartes de catégorie retrouve l'ordre par défaut,
+// sans que rien ne casse. C'est le seul effet de bord de la refonte, et il ne
+// vaut pas le code de migration qu'il faudrait pour le rattraper.
+export function useWealthLayout() {
   const { user } = useAuth();
   const [saved, setSaved] = useState(null);
 
@@ -223,9 +227,8 @@ export function useWealthLayout(assetTypeIds) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.uid]);
 
-  const idsKey = assetTypeIds.join(",");
   const widgets = useMemo(() => {
-    const base = [...FIXED_WEALTH_WIDGETS, ...assetTypeIds.map((id) => `asset_${id}`)];
+    const base = FIXED_WEALTH_WIDGETS;
     const baseSet = new Set(base);
     const ordered = [];
     const seen = new Set();
@@ -237,8 +240,7 @@ export function useWealthLayout(assetTypeIds) {
     }
     for (const id of base) if (!seen.has(id)) ordered.push({ id, visible: true });
     return ordered;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [saved, idsKey]);
+  }, [saved]);
 
   const saveWidgets = useCallback(
     (newWidgets) => {
