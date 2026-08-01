@@ -24,6 +24,7 @@ import { useLoanProgress } from "../hooks/useLoanProgress";
 import { loanType } from "../data/loanTypes";
 import { netWorthMonthlyDelta } from "../utils/netWorthDelta";
 import { shareForMember } from "../utils/memberShare";
+import { valueOfAsset } from "../utils/assetValuation";
 import { useWealthLayout } from "../hooks/useDashboardPrefs";
 import WidgetCanvas from "../components/WidgetCanvas";
 import ScopeFilter from "../components/ScopeFilter";
@@ -129,25 +130,12 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
     }
   }, [assets.length, ratesLoading, displayCurrency]);
 
+  // La règle de valorisation vit dans utils/assetValuation.js, partagé tel quel
+  // avec les Cloud Functions : l'enregistrement quotidien du patrimoine doit
+  // valoriser exactement comme cet écran, sinon l'écart s'écrit dans l'historique
+  // et rien ne le corrige ensuite.
   function getAssetValue(asset) {
-    // Un cours live valide (> 0) prime ; sinon on retombe sur le prix manuel puis
-    // la valeur stockée. Le « > 0 » (plutôt que « !== undefined ») évite qu'un
-    // cours nul/invalide masque le prix unitaire manuel.
-    if (livePrices[asset.id] > 0) return livePrices[asset.id];
-    // Repli sur un prix unitaire manuel quand l'API n'a pas coté l'actif
-    // (clé "demo" limitée) : valeur = prix manuel × quantité.
-    if (asset.manualPrice > 0) {
-      // Devise propre au prix manuel si renseignée, sinon devise de l'actif : un
-      // titre peut être coté dans une devise et acheté dans une autre.
-      const priceCur = asset.manualPriceCurrency || asset.currency || displayCurrency;
-      const converted = convert(asset.manualPrice * (asset.quantity || 1), priceCur, displayCurrency);
-      return Number.isFinite(converted) ? converted : 0;
-    }
-    // API-priced assets (stocks/crypto) store no `value` — only quantity + apiId.
-    // If the live price fetch failed (e.g. Twelve Data's demo key only prices AAPL),
-    // we have nothing to convert, so guard against NaN leaking into per-asset display and totals.
-    const converted = convert(asset.value, asset.currency || displayCurrency, displayCurrency);
-    return Number.isFinite(converted) ? converted : 0;
+    return valueOfAsset(asset, { livePrices, convert, displayCurrency });
   }
 
   function getMemberShare(asset, memberUid) {

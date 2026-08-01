@@ -32,6 +32,22 @@ const KEY_PATH =
   "C:\\Users\\Chenipe\\Documents\\Projet Pairwise\\Keys\\pairwise-12df2-97a5d677db9b.json";
 const FUNCTIONS_DIR = join(import.meta.dirname, "..", "functions");
 
+// Modules PARTAGÉS entre le front et les fonctions, copiés dans le paquet au
+// moment de l'empaquetage plutôt que dupliqués dans le dépôt : une seule source
+// de vérité, donc rien qui puisse diverger en silence. Le zip n'embarque que
+// `functions/`, d'où la copie.
+//
+// `valueOfAsset` est le cas critique : l'instantané quotidien du patrimoine est
+// écrit par une fonction, tandis que l'onglet Patrimoine valorise les mêmes
+// actifs dans le navigateur. Deux implémentations finiraient par se contredire,
+// et l'écart s'inscrirait dans un historique que rien ne recalcule.
+//
+// Copiés en .mjs : `functions/` est en CommonJS, les modules du front en ESM ;
+// l'extension permet un `await import()` depuis une fonction sans conversion.
+const SHARED_MODULES = [
+  ["src/utils/assetValuation.js", "shared/assetValuation.mjs"],
+];
+
 const FUNCTIONS_TO_DEPLOY = [
   "createLinkToken",
   "exchangeToken",
@@ -126,6 +142,10 @@ async function zipFunctions() {
   const zipPath = join(tmpdir(), "pairwise-functions.zip");
   const zip = new AdmZip();
   addDirToZip(zip, FUNCTIONS_DIR, "");
+  for (const [from, to] of SHARED_MODULES) {
+    zip.addFile(to, readFileSync(join(import.meta.dirname, "..", from)));
+    console.log(`  Module partagé embarqué : ${from} → ${to}`);
+  }
   zip.writeZip(zipPath);
   return zipPath;
 }
