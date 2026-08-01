@@ -489,6 +489,8 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
               gauche correspondant, et .pw-networth-head (index.css) aligne les
               lignes de base. Voir le commentaire là-bas — l'alignement est la
               raison d'être de la grille, il ne survivrait pas à un retour au flex. */}
+          {/* Les deux insights ne se resserrent que s'ils sont deux : seul, un
+              insight reste sur la ligne du montant, sans décalage. */}
           <div className="pw-networth-head">
             <p className="pw-nw-label" style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ink-3)" }}>
               {scopeName ? t("wealth_member_total").replace("{name}", scopeName) : t("wealth_household_total")}
@@ -496,7 +498,7 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
             {monthlyDelta && (
               // Seul insight présent ⇒ il rejoint la ligne du montant, pour ne pas
               // laisser une ligne vide en face du total.
-              <span className="pw-nw-ins" style={{ gridRow: unrealized.any ? 1 : 2 }}>
+              <span className="pw-nw-ins" data-row={unrealized.any ? "1" : undefined} style={{ gridRow: unrealized.any ? 1 : 2 }}>
                 <span style={{ fontSize: 10, fontWeight: 600, color: "var(--ink-3)" }}>{t("wealth_over_month")}</span>
                 {renderInsightTag(
                   `${monthlyDelta.amount >= 0 ? "↑ +" : "↓ −"}${formatAmount(Math.abs(monthlyDelta.amount))} ${currencySymbol}`,
@@ -508,7 +510,7 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
               <AnimatedNumber value={scopedNetWorth} format={formatAmount} /> {currencySymbol}
             </p>
             {unrealized.any && (
-              <span className="pw-nw-ins" style={{ gridRow: 2 }}>
+              <span className="pw-nw-ins" data-row={monthlyDelta ? "2" : undefined} style={{ gridRow: 2 }}>
                 <span style={{ fontSize: 10, fontWeight: 600, color: "var(--ink-3)" }}>{t("wealth_gain_short")}</span>
                 {/* Le pourcentage seul, pas le montant : la colonne est déjà la
                     plus large des dispositions testées, et y ajouter le montant
