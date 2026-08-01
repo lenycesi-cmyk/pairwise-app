@@ -46,6 +46,9 @@ const FUNCTIONS_DIR = join(import.meta.dirname, "..", "functions");
 // l'extension permet un `await import()` depuis une fonction sans conversion.
 const SHARED_MODULES = [
   ["src/utils/assetValuation.js", "shared/assetValuation.mjs"],
+  ["src/utils/priceTargets.js", "shared/priceTargets.mjs"],
+  ["src/utils/loanMath.js", "shared/loanMath.mjs"],
+  ["src/data/assetTypes.js", "shared/assetTypes.mjs"],
 ];
 
 const FUNCTIONS_TO_DEPLOY = [
@@ -61,6 +64,7 @@ const FUNCTIONS_TO_DEPLOY = [
   "sendPush",
   "sendRecurringReminders",
   "monthlySummary",
+  "recordNetWorthSnapshots",
   "sendInactivityReminders",
 ];
 
@@ -206,6 +210,10 @@ async function deployFunction(token, name, storageSource, isScheduled = false) {
         // dormant, Plaid inchangé (cf. functions/index.js, CLAUDE.md).
         { key: "ENABLE_BANKING_APP_ID", projectId: PROJECT_ID, secret: "ENABLE_BANKING_APP_ID", version: "latest" },
         { key: "ENABLE_BANKING_KEY", projectId: PROJECT_ID, secret: "ENABLE_BANKING_KEY", version: "latest" },
+        // Cotation des titres pour l'instantané quotidien. Absente ⇒ les titres
+        // ne sont pas cotés et retombent sur leur prix manuel ; la crypto et le
+        // reste du patrimoine continuent d'être enregistrés.
+        { key: "TWELVE_DATA_KEY", projectId: PROJECT_ID, secret: "TWELVE_DATA_KEY", version: "latest" },
       ],
     },
     ...(isScheduled ? {} : {}), // schedule handled by Cloud Scheduler separately
@@ -314,7 +322,7 @@ async function main() {
   // Fonctions onSchedule : déployées comme HTTP + job Cloud Scheduler
   // upserté à l'étape 5 (le décorateur onSchedule ne suffit pas avec ce
   // pipeline REST custom).
-  const scheduled = ["syncAllBalances", "sendRecurringReminders", "monthlySummary", "sendInactivityReminders"];
+  const scheduled = ["syncAllBalances", "sendRecurringReminders", "monthlySummary", "sendInactivityReminders", "recordNetWorthSnapshots"];
 
   console.log("4. Déploiement des fonctions...");
   for (const name of FUNCTIONS_TO_DEPLOY) {
@@ -331,6 +339,7 @@ async function main() {
   await upsertSchedulerJob(token, "sendRecurringReminders", "0 8 * * *", "Europe/Paris");
   await upsertSchedulerJob(token, "monthlySummary", "0 8 1 * *", "Europe/Paris");
   await upsertSchedulerJob(token, "sendInactivityReminders", "0 20 * * *", "Europe/Paris");
+  await upsertSchedulerJob(token, "recordNetWorthSnapshots", "0 23 * * *", "Europe/Paris");
 
   console.log("\n✅ Déploiement terminé !");
   console.log(`   Cloud Functions: https://console.cloud.google.com/functions/list?project=${PROJECT_ID}`);

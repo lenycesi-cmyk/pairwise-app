@@ -114,6 +114,26 @@ describe("couples/{id}/transactions", () => {
   });
 });
 
+describe("couples/{id}/netWorthSnapshots", () => {
+  it("un membre lit l'historique détaillé", async () => {
+    await assertSucceeds(getDoc(doc(as(BOB), "couples", COUPLE, "netWorthSnapshots", "2026-08-01")));
+  });
+
+  it("un non-membre ne lit pas", async () => {
+    await assertFails(getDoc(doc(as(MALLORY), "couples", COUPLE, "netWorthSnapshots", "2026-08-01")));
+  });
+
+  it("même un membre ne peut PAS écrire un instantané", async () => {
+    // Un instantané est un chiffre historique que rien ne recalcule. Laisser le
+    // client en écrire, ce serait lui permettre de réécrire son propre passé et
+    // rendre le tableau d'évolution invérifiable. Seule la fonction planifiée
+    // écrit ici, via l'admin SDK qui contourne ces règles.
+    await assertFails(
+      setDoc(doc(as(ALICE), "couples", COUPLE, "netWorthSnapshots", "2026-08-01"), { value: 1 })
+    );
+  });
+});
+
 describe("données sensibles verrouillées côté serveur", () => {
   it("bankConnections est inaccessible au client, même membre", async () => {
     await assertFails(getDoc(doc(as(ALICE), "couples", COUPLE, "bankConnections", "a1")));

@@ -7,6 +7,7 @@ const crypto = require("node:crypto");
 const { KeyManagementServiceClient } = require("@google-cloud/kms");
 const { PlaidApi, PlaidEnvironments, Configuration } = require("plaid");
 const eb = require("./enableBanking");
+const netWorth = require("./netWorthSnapshots");
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -1163,5 +1164,23 @@ exports.sendInactivityReminders = onSchedule(
         console.error(`Inactivity reminder failed for ${coupleDoc.id}:`, err.message);
       }
     }
+  }
+);
+
+// ── Instantané quotidien du patrimoine ───────────────────────────────────────
+// Comble les trous de l'historique : le navigateur n'enregistre que lorsque
+// l'utilisateur ouvre l'onglet Patrimoine, ce qui donne un historique creux et
+// un tableau mensuel qui affiche « le dernier jour de connexion » plutôt que la
+// fin du mois. 23 h Paris : la journée est jouée, les marchés US sont clos.
+//
+// TWELVE_DATA_KEY est optionnelle. Absente, les titres ne sont pas cotés et
+// retombent sur leur prix manuel — la crypto et le reste continuent, exactement
+// comme les autres intégrations opt-in de ce projet.
+const TWELVE_DATA_KEY = defineSecret("TWELVE_DATA_KEY");
+
+exports.recordNetWorthSnapshots = onSchedule(
+  { schedule: "every day 23:00", timeZone: "Europe/Paris", timeoutSeconds: 540, secrets: [TWELVE_DATA_KEY] },
+  async () => {
+    await netWorth.runDailySnapshots(db, { apiKey: process.env.TWELVE_DATA_KEY });
   }
 );

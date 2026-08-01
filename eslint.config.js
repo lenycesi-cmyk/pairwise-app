@@ -18,4 +18,15 @@ export default defineConfig([
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
   },
+  {
+    // Code qui tourne sous Node, pas dans le navigateur : Cloud Functions,
+    // scripts de déploiement et tests. Sans ce bloc, `require`, `module` et
+    // `process` y étaient signalés comme indéfinis — un bruit permanent qui
+    // noyait les vraies erreurs et rendait la sortie du lint inutilisable comme
+    // garde-fou.
+    files: ['functions/**/*.js', 'scripts/**/*.js', 'tests/**/*.js', '*.config.js'],
+    languageOptions: {
+      globals: { ...globals.node },
+    },
+  },
 ])

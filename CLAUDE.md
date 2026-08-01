@@ -188,6 +188,55 @@ passes it to `scripts/deploy-functions.js`, which injects it as a runtime env va
 functions' **runtime** service account (same deploy SA here) needs the same
 `cryptoKeyEncrypterDecrypter` role — the binding above covers it.
 
+### Historique du patrimoine : deux niveaux, un seul module de valorisation
+
+L'historique existe sous **deux formes complémentaires**, et il faut savoir laquelle lire :
+
+- `couples/{id}.netWorthHistory` — un tableau `{ date, value, currency }`, **le total seul**. C'est le
+  résumé : graphique d'évolution, `ReportsScreen`, `useInsights` et `netWorthDelta` le lisent, en une
+  seule lecture de document. Ne pas l'enrichir : il est réécrit en entier à chaque instantané.
+- `couples/{id}/netWorthSnapshots/{YYYY-MM-DD}` — **un document par jour**, avec la ventilation
+  `entries` (une ligne PAR ACTIF, `typeId` et libellé recopiés dedans) plus `byType`, `totalAssets`,
+  `totalLiabilities`. C'est ce qui alimente le tableau d'évolution mensuel et toute sélection de
+  période, par requête sur une plage de dates. Lecture réservée aux membres, **écriture interdite au
+  client** (`firestore.rules`) : un instantané est un chiffre que rien ne recalcule, laisser le client
+  y toucher rendrait l'historique invérifiable.
+
+Le stockage est **par actif et non par type** parce que le type se déduit toujours de l'actif, jamais
+l'inverse ; agréger est un problème de lecture, tandis que ce qui n'est pas écrit ne se reconstitue
+jamais. Le libellé est recopié pour qu'un actif supprimé plus tard ne rende pas son historique illisible.
+
+**Deux écrivains, une seule règle de valorisation.** L'onglet Patrimoine écrit quand on l'ouvre
+(`recordNetWorthSnapshot`, total seul) ; la fonction planifiée `recordNetWorthSnapshots`
+([functions/netWorthSnapshots.js](functions/netWorthSnapshots.js)) écrit tous les jours à 23 h Paris.
+Pour qu'ils ne se contredisent jamais, la valorisation vit dans **un seul module**,
+[src/utils/assetValuation.js](src/utils/assetValuation.js), *copié à l'empaquetage* dans le zip des
+fonctions — voir `SHARED_MODULES` dans [scripts/deploy-functions.js](scripts/deploy-functions.js).
+Aucune duplication n'est commitée, donc rien ne peut diverger. Y ajouter un module : une ligne dans
+`SHARED_MODULES`, extension `.mjs` (functions est en CommonJS, le front en ESM → `await import()`).
+
+**Le coût suit les symboles, pas les utilisateurs.** La fonction collecte l'union des `apiId` de *tous*
+les couples (`collectPriceTargets`), cote chaque symbole **une fois**, puis ventile. CoinGecko est
+groupé par 100 ids/requête ; Twelve Data est étalé à 8 requêtes/minute (limite du palier gratuit).
+
+**Règle d'abandon plutôt que de repli.** Contrairement au navigateur, il n'y a **aucune table de taux
+de repli** côté serveur : si `open.er-api.com` est injoignable, la fonction n'écrit **rien**. Un taux
+approximatif affiché se corrige au rechargement ; le même taux figé dans un instantané est faux pour
+toujours, alors qu'une journée manquante se comble d'elle-même.
+
+**Opt-in `TWELVE_DATA_KEY`** (Secret Manager, déjà listé dans `deploy-functions.js`) : absente, les
+titres ne sont pas cotés et retombent sur leur prix manuel ; la crypto et le reste continuent.
+
+**Étape manuelle à ne pas oublier** — Firestore indexe automatiquement chaque champ, y compris ceux des
+objets d'un tableau. Sans exemption, les index de `entries` pèseront plus que les données et
+alourdiront chaque écriture. Le pipeline REST ne déploie pas les index, donc à faire une fois :
+
+```bash
+gcloud firestore fields update entries \
+  --collection-group=netWorthSnapshots --no-enable-auto-index-exemption \
+  --project=pairwise-12df2
+```
+
 ### Push notifications (FCM)
 
 Push notifications go through Firebase Cloud Messaging. The pieces:
