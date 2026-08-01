@@ -466,6 +466,15 @@ button[style*="background: var(--ink)"] {
   gap: 7px;
   white-space: nowrap;
 }
+/* Resserrement demandé : les deux insights se rapprochent de 5 px vers le centre.
+   C'est un décalage VISUEL (transform) et non un changement de ligne — la grille
+   garde ses deux lignes, la hauteur de la tête ne bouge pas, et rien ne pousse le
+   contenu en dessous. Ces 5 px sont en revanche un réglage fixe : contrairement à
+   l'alignement sur les lignes de base, ils ne suivront pas un changement de taille
+   de police. Le décalage n'est appliqué QUE quand les deux insights sont là ; seul,
+   un insight reste aligné sur le montant. */
+.pw-networth-head > .pw-nw-ins[data-row="1"] { transform: translateY(5px); }
+.pw-networth-head > .pw-nw-ins[data-row="2"] { transform: translateY(-5px); }
 .pw-card[data-accent="coral"]::before { background: var(--tang); }
 .pw-card[data-accent="ocean"]::before { background: var(--lavi); }
 .pw-card[data-accent="sky"]::before { background: var(--sky); }
