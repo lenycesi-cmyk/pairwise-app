@@ -390,6 +390,25 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
     my_liabilities: t("wealth_my_liabilities"),
   };
 
+  // Pastille d'insight du widget Patrimoine net : teinte du sens à faible
+  // saturation (vert = ça monte, lavande = plus-value, corail = ça baisse). Elle
+  // doit se voir sans disputer le regard au total, qui reste l'élément dominant.
+  function renderInsightTag(text, tone) {
+    const color = `var(--${tone})`;
+    return (
+      <span
+        style={{
+          display: "inline-flex", alignItems: "center", fontSize: 11.5, fontWeight: 700,
+          padding: "2px 9px", borderRadius: 20, whiteSpace: "nowrap", lineHeight: 1.45,
+          background: `color-mix(in srgb, ${color} 16%, transparent)`,
+          color: `color-mix(in srgb, ${color} 82%, var(--ink))`,
+        }}
+      >
+        {text}
+      </span>
+    );
+  }
+
   // Une section « Actifs » ou « Passifs » du widget Patrimoine net : un en-tête
   // coloré portant le total de la colonne, puis une ligne par poste avec sa part.
   // Le pourcentage se rapporte au total de la section, pas au patrimoine net —
@@ -466,25 +485,47 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
               <i className="ti ti-refresh" style={{ fontSize: 13, color: "var(--ink-3)" }} aria-hidden="true" />
             )}
           </div>
-          <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ink-3)", marginBottom: 3 }}>
-            {scopeName ? t("wealth_member_total").replace("{name}", scopeName) : t("wealth_household_total")}
-          </p>
-          <p style={{ fontSize: 30, fontWeight: 500, color: scopedNetWorth >= 0 ? "var(--sage)" : "var(--tang)" }}>
-            <AnimatedNumber value={scopedNetWorth} format={formatAmount} /> {currencySymbol}
-          </p>
-          {monthlyDelta && (
-            <p style={{ fontSize: 12.5, fontWeight: 600, marginTop: 3, color: monthlyDelta.amount >= 0 ? "var(--sage)" : "var(--tang)" }}>
-              {monthlyDelta.amount >= 0 ? "↑ +" : "↓ −"}{formatAmount(Math.abs(monthlyDelta.amount))} {currencySymbol} {t("wealth_since_last_month")}
-            </p>
-          )}
-          {unrealized.any && (
-            <p style={{ fontSize: 11.5, color: "var(--ink-3)", marginTop: 3 }}>
-              {t("wealth_unrealized_gain")}{" "}
-              <span style={{ fontWeight: 600, color: unrealized.gain >= 0 ? "var(--sage)" : "var(--red)" }}>
-                {unrealized.gain >= 0 ? "+" : "−"}{formatAmount(Math.abs(unrealized.gain))} {currencySymbol} ({unrealized.gain >= 0 ? "+" : ""}{unrealized.pct.toFixed(1)}%)
-              </span>
-            </p>
-          )}
+          {/* Total à gauche, insights en colonne à droite. `alignItems: flex-end`
+              pose la dernière pastille sur la ligne de base du total. La colonne
+              ne rétrécit pas (flexShrink 0) et le total porte minWidth 0 : sur un
+              patrimoine à huit chiffres, c'est le total qui réduit d'un cran
+              plutôt que l'insight qui passe à la ligne — sinon le gain de place
+              s'annule de lui-même. */}
+          <div style={{ display: "flex", alignItems: "flex-end", gap: 14 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ink-3)", marginBottom: 3 }}>
+                {scopeName ? t("wealth_member_total").replace("{name}", scopeName) : t("wealth_household_total")}
+              </p>
+              <p style={{ fontSize: 30, fontWeight: 500, color: scopedNetWorth >= 0 ? "var(--sage)" : "var(--tang)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                <AnimatedNumber value={scopedNetWorth} format={formatAmount} /> {currencySymbol}
+              </p>
+            </div>
+            {(monthlyDelta || unrealized.any) && (
+              <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", gap: 5, alignItems: "flex-end" }}>
+                {monthlyDelta && (
+                  <span style={{ display: "flex", alignItems: "center", gap: 7, whiteSpace: "nowrap" }}>
+                    <span style={{ fontSize: 10, fontWeight: 600, color: "var(--ink-3)" }}>{t("wealth_over_month")}</span>
+                    {renderInsightTag(
+                      `${monthlyDelta.amount >= 0 ? "↑ +" : "↓ −"}${formatAmount(Math.abs(monthlyDelta.amount))} ${currencySymbol}`,
+                      monthlyDelta.amount >= 0 ? "sage" : "tang"
+                    )}
+                  </span>
+                )}
+                {unrealized.any && (
+                  <span style={{ display: "flex", alignItems: "center", gap: 7, whiteSpace: "nowrap" }}>
+                    <span style={{ fontSize: 10, fontWeight: 600, color: "var(--ink-3)" }}>{t("wealth_gain_short")}</span>
+                    {/* Le pourcentage seul, pas le montant : la colonne est déjà
+                        la plus large des variantes testées, et y ajouter le
+                        montant ferait déborder un total à huit chiffres. */}
+                    {renderInsightTag(
+                      `${unrealized.gain >= 0 ? "+" : ""}${unrealized.pct.toFixed(1)}%`,
+                      unrealized.gain >= 0 ? "lavi" : "tang"
+                    )}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* Actifs / passifs côte à côte, puis la barre de proportion : le
               ratio d'endettement se lit avant tout chiffre détaillé. */}
