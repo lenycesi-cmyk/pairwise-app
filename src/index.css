@@ -436,19 +436,35 @@ button[style*="background: var(--ink)"] {
 .pw-card[data-nobar]::before { display: none; }
 
 /* Tête du widget « Patrimoine net » : le total à gauche, les insights à droite.
-   `flex-end` alignerait les BOÎTES, pas les chiffres — et la boîte d'un texte de
-   30 px descend nettement sous le bas des glyphes, ce qui fait flotter les
-   pastilles trop bas. Mesuré : 3,3 px d'écart de ligne de base pour 0 px d'écart
-   de boîte, et l'écart grandit avec la taille de police.
-   `last baseline` aligne les LIGNES DE BASE des dernières lignes : la pastille de
-   plus-value se pose exactement sur celle du total, quelle que soit la police. La
-   première déclaration sert de repli aux navigateurs qui ignorent la seconde —
-   d'où la duplication, qui n'est pas une étourderie. */
+   C'est une GRILLE de deux lignes, pas deux colonnes flex, et la raison tient à
+   l'alignement. En flex, la colonne d'insights est un bloc unique : on ne peut la
+   poser que par son bas (ou par sa dernière ligne de base), et son haut retombe
+   où il veut. En grille, chaque insight partage sa ligne avec l'élément de gauche
+   correspondant — l'intitulé avec « TOTAL DU FOYER », la plus-value avec le
+   montant — et `align-items: baseline` aligne les deux LIGNES DE BASE.
+   Aligner les boîtes ne marche pas : la boîte d'un texte de 30 px descend
+   nettement sous le bas des glyphes. Mesuré, 3,3 px d'écart de ligne de base pour
+   0 px d'écart de boîte, et l'écart grandit avec la taille de police. */
 .pw-networth-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 14px;
+  row-gap: 3px;
+  align-items: baseline;
+}
+.pw-networth-head > .pw-nw-label { grid-area: 1 / 1; }
+.pw-networth-head > .pw-nw-total { grid-area: 2 / 1; }
+/* La colonne de droite ne rétrécit pas (`auto`) et celle du total porte
+   `minmax(0, 1fr)` : sur un patrimoine à huit chiffres, c'est le total qui réduit
+   d'un cran plutôt que l'insight qui passe à la ligne — sinon le gain de place
+   s'annule de lui-même. */
+.pw-networth-head > .pw-nw-ins {
+  grid-column: 2;
+  justify-self: end;
   display: flex;
-  gap: 14px;
-  align-items: flex-end;
-  align-items: last baseline;
+  align-items: baseline;
+  gap: 7px;
+  white-space: nowrap;
 }
 .pw-card[data-accent="coral"]::before { background: var(--tang); }
 .pw-card[data-accent="ocean"]::before { background: var(--lavi); }
