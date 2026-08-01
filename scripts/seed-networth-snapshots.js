@@ -4,34 +4,34 @@
 // ⚠️  CES DONNÉES SONT INVENTÉES. Les instantanés écrits par la fonction
 // planifiée sont exacts ; ceux-ci ne le sont pas. Ils portent donc
 // `source: "seed"`, ce qui permet de les retrouver et de les supprimer d'un
-// coup — voir `--purge` plus bas. À ne jamais lancer sur des données dont on
-// tient à l'exactitude historique.
+// coup — voir `--purge`. À ne jamais lancer sur des données dont on tient à
+// l'exactitude historique.
 //
 // Ce que fait le script : il part de la répartition ACTUELLE du patrimoine
 // (`assets` sur le document du couple), puis remonte le temps en appliquant une
-// dérive mensuelle par type. Les montants sont donc plausibles et cohérents
-// entre eux — le total est toujours la somme de ses lignes — sans prétendre
-// refléter ce qui s'est réellement passé.
+// dérive mensuelle par type. Les montants sont plausibles et cohérents entre eux
+// — le total est toujours la somme de ses lignes — sans prétendre refléter ce qui
+// s'est réellement passé.
 //
+// À lancer DEPUIS LA RACINE DU DÉPÔT :
 //   node scripts/seed-networth-snapshots.js            # 6 mois d'historique
 //   node scripts/seed-networth-snapshots.js --months=12
 //   node scripts/seed-networth-snapshots.js --purge    # supprime les seeds
 //
-// Authentification : même clé de compte de service que scripts/deploy.js
-// (GOOGLE_APPLICATION_CREDENTIALS).
+// Comme scripts/deploy.js, il passe par l'API REST Firestore et signe un JWT
+// avec la clé du compte de service — PAS par firebase-admin, qui n'est pas une
+// dépendance de ce dépôt (elle ne vit que dans functions/).
 
 import { readFileSync } from "node:fs";
-import { createRequire } from "node:module";
-import { buildSnapshotEntries, sumEntriesByType } from "../src/utils/assetValuation.js";
+import { createSign } from "node:crypto";
 import { ASSET_TYPES } from "../src/data/assetTypes.js";
-
-const require = createRequire(import.meta.url);
-const admin = require("firebase-admin");
+import { buildSnapshotEntries, sumEntriesByType } from "../src/utils/assetValuation.js";
 
 const PROJECT_ID = "pairwise-12df2";
 const KEY_PATH =
   process.env.GOOGLE_APPLICATION_CREDENTIALS ||
   "C:\\Users\\Chenipe\\Documents\\Projet Pairwise\\Keys\\pairwise-12df2-97a5d677db9b.json";
+const BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
 
 const args = process.argv.slice(2);
 const PURGE = args.includes("--purge");
@@ -41,22 +41,93 @@ const MONTHS = Number(args.find((a) => a.startsWith("--months="))?.split("=")[1]
 // presque pas, un prêt se rembourse. Purement décoratif — c'est ce qui rend
 // l'historique inventé lisible plutôt que plat.
 const MONTHLY_DRIFT = {
-  crypto: 0.09,
-  stocks: 0.025,
-  bonds: 0.004,
-  life_insurance: 0.006,
-  retirement: 0.008,
-  account: 0.012,
-  cash: 0,
-  real_estate: 0.002,
-  vehicle: -0.01,
-  other_assets: 0,
-  debt: -0.02,
+  crypto: 0.09, stocks: 0.025, bonds: 0.004, life_insurance: 0.006,
+  retirement: 0.008, account: 0.012, cash: 0, real_estate: 0.002,
+  vehicle: -0.01, other_assets: 0, debt: -0.02,
 };
 
+// ── Authentification (identique à scripts/deploy.js) ────────────────────────
+
+function loadServiceAccountKey() {
+  if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
+    return JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
+  }
+  return JSON.parse(readFileSync(KEY_PATH, "utf8"));
+}
+
+async function getAccessToken() {
+  const key = loadServiceAccountKey();
+  const now = Math.floor(Date.now() / 1000);
+  const header = Buffer.from(JSON.stringify({ alg: "RS256", typ: "JWT" })).toString("base64url");
+  const claim = Buffer.from(JSON.stringify({
+    iss: key.client_email,
+    scope: "https://www.googleapis.com/auth/datastore",
+    aud: "https://oauth2.googleapis.com/token",
+    exp: now + 3600,
+    iat: now,
+  })).toString("base64url");
+  const sig = createSign("RSA-SHA256").update(`${header}.${claim}`).sign(key.private_key, "base64url");
+
+  const res = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+      assertion: `${header}.${claim}.${sig}`,
+    }),
+  });
+  const data = await res.json();
+  if (!data.access_token) throw new Error("Authentification échouée : " + JSON.stringify(data));
+  return data.access_token;
+}
+
+async function api(token, method, url, body) {
+  const res = await fetch(url, {
+    method,
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const text = await res.text();
+  if (!res.ok) throw new Error(`${method} ${res.status} : ${text.slice(0, 300)}`);
+  return text ? JSON.parse(text) : null;
+}
+
+// ── Conversion depuis/vers le format « valeurs typées » de l'API REST ───────
+
+function fromValue(v) {
+  if (v == null) return null;
+  if ("doubleValue" in v) return Number(v.doubleValue);
+  if ("integerValue" in v) return Number(v.integerValue);
+  if ("stringValue" in v) return v.stringValue;
+  if ("booleanValue" in v) return v.booleanValue;
+  if ("nullValue" in v) return null;
+  if ("arrayValue" in v) return (v.arrayValue.values || []).map(fromValue);
+  if ("mapValue" in v) return fromFields(v.mapValue.fields || {});
+  return null;
+}
+
+function fromFields(fields) {
+  return Object.fromEntries(Object.entries(fields).map(([k, v]) => [k, fromValue(v)]));
+}
+
+function toValue(v) {
+  if (v === null || v === undefined) return { nullValue: null };
+  if (typeof v === "number") return { doubleValue: v };
+  if (typeof v === "boolean") return { booleanValue: v };
+  if (typeof v === "string") return { stringValue: v };
+  if (Array.isArray(v)) return { arrayValue: { values: v.map(toValue) } };
+  return { mapValue: { fields: toFields(v) } };
+}
+
+function toFields(obj) {
+  return Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, toValue(v)]));
+}
+
+// ── Historique synthétique ──────────────────────────────────────────────────
+
 function seededRandom(seed) {
-  // Générateur déterministe : relancer le script deux fois produit le même
-  // historique, au lieu d'un nouveau jeu de chiffres à chaque exécution.
+  // Déterministe : relancer le script produit le même historique, au lieu d'un
+  // nouveau jeu de chiffres à chaque exécution.
   let x = seed;
   return () => {
     x = (x * 1103515245 + 12345) % 2147483648;
@@ -76,31 +147,36 @@ function monthEndDates(count) {
 }
 
 async function main() {
-  admin.initializeApp({
-    credential: admin.credential.cert(JSON.parse(readFileSync(KEY_PATH, "utf8"))),
-    projectId: PROJECT_ID,
-  });
-  const db = admin.firestore();
+  console.log("1. Authentification...");
+  const token = await getAccessToken();
+  console.log("   OK");
 
-  const couples = await db.collection("couples").get();
   const liabilityIds = new Set(ASSET_TYPES.filter((t) => t.isLiability).map((t) => t.id));
+  const couples = (await api(token, "GET", `${BASE}/couples?pageSize=300`))?.documents || [];
+  console.log(`2. ${couples.length} couple(s) trouvé(s).`);
 
-  for (const coupleDoc of couples.docs) {
-    const data = coupleDoc.data();
-    const col = coupleDoc.ref.collection("netWorthSnapshots");
+  for (const doc of couples) {
+    const coupleId = doc.name.split("/").pop();
+    const data = fromFields(doc.fields || {});
+    const col = `${BASE}/couples/${coupleId}/netWorthSnapshots`;
 
     if (PURGE) {
       // On ne supprime QUE les instantanés synthétiques : ceux écrits par la
       // fonction planifiée sont de vraies mesures et doivent survivre.
-      const seeds = await col.where("source", "==", "seed").get();
-      for (const d of seeds.docs) await d.ref.delete();
-      console.log(`${coupleDoc.id} : ${seeds.size} instantané(s) synthétique(s) supprimé(s).`);
+      const existing = (await api(token, "GET", `${col}?pageSize=500`))?.documents || [];
+      let removed = 0;
+      for (const s of existing) {
+        if (fromFields(s.fields || {}).source !== "seed") continue;
+        await api(token, "DELETE", `https://firestore.googleapis.com/v1/${s.name}`);
+        removed++;
+      }
+      console.log(`   ${coupleId} : ${removed} instantané(s) synthétique(s) supprimé(s).`);
       continue;
     }
 
     const assets = data.assets || [];
     if (assets.length === 0) {
-      console.log(`${coupleDoc.id} : aucun actif, ignoré.`);
+      console.log(`   ${coupleId} : aucun actif, ignoré.`);
       continue;
     }
 
@@ -109,11 +185,12 @@ async function main() {
     // L'historique est inventé de toute façon ; y mêler de vrais taux donnerait
     // une fausse impression d'exactitude.
     const identity = (amount) => (Number.isFinite(amount) ? amount : 0);
-    const ctx = { livePrices: {}, convert: identity, displayCurrency: currency };
-    const today = buildSnapshotEntries(assets, ctx);
+    const today = buildSnapshotEntries(assets, {
+      livePrices: {}, convert: identity, displayCurrency: currency,
+    });
 
     const dates = monthEndDates(MONTHS);
-    const rand = seededRandom(coupleDoc.id.split("").reduce((s, c) => s + c.charCodeAt(0), 7));
+    const rand = seededRandom(coupleId.split("").reduce((s, c) => s + c.charCodeAt(0), 7));
 
     for (let i = 0; i < dates.length; i++) {
       // `back` = nombre de mois avant aujourd'hui. On remonte la dérive : un
@@ -121,7 +198,7 @@ async function main() {
       const back = dates.length - i;
       const entries = today.map((entry) => {
         const drift = MONTHLY_DRIFT[entry.typeId] ?? 0.005;
-        // Bruit ±30 % de la dérive, pour que la courbe ne soit pas une droite.
+        // Bruit proportionnel à la dérive, pour que la courbe ne soit pas droite.
         const noise = 1 + (rand() - 0.5) * 0.6 * Math.abs(drift || 0.01);
         const factor = Math.pow(1 + drift, -back) * noise;
         return { ...entry, value: Math.round(entry.value * factor * 100) / 100 };
@@ -135,27 +212,29 @@ async function main() {
         else totalAssets += sum;
       }
 
-      await col.doc(dates[i]).set({
-        date: dates[i],
-        currency,
-        value: totalAssets - totalLiabilities,
-        totalAssets,
-        totalLiabilities,
-        byType,
-        entries,
-        // Le marqueur qui rend ces données révocables d'un seul `--purge`.
-        source: "seed",
-        recordedAt: Date.now(),
+      // PATCH sur un id précis = créer ou remplacer : relancer le script ne
+      // duplique donc rien.
+      await api(token, "PATCH", `${col}/${dates[i]}`, {
+        fields: toFields({
+          date: dates[i],
+          currency,
+          value: totalAssets - totalLiabilities,
+          totalAssets,
+          totalLiabilities,
+          byType,
+          entries,
+          // Le marqueur qui rend ces données révocables d'un seul --purge.
+          source: "seed",
+          recordedAt: Date.now(),
+        }),
       });
     }
-    console.log(`${coupleDoc.id} : ${dates.length} instantané(s) synthétique(s) écrits (${dates[0]} → ${dates.at(-1)}).`);
+    console.log(`   ${coupleId} : ${dates.length} instantané(s) écrits (${dates[0]} → ${dates.at(-1)}).`);
   }
 
-  console.log(
-    PURGE
-      ? "\nPurge terminée."
-      : `\n⚠️  Historique INVENTÉ. Relancer avec --purge pour tout retirer.`
-  );
+  console.log(PURGE
+    ? "\n✅ Purge terminée."
+    : "\n⚠️  Historique INVENTÉ écrit. Relancer avec --purge pour tout retirer.");
 }
 
 main().catch((err) => {
