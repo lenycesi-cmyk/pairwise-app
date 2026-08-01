@@ -232,10 +232,13 @@ objets d'un tableau. Sans exemption, les index de `entries` pèseront plus que l
 alourdiront chaque écriture. Le pipeline REST ne déploie pas les index, donc à faire une fois :
 
 ```bash
-gcloud firestore fields update entries \
-  --collection-group=netWorthSnapshots --no-enable-auto-index-exemption \
+gcloud firestore indexes fields update entries \
+  --collection-group=netWorthSnapshots --disable-indexes \
   --project=pairwise-12df2
 ```
+
+Les instantanés ne se requêtent que par **id de document** (la date), jamais par le contenu de
+`entries` — désactiver ces index ne coûte donc aucune fonctionnalité.
 
 ### Push notifications (FCM)
 
