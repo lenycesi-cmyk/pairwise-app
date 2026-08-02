@@ -55,7 +55,12 @@ exactly that failure. In `deploy.yml` the two suites are **separate steps with d
 `test:unit` runs on every push (250 ms, no gate — a suite that runs only sometimes is how regressions
 slip through), while `test:rules` (~2 min, JVM startup dominates) is gated on a change to
 `*.rules`, `tests/rules/`, `firebase.json` or the lockfile. The `tests/rules/` part of that condition is
-deliberate: gating on the rules files alone would mean a badly written test never executes. Emulators need Java, which `ubuntu-latest` provides; note `firebase deploy` is
+deliberate: gating on the rules files alone would mean a badly written test never executes. Emulators
+need Java **21 or above**, installed explicitly by a `setup-java` step rather than inherited from the
+runner image — `ubuntu-latest`'s default JDK dropped below what `firebase-tools` requires, the
+emulators stopped starting, and since the step is blocking it took the whole deploy down with it
+(`netWorthSnapshots` sat unreadable in production for days while its rule was correct on `main`).
+Note `firebase deploy` is
 still unusable on the dev machine (Node 24), but `firebase emulators:exec` is fine.
 
 `tests/unit/` covers the money-critical pure logic (82 tests total with the rules suite). Two

@@ -112,7 +112,23 @@ jobs:
       # et refuser TOUT à l'évaluation (cf. `firestore.exists`, indisponible
       # dans les règles Storage mais acceptée à la compilation). Cette étape
       # est bloquante — un échec ici doit empêcher la mise en production.
-      # `ubuntu-latest` fournit le Java requis par les émulateurs.
+      #
+      # Le JDK est installé EXPLICITEMENT et non hérité de l'image. Celui que
+      # fournit `ubuntu-latest` est passé sous la version 21 exigée par
+      # firebase-tools, et les émulateurs ont cessé de démarrer du jour au
+      # lendemain, sans qu'aucun commit de ce dépôt n'ait changé. L'étape
+      # étant bloquante, c'est tout le déploiement qui s'est arrêté avec elle,
+      # règles Firestore comprises : la sous-collection netWorthSnapshots a
+      # ainsi passé plusieurs jours illisible en production alors que sa règle
+      # était bien sur `main`. Épingler la version rend la panne impossible à
+      # reproduire par une simple mise à jour d'image.
+      - name: Set up Java for the emulators
+        if: steps.rules_tests_needed.outputs.changed == 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
       - name: Test security rules
         if: steps.rules_tests_needed.outputs.changed == 'true'
         run: npm run test:rules
