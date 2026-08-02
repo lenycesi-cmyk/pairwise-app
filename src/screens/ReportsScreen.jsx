@@ -1549,12 +1549,7 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
         const drilled = sankeyDrill && sankeyDrillData;
         const view = drilled ? sankeyDrillData : sankeyData;
         return (
-          <div
-            style={{
-              position: "fixed", inset: 0, zIndex: 200, background: "var(--bg)",
-              display: "flex", flexDirection: "column", padding: "1rem 1.25rem",
-            }}
-          >
+          <div className="pw-widget-fullscreen">
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 10, flexShrink: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 9, minWidth: 0 }}>
                 {drilled ? (

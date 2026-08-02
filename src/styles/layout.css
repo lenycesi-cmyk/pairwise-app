@@ -564,3 +564,25 @@
   .bento-grid .pw-card:hover { border-color: var(--rule) !important; }
 }
 
+
+/* Panneau « plein écran » d'un widget — le tableau d'évolution mensuelle et le
+   flux de trésorerie. Ce n'est pas un changement d'écran mais une vue élargie
+   d'une carte : sur desktop il s'arrête donc au rail de navigation plutôt que
+   de le recouvrir. Masquer la navigation ferait perdre le repère de l'endroit
+   où l'on se trouve, pour ne gagner que 232 px sur une zone déjà large. Sur
+   mobile, où le rail n'existe pas, il couvre bien tout l'écran. */
+.pw-widget-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  padding: 1rem 1.25rem;
+}
+
+@media (min-width: 1024px) {
+  .pw-widget-fullscreen {
+    left: var(--sidebar-width);
+  }
+}
