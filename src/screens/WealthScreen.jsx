@@ -430,34 +430,23 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
     };
   }, [snapshots, movingMonth, liabilityTypeIds]);
 
-  // Groupes ouverts d'office dans « Ce qui a bougé ».
+  // « Ce qui a bougé » s'ouvre entièrement replié.
   //
-  // Deux cas, et un seul principe : n'ouvrir que ce qu'un total ne suffit pas à
-  // expliquer. Le poste qui a le plus bougé répond d'avance à la question que
-  // pose le widget — ouvrir le premier de la liste, lui, n'apprendrait rien. Et
-  // un type qui contient un actif créé ou supprimé s'ouvre même si sa variation
-  // chiffrée est faible : c'est justement le cas où le chiffre agrégé ment par
-  // omission.
-  const defaultOpenMoveGroups = useMemo(() => {
-    const open = new Set();
-    const groups = moving.data?.byType || [];
-    let biggest = null;
-    for (const g of groups) {
-      if (g.assets.some((a) => a.isNew || a.isRemoved)) open.add(g.typeId);
-      if (!biggest || Math.abs(g.delta) > Math.abs(biggest.delta)) biggest = g;
-    }
-    if (biggest) open.add(biggest.typeId);
-    return open;
-  }, [moving]);
-
+  // La première version ouvrait d'office le poste ayant le plus bougé, au motif
+  // qu'il répond d'avance à la question du widget. À l'usage c'est le contraire :
+  // la carte s'ouvre alors sur une liste d'actifs, et la vue d'ensemble — le
+  // classement des postes, qui est ce que le widget apporte — se retrouve
+  // repoussée hors de l'écran par le premier d'entre eux.
+  //
+  // Le repli reste mémorisé PAR MOIS : déplier un poste en mai ne présume pas
+  // qu'on veuille le même déplié en juin.
   function isMoveGroupOpen(typeId) {
-    const override = moveOverrides[`${moving.month}:${typeId}`];
-    return override === undefined ? defaultOpenMoveGroups.has(typeId) : override;
+    return !!moveOverrides[`${moving.month}:${typeId}`];
   }
 
   function toggleMoveGroup(typeId) {
     const key = `${moving.month}:${typeId}`;
-    setMoveOverrides((prev) => ({ ...prev, [key]: !isMoveGroupOpen(typeId) }));
+    setMoveOverrides((prev) => ({ ...prev, [key]: !prev[key] }));
   }
 
   // « 2026-08 » → « Août ». Le mois seul suffit sur six colonnes ; l'année
@@ -545,15 +534,27 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
     const cell = { padding: "7px 6px", textAlign: "right", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" };
     const firstCell = { ...cell, textAlign: "left", paddingLeft: 0, position: "sticky", left: 0, background: "var(--bg-card)", fontVariantNumeric: "normal" };
     const num = (v) => (Number.isFinite(v) ? formatAmount(v) : "—");
+    // Trois axes de collage se croisent dans ce tableau : la colonne des postes
+    // à gauche, l'en-tête des mois en haut, le patrimoine net en bas. Aux
+    // intersections, deux cellules collantes se superposeraient — d'où les
+    // z-index explicites, la colonne gagnant sur les lignes.
+    const stickyHead = { position: "sticky", top: 0, zIndex: 2, background: "var(--bg-card)" };
+    // Seule la ligne « Patrimoine net » se colle en bas. Coller aussi la
+    // variation obligerait à décaler la première de la hauteur exacte de la
+    // seconde — une constante à deviner, fausse au premier changement de
+    // corps de police. La variation reste donc en flux, juste sous la ligne
+    // collée, et se découvre en fin de défilement.
+    const stickyBottom = { position: "sticky", bottom: 0, zIndex: 2, background: "var(--bg-card)" };
+    const stickyCorner = { zIndex: 3 };
     return (
       <table style={{ borderCollapse: "collapse", fontSize: 12.5, width: "100%", minWidth: 340 }}>
         <thead>
           <tr>
-            <th scope="col" style={{ ...firstCell, fontSize: 10.5, letterSpacing: "0.07em", textTransform: "uppercase", color: "var(--ink-3)", fontWeight: 700, borderBottom: "1px solid var(--rule)" }}>
+            <th scope="col" style={{ ...firstCell, ...stickyHead, ...stickyCorner, fontSize: 10.5, letterSpacing: "0.07em", textTransform: "uppercase", color: "var(--ink-3)", fontWeight: 700, borderBottom: "1px solid var(--rule)" }}>
               {t("wealth_table_item")}
             </th>
             {months.map((m) => (
-              <th key={m} scope="col" style={{ ...cell, fontSize: 10.5, letterSpacing: "0.07em", textTransform: "uppercase", color: "var(--ink-3)", fontWeight: 700, borderBottom: "1px solid var(--rule)" }}>
+              <th key={m} scope="col" style={{ ...cell, ...stickyHead, fontSize: 10.5, letterSpacing: "0.07em", textTransform: "uppercase", color: "var(--ink-3)", fontWeight: 700, borderBottom: "1px solid var(--rule)" }}>
                 {monthLabel(m)}
               </th>
             ))}
@@ -588,10 +589,16 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
             </>
           )}
 
+        </tbody>
+        {/* Le patrimoine net est la ligne qu'on cherche des yeux en faisant
+            défiler les postes : elle reste collée en bas, comme l'en-tête des
+            mois reste collé en haut. Sans elle, faire défiler douze postes fait
+            perdre de vue le seul total qui compte. */}
+        <tfoot>
           <tr>
-            <td style={{ ...firstCell, borderTop: "2px solid var(--ink)", fontWeight: 700, fontSize: 13.5 }}>{t("wealth_net_worth")}</td>
+            <td style={{ ...stickyBottom, ...firstCell, ...stickyCorner, borderTop: "2px solid var(--ink)", fontWeight: 700, fontSize: 13.5 }}>{t("wealth_net_worth")}</td>
             {totals.net.map((v, i) => (
-              <td key={months[i]} style={{ ...cell, borderTop: "2px solid var(--ink)", fontWeight: 700, fontSize: 13.5 }}>{num(v)}</td>
+              <td key={months[i]} style={{ ...cell, ...stickyBottom, borderTop: "2px solid var(--ink)", fontWeight: 700, fontSize: 13.5 }}>{num(v)}</td>
             ))}
           </tr>
           <tr>
@@ -603,7 +610,7 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
               </td>
             ))}
           </tr>
-        </tbody>
+        </tfoot>
       </table>
     );
   }
@@ -1264,11 +1271,16 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
         >
           {snapshotsError ? renderHistoryError() : !ready ? renderTablePlaceholder() : (
             <>
+              {/* Le sélecteur de période reste HORS de la zone défilante : il
+                  commande ce qu'on y lit, il n'a pas à défiler avec. */}
               {renderRangePicker()}
               {/* La colonne des postes reste collée à gauche pendant qu'on fait
                   glisser les mois : sur 390 px, c'est ce qui rend la grille lisible
-                  au pouce plutôt qu'illisible à 8 px. */}
-              <div style={{ overflowX: "auto", margin: "0 -18px", padding: "0 18px" }}>
+                  au pouce plutôt qu'illisible à 8 px. Le défilement vertical est
+                  plafonné pour que la carte ne s'étire pas indéfiniment quand on
+                  déplie plusieurs postes — c'est ce plafond qui donne à l'en-tête
+                  et au patrimoine net un conteneur où se coller. */}
+              <div style={{ overflow: "auto", maxHeight: 360, margin: "0 -18px", padding: "0 18px" }}>
                 {renderMonthlyTable(monthlyTable)}
               </div>
             </>
