@@ -23,6 +23,13 @@ const WIDGET_ACCENTS = {
 // hauteur (remplissage dynamique) en passant p.ex. `{ justifyContent: "center" }`.
 // Sur une carte à hauteur automatique (mobile, autres écrans), `flex: 1` est sans
 // effet — le corps prend simplement la hauteur de son contenu.
+// Le rognage de la carte utilise `overflow: clip` et NON `hidden`. Les deux
+// rognent identiquement aux coins arrondis, mais `hidden` fait de la carte un
+// conteneur défilant : un élément `position: sticky` placé à l'intérieur se
+// colle alors à la carte — qui, elle, défile avec la page. Le bloc paraissait
+// donc figé un court instant, puis disparaissait avec sa carte. `clip` rogne
+// sans créer de conteneur défilant, ce qui laisse le collage se résoudre par
+// rapport à la page.
 export default function WidgetCard({ id, icon, accent = "coral", title, action, flush = false, noBar = false, style, bodyStyle, children }) {
   const [color, light] = WIDGET_ACCENTS[accent] || WIDGET_ACCENTS.coral;
   return (
@@ -31,7 +38,7 @@ export default function WidgetCard({ id, icon, accent = "coral", title, action, 
       className="pw-card pw-chip-host"
       data-accent={accent}
       data-nobar={noBar ? "true" : undefined}
-      style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", overflow: "hidden", display: "flex", flexDirection: "column", ...style }}
+      style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", overflow: "clip", display: "flex", flexDirection: "column", ...style }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "17px 18px 11px", flexShrink: 0 }}>
         <span className="pw-chip" style={{ width: 32, height: 32, borderRadius: 10, background: light, "--pw-chip": color, flexShrink: 0 }}>
