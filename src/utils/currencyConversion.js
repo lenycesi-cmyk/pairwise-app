@@ -1,8 +1,11 @@
 const CACHE_KEY_PREFIX = "pairwise_fx_rate_";
 const CACHE_DURATION = 1000 * 60 * 60 * 6; // 6h
 
-// Taux de secours approximatifs (base EUR), utilisés UNIQUEMENT si l'API échoue
-const FALLBACK_RATES_EUR_BASE = {
+// Taux de secours approximatifs (base EUR), utilisés UNIQUEMENT si l'API échoue.
+// Exporté pour que les outils hors navigateur (scripts/) convertissent avec la
+// MÊME table plutôt que d'en recopier une troisième — cf. fxFallback.test.js,
+// qui vérifie que les copies existantes ne divergent pas.
+export const FALLBACK_RATES_EUR_BASE = {
   EUR: 1,
   USD: 1.08,
   VND: 27500,

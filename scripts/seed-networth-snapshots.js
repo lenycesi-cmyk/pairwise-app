@@ -33,6 +33,8 @@ import { readFileSync } from "node:fs";
 import { createSign } from "node:crypto";
 import { ASSET_TYPES } from "../src/data/assetTypes.js";
 import { buildSnapshotEntries, sumEntriesByType } from "../src/utils/assetValuation.js";
+import { makeConverter } from "../src/utils/priceTargets.js";
+import { FALLBACK_RATES_EUR_BASE } from "../src/utils/currencyConversion.js";
 
 const PROJECT_ID = "pairwise-12df2";
 const KEY_PATH =
@@ -207,13 +209,32 @@ async function main() {
     }
 
     const currency = data.wealthDisplayCurrency || data.defaultCurrency || "EUR";
-    // Pas de conversion ici : on part des valeurs telles qu'elles sont stockées.
-    // L'historique est inventé de toute façon ; y mêler de vrais taux donnerait
-    // une fausse impression d'exactitude.
-    const identity = (amount) => (Number.isFinite(amount) ? amount : 0);
+    const unknownCurrencies = new Set();
+    // Les VARIATIONS sont inventées, les DEVISES non. Une première version
+    // passait ici une identité, au motif que l'historique est fabriqué de toute
+    // façon : un compte en VND était donc recopié à sa valeur faciale dans un
+    // instantané libellé en dollars, et le patrimoine total affichait des
+    // centaines de millions. Inventer une trajectoire reste lisible ; ignorer le
+    // change rend le total incohérent avec ce que l'app montre ailleurs.
+    //
+    // On convertit donc avec la table de repli du dépôt — déterministe, sans
+    // appel réseau, et la même que celle du navigateur hors ligne.
+    const convert = makeConverter(FALLBACK_RATES_EUR_BASE, "EUR");
+    const safeConvert = (amount, from, to) => {
+      const out = convert(amount, from, to);
+      // makeConverter rend NaN sur une devise inconnue plutôt que d'inventer un
+      // taux. Ici, contrairement au serveur, abandonner n'a pas de sens : on
+      // laisse le montant tel quel et on le signale.
+      if (Number.isFinite(out)) return out;
+      unknownCurrencies.add(from);
+      return Number.isFinite(amount) ? amount : 0;
+    };
     const today = buildSnapshotEntries(assets, {
-      livePrices: {}, convert: identity, displayCurrency: currency,
+      livePrices: {}, convert: safeConvert, displayCurrency: currency,
     });
+    if (unknownCurrencies.size > 0) {
+      console.warn(`   ⚠️  devise(s) sans taux de repli, montants non convertis : ${[...unknownCurrencies].join(", ")}`);
+    }
 
     const dates = monthEndDates(MONTHS);
     const rand = seededRandom(coupleId.split("").reduce((s, c) => s + c.charCodeAt(0), 7));
