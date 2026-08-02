@@ -16,16 +16,7 @@ import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { screenWrap, primaryBtn } from "./onboardingStyles";
 import { StepDots } from "./onboardingUI";
 import AmbientBackdrop from "../../components/AmbientBackdrop";
-
-const CHIPS = {
-  fr: ["15€ déjeuner hier", "un café 3€", "loyer 800€", "téléphone 20€", "2400€ salaire"],
-  en: ["$15 lunch yesterday", "a coffee $3", "rent $800", "phone $20", "$2400 salary"],
-};
-// Exemples qui défilent dans le champ tant que l'utilisateur n'a rien tapé.
-const PLACEHOLDERS = {
-  fr: ["15€ déjeuner hier", "42,50 courses", "un café 3€", "80€ essence samedi", "2400€ salaire"],
-  en: ["$15 lunch yesterday", "42.50 groceries", "a coffee $3", "$80 gas saturday", "$2400 salary"],
-};
+import { CHIPS, PLACEHOLDERS, KIND_COLOR } from "../../data/onboardingChips";
 
 const EXPENSE_CATS = ALL_CATEGORIES.filter(
   (c) => !["income", "investment", "savings"].includes(c.id)
@@ -58,6 +49,15 @@ export default function OnboardingEntry({ language, onSignIn, onNext }) {
     const iv = setInterval(() => setPhIndex((n) => (n + 1) % placeholders.length), 2600);
     return () => clearInterval(iv);
   }, [input, placeholders.length]);
+
+  const ph = placeholders[phIndex];
+  // Propriétés communes aux deux champs (mobile / desktop) : même exemple, même
+  // couleur, un seul endroit à faire évoluer.
+  const phProps = {
+    className: "pw-onb-input",
+    placeholder: input ? "" : `${ph.em} ${ph.text}`,
+  };
+  const phVar = { "--pw-ph": `var(--${KIND_COLOR[ph.kind]})` };
 
   const preview = input.trim() ? parseDraftEntry(input, language, defCur) : null;
   const hasDraft = draft.length > 0;
@@ -147,8 +147,8 @@ export default function OnboardingEntry({ language, onSignIn, onNext }) {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && submit()}
-          placeholder={input ? "" : placeholders[phIndex]}
-          style={{ flex: 1, border: "none", outline: "none", background: "transparent", fontFamily: "inherit", fontSize: big ? 18 : 14.5, fontWeight: 500, color: "var(--ink)", padding: big ? "16px 0" : "13px 0", minWidth: 0 }}
+          {...phProps}
+          style={{ flex: 1, border: "none", outline: "none", background: "transparent", fontFamily: "inherit", fontSize: big ? 18 : 14.5, fontWeight: 500, color: "var(--ink)", padding: big ? "16px 0" : "13px 0", minWidth: 0, ...phVar }}
         />
       </div>
     );
@@ -172,11 +172,28 @@ export default function OnboardingEntry({ language, onSignIn, onNext }) {
     return (
       <div style={{ display: "flex", flexWrap: "wrap", gap: big ? 8 : 6, marginTop: big ? 16 : 11, justifyContent: center ? "center" : "flex-start" }}>
         <span style={{ fontSize: fz, color: "var(--ink-3)", alignSelf: "center" }}>{t("s1_try")}</span>
-        {chips.map((c) => (
-          <button key={c} onClick={() => setInput(c)} style={{ fontSize: fz, color: "var(--ink-2)", background: "var(--bg-card)", border: "0.5px solid var(--rule)", borderRadius: 999, padding: big ? "6px 13px" : "4px 10px", cursor: "pointer", fontFamily: "inherit" }}>
-            {c}
-          </button>
-        ))}
+        {chips.map((c) => {
+          const hue = KIND_COLOR[c.kind];
+          return (
+            <button
+              key={c.text}
+              onClick={() => setInput(c.text)}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                fontSize: fz, fontWeight: 600, fontFamily: "inherit",
+                background: `var(--${hue}-light)`, color: `var(--${hue})`,
+                // Liseré à 35 % de la teinte : sans lui, la pastille se dilue
+                // dans le fond crème ; à pleine teinte, elle se lirait comme un
+                // bouton d'action (rôle réservé au corail plein).
+                border: `0.5px solid color-mix(in srgb, var(--${hue}) 35%, transparent)`,
+                borderRadius: 999, padding: big ? "6px 13px" : "4px 10px", cursor: "pointer",
+              }}
+            >
+              <span aria-hidden="true">{c.em}</span>
+              {c.text}
+            </button>
+          );
+        })}
       </div>
     );
   }
@@ -419,8 +436,8 @@ export default function OnboardingEntry({ language, onSignIn, onNext }) {
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && submit()}
-                    placeholder={input ? "" : placeholders[phIndex]}
-                    style={{ flex: 1, border: "none", outline: "none", background: "transparent", fontFamily: "inherit", fontSize: 20, fontWeight: 500, color: "var(--ink)", padding: "18px 0", minWidth: 0 }}
+                    {...phProps}
+                    style={{ flex: 1, border: "none", outline: "none", background: "transparent", fontFamily: "inherit", fontSize: 20, fontWeight: 500, color: "var(--ink)", padding: "18px 0", minWidth: 0, ...phVar }}
                   />
                   <button onClick={submit} style={{ ...primaryBtn, width: "auto", padding: "0 26px", height: 58, flex: "none", fontSize: 18, borderRadius: 16 }}>
                     {t("s1_cta")}
