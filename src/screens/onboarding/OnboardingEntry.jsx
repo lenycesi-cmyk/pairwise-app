@@ -525,7 +525,13 @@ export default function OnboardingEntry({ language, onSignIn, onNext }) {
               {breakdownBlock}
             </div>
           </div>
-          <div style={{ maxWidth: 360, margin: "28px auto 0" }}>{ctaBtn}</div>
+        </div>
+        {/* Pied FIGÉ, comme sur mobile. Le bouton vivait au bas de la zone
+            défilante : il descendait avec la liste et sortait de l'écran dès
+            quelques lignes ajoutées — c'est-à-dire précisément au moment où
+            l'utilisateur a fini de saisir et cherche à continuer. */}
+        <div style={{ flex: "none", padding: "12px 20px 16px", borderTop: "0.5px solid var(--rule)", background: "var(--bg)" }}>
+          <div style={{ maxWidth: 360, margin: "0 auto" }}>{ctaBtn}</div>
         </div>
         {editSheet}
       </div>
