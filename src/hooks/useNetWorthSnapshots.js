@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { collection, getDocs, orderBy, query, startAt } from "firebase/firestore";
 import { db } from "../firebase";
 import { useAuth } from "../context/AuthContext";
@@ -27,6 +27,14 @@ export function useNetWorthSnapshots(months = 13) {
   const [snapshots, setSnapshots] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  // Compteur de rechargement : la lecture est ponctuelle (getDocs), donc rien ne
+  // la relance tout seul en cas d'échec réseau. L'écran offre un « Réessayer »
+  // plutôt que d'obliger à recharger la page entière.
+  const [attempt, setAttempt] = useState(0);
+  const reload = useCallback(() => {
+    setLoading(true);
+    setAttempt((n) => n + 1);
+  }, []);
 
   useEffect(() => {
     // Aucun setState synchrone dans le corps de l'effet : tout passe par les
@@ -65,7 +73,7 @@ export function useNetWorthSnapshots(months = 13) {
       });
 
     return () => { cancelled = true; };
-  }, [coupleId, months]);
+  }, [coupleId, months, attempt]);
 
-  return { snapshots, loading, error };
+  return { snapshots, loading, error, reload };
 }

@@ -78,9 +78,42 @@ export function buildMonthlyTable(snapshots, liabilityTypeIds, { limit } = {}) {
     return Number.isFinite(v) ? Math.abs(v) : null;
   };
 
+  // Détail par actif d'un type, une ligne par actif et une colonne par mois.
+  //
+  // Possible SANS rien changer au stockage : l'instantané est écrit par actif, le
+  // regroupement par type n'étant qu'une commodité de lecture (`byType`). C'est
+  // exactement la raison pour laquelle il est stocké ainsi — agréger se fait à la
+  // lecture, tandis que ce qui n'est pas écrit ne se reconstitue jamais.
+  //
+  // Le libellé vient du mois le PLUS RÉCENT où l'actif apparaît : un actif
+  // renommé s'affiche sous son nom actuel, et un actif supprimé garde le dernier
+  // nom qu'on lui connaissait plutôt que de disparaître de l'historique.
+  const assetsOfType = (typeId) => {
+    const byAsset = new Map();
+    months.forEach((m, i) => {
+      for (const e of byMonth.get(m)?.entries || []) {
+        if (e?.typeId !== typeId || !e.assetId) continue;
+        if (!byAsset.has(e.assetId)) {
+          byAsset.set(e.assetId, { assetId: e.assetId, label: e.label || "", values: months.map(() => null) });
+        }
+        const row = byAsset.get(e.assetId);
+        row.label = e.label || row.label;
+        // `Math.abs` comme pour les lignes de type : la colonne Passifs affiche
+        // des montants dus, dont le signe est porté par la section.
+        row.values[i] = Number.isFinite(e.value) ? Math.abs(e.value) : null;
+      }
+    });
+    return [...byAsset.values()].sort((a, b) => (b.values.at(-1) ?? 0) - (a.values.at(-1) ?? 0));
+  };
+
   const rowsFor = (ids) =>
     [...ids]
-      .map((typeId) => ({ key: typeId, typeId, values: months.map((m) => valueAt(m, typeId)) }))
+      .map((typeId) => ({
+        key: typeId,
+        typeId,
+        values: months.map((m) => valueAt(m, typeId)),
+        assets: assetsOfType(typeId),
+      }))
       // Du poste le plus lourd au plus léger, sur le dernier mois connu.
       .sort((a, b) => (b.values.at(-1) ?? 0) - (a.values.at(-1) ?? 0));
 
@@ -90,6 +123,9 @@ export function buildMonthlyTable(snapshots, liabilityTypeIds, { limit } = {}) {
       key: "__loans",
       typeId: null,
       isLoans: true,
+      // Les crédits vivent hors de `entries` (ils se recalculent depuis le
+      // capital et l'échéancier) : aucun détail par actif à déplier ici.
+      assets: [],
       values: months.map((m) => loansPortionOf(byMonth.get(m), liabilityTypeIds)),
     });
     liabilityRows.sort((a, b) => (b.values.at(-1) ?? 0) - (a.values.at(-1) ?? 0));
