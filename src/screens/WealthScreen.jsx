@@ -1304,17 +1304,31 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
     if (id === "whats_moving") {
       const ready = moving.months.length >= 2;
       return (
-        <WidgetCard icon="ti-arrows-sort" accent="mint" title={t("wealth_whats_moving")}>
+        <WidgetCard
+          icon="ti-arrows-sort"
+          accent="mint"
+          title={t("wealth_whats_moving")}
+          // Le corps ne défile pas de son côté : c'est la PAGE qui défile, et
+          // c'est à elle que le sélecteur de mois et le total doivent se coller.
+          // Une zone défilante interne les aurait figés par rapport à la carte,
+          // qui s'en va dès qu'on continue de faire défiler la page.
+          bodyStyle={{ overflowY: "visible" }}
+        >
           {snapshotsError ? renderHistoryError() : !ready ? renderMovingPlaceholder() : (
             <>
-              {/* Sélecteur de mois et total restent fixes ; seule la liste des
-                  postes défile, dans une hauteur plafonnée. Sans ce plafond, la
-                  carte grandissait au gré des postes dépliés. */}
-              {renderMonthPicker()}
-              {renderMovingHead()}
-              <div style={{ overflowY: "auto", maxHeight: 320, marginTop: 2 }}>
-                {renderMovements()}
+              <div
+                style={{
+                  position: "sticky", top: 0, zIndex: 2, background: "var(--bg-card)",
+                  // Le fond doit couvrir toute la largeur du corps, dont le
+                  // rembourrage latéral, sinon les lignes défilent en transparence
+                  // le long des bords.
+                  margin: "0 -18px", padding: "4px 18px 8px",
+                }}
+              >
+                {renderMonthPicker()}
+                {renderMovingHead()}
               </div>
+              {renderMovements()}
             </>
           )}
         </WidgetCard>
