@@ -844,22 +844,12 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
     );
   }
 
-  function renderMovements() {
-    if (!moving.data) {
-      return (
-        <p style={{ fontSize: 12.5, color: "var(--ink-3)", lineHeight: 1.5 }}>
-          {t("wealth_first_month").replace("{month}", monthLabel(moving.month, true))}
-        </p>
-      );
-    }
-    const { total, byType, unchanged } = moving.data;
-    const gained = byType.filter((g) => g.delta >= 0);
-    const lost = byType.filter((g) => g.delta < 0);
-    const heading = (label) => (
-      <div style={{ display: "flex", alignItems: "baseline", margin: "15px 0 6px", fontSize: 11, fontWeight: 700, letterSpacing: "0.09em", textTransform: "uppercase", color: "var(--ink-2)" }}>
-        {label}
-      </div>
-    );
+  // Le patrimoine net du mois choisi : la valeur que la liste explique. Il reste
+  // HORS de la zone défilante, avec le sélecteur de mois — faire défiler les
+  // postes sans plus voir le total qu'ils composent revient à lire une addition
+  // dont on a caché le résultat.
+  function renderMovingHead() {
+    const total = moving.data?.total;
     return (
       <div>
         <div style={{ display: "flex", alignItems: "baseline", gap: 9 }}>
@@ -875,6 +865,28 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
         <p style={{ fontSize: 11.5, color: "var(--ink-3)", marginTop: 2 }}>
           {t("wealth_net_worth")} — {monthLabel(moving.month, true)}
         </p>
+      </div>
+    );
+  }
+
+  function renderMovements() {
+    if (!moving.data) {
+      return (
+        <p style={{ fontSize: 12.5, color: "var(--ink-3)", lineHeight: 1.5, marginTop: 13 }}>
+          {t("wealth_first_month").replace("{month}", monthLabel(moving.month, true))}
+        </p>
+      );
+    }
+    const { byType, unchanged } = moving.data;
+    const gained = byType.filter((g) => g.delta >= 0);
+    const lost = byType.filter((g) => g.delta < 0);
+    const heading = (label) => (
+      <div style={{ display: "flex", alignItems: "baseline", margin: "15px 0 6px", fontSize: 11, fontWeight: 700, letterSpacing: "0.09em", textTransform: "uppercase", color: "var(--ink-2)" }}>
+        {label}
+      </div>
+    );
+    return (
+      <div>
         {gained.length > 0 && heading(t("wealth_carried"))}
         {gained.map(renderMovementGroup)}
         {lost.length > 0 && heading(t("wealth_weighed"))}
@@ -1295,8 +1307,14 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
         <WidgetCard icon="ti-arrows-sort" accent="mint" title={t("wealth_whats_moving")}>
           {snapshotsError ? renderHistoryError() : !ready ? renderMovingPlaceholder() : (
             <>
+              {/* Sélecteur de mois et total restent fixes ; seule la liste des
+                  postes défile, dans une hauteur plafonnée. Sans ce plafond, la
+                  carte grandissait au gré des postes dépliés. */}
               {renderMonthPicker()}
-              {renderMovements()}
+              {renderMovingHead()}
+              <div style={{ overflowY: "auto", maxHeight: 320, marginTop: 2 }}>
+                {renderMovements()}
+              </div>
             </>
           )}
         </WidgetCard>
