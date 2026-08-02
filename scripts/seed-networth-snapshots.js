@@ -221,13 +221,19 @@ async function main() {
     // appel réseau, et la même que celle du navigateur hors ligne.
     const convert = makeConverter(FALLBACK_RATES_EUR_BASE, "EUR");
     const safeConvert = (amount, from, to) => {
-      const out = convert(amount, from, to);
-      // makeConverter rend NaN sur une devise inconnue plutôt que d'inventer un
-      // taux. Ici, contrairement au serveur, abandonner n'a pas de sens : on
-      // laisse le montant tel quel et on le signale.
-      if (Number.isFinite(out)) return out;
-      unknownCurrencies.add(from);
-      return Number.isFinite(amount) ? amount : 0;
+      // `makeConverter` rend NaN dans DEUX cas qu'il ne distingue pas : montant
+      // non numérique, et devise absente de la table. Une première version les
+      // traitait ensemble et signalait « devise sans taux de repli : USD, VND »
+      // alors que les deux y figurent — le vrai motif étant qu'une crypto ou une
+      // action ne stocke pas de `value` (seulement quantité + apiId), cas que
+      // `valueOfAsset` gère déjà en renvoyant 0. On ne signale donc que ce qui
+      // mérite de l'être.
+      if (!Number.isFinite(amount)) return 0;
+      if (!(from in FALLBACK_RATES_EUR_BASE) || !(to in FALLBACK_RATES_EUR_BASE)) {
+        unknownCurrencies.add(from in FALLBACK_RATES_EUR_BASE ? to : from);
+        return amount;
+      }
+      return convert(amount, from, to);
     };
     const today = buildSnapshotEntries(assets, {
       livePrices: {}, convert: safeConvert, displayCurrency: currency,
