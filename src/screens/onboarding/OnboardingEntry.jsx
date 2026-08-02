@@ -10,6 +10,7 @@ import {
   guessDefaultCurrency,
   formatMoney,
   currencySymbol,
+  kindColorOf,
 } from "../../utils/onboardingDraft";
 import { ALL_CATEGORIES, ALL_CURRENCIES, getCategoryName } from "../../data/categories";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
@@ -198,10 +199,14 @@ export default function OnboardingEntry({ language, onSignIn, onNext }) {
     );
   }
 
+  // Le montant de l'aperçu porte la couleur de la NATURE détectée : c'est la
+  // réponse directe à la pastille de suggestion qu'on vient de cliquer, et une
+  // teinte qui ne correspondrait pas démentirait la promesse faite juste avant.
+  const previewKind = preview && kindColorOf(preview.type);
   const previewRow = preview && (
     <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginTop: 11, animation: "pw-rise .3s ease both" }}>
       <span style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-3)", alignSelf: "center" }}>{t("s2_got")}</span>
-      <Chip icon="ti-coin" bg="var(--tang-light)" color="var(--tang)">{formatMoney(preview.amount, preview.currency, language)}</Chip>
+      <Chip icon="ti-coin" bg={`var(${previewKind}-light)`} color={`var(${previewKind})`}>{formatMoney(preview.amount, preview.currency, language)}</Chip>
       <PreviewCatChip entry={preview} language={language} t={t} />
     </div>
   );
@@ -213,10 +218,11 @@ export default function OnboardingEntry({ language, onSignIn, onNext }) {
         {t("s2_insight")}
       </div>
       <div style={{ fontSize: isDesktop ? 19 : 15, fontWeight: 600, lineHeight: 1.4, color: "var(--ink)" }}>{insight.insight}</div>
-      {insight.hasIncome && (
+      {insight.tiles.length > 1 && (
         <div style={{ display: "flex", gap: 8, marginTop: 11 }}>
-          <MiniTile label={t("revLabel")} value={insight.incomeDisp} color="var(--sage)" />
-          <MiniTile label={t("expLabel")} value={insight.expenseDisp} color="var(--tang)" />
+          {insight.tiles.map((tile) => (
+            <MiniTile key={tile.key} label={tile.label} value={tile.value} color={tile.color} compact={insight.tiles.length > 2} />
+          ))}
         </div>
       )}
     </div>
@@ -336,7 +342,7 @@ export default function OnboardingEntry({ language, onSignIn, onNext }) {
             />
           </div>
 
-          <div style={{ marginBottom: form.type === "income" ? 4 : 18, position: "relative" }}>
+          <div style={{ marginBottom: form.type === "expense" ? 18 : 4, position: "relative" }}>
             <div style={fieldLabel}>{t("e_amount")}</div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <input
@@ -375,7 +381,11 @@ export default function OnboardingEntry({ language, onSignIn, onNext }) {
             )}
           </div>
 
-          {form.type !== "income" && (
+          {/* Choix de catégorie réservé aux DÉPENSES : un revenu comme un
+              placement n'a qu'une catégorie possible, et la grille ne propose que
+              des catégories de dépense — l'ouvrir pour un investissement
+              laisserait choisir « Alimentation » pour un ETF. */}
+          {form.type === "expense" && (
             <>
               <div style={fieldLabel}>{t("e_cat")}</div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, minWidth: 0 }}>
@@ -559,11 +569,16 @@ function PreviewCatChip({ entry, language, t }) {
   );
 }
 
-function MiniTile({ label, value, color }) {
+// `compact` : trois tuiles au lieu de deux. À 390 px, ~116 px chacune — la
+// valeur descend d'un point et les deux lignes se tronquent plutôt que de se
+// replier, ce qui ferait grandir la carte d'une ligne à la moindre somme longue.
+// Chasse fixe pour que les trois montants s'alignent verticalement.
+function MiniTile({ label, value, color, compact = false }) {
+  const clip = { whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" };
   return (
-    <div style={{ flex: 1, background: "var(--bg-card)", borderRadius: 10, padding: "8px 10px" }}>
-      <div style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--ink-3)" }}>{label}</div>
-      <div style={{ fontSize: 15, fontWeight: 800, color }}>{value}</div>
+    <div style={{ flex: 1, minWidth: 0, background: "var(--bg-card)", borderRadius: 10, padding: "8px 10px" }}>
+      <div style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--ink-3)", ...clip }}>{label}</div>
+      <div style={{ fontSize: compact ? 14 : 15, fontWeight: 800, color, fontVariantNumeric: "tabular-nums", ...clip }}>{value}</div>
     </div>
   );
 }

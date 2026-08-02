@@ -256,13 +256,25 @@ export function parseNaturalTransaction(text, { categories = [], transactions = 
   // Capitalise la description
   if (desc) desc = desc.charAt(0).toUpperCase() + desc.slice(1);
 
+  // Repli par NATURE. Un revenu ou un placement dont aucune sous-catégorie n'est
+  // reconnue appartient tout de même à sa catégorie : « ETF 250 € » est un
+  // investissement même si « ETF » ne figure dans aucune sous-catégorie. Sans ce
+  // repli, la catégorie ressortait nulle et l'appelant rangeait le placement
+  // dans « Divers » — d'où un ETF affiché en corail sous « Divers & Shopping ».
+  // Les dépenses gardent `null` : leur catégorie par défaut appartient à
+  // l'appelant, qui a déjà ses propres règles.
+  const byNature = { income: "income", investment: "investment" }[type];
+  // Vérifié dans `categories` : un couple peut avoir supprimé la catégorie, et
+  // inventer un identifiant qui n'existe plus rendrait la ligne inaffichable.
+  const fallbackCat = byNature && categories.some((c) => c.id === byNature) ? byNature : null;
+
   return {
     type,
     amount,
     currency,
     currencyDetected,
     date,
-    categoryId: cat?.categoryId || null,
+    categoryId: cat?.categoryId || fallbackCat,
     subcategory: cat?.subcategory || null,
     description: desc || null,
     tags: detectTags(norm, usedTags),
