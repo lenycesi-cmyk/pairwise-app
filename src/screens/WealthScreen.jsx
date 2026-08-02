@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { Fragment, useState, useEffect, useMemo, useRef } from "react";
 import { useFinance } from "../context/FinanceContext";
 import { useExchangeRates } from "../hooks/useExchangeRates";
 import { ASSET_TYPES, getSubtypeLabel } from "../data/assetTypes";
@@ -93,13 +93,21 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
   const { widgets, saveWidgets } = useWealthLayout();
   // Historique détaillé (sous-collection). Chargé à la demande, hors du temps
   // réel : ces documents ne changent qu'une fois par jour.
-  const { snapshots } = useNetWorthSnapshots();
+  const { snapshots, loading: snapshotsLoading, error: snapshotsError, reload: reloadSnapshots } = useNetWorthSnapshots();
   // Profondeur du tableau mensuel : 6 mois par défaut, le pas de lecture le plus
   // courant. "all" ⇒ tout l'historique chargé.
   const [monthlyRange, setMonthlyRange] = useState(6);
   const [monthlyFull, setMonthlyFull] = useState(false);
   // Mois sélectionné dans « Ce qui a bougé » (clé YYYY-MM). null = le plus récent.
   const [movingMonth, setMovingMonth] = useState(null);
+  // Repli des lignes de type. On stocke les EXCEPTIONS à l'état par défaut, pas
+  // l'état lui-même : le défaut de « Ce qui a bougé » dépend du mois affiché
+  // (le poste qui a le plus bougé s'ouvre seul), donc mémoriser des booléens
+  // absolus figerait le choix d'un mois sur le suivant. La clé porte le mois.
+  const [moveOverrides, setMoveOverrides] = useState({});
+  // Le tableau mensuel, lui, est intégralement replié au départ — comparer des
+  // mois suppose des lignes alignées. Un simple ensemble d'ouvertures suffit.
+  const [openTableRows, setOpenTableRows] = useState({});
 
   const currencySymbol = ALL_CURRENCIES.find((c) => c.code === displayCurrency)?.symbol || displayCurrency;
 
@@ -422,6 +430,36 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
     };
   }, [snapshots, movingMonth, liabilityTypeIds]);
 
+  // Groupes ouverts d'office dans « Ce qui a bougé ».
+  //
+  // Deux cas, et un seul principe : n'ouvrir que ce qu'un total ne suffit pas à
+  // expliquer. Le poste qui a le plus bougé répond d'avance à la question que
+  // pose le widget — ouvrir le premier de la liste, lui, n'apprendrait rien. Et
+  // un type qui contient un actif créé ou supprimé s'ouvre même si sa variation
+  // chiffrée est faible : c'est justement le cas où le chiffre agrégé ment par
+  // omission.
+  const defaultOpenMoveGroups = useMemo(() => {
+    const open = new Set();
+    const groups = moving.data?.byType || [];
+    let biggest = null;
+    for (const g of groups) {
+      if (g.assets.some((a) => a.isNew || a.isRemoved)) open.add(g.typeId);
+      if (!biggest || Math.abs(g.delta) > Math.abs(biggest.delta)) biggest = g;
+    }
+    if (biggest) open.add(biggest.typeId);
+    return open;
+  }, [moving]);
+
+  function isMoveGroupOpen(typeId) {
+    const override = moveOverrides[`${moving.month}:${typeId}`];
+    return override === undefined ? defaultOpenMoveGroups.has(typeId) : override;
+  }
+
+  function toggleMoveGroup(typeId) {
+    const key = `${moving.month}:${typeId}`;
+    setMoveOverrides((prev) => ({ ...prev, [key]: !isMoveGroupOpen(typeId) }));
+  }
+
   // « 2026-08 » → « Août ». Le mois seul suffit sur six colonnes ; l'année
   // apparaît dans le sous-titre de la vue « Ce qui a bougé ».
   function monthLabel(key, withYear = false) {
@@ -441,6 +479,63 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
 
   function signed(n) {
     return `${n >= 0 ? "+" : "−"}${formatAmount(Math.abs(n))} ${currencySymbol}`;
+  }
+
+  // Une ligne de type du tableau mensuel, suivie de ses lignes d'actif quand elle
+  // est dépliée.
+  //
+  // L'icône vit DANS la cellule de titre et non dans une colonne à elle : une
+  // colonne dédiée coûterait une vingtaine de pixels de largeur, soit un mois de
+  // moins à l'écran. Sur 390 px c'est le mauvais échange.
+  //
+  // Les lignes d'actif sont des <tr> frères et non des enfants : un <table>
+  // n'accepte pas qu'on enveloppe des lignes dans un conteneur repliable sans
+  // casser l'alignement des colonnes, qui est tout l'intérêt de ce tableau.
+  function renderTableTypeRow(row, months, { cell, firstCell, num }) {
+    const ty = ASSET_TYPES.find((x) => x.id === row.typeId);
+    const colors = COLOR_MAP[ty?.color] || COLOR_MAP.sky;
+    const label = row.isLoans ? t("wealth_credits_row") : typeLabelOf(row.typeId);
+    const detail = row.assets || [];
+    const expandable = detail.length > 0;
+    const open = !!openTableRows[row.key];
+    return (
+      <Fragment key={row.key}>
+        <tr>
+          <td style={firstCell}>
+            <button
+              type="button"
+              disabled={!expandable}
+              aria-expanded={expandable ? open : undefined}
+              onClick={() => setOpenTableRows((prev) => ({ ...prev, [row.key]: !prev[row.key] }))}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 6, background: "none",
+                border: 0, padding: 0, font: "inherit", fontFamily: "inherit", fontSize: 12.5,
+                color: "inherit", cursor: expandable ? "pointer" : "default", textAlign: "left",
+              }}
+            >
+              {expandable ? renderChevron(open, 16) : <span style={{ width: 14, flexShrink: 0 }} />}
+              <i className={`ti ${row.isLoans ? "ti-credit-card" : ty?.icon || "ti-circle"}`}
+                style={{ fontSize: 14, width: 17, textAlign: "center", flexShrink: 0, color: row.isLoans ? "var(--tang)" : colors.text }}
+                aria-hidden="true" />
+              {label}
+            </button>
+          </td>
+          {row.values.map((v, i) => (
+            <td key={months[i]} style={{ ...cell, color: Number.isFinite(v) ? undefined : "var(--ink-4)" }}>{num(v)}</td>
+          ))}
+        </tr>
+        {open && detail.map((a) => (
+          <tr key={`${row.key}:${a.assetId}`}>
+            {/* Le décalage aligne le nom sous le libellé du type, pas sous son
+                chevron. */}
+            <td style={{ ...firstCell, paddingLeft: 37, fontSize: 12, color: "var(--ink-2)" }}>{a.label}</td>
+            {a.values.map((v, i) => (
+              <td key={months[i]} style={{ ...cell, fontSize: 12, color: Number.isFinite(v) ? "var(--ink-2)" : "var(--ink-4)" }}>{num(v)}</td>
+            ))}
+          </tr>
+        ))}
+      </Fragment>
+    );
   }
 
   // Corps du tableau mensuel, partagé entre la carte et la vue plein écran :
@@ -469,14 +564,7 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
             <td style={{ ...firstCell, fontSize: 10.5, letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 700, paddingTop: 13, color: "var(--sage)" }}>{t("wealth_assets")}</td>
             {months.map((m) => <td key={m} style={cell} />)}
           </tr>
-          {assetRows.map((row) => (
-            <tr key={row.key}>
-              <td style={firstCell}>{typeLabelOf(row.typeId)}</td>
-              {row.values.map((v, i) => (
-                <td key={months[i]} style={{ ...cell, color: Number.isFinite(v) ? undefined : "var(--ink-4)" }}>{num(v)}</td>
-              ))}
-            </tr>
-          ))}
+          {assetRows.map((row) => renderTableTypeRow(row, months, { cell, firstCell, num }))}
           <tr>
             <td style={{ ...firstCell, borderTop: "1px solid var(--rule)", fontWeight: 700 }}>{t("wealth_total_assets")}</td>
             {totals.totalAssets.map((v, i) => (
@@ -490,14 +578,7 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
                 <td style={{ ...firstCell, fontSize: 10.5, letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 700, paddingTop: 13, color: "var(--tang)" }}>{t("wealth_liabilities")}</td>
                 {months.map((m) => <td key={m} style={cell} />)}
               </tr>
-              {liabilityRows.map((row) => (
-                <tr key={row.key}>
-                  <td style={firstCell}>{row.isLoans ? t("wealth_credits_row") : typeLabelOf(row.typeId)}</td>
-                  {row.values.map((v, i) => (
-                    <td key={months[i]} style={{ ...cell, color: Number.isFinite(v) ? undefined : "var(--ink-4)" }}>{num(v)}</td>
-                  ))}
-                </tr>
-              ))}
+              {liabilityRows.map((row) => renderTableTypeRow(row, months, { cell, firstCell, num }))}
               <tr>
                 <td style={{ ...firstCell, borderTop: "1px solid var(--rule)", fontWeight: 700 }}>{t("wealth_total_liabilities")}</td>
                 {totals.totalLiabilities.map((v, i) => (
@@ -567,24 +648,71 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
     );
   }
 
+  // Chevron d'une ligne repliable. À 11 px il passait inaperçu et rien ne
+  // distinguait une ligne dépliable d'une ligne inerte : c'est la SEULE
+  // affordance de repli, elle doit se voir. À 17 px dans l'encre secondaire elle
+  // se remarque sans disputer le regard au montant, qui reste l'information.
+  function renderChevron(open, size = 17) {
+    return (
+      <i
+        className="ti ti-chevron-right"
+        style={{
+          fontSize: size, width: 14, flexShrink: 0, color: "var(--ink-2)",
+          transition: "transform .18s ease",
+          transform: open ? "rotate(90deg)" : "none",
+        }}
+        aria-hidden="true"
+      />
+    );
+  }
+
   function renderMovementGroup(group) {
     const ty = ASSET_TYPES.find((x) => x.id === group.typeId);
     const colors = COLOR_MAP[ty?.color] || COLOR_MAP.sky;
+    const detail = group.assets.filter((a) => a.isNew || a.isRemoved || Math.abs(a.delta ?? 0) >= 0.005);
+    const open = isMoveGroupOpen(group.typeId);
+    // Les crédits n'ont pas de détail par actif (ils se recalculent depuis
+    // l'échéancier), et un type dont aucun actif n'a bougé n'a rien à déplier :
+    // dans les deux cas la ligne reste inerte plutôt que d'offrir un chevron qui
+    // n'ouvrirait rien.
+    const expandable = detail.length > 0;
+    const head = (
+      <>
+        {expandable ? renderChevron(open) : <span style={{ width: 14, flexShrink: 0 }} />}
+        <i className={`ti ${group.isLoans ? "ti-credit-card" : ty?.icon || "ti-circle"}`}
+          style={{ fontSize: 14, width: 20, textAlign: "center", flexShrink: 0, color: group.isLoans ? "var(--tang)" : colors.text }} aria-hidden="true" />
+        <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {typeLabelOf(group.typeId)}
+        </span>
+        {/* Le compte dit s'il vaut la peine de déplier, plutôt que d'orner. */}
+        {expandable && (
+          <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--ink-3)", background: "var(--rule)", borderRadius: 20, padding: "1px 7px", flexShrink: 0 }}>
+            {detail.length}
+          </span>
+        )}
+        <span style={{ fontSize: 13.5, fontWeight: 600, color: group.delta >= 0 ? "var(--sage)" : "var(--tang)" }}>
+          {signed(group.delta)}
+        </span>
+      </>
+    );
+    const rowStyle = { display: "flex", alignItems: "center", gap: 10, padding: "6px 0", width: "100%" };
     return (
       <div key={group.typeId}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0" }}>
-          <i className={`ti ${group.isLoans ? "ti-credit-card" : ty?.icon || "ti-circle"}`}
-            style={{ fontSize: 14, width: 20, textAlign: "center", flexShrink: 0, color: group.isLoans ? "var(--tang)" : colors.text }} aria-hidden="true" />
-          <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {typeLabelOf(group.typeId)}
-          </span>
-          <span style={{ fontSize: 13.5, fontWeight: 600, color: group.delta >= 0 ? "var(--sage)" : "var(--tang)" }}>
-            {signed(group.delta)}
-          </span>
-        </div>
+        {expandable ? (
+          <button
+            type="button"
+            onClick={() => toggleMoveGroup(group.typeId)}
+            aria-expanded={open}
+            style={{ ...rowStyle, background: "none", border: 0, font: "inherit", fontFamily: "inherit", color: "inherit", textAlign: "left", cursor: "pointer" }}
+          >
+            {head}
+          </button>
+        ) : (
+          <div style={rowStyle}>{head}</div>
+        )}
         {/* Détail par actif : possible seulement parce que l'instantané est
             stocké par actif et non par type. */}
-        {group.assets.filter((a) => a.isNew || a.isRemoved || Math.abs(a.delta ?? 0) >= 0.005).map((a) => (
+        {open && detail.map((a) => (
           <div key={a.assetId} style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 0 4px 30px" }}>
             <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: "var(--ink-2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {a.label}
@@ -597,6 +725,115 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
           </div>
         ))}
       </div>
+    );
+  }
+
+  // ── États vides des deux widgets d'historique ──────────────────────────────
+  //
+  // Ils rendaient `null` tant qu'il n'y avait pas deux mois d'historique : le
+  // widget disparaissait sans un mot. Trois situations très différentes — pas
+  // encore de données, données illisibles, données présentes — se ressemblaient
+  // donc à l'écran, et c'est exactement ce qui a masqué pendant des jours des
+  // règles Firestore non déployées. Elles se distinguent désormais.
+
+  function renderSkeletonBar(style, key) {
+    return (
+      <span
+        key={key}
+        style={{
+          display: "block", borderRadius: 6, background: "var(--rule)",
+          // Pas d'animation de chargement : ce squelette n'attend rien, il
+          // annonce une forme. Un scintillement perpétuel se lirait comme un
+          // chargement qui n'aboutit jamais.
+          ...style,
+        }}
+      />
+    );
+  }
+
+  // Le squelette reprend la vraie mise en page plutôt que trois barres
+  // génériques : sa fonction est de montrer à quoi ressemblera le widget, donc
+  // il doit ressembler au widget.
+  function renderHistoryPlaceholder(message, rows) {
+    return (
+      <div>
+        {rows}
+        <p style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 12.5, color: "var(--ink-2)", lineHeight: 1.5, margin: "14px 0 0" }}>
+          <i className="ti ti-clock" style={{ fontSize: 14, color: "var(--ink-3)", flexShrink: 0, marginTop: 2 }} aria-hidden="true" />
+          <span>{message}</span>
+        </p>
+      </div>
+    );
+  }
+
+  function renderHistoryError() {
+    return (
+      <div>
+        <p style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 12.5, color: "var(--ink-2)", lineHeight: 1.5, margin: 0 }}>
+          <i className="ti ti-alert-triangle" style={{ fontSize: 14, color: "var(--tang)", flexShrink: 0, marginTop: 2 }} aria-hidden="true" />
+          <span>
+            <strong style={{ fontWeight: 700, color: "var(--ink)" }}>{t("wealth_history_error")}</strong>
+            <br />
+            {t("wealth_history_error_hint")}
+          </span>
+        </p>
+        <button
+          type="button"
+          onClick={reloadSnapshots}
+          style={{
+            marginTop: 14, fontSize: 12.5, fontWeight: 600, padding: "7px 14px",
+            borderRadius: 9, border: "1px solid var(--rule)", background: "var(--bg-card)",
+            color: "var(--ink)", cursor: "pointer", fontFamily: "inherit",
+          }}
+        >
+          {t("wealth_retry")}
+        </button>
+      </div>
+    );
+  }
+
+  // Squelette de « Ce qui a bougé » : sélecteur de mois inerte, gros chiffre,
+  // puis trois lignes de poste — la structure exacte du widget rempli.
+  function renderMovingPlaceholder() {
+    const row = (labelWidth, amountWidth) => (
+      <div key={labelWidth} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0" }}>
+        {renderSkeletonBar({ height: 14, width: 20 })}
+        {renderSkeletonBar({ height: 12, flex: 1, maxWidth: labelWidth })}
+        {renderSkeletonBar({ height: 12, width: amountWidth })}
+      </div>
+    );
+    return renderHistoryPlaceholder(
+      snapshotsLoading ? t("wealth_history_loading") : t("wealth_moving_soon"),
+      <>
+        {renderSkeletonBar({ height: 26, width: "52%" })}
+        {renderSkeletonBar({ height: 11, width: "38%", marginTop: 8 })}
+        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.09em", textTransform: "uppercase", color: "var(--ink-4)", margin: "15px 0 6px" }}>
+          {t("wealth_carried")}
+        </div>
+        {[[120, 58], [96, 52], [110, 44]].map(([l, a]) => row(l, a))}
+      </>
+    );
+  }
+
+  // Squelette du tableau : trois colonnes de mois, quatre postes. Il montre la
+  // grille, qui est ce que le widget apporte.
+  function renderTablePlaceholder() {
+    const line = (key, widths, height = 11) => (
+      <div key={key} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0" }}>
+        {/* La première barre est la colonne des postes, les suivantes sont les
+            mois : elles sont poussées à droite comme les vrais nombres. */}
+        {widths.map((w, i) => renderSkeletonBar(
+          { height, width: w, flexShrink: 0, marginLeft: i === 1 ? "auto" : undefined },
+          `${key}-${i}`
+        ))}
+      </div>
+    );
+    return renderHistoryPlaceholder(
+      snapshotsLoading ? t("wealth_history_loading") : t("wealth_monthly_soon"),
+      <>
+        {line("head", [96, 34, 34, 34], 9)}
+        {[0, 1, 2, 3].map((i) => line(`r${i}`, [96, 42, 42, 42]))}
+      </>
     );
   }
 
@@ -1007,15 +1244,15 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
     }
 
     if (id === "monthly_table") {
-      // Un seul mois enregistré ne fait pas une évolution : on le dit au lieu
-      // d'afficher une colonne solitaire sans variation.
-      if (monthlyTable.months.length < 2) return null;
+      // Un seul mois enregistré ne fait pas une évolution : on montre la forme du
+      // tableau et on dit quand il se remplira, au lieu de disparaître.
+      const ready = monthlyTable.months.length >= 2;
       return (
         <WidgetCard
           icon="ti-table"
           accent="sky"
           title={t("wealth_monthly_title")}
-          action={!editMode && (
+          action={ready && !editMode && (
             <button
               onClick={() => setMonthlyFull(true)}
               aria-label={t("wealth_expand")}
@@ -1025,23 +1262,31 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
             </button>
           )}
         >
-          {renderRangePicker()}
-          {/* La colonne des postes reste collée à gauche pendant qu'on fait
-              glisser les mois : sur 390 px, c'est ce qui rend la grille lisible
-              au pouce plutôt qu'illisible à 8 px. */}
-          <div style={{ overflowX: "auto", margin: "0 -18px", padding: "0 18px" }}>
-            {renderMonthlyTable(monthlyTable)}
-          </div>
+          {snapshotsError ? renderHistoryError() : !ready ? renderTablePlaceholder() : (
+            <>
+              {renderRangePicker()}
+              {/* La colonne des postes reste collée à gauche pendant qu'on fait
+                  glisser les mois : sur 390 px, c'est ce qui rend la grille lisible
+                  au pouce plutôt qu'illisible à 8 px. */}
+              <div style={{ overflowX: "auto", margin: "0 -18px", padding: "0 18px" }}>
+                {renderMonthlyTable(monthlyTable)}
+              </div>
+            </>
+          )}
         </WidgetCard>
       );
     }
 
     if (id === "whats_moving") {
-      if (moving.months.length < 2) return null;
+      const ready = moving.months.length >= 2;
       return (
         <WidgetCard icon="ti-arrows-sort" accent="mint" title={t("wealth_whats_moving")}>
-          {renderMonthPicker()}
-          {renderMovements()}
+          {snapshotsError ? renderHistoryError() : !ready ? renderMovingPlaceholder() : (
+            <>
+              {renderMonthPicker()}
+              {renderMovements()}
+            </>
+          )}
         </WidgetCard>
       );
     }

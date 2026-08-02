@@ -81,6 +81,93 @@ describe("buildMonthlyTable", () => {
     expect(t.months).toEqual(["2026-06", "2026-07", "2026-08"]);
   });
 
+  // Le détail par actif n'existe que parce que l'instantané est stocké PAR ACTIF.
+  // Ces cas verrouillent ce que le tableau replié promet quand on le déplie.
+  describe("détail par actif", () => {
+    it("rend une ligne par actif du type, alignée sur les mêmes mois", () => {
+      const t = buildMonthlyTable(
+        [
+          snap("2026-06-30", [e("btc", "crypto", 300), e("eth", "crypto", 200)]),
+          snap("2026-07-31", [e("btc", "crypto", 500), e("eth", "crypto", 300)]),
+        ],
+        LIAB
+      );
+      const crypto = t.assetRows.find((r) => r.typeId === "crypto");
+      expect(crypto.assets.map((a) => a.assetId)).toEqual(["btc", "eth"]);
+      expect(crypto.assets[0].values).toEqual([300, 500]);
+      // La somme des actifs redonne la ligne du type : le détail ne peut pas
+      // raconter autre chose que l'agrégat qu'il explique.
+      crypto.values.forEach((total, i) => {
+        const sum = crypto.assets.reduce((acc, a) => acc + (a.values[i] ?? 0), 0);
+        expect(sum).toBeCloseTo(total, 6);
+      });
+    });
+
+    it("met null — et non zéro — sur les mois où l'actif n'existait pas", () => {
+      // Un zéro se lirait « il valait 0 ». C'est la règle 2 appliquée à l'actif.
+      const t = buildMonthlyTable(
+        [
+          snap("2026-06-30", [e("btc", "crypto", 300)]),
+          snap("2026-07-31", [e("btc", "crypto", 300), e("sol", "crypto", 90)]),
+        ],
+        LIAB
+      );
+      const sol = t.assetRows[0].assets.find((a) => a.assetId === "sol");
+      expect(sol.values[0]).toBeNull();
+      expect(sol.values[1]).toBe(90);
+    });
+
+    it("garde un actif supprimé, sous le dernier libellé connu", () => {
+      const t = buildMonthlyTable(
+        [
+          snap("2026-06-30", [e("old", "account", 400, "Livret A"), e("a", "account", 100)]),
+          snap("2026-07-31", [e("a", "account", 100)]),
+        ],
+        LIAB
+      );
+      const gone = t.assetRows[0].assets.find((a) => a.assetId === "old");
+      expect(gone.label).toBe("Livret A");
+      expect(gone.values).toEqual([400, null]);
+    });
+
+    it("affiche un actif renommé sous son nom le plus récent", () => {
+      const t = buildMonthlyTable(
+        [
+          snap("2026-06-30", [e("a", "account", 100, "Ancien nom")]),
+          snap("2026-07-31", [e("a", "account", 120, "Nouveau nom")]),
+        ],
+        LIAB
+      );
+      expect(t.assetRows[0].assets[0].label).toBe("Nouveau nom");
+    });
+
+    it("laisse la ligne des crédits sans détail dépliable", () => {
+      // Un crédit se recalcule depuis son échéancier : il ne vit pas dans
+      // `entries`, il n'y a donc rien à déplier sous lui.
+      const t = buildMonthlyTable(
+        [
+          snap("2026-06-30", [e("a", "account", 100)], { loans: 6000 }),
+          snap("2026-07-31", [e("a", "account", 100)], { loans: 5500 }),
+        ],
+        LIAB
+      );
+      const loans = t.liabilityRows.find((r) => r.isLoans);
+      expect(loans.assets).toEqual([]);
+    });
+
+    it("rend les montants de passif en valeur absolue, comme la ligne de type", () => {
+      const t = buildMonthlyTable(
+        [
+          snap("2026-06-30", [e("d", "debt", -900, "Prêt conso")]),
+          snap("2026-07-31", [e("d", "debt", -700, "Prêt conso")]),
+        ],
+        LIAB
+      );
+      const row = t.liabilityRows.find((r) => r.typeId === "debt");
+      expect(row.assets[0].values).toEqual([900, 700]);
+    });
+  });
+
   it("laisse la variation du premier mois à null, pas à zéro", () => {
     // C'est la règle 2 : rien avant lui à quoi le comparer.
     const t = buildMonthlyTable(snaps, LIAB);
