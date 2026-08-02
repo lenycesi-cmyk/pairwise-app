@@ -42,8 +42,14 @@ const CURRENCY_HINTS = [
   { code: "AED", tokens: ["aed", "dirham", "dirhams"] },
 ];
 
-const INCOME_WORDS = ["recu", "recus", "salaire", "revenu", "revenus", "paie", "paye", "prime", "dividende", "dividendes", "remboursement", "rembourse", "income", "salary", "received", "paycheck", "refund", "bonus"];
-const INVEST_WORDS = ["investi", "investissement", "epargne", "epargne", "placement", "pea", "versement", "invest", "invested", "savings"];
+// « percu » couvre « loyer perçu », qui est un revenu, sans faire basculer
+// « loyer » tout court — ce dernier désigne bien plus souvent le loyer qu'on
+// paie, et le classer en revenu casserait le cas le plus courant de l'app.
+const INCOME_WORDS = ["recu", "recus", "percu", "percue", "percus", "encaisse", "salaire", "revenu", "revenus", "paie", "paye", "prime", "dividende", "dividendes", "remboursement", "rembourse", "income", "salary", "received", "collected", "paycheck", "refund", "bonus"];
+// Les enveloppes et supports nommés valent mot-clé : personne n'écrit
+// « investissement ETF », on écrit « ETF 250 € ». « assurance vie » ne figure
+// qu'en toutes lettres — « assurance » seule reste une dépense (banque/assurance).
+const INVEST_WORDS = ["investi", "investissement", "epargne", "placement", "pea", "versement", "etf", "etfs", "scpi", "cto", "crypto", "bourse", "obligations", "assurance vie", "assurance-vie", "invest", "invested", "savings", "life insurance"];
 
 const WEEKDAYS = {
   dimanche: 0, sunday: 0, lundi: 1, monday: 1, mardi: 2, tuesday: 2,
