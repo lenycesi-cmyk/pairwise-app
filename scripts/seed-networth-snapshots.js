@@ -34,6 +34,7 @@ import { createSign } from "node:crypto";
 import { ASSET_TYPES } from "../src/data/assetTypes.js";
 import { buildSnapshotEntries, sumEntriesByType } from "../src/utils/assetValuation.js";
 import { makeConverter } from "../src/utils/priceTargets.js";
+import { loanState } from "../src/utils/loanMath.js";
 import { FALLBACK_RATES_EUR_BASE } from "../src/utils/currencyConversion.js";
 
 const PROJECT_ID = "pairwise-12df2";
@@ -64,6 +65,11 @@ if (!COUPLE && !(PURGE && ALL)) {
 // Dérive mensuelle indicative par type : la crypto bouge beaucoup, l'immobilier
 // presque pas, un prêt se rembourse. Purement décoratif — c'est ce qui rend
 // l'historique inventé lisible plutôt que plat.
+// Remontée mensuelle du capital restant dû : un prêt devait ~1,5 % de plus le
+// mois d'avant. Décoratif comme le reste des dérives, mais du bon SIGNE — une
+// dette qui décroît est ce qui enrichit le foyer mois après mois.
+const LOAN_MONTHLY_UNWIND = 0.015;
+
 const MONTHLY_DRIFT = {
   crypto: 0.09, stocks: 0.025, bonds: 0.004, life_insurance: 0.006,
   retirement: 0.008, account: 0.012, cash: 0, real_estate: 0.002,
@@ -242,6 +248,16 @@ async function main() {
       console.warn(`   ⚠️  devise(s) sans taux de repli, montants non convertis : ${[...unknownCurrencies].join(", ")}`);
     }
 
+    // Solde actuel des crédits : la même règle que partout ailleurs, via le
+    // module partagé plutôt qu'une formule réécrite pour l'occasion.
+    let loansBalance = 0;
+    for (const loan of data.loans || []) {
+      const state = loanState(loan);
+      if (state.isPaidOff || !(state.balance > 0)) continue;
+      const balance = safeConvert(state.balance, loan?.currency || currency, currency);
+      if (Number.isFinite(balance) && balance > 0) loansBalance += balance;
+    }
+
     const dates = monthEndDates(MONTHS);
     const rand = seededRandom(coupleId.split("").reduce((s, c) => s + c.charCodeAt(0), 7));
 
@@ -264,6 +280,17 @@ async function main() {
         if (liabilityIds.has(typeId)) totalLiabilities += Math.abs(sum);
         else totalAssets += sum;
       }
+      // Capital restant dû des crédits, comme le fait la fonction planifiée.
+      //
+      // Une première version l'omettait, et le widget n'affichait donc aucune
+      // section Passifs : un prêt ne vit pas dans `assets`, il se recalcule
+      // depuis son capital et son échéancier. L'oublier ici ne produisait pas
+      // une erreur mais un historique où le foyer n'a jamais eu de dette —
+      // c'est-à-dire un jeu de démonstration qui cache la moitié du widget.
+      //
+      // Le solde remonte le temps : on ajoute les mensualités déjà passées, si
+      // bien qu'un prêt paraît plus lourd dans le passé, ce qu'il était.
+      totalLiabilities += loansBalance * Math.pow(1 + LOAN_MONTHLY_UNWIND, back);
 
       // PATCH sur un id précis = créer ou remplacer : relancer le script ne
       // duplique donc rien.
