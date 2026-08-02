@@ -1308,11 +1308,17 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
           icon="ti-arrows-sort"
           accent="mint"
           title={t("wealth_whats_moving")}
-          // Le corps ne défile pas de son côté : c'est la PAGE qui défile, et
-          // c'est à elle que le sélecteur de mois et le total doivent se coller.
-          // Une zone défilante interne les aurait figés par rapport à la carte,
-          // qui s'en va dès qu'on continue de faire défiler la page.
-          bodyStyle={{ overflowY: "visible" }}
+          // Deux dispositions, deux conteneurs défilants différents.
+          //
+          // Sur desktop, la grille bento impose une hauteur fixe à la carte : son
+          // corps DOIT défiler, sans quoi la fin de la liste devient inatteignable
+          // (le corps est rogné par la carte). Le bloc collant s'y accroche, ce
+          // qui est le comportement voulu.
+          //
+          // Sur mobile la carte prend la hauteur de son contenu, rien ne déborde,
+          // et c'est la page qui défile : le corps doit alors renoncer à être un
+          // conteneur défilant pour que le collage se résolve par rapport à elle.
+          bodyStyle={{ overflowY: isDesktop ? "auto" : "visible" }}
         >
           {snapshotsError ? renderHistoryError() : !ready ? renderMovingPlaceholder() : (
             <>
@@ -1752,7 +1758,7 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
           sur desktop, elles tiennent d'un coup d'œil. Le calque suit le motif de
           la vue plein écran du Sankey (Rapports). */}
       {monthlyFull && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 200, background: "var(--bg)", display: "flex", flexDirection: "column", padding: "1rem 1.25rem" }}>
+        <div className="pw-widget-fullscreen">
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 10, flexShrink: 0 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 9, minWidth: 0 }}>
               <span style={{ width: 30, height: 30, borderRadius: 9, background: "var(--sky-light)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
