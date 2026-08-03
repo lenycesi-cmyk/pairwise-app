@@ -675,7 +675,6 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
           widgets={widgets}
           onSave={saveWidgets}
           editMode={editMode}
-          onEnterEditMode={() => setEditMode(true)}
           renderContent={renderFluxWidget}
           labels={fluxWidgetLabels}
           isDesktop={isDesktop}

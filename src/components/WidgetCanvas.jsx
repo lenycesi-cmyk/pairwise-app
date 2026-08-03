@@ -1,4 +1,3 @@
-import { useRef } from "react";
 import {
   DndContext,
   closestCenter,
@@ -27,20 +26,18 @@ import { slotSpan12, BENTO_MAX_HEIGHT } from "../utils/bentoLayout";
 // JSX d'un widget (ou null quand il n'a pas de données à montrer). `labels`
 // fournit le nom affiché dans le placeholder d'un widget masqué/vide.
 
-const LONG_PRESS_DELAY = 500;
+// Le mode « Personnaliser » ne s'ouvre QUE par son bouton. Un appui long sur une
+// carte l'ouvrait aussi, ce qui paraissait pratique et se retournait contre
+// l'utilisateur : la minuterie partait au premier contact et rien ne mesurait le
+// MOUVEMENT. Sélectionner du texte à la souris, ou poser le doigt puis faire
+// défiler, tenait donc les 500 ms sans jamais annuler — et l'écran basculait en
+// édition au milieu du geste. Un appui long ne se distingue d'un glissement que
+// si on suit le déplacement du pointeur ; le bouton, lui, ne se déclenche jamais
+// par accident.
 
-function SortableWidget({ id, editMode, onLongPress, outerStyle, children }) {
+function SortableWidget({ id, editMode, outerStyle, children }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id, disabled: !editMode });
-
-  const longPressTimer = useRef(null);
-  function startLongPress() {
-    if (editMode) return;
-    longPressTimer.current = setTimeout(() => onLongPress?.(), LONG_PRESS_DELAY);
-  }
-  function cancelLongPress() {
-    clearTimeout(longPressTimer.current);
-  }
 
   return (
     <div
@@ -52,12 +49,6 @@ function SortableWidget({ id, editMode, onLongPress, outerStyle, children }) {
         position: "relative",
         ...outerStyle,
       }}
-      onMouseDown={startLongPress}
-      onMouseUp={cancelLongPress}
-      onMouseLeave={cancelLongPress}
-      onTouchStart={startLongPress}
-      onTouchEnd={cancelLongPress}
-      onTouchMove={cancelLongPress}
     >
       {editMode && (
         <div
@@ -95,7 +86,6 @@ export default function WidgetCanvas({
   widgets,
   onSave,
   editMode,
-  onEnterEditMode,
   renderContent,
   labels = {},
   isDesktop,
@@ -170,7 +160,6 @@ export default function WidgetCanvas({
                   key={w.id}
                   id={w.id}
                   editMode={editMode}
-                  onLongPress={onEnterEditMode}
                   outerStyle={
                     bentoOn
                       ? { gridColumn: `span ${slotSpan12(idx)}`, maxHeight: BENTO_MAX_HEIGHT }
