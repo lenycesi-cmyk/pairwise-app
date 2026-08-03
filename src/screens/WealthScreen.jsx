@@ -1815,7 +1815,6 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
         widgets={widgets}
         onSave={saveWidgets}
         editMode={editMode}
-        onEnterEditMode={() => setEditMode(true)}
         renderContent={renderWealthWidget}
         labels={wealthWidgetLabels}
         isDesktop={isDesktop}

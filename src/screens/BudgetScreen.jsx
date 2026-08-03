@@ -1203,7 +1203,6 @@ export default function BudgetScreen({ openSignal, onOpenMenu }) {
           widgets={widgets}
           onSave={saveWidgets}
           editMode={editMode}
-          onEnterEditMode={() => setEditMode(true)}
           renderContent={renderBudgetWidget}
           labels={canvasLabels}
           isDesktop={isDesktop}

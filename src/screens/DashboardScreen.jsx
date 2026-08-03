@@ -69,22 +69,18 @@ const AllocationChart = lazy(() => import("../components/AllocationChart"));
 const IncomeExpenseTrendChart = lazy(() => import("../components/IncomeExpenseTrendChart"));
 const HealthScoreWidget = lazy(() => import("../components/HealthScoreWidget"));
 
-const LONG_PRESS_DELAY = 500;
-
 // ── Sortable widget wrapper ──────────────────────────────────────────────────
-function SortableWidget({ id, editMode, onLongPress, outerStyle, children }) {
+// Le mode « Personnaliser » ne s'ouvre QUE par son bouton. Un appui long sur une
+// carte l'ouvrait aussi, ce qui paraissait pratique et se retournait contre
+// l'utilisateur : la minuterie partait au premier contact et rien ne mesurait le
+// MOUVEMENT. Sélectionner du texte à la souris, ou poser le doigt puis faire
+// défiler, tenait donc les 500 ms sans jamais annuler — et l'écran basculait en
+// édition au milieu du geste. Un appui long ne se distingue d'un glissement que
+// si on suit le déplacement du pointeur ; le bouton, lui, ne se déclenche jamais
+// par accident.
+function SortableWidget({ id, editMode, outerStyle, children }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id, disabled: !editMode });
-
-  const longPressTimer = useRef(null);
-
-  function startLongPress() {
-    if (editMode) return;
-    longPressTimer.current = setTimeout(() => onLongPress?.(), LONG_PRESS_DELAY);
-  }
-  function cancelLongPress() {
-    clearTimeout(longPressTimer.current);
-  }
 
   return (
     <div
@@ -96,12 +92,6 @@ function SortableWidget({ id, editMode, onLongPress, outerStyle, children }) {
         position: "relative",
         ...outerStyle,
       }}
-      onMouseDown={startLongPress}
-      onMouseUp={cancelLongPress}
-      onMouseLeave={cancelLongPress}
-      onTouchStart={startLongPress}
-      onTouchEnd={cancelLongPress}
-      onTouchMove={cancelLongPress}
     >
       {editMode && (
         <div
@@ -1147,7 +1137,6 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                 key={w.id}
                 id={w.id}
                 editMode={editMode}
-                onLongPress={enterEditMode}
                 outerStyle={bentoEnabled ? { gridColumn: `span ${slotSpan12(idx)}`, maxHeight: BENTO_MAX_HEIGHT } : undefined}
               >
                 <div style={{ marginBottom: bentoEnabled ? 0 : 28, position: "relative", height: bentoEnabled ? "100%" : undefined }}>

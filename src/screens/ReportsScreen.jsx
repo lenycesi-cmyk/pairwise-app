@@ -1536,7 +1536,6 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
         widgets={widgets}
         onSave={saveWidgets}
         editMode={editMode}
-        onEnterEditMode={() => setEditMode(true)}
         renderContent={renderWidgetContent}
         labels={WIDGET_LABELS}
         isDesktop={isDesktop}
