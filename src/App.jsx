@@ -459,7 +459,11 @@ function AppContent() {
           <ModalWrapper onClose={() => setShowTransactions(false)}>
             <TransactionsScreen
               onEdit={(tx) => {
-                setShowTransactions(false);
+                // On NE démonte PAS la liste : le formulaire d'édition
+                // (.tx-modal, z-index supérieur) la recouvre le temps de
+                // l'édition, puis disparaît en la laissant à sa position de
+                // défilement et ses filtres. La démonter renvoyait en haut de
+                // liste (date du jour) au retour.
                 openEdit(tx, "transactions");
               }}
             />
