@@ -339,6 +339,13 @@ body {
 
 button {
   font-family: inherit;
+  /* Les navigateurs remettent la couleur d'un <button> à `buttontext` (une
+     couleur système sombre) au lieu d'hériter de --ink. En mode clair ça
+     passait (sombre sur clair) ; en mode nuit, une icône ou un libellé sans
+     couleur explicite dans un bouton (chevrons ‹ ›, calendrier du sélecteur de
+     période…) devenait sombre sur sombre, donc illisible. On force l'héritage :
+     les boutons qui posent leur propre `color` ne sont pas affectés. */
+  color: inherit;
   cursor: pointer;
 }
 
