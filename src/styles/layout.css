@@ -187,6 +187,16 @@
   margin: 0 auto;
 }
 
+/* Le formulaire d'ajout/édition (transaction, actif) passe AU-DESSUS des autres
+   modales. Sans ça, éditer une transaction depuis la liste obligeait à démonter
+   la liste (z-index égal → l'élément le plus tardif dans le DOM, la liste,
+   recouvrait le formulaire), ce qui remettait le défilement en haut (à la date
+   du jour) au retour. En le hissant au-dessus, la liste reste montée dessous et
+   retrouve sa position — et ses filtres — à la fermeture. */
+.app-modal.tx-modal {
+  z-index: 110;
+}
+
 /* ── Barre de navigation du bas (mobile) ─────────────────────────────────────
    2 onglets · bouton « + » central · 2 onglets. Masquée sur desktop (le rail
    latéral prend le relais — voir le média ≥1024px plus bas). */
