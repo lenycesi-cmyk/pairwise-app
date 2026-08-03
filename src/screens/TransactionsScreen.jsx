@@ -25,9 +25,16 @@ export default function TransactionsScreen({ onEdit }) {
   const [filter, setFilter] = useState("all");
   const [searchText, setSearchText] = useState("");
   const [categoryFilter, setCategoryFilter] = useState(null);
-  const [showCategoryFilter, setShowCategoryFilter] = useState(false);
+  const [subcategoryFilter, setSubcategoryFilter] = useState(null);
   const [tagFilter, setTagFilter] = useState(null);
   const [periodFilter, setPeriodFilter] = useState("all");
+  // Tous les filtres sont repliés derrière l'icône entonnoir ; chaque dimension
+  // (catégorie / sous-catégorie / tag) ouvre son sélecteur à la demande, sur le
+  // modèle du choix de catégorie à la création d'une transaction.
+  const [showFilters, setShowFilters] = useState(false);
+  const [showCatPicker, setShowCatPicker] = useState(false);
+  const [showSubPicker, setShowSubPicker] = useState(false);
+  const [showTagPicker, setShowTagPicker] = useState(false);
   const [viewingReceipt, setViewingReceipt] = useState(null);
   const [discussTxId, setDiscussTxId] = useState(null);
   // On lit la transaction "live" du contexte pour l'en-tête de la modale de
@@ -44,6 +51,9 @@ export default function TransactionsScreen({ onEdit }) {
     }
     if (categoryFilter) {
       result = result.filter((tx) => tx.categoryId === categoryFilter);
+    }
+    if (subcategoryFilter) {
+      result = result.filter((tx) => tx.subcategory === subcategoryFilter);
     }
     if (tagFilter) {
       result = result.filter((tx) => (tx.tags || []).includes(tagFilter));
@@ -82,7 +92,10 @@ export default function TransactionsScreen({ onEdit }) {
       );
     }
     return result;
-  }, [transactions, filter, categoryFilter, tagFilter, periodFilter, searchText]);
+  }, [transactions, filter, categoryFilter, subcategoryFilter, tagFilter, periodFilter, searchText]);
+
+  const anyFilterActive =
+    filter !== "all" || periodFilter !== "all" || !!categoryFilter || !!subcategoryFilter || !!tagFilter;
 
   const grouped = useMemo(() => {
     const groups = {};
@@ -200,12 +213,13 @@ export default function TransactionsScreen({ onEdit }) {
           />
         )}
         <button
-          onClick={() => setShowCategoryFilter(!showCategoryFilter)}
-          aria-label="Filtrer par catégorie"
+          onClick={() => setShowFilters((v) => !v)}
+          aria-label={t("tx_filters")}
           style={{
-            background: categoryFilter ? "var(--sky-light)" : "none",
+            position: "relative",
+            background: showFilters || anyFilterActive ? "var(--sky-light)" : "none",
             border: "none",
-            color: categoryFilter ? "var(--sky)" : "var(--ink-3)",
+            color: showFilters || anyFilterActive ? "var(--sky)" : "var(--ink-3)",
             padding: "2px 4px",
             borderRadius: "var(--radius-sm)",
             display: "flex",
@@ -213,94 +227,164 @@ export default function TransactionsScreen({ onEdit }) {
           }}
         >
           <i className="ti ti-filter" style={{ fontSize: 15 }} aria-hidden="true" />
+          {/* Pastille coral : un filtre est actif mais le panneau est replié —
+              pour ne pas oublier une liste filtrée en douce. */}
+          {anyFilterActive && !showFilters && (
+            <span
+              style={{
+                position: "absolute", top: 0, right: 0, width: 7, height: 7,
+                borderRadius: 99, background: "var(--tang)", border: "1.5px solid var(--bg-card)",
+              }}
+            />
+          )}
         </button>
       </div>
 
-      {showCategoryFilter && (
+      {showFilters && (
         <div
           style={{
-            display: "flex",
-            flexWrap: "wrap",
-            gap: 6,
-            marginBottom: 12,
             background: "var(--bg-card)",
-            borderRadius: "var(--radius-lg)",
             border: "0.5px solid var(--rule)",
-            padding: "0.75rem",
+            borderRadius: "var(--radius-lg)",
+            padding: 12,
+            marginBottom: 16,
+            display: "flex",
+            flexDirection: "column",
+            gap: 14,
           }}
         >
-          <FilterChip
-            active={categoryFilter === null}
-            onClick={() => { setCategoryFilter(null); setShowCategoryFilter(false); }}
-          >
-            {t("tx_filter_all_categories")}
-          </FilterChip>
-          {categories.map((c) => (
-            <FilterChip
-              key={c.id}
-              active={categoryFilter === c.id}
-              onClick={() => { setCategoryFilter(c.id); setShowCategoryFilter(false); }}
-            >
-              {c.name}
-            </FilterChip>
-          ))}
-        </div>
-      )}
+          {/* Membre */}
+          <div>
+            <div style={FILTER_LABEL}>{t("tx_filter_member")}</div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              <FilterChip active={filter === "all"} onClick={() => setFilter("all")}>
+                {t("tx_filter_all")}
+              </FilterChip>
+              {members.map((m) => (
+                <FilterChip
+                  key={getMemberKey(m)}
+                  active={filter === getMemberKey(m)}
+                  onClick={() => setFilter(getMemberKey(m))}
+                >
+                  {m.name}
+                </FilterChip>
+              ))}
+            </div>
+          </div>
 
-      <div style={{ display: "flex", gap: 6, marginBottom: 16, overflowX: "auto" }}>
-        <FilterChip active={filter === "all"} onClick={() => setFilter("all")}>
-          {t("tx_filter_all")}
-        </FilterChip>
-        {members.map((m) => (
-          <FilterChip
-            key={getMemberKey(m)}
-            active={filter === getMemberKey(m)}
-            onClick={() => setFilter(getMemberKey(m))}
-          >
-            {m.name}
-          </FilterChip>
-        ))}
-      </div>
+          {/* Période */}
+          <div>
+            <div style={FILTER_LABEL}>{t("tx_filter_period")}</div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {[
+                { key: "all", label: t("tx_period_all") },
+                { key: "week", label: t("tx_period_week") },
+                { key: "month", label: t("tx_period_month") },
+                { key: "3m", label: t("tx_period_3m") },
+                { key: "year", label: t("tx_period_year") },
+              ].map((p) => (
+                <FilterChip key={p.key} active={periodFilter === p.key} onClick={() => setPeriodFilter(p.key)}>
+                  {p.label}
+                </FilterChip>
+              ))}
+            </div>
+          </div>
 
-      {/* Filtre temporel */}
-      <div style={{ display: "flex", gap: 6, marginBottom: 16, overflowX: "auto" }}>
-        {[
-          { key: "all", label: t("tx_period_all") },
-          { key: "week", label: t("tx_period_week") },
-          { key: "month", label: t("tx_period_month") },
-          { key: "3m", label: t("tx_period_3m") },
-          { key: "year", label: t("tx_period_year") },
-        ].map((p) => (
-          <FilterChip key={p.key} active={periodFilter === p.key} onClick={() => setPeriodFilter(p.key)}>
-            {p.label}
-          </FilterChip>
-        ))}
-      </div>
-
-      {/* Filtre par tag — n'apparaît que si des tags existent dans l'historique */}
-      {allTags.length > 0 && (
-        <div style={{ display: "flex", gap: 6, marginBottom: 16, overflowX: "auto", paddingBottom: 2 }}>
-          {tagFilter && (
-            <button
-              onClick={() => setTagFilter(null)}
-              style={{
-                display: "flex", alignItems: "center", gap: 3, padding: "3px 9px",
-                borderRadius: 99, border: "0.5px solid var(--rule)", background: "var(--bg-card)",
-                color: "var(--ink-3)", fontSize: 12, whiteSpace: "nowrap", flexShrink: 0,
-              }}
-            >
-              <i className="ti ti-x" style={{ fontSize: 12 }} aria-hidden="true" />
-              {t("tx_filter_all")}
-            </button>
-          )}
-          {allTags.map((tag) => (
-            <TagChip
-              key={tag}
-              tag={tag}
-              active={tagFilter === tag}
-              onClick={() => setTagFilter(tagFilter === tag ? null : tag)}
+          {/* Catégorie — sélecteur dépliant, comme à la création d'une transaction */}
+          <div>
+            <div style={FILTER_LABEL}>{t("tx_category")}</div>
+            <PickerTrigger
+              open={showCatPicker}
+              active={!!categoryFilter}
+              icon={categoryFilter ? getCategory(categoryFilter).icon : null}
+              label={categoryFilter ? getCategory(categoryFilter).name : t("tx_choose_category")}
+              onToggle={() => setShowCatPicker((v) => !v)}
+              onClear={categoryFilter ? () => { setCategoryFilter(null); setSubcategoryFilter(null); } : null}
             />
-          ))}
+            {showCatPicker && (
+              <div style={PICKER_BOX}>
+                <div style={PICKER_GRID}>
+                  <PickerOption
+                    sel={!categoryFilter}
+                    icon="ti-list"
+                    label={t("tx_filter_all_categories")}
+                    onClick={() => { setCategoryFilter(null); setSubcategoryFilter(null); setShowCatPicker(false); }}
+                  />
+                  {categories.map((c) => (
+                    <PickerOption
+                      key={c.id}
+                      sel={categoryFilter === c.id}
+                      icon={c.icon}
+                      label={c.name}
+                      onClick={() => { setCategoryFilter(c.id); setSubcategoryFilter(null); setShowCatPicker(false); }}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Sous-catégorie — n'apparaît qu'une fois une catégorie choisie, et se
+              limite aux sous-catégories de CETTE catégorie (comme à la création). */}
+          {categoryFilter && (getCategory(categoryFilter).subcategories || []).length > 0 && (
+            <div>
+              <div style={FILTER_LABEL}>{t("tx_subcategory")}</div>
+              <PickerTrigger
+                open={showSubPicker}
+                active={!!subcategoryFilter}
+                label={subcategoryFilter || t("tx_choose_subcategory")}
+                onToggle={() => setShowSubPicker((v) => !v)}
+                onClear={subcategoryFilter ? () => setSubcategoryFilter(null) : null}
+              />
+              {showSubPicker && (
+                <div style={PICKER_BOX}>
+                  <div style={PICKER_GRID}>
+                    <PickerOption
+                      sel={!subcategoryFilter}
+                      label={t("tx_filter_all_subcategories")}
+                      onClick={() => { setSubcategoryFilter(null); setShowSubPicker(false); }}
+                    />
+                    {getCategory(categoryFilter).subcategories.map((s) => (
+                      <PickerOption
+                        key={s}
+                        sel={subcategoryFilter === s}
+                        label={s}
+                        onClick={() => { setSubcategoryFilter(s); setShowSubPicker(false); }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Tag — n'apparaît que si des tags existent dans l'historique */}
+          {allTags.length > 0 && (
+            <div>
+              <div style={FILTER_LABEL}>{t("tx_filter_tag")}</div>
+              <PickerTrigger
+                open={showTagPicker}
+                active={!!tagFilter}
+                label={tagFilter ? `#${tagFilter}` : t("tx_choose_tag")}
+                onToggle={() => setShowTagPicker((v) => !v)}
+                onClear={tagFilter ? () => setTagFilter(null) : null}
+              />
+              {showTagPicker && (
+                <div style={PICKER_BOX}>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, maxHeight: 200, overflowY: "auto", padding: 2 }}>
+                    {allTags.map((tag) => (
+                      <TagChip
+                        key={tag}
+                        tag={tag}
+                        active={tagFilter === tag}
+                        onClick={() => { setTagFilter(tagFilter === tag ? null : tag); setShowTagPicker(false); }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -587,6 +671,96 @@ export default function TransactionsScreen({ onEdit }) {
           <TransactionComments txId={discussTx.id} bare />
         </CommentsModal>
       )}
+    </div>
+  );
+}
+
+const FILTER_LABEL = {
+  fontSize: 11.5,
+  color: "var(--ink-3)",
+  textTransform: "uppercase",
+  letterSpacing: "0.04em",
+  fontWeight: 600,
+  marginBottom: 8,
+};
+const PICKER_BOX = {
+  marginTop: 8,
+  border: "0.5px solid var(--rule)",
+  borderRadius: "var(--radius-md)",
+  padding: 6,
+  background: "var(--bg-card)",
+};
+const PICKER_GRID = {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  gap: 2,
+  maxHeight: 260,
+  overflowY: "auto",
+};
+
+// Champ déclencheur d'un sélecteur de filtre (catégorie / sous-catégorie / tag),
+// repris tel quel du choix de catégorie à la création : chevron quand replié,
+// croix pour effacer quand un filtre est posé.
+function PickerTrigger({ open, active, icon, label, onToggle, onClear }) {
+  return (
+    <div
+      onClick={onToggle}
+      style={{
+        display: "flex", alignItems: "center", gap: 9, height: 42, padding: "0 12px",
+        borderRadius: "var(--radius-md)", cursor: "pointer",
+        background: active ? "color-mix(in srgb, var(--sky) 12%, transparent)" : "var(--bg-card)",
+        border: `0.5px solid ${active ? "var(--sky)" : "var(--rule)"}`,
+      }}
+    >
+      {icon && (
+        <i className={`ti ${icon}`} style={{ fontSize: 16, flexShrink: 0, color: active ? "var(--sky)" : "var(--ink-3)" }} aria-hidden="true" />
+      )}
+      <span
+        style={{
+          flex: 1, minWidth: 0, fontSize: 13.5, fontWeight: active ? 600 : 400,
+          color: active ? "var(--sky)" : "var(--ink-3)",
+          whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+        }}
+      >
+        {label}
+      </span>
+      {active && onClear ? (
+        <button
+          onClick={(e) => { e.stopPropagation(); onClear(); }}
+          aria-label="Effacer le filtre"
+          style={{ background: "none", border: "none", color: "var(--sky)", padding: 2, display: "flex", flexShrink: 0 }}
+        >
+          <i className="ti ti-x" style={{ fontSize: 15 }} aria-hidden="true" />
+        </button>
+      ) : (
+        <i className={`ti ti-chevron-${open ? "up" : "down"}`} style={{ fontSize: 15, flexShrink: 0, color: active ? "var(--sky)" : "var(--ink-3)" }} aria-hidden="true" />
+      )}
+    </div>
+  );
+}
+
+// Ligne d'option dans la grille dépliée d'un sélecteur.
+function PickerOption({ sel, icon, label, onClick }) {
+  return (
+    <div
+      onClick={onClick}
+      style={{
+        display: "flex", alignItems: "center", gap: 9, height: 40, padding: "0 11px", cursor: "pointer",
+        borderRadius: 8, minWidth: 0,
+        background: sel ? "color-mix(in srgb, var(--sky) 12%, transparent)" : "transparent",
+      }}
+    >
+      {icon && (
+        <i className={`ti ${icon}`} style={{ fontSize: 15, flexShrink: 0, color: sel ? "var(--sky)" : "var(--ink-3)" }} aria-hidden="true" />
+      )}
+      <span
+        style={{
+          fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+          color: sel ? "var(--sky)" : "var(--ink-2)", fontWeight: sel ? 600 : 400,
+        }}
+      >
+        {label}
+      </span>
     </div>
   );
 }
