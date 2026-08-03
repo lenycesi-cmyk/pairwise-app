@@ -66,7 +66,14 @@ export function FinanceProvider({ children }) {
   const [wealthDisplayCurrency, setWealthDisplayCurrency] = useState(null);
   const [dashboardDisplayCurrency, setDashboardDisplayCurrency] = useState(null);
   const [budgetDisplayCurrency, setBudgetDisplayCurrency] = useState(null);
-  const [theme, setThemeState] = useState("pairwise");
+  // Le thème (clair « pairwise » / nuit « pairwise-dark ») est PROPRE À CHAQUE
+  // MEMBRE : stocké dans la map `themePrefs.{memberKey}` du doc couple, jamais
+  // dans un champ partagé — passer en mode nuit ne doit pas repeindre l'écran
+  // du partenaire. `legacyTheme` porte l'ancien champ `theme` partagé et sert
+  // de repli tant qu'un membre n'a pas choisi le sien (pas de régression pour
+  // les couples qui l'avaient déjà réglé).
+  const [themePrefs, setThemePrefs] = useState({});
+  const [legacyTheme, setLegacyTheme] = useState(null);
   const [language, setLanguageState] = useState("fr");
   const [debtSettlements, setDebtSettlements] = useState([]);
   const [pushPrefs, setPushPrefs] = useState({});
@@ -76,6 +83,11 @@ export function FinanceProvider({ children }) {
   // Liste de tags personnalisée du couple (ordonnée). Vide tant que non
   // personnalisée : les suggestions retombent alors sur les presets + historique.
   const [customTags, setCustomTags] = useState([]);
+
+  // Clé du membre courant : sert autant à filtrer le privé (voir isVisibleToMe)
+  // qu'à retrouver SON thème dans la map.
+  const myKey = getMemberKey(members.find((m) => m.uid === user?.uid)) || user?.uid;
+  const theme = themePrefs[myKey] || legacyTheme || "pairwise";
 
   useEffect(() => {
     applyTheme(theme);
@@ -167,7 +179,8 @@ export function FinanceProvider({ children }) {
         if (data.wealthDisplayCurrency) setWealthDisplayCurrency(data.wealthDisplayCurrency);
         if (data.dashboardDisplayCurrency) setDashboardDisplayCurrency(data.dashboardDisplayCurrency);
         if (data.budgetDisplayCurrency) setBudgetDisplayCurrency(data.budgetDisplayCurrency);
-        if (data.theme) setThemeState(data.theme);
+        if (data.themePrefs) setThemePrefs(data.themePrefs);
+        if (data.theme) setLegacyTheme(data.theme);
         if (data.language) setLanguageState(data.language);
         if (data.debtSettlements) setDebtSettlements(data.debtSettlements);
         if (data.pushPrefs) setPushPrefs(data.pushPrefs);
@@ -812,9 +825,16 @@ export function FinanceProvider({ children }) {
   }
 
   async function updateTheme(themeKey) {
-    setThemeState(themeKey);
+    if (!myKey) return;
+    setThemePrefs((prev) => ({ ...prev, [myKey]: themeKey }));
     if (coupleId) {
-      await setDoc(doc(db, "couples", coupleId), { theme: themeKey }, { merge: true });
+      // Écriture ciblée dans la map (merge imbriqué), pour ne toucher que la clé
+      // du membre courant et laisser intact le thème du partenaire.
+      await setDoc(
+        doc(db, "couples", coupleId),
+        { themePrefs: { [myKey]: themeKey } },
+        { merge: true }
+      );
     }
   }
 
@@ -831,7 +851,7 @@ export function FinanceProvider({ children }) {
   // (transactions/assets) restent intacts en interne, sinon les fonctions
   // d'écriture qui font un read-modify-write du tableau complet (updateAsset,
   // addAsset…) effaceraient les éléments cachés du partenaire.
-  const myKey = getMemberKey(members.find((m) => m.uid === user?.uid)) || user?.uid;
+  // `myKey` est calculé plus haut (partagé avec la sélection du thème).
   const isVisibleToMe = (x) => !x?.privateTo || x.privateTo === myKey;
   const visibleTransactions = useMemo(
     () => transactions.filter(isVisibleToMe),
