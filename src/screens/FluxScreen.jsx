@@ -50,7 +50,9 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const { widgets, saveWidgets } = useFluxPrefs();
 
-  const [fixedDetailOpen, setFixedDetailOpen] = useState(false);
+  // Détail des charges fixes déroulé par défaut (l'utilisateur veut voir la
+  // ventilation d'emblée) ; reste repliable.
+  const [fixedDetailOpen, setFixedDetailOpen] = useState(true);
   const [commentsTx, setCommentsTx] = useState(null);
   const [editMode, setEditMode] = useState(false);
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
@@ -378,7 +380,9 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
       const scope = globalScope;
       const scopedItems = fixedItems
         .map(({ rule, monthly }) => ({ rule, monthly: monthly * frac(rule, scope) }))
-        .filter(({ monthly }) => monthly > 0);
+        .filter(({ monthly }) => monthly > 0)
+        // Les charges les plus lourdes en tête de liste.
+        .sort((a, b) => b.monthly - a.monthly);
       const scopedMonthly = scopedItems.reduce((s, x) => s + x.monthly, 0);
       const scopedCount = scopedItems.length;
       // Revenus de la période re-scopés, ramenés à une moyenne MENSUELLE (les
