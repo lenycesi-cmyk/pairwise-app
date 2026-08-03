@@ -350,8 +350,15 @@ button {
 }
 
 input,
-select {
+select,
+textarea {
   font-family: inherit;
+  /* Comme les <button>, les champs de saisie remettent leur couleur à une
+     couleur système (sombre) au lieu d'hériter de --ink. Un champ sans `color`
+     explicite (ex. la Description) devenait donc sombre sur sombre en mode nuit.
+     On force l'héritage ; les champs qui posent déjà leur propre `color` ne sont
+     pas affectés. */
+  color: inherit;
 }
 
 /* Exemples défilants de l'onboarding : le texte de substitution prend la
@@ -430,7 +437,10 @@ button:active {
    n'utilise pas ce fond. Les infobulles/badges (des <div>) ne sont pas touchés. */
 button[style*="background: var(--ink)"] {
   background: var(--tang) !important;
-  color: var(--bg) !important;
+  /* Texte TOUJOURS clair sur le coral : `var(--bg)` était clair en thème clair
+     mais SOMBRE en mode nuit (fond sombre), rendant « Enregistrer » noir sur
+     coral. Le blanc est lisible sur le coral dans les deux thèmes. */
+  color: #fff !important;
 }
 @media (hover: hover) {
   button:hover {
