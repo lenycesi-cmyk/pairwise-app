@@ -44,9 +44,15 @@
 
 [data-theme="pairwise-dark"] {
   --ink: #f7f1e9;
-  --ink-2: #9ba6b1;
-  --ink-3: #727c86;
-  --ink-4: #4a545d;
+  /* Gris relevés pour le mode nuit : les anciennes valeurs (#9ba6b1 / #727c86)
+     tombaient sous ~3.4:1 de contraste sur les cartes, rendant le texte
+     secondaire (libellés « PAYÉ PAR », pourcentages, onglets inactifs, texte
+     d'aide) et les icônes éteintes difficilement lisibles. On garde la
+     hiérarchie ink > ink-2 > ink-3 > ink-4, mais chaque cran passe au-dessus
+     du seuil AA (4.5:1). Le mode clair n'est pas touché. */
+  --ink-2: #b4bec8;
+  --ink-3: #96a0ab;
+  --ink-4: #5b6670;
   --bg: #0a1520;
   --bg-card: #14202d;
   --rule: #303942;
