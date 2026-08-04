@@ -16,6 +16,7 @@ import { ALL_CATEGORIES, ALL_CURRENCIES, getCategoryName } from "../../data/cate
 import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { screenWrap, primaryBtn } from "./onboardingStyles";
 import { StepDots } from "./onboardingUI";
+import OnboardingHeader from "./OnboardingHeader";
 import AmbientBackdrop from "../../components/AmbientBackdrop";
 import { CHIPS, PLACEHOLDERS, KIND_COLOR } from "../../data/onboardingChips";
 
@@ -426,7 +427,9 @@ export default function OnboardingEntry({ language, onSignIn, onNext }) {
       <div style={{ ...screenWrap, maxWidth: isDesktop ? 760 : 430 }}>
         {/* Ambiance décorative en arrière-plan (derrière tout le contenu). */}
         <AmbientBackdrop />
-        <div style={{ position: "relative", zIndex: 1, flex: 1, overflowY: "auto", padding: "32px 24px 24px", display: "flex", flexDirection: "column" }}>
+        {/* En-tête marketing : présent uniquement sur la page d'accueil. */}
+        <OnboardingHeader language={language} onSignIn={onSignIn} isDesktop={isDesktop} />
+        <div style={{ position: "relative", zIndex: 1, flex: 1, overflowY: "auto", padding: "24px 24px 24px", display: "flex", flexDirection: "column" }}>
           <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center" }}>
             {logo(true, true)}
             <div style={{ margin: isDesktop ? "30px 0 52px" : "24px 0" }}>{privacyBadge}</div>
