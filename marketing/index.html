@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <title>PairWise — Budget, dépenses partagées et patrimoine en une app</title>
+  <meta name="description" content="Note une dépense en une phrase, suis tes budgets, partage les frais et vois ton patrimoine grandir. Seul ou à deux, dans toutes les devises. Gratuit, sans compte pour commencer." />
+
+  <link rel="canonical" href="https://pairwise.finance/" />
+  <link rel="alternate" hreflang="fr" href="https://pairwise.finance/" />
+  <link rel="alternate" hreflang="en" href="https://pairwise.finance/en/" />
+  <link rel="alternate" hreflang="x-default" href="https://pairwise.finance/" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="PairWise" />
+  <meta property="og:locale" content="fr_FR" />
+  <meta property="og:title" content="PairWise — Budget, dépenses partagées et patrimoine en une app" />
+  <meta property="og:description" content="Note une dépense en une phrase, suis tes budgets, partage les frais et vois ton patrimoine grandir. Seul ou à deux, dans toutes les devises." />
+  <meta property="og:url" content="https://pairwise.finance/" />
+  <meta property="og:image" content="https://pairwise.finance/assets/og-home.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <link rel="icon" type="image/png" href="/icon-192.png" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Nunito+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+  <link rel="stylesheet" href="/assets/site.css" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "name": "PairWise",
+        "url": "https://pairwise.finance/",
+        "description": "Application de gestion de budget, de dépenses partagées et de patrimoine, seul ou à deux."
+      },
+      {
+        "@type": "WebSite",
+        "name": "PairWise",
+        "url": "https://pairwise.finance/",
+        "inLanguage": "fr-FR"
+      },
+      {
+        "@type": "SoftwareApplication",
+        "name": "PairWise",
+        "applicationCategory": "FinanceApplication",
+        "operatingSystem": "Web, iOS, Android",
+        "description": "Dépenses, budgets, charges fixes, partage à deux, investissements et patrimoine — au même endroit, dans toutes les devises.",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
+        "url": "https://pairwise.finance/"
+      }
+    ]
+  }
+  </script>
+</head>
+<body>
+
+<header class="site">
+  <div class="bar">
+    <a href="/" class="logo"><span class="p">P</span> PairWise</a>
+    <!-- Les rubriques dont la page n'existe pas encore ne sont pas des liens :
+         on ne pose pas de lien mort sur le site (chaque 404 coûte en SEO). -->
+    <nav>
+      <span class="soon">Fonctionnalités</span>
+      <span class="soon">Pour qui</span>
+      <span class="soon">Comparatifs</span>
+      <span class="soon">Tarifs</span>
+      <span class="soon">Sécurité</span>
+    </nav>
+    <a href="https://app.pairwise.finance/" class="login">Connexion</a>
+  </div>
+</header>
+
+<!-- ============ HERO ============ -->
+<section class="home-hero">
+  <div class="wrap">
+    <span class="badge"><i class="ti ti-lock"></i> Sans compte pour commencer · tes données restent chez toi</span>
+    <h1 class="display">Tes dépenses, ton budget et ton patrimoine. Une seule app.</h1>
+    <p class="sub">Note une dépense en une phrase, suis tes budgets, partage les frais et vois ton
+      patrimoine grandir — seul, à deux, et dans toutes les devises.</p>
+    <div class="actions">
+      <a href="https://app.pairwise.finance/" class="btn-primary">C'est parti <i class="ti ti-arrow-right"></i></a>
+      <span class="microtrust"><i class="ti ti-sparkles"></i> Gratuit · aucune carte bancaire</span>
+    </div>
+
+    <div class="shots" aria-hidden="true">
+      <div class="shot">
+        <div class="cap">Noter une dépense</div>
+        <div class="nlbar">
+          <i class="ti ti-sparkles sp"></i><span class="t">60 € courses hier</span><i class="ti ti-microphone mi"></i>
+        </div>
+        <div style="margin-top:11px">
+          <div class="mini"><span class="l"><span class="dotc" style="background:var(--amber-light);color:var(--amber)"><i class="ti ti-apple"></i></span> Alimentation</span><b>60,00 €</b></div>
+          <div class="mini"><span class="l"><span class="dotc" style="background:var(--sky-light);color:var(--sky)"><i class="ti ti-car"></i></span> Transport</span><b>12,50 €</b></div>
+          <div class="mini"><span class="l"><span class="dotc" style="background:var(--sage-light);color:var(--sage)"><i class="ti ti-coin"></i></span> Salaire</span><b style="color:var(--sage)">+2 000 €</b></div>
+        </div>
+      </div>
+
+      <div class="shot">
+        <div class="cap">Suivre ses budgets</div>
+        <div style="margin-bottom:13px">
+          <div class="pline"><span>Alimentation</span><span>420 / 500 €</span></div>
+          <div class="pbar"><span style="width:84%;background:var(--amber)"></span></div>
+        </div>
+        <div style="margin-bottom:13px">
+          <div class="pline"><span>Sorties</span><span>180 / 200 €</span></div>
+          <div class="pbar"><span style="width:90%;background:var(--tang)"></span></div>
+        </div>
+        <div>
+          <div class="pline"><span>Transport</span><span>60 / 150 €</span></div>
+          <div class="pbar"><span style="width:40%;background:var(--sage)"></span></div>
+        </div>
+      </div>
+
+      <div class="shot">
+        <div class="cap">Voir son patrimoine</div>
+        <div class="big" style="color:var(--sage)">128 450 €</div>
+        <div class="trend"><i class="ti ti-trending-up"></i> + 3,2 % ce mois-ci</div>
+        <div class="mini"><span class="l"><span class="dotc" style="background:var(--sky-light);color:var(--sky)"><i class="ti ti-wallet"></i></span> Comptes</span><b>18 200 €</b></div>
+        <div class="mini"><span class="l"><span class="dotc" style="background:var(--lavi-light);color:var(--lavi)"><i class="ti ti-chart-line"></i></span> Investissements</span><b>44 800 €</b></div>
+        <div class="mini"><span class="l"><span class="dotc" style="background:var(--amber-light);color:var(--amber)"><i class="ti ti-home"></i></span> Immobilier</span><b>95 000 €</b></div>
+        <div class="mini"><span class="l"><span class="dotc" style="background:var(--tang-light);color:var(--tang)"><i class="ti ti-credit-card"></i></span> Crédits</span><b style="color:var(--tang)">− 29 550 €</b></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ POSITIONNEMENT ============ -->
+<section class="alt">
+  <div class="wrap">
+    <span class="eyebrow">Le principe</span>
+    <h2 class="h2 display">Trois applis, trois abonnements, zéro vue d'ensemble.</h2>
+    <p class="lede">La plupart des gens jonglent : une appli pour voir ses comptes, une autre pour
+      partager les frais, un tableur pour le reste. PairWise réunit les trois.</p>
+    <div class="replace">
+      <div class="stack">
+        <div class="old"><i class="ti ti-building-bank"></i> Une appli pour voir ses comptes</div>
+        <div class="old"><i class="ti ti-receipt"></i> Une appli pour partager les frais</div>
+        <div class="old"><i class="ti ti-table"></i> Un tableur pour le patrimoine</div>
+      </div>
+      <div class="arrowbig"><i class="ti ti-arrow-right"></i></div>
+      <div class="one">
+        <h3 class="display">PairWise</h3>
+        <p>Dépenses, budgets, charges fixes, partage à deux, investissements et patrimoine —
+          au même endroit, dans la devise que tu veux.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FONCTIONNALITÉS ============ -->
+<section>
+  <div class="wrap">
+    <span class="eyebrow">Fonctionnalités</span>
+    <h2 class="h2 display">Tout ce qu'il faut, rien de superflu.</h2>
+    <p class="lede">Chaque brique est pensée pour servir tous les jours, pas pour être configurée
+      pendant une heure.</p>
+    <div class="feat">
+      <a class="fcard" href="/fonctionnalites/saisie-langage-naturel">
+        <span class="fic" style="background:var(--tang-light);color:var(--tang)"><i class="ti ti-sparkles"></i></span>
+        <span><b>Saisie en langage naturel</b><small>« 60 € courses hier » — ou dicte au micro</small></span>
+      </a>
+      <div class="fcard">
+        <span class="fic" style="background:var(--sage-light);color:var(--sage)"><i class="ti ti-world"></i></span>
+        <span><b>Multi-devises</b><small>Idéal voyageurs &amp; nomades</small></span>
+      </div>
+      <div class="fcard">
+        <span class="fic" style="background:var(--tang-light);color:var(--tang)"><i class="ti ti-users"></i></span>
+        <span><b>Dépenses partagées</b><small>Qui doit quoi, à deux</small></span>
+      </div>
+      <div class="fcard">
+        <span class="fic" style="background:var(--amber-light);color:var(--amber)"><i class="ti ti-chart-pie"></i></span>
+        <span><b>Budgets</b><small>Par catégorie, avec alertes</small></span>
+      </div>
+      <div class="fcard">
+        <span class="fic" style="background:var(--lavi-light);color:var(--lavi)"><i class="ti ti-diamond"></i></span>
+        <span><b>Patrimoine &amp; investissements</b><small>Actifs, crédits, évolution</small></span>
+      </div>
+      <div class="fcard">
+        <span class="fic" style="background:var(--sky-light);color:var(--sky)"><i class="ti ti-building-bank"></i></span>
+        <span><b>Synchronisation bancaire</b><small>Comptes reliés, en temps réel</small></span>
+      </div>
+      <div class="fcard">
+        <span class="fic" style="background:var(--lavi-light);color:var(--lavi)"><i class="ti ti-repeat"></i></span>
+        <span><b>Charges récurrentes</b><small>Loyer, abonnements, crédits</small></span>
+      </div>
+      <div class="fcard">
+        <span class="fic" style="background:var(--sky-light);color:var(--sky)"><i class="ti ti-chart-line"></i></span>
+        <span><b>Rapports &amp; insights</b><small>Ce qui bouge, mois par mois</small></span>
+      </div>
+      <div class="fcard">
+        <span class="fic" style="background:var(--sage-light);color:var(--sage)"><i class="ti ti-shield-lock"></i></span>
+        <span><b>Sécurité</b><small>Chiffré, tes données t'appartiennent</small></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ POUR QUI ============ -->
+<section class="alt">
+  <div class="wrap">
+    <span class="eyebrow">Pour qui</span>
+    <h2 class="h2 display">Seul, à deux, ou le sac sur le dos.</h2>
+    <p class="lede">PairWise s'adapte à ta situation — et te suit si elle change.</p>
+    <div class="audg">
+      <div class="acard"><i class="ti ti-user ic"></i><b>En solo</b><small>Tes finances perso, sans friction</small></div>
+      <div class="acard"><i class="ti ti-users ic"></i><b>À deux</b><small>Dépenses partagées, budgets communs</small></div>
+      <div class="acard"><i class="ti ti-plane-tilt ic"></i><b>Voyageurs &amp; nomades</b><small>Le multi-devises comme atout</small></div>
+      <div class="acard"><i class="ti ti-world ic"></i><b>Expatriés</b><small>Revenus ici, charges là-bas</small></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ BANDE CTA ============ -->
+<div class="cta-band">
+  <i class="ti ti-receipt float" style="left:8%; top:26%;"></i>
+  <i class="ti ti-world float" style="right:10%; top:30%;"></i>
+  <i class="ti ti-sparkles float" style="left:14%; bottom:22%;"></i>
+  <i class="ti ti-coin float" style="right:16%; bottom:24%;"></i>
+  <div class="wrap">
+    <span class="eyebrow">Prêt à y voir clair</span>
+    <h2 class="display">Un outil pensé pour reprendre la main sur ton argent.</h2>
+    <a href="https://app.pairwise.finance/" class="btn-primary">C'est parti <i class="ti ti-arrow-right"></i></a>
+    <div class="fineprint">
+      <span><i class="ti ti-lock"></i> Sans compte pour commencer</span>
+      <span><i class="ti ti-device-mobile"></i> Tes données restent sur ton appareil</span>
+      <span><i class="ti ti-sparkles"></i> Gratuit</span>
+    </div>
+  </div>
+</div>
+
+<!-- ============ FOOTER ============ -->
+<footer class="site">
+  <div class="wrap cols">
+    <div>
+      <a href="/" class="logo"><span class="p">P</span> PairWise</a>
+      <p class="intro">Une seule app pour tes dépenses, ton budget et ton patrimoine — seul ou à deux.</p>
+    </div>
+    <div>
+      <h4>Fonctionnalités</h4>
+      <a href="/fonctionnalites/saisie-langage-naturel">Saisie en langage naturel</a>
+      <span class="soon">Multi-devises</span>
+      <span class="soon">Dépenses partagées</span>
+      <span class="soon">Patrimoine &amp; investissements</span>
+    </div>
+    <div>
+      <h4>Pour qui</h4>
+      <span class="soon">En solo</span>
+      <span class="soon">À deux</span>
+      <span class="soon">Voyageurs &amp; nomades</span>
+      <span class="soon">Expatriés</span>
+    </div>
+    <div>
+      <h4>PairWise</h4>
+      <a href="https://app.pairwise.finance/">Ouvrir l'app</a>
+      <span class="soon">Tarifs</span>
+      <span class="soon">Sécurité</span>
+      <span class="soon">FAQ</span>
+    </div>
+  </div>
+  <div class="wrap copy">© 2026 PairWise · Fait avec soin · Tes données t'appartiennent</div>
+</footer>
+
+</body>
+</html>
