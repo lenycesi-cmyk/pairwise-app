@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "deploy": "vite build && node scripts/deploy.js",
     "deploy:preview": "vite build && node scripts/deploy.js --channel=preview",
+    "deploy:marketing": "node scripts/deploy.js --marketing",
     "test": "npm run test:unit && npm run test:rules",
     "test:watch": "vitest tests/unit",
     "test:unit": "vitest run tests/unit",

@@ -7,6 +7,7 @@
 //   node scripts/deploy.js --channel=ma-preview      → canal de prévisualisation, TTL 7 j
 //   node scripts/deploy.js --channel=demo --ttl=30   → canal de prévisualisation, TTL 30 j
 //   node scripts/deploy.js --site=pairwise-www        → autre site Hosting du même projet
+//   node scripts/deploy.js --marketing --site=<id>    → publie marketing/ (site de l'apex)
 //
 // Un canal de prévisualisation sert le même build sur une URL éphémère et
 // distincte, sans toucher au site live. ATTENTION : ce n'est PAS une
@@ -23,13 +24,75 @@ import { getAccessToken, api, HOSTING_API } from "./lib/firebaseApi.js";
 // Site Hosting visé. Un projet Firebase peut en héberger plusieurs (l'app d'un
 // côté, le site marketing de l'autre) ; `--site=` permet de choisir sans
 // toucher au script. `argValue` est une déclaration de fonction, donc hissée.
-const SITE_ID = argValue("site") || process.env.FIREBASE_HOSTING_SITE || "pairwise-12df2";
-const DIST_DIR = join(import.meta.dirname, "..", "dist");
+// `--marketing` bascule la source sur le dossier marketing/ (site statique de
+// l'apex pairwise.finance) et une config d'hébergement dédiée (URLs propres,
+// vrai 404). On EXIGE alors un --site explicite : publier le marketing sur le
+// site de l'app par défaut écraserait l'app — d'où le garde-fou dans validateArgs.
+const IS_MARKETING = process.argv.slice(2).includes("--marketing");
+const EXPLICIT_SITE = argValue("site") || process.env.FIREBASE_HOSTING_SITE || null;
+const SITE_ID = EXPLICIT_SITE || "pairwise-12df2";
+const SOURCE_DIR = join(import.meta.dirname, "..", IS_MARKETING ? "marketing" : "dist");
 
 function argValue(name) {
   const prefix = `--${name}=`;
   const hit = process.argv.slice(2).find((a) => a.startsWith(prefix));
   return hit ? hit.slice(prefix.length) : null;
+}
+
+// Config d'hébergement envoyée à l'API REST (elle prime sur firebase.json, qui
+// est ignoré ici). Deux profils : l'app (SPA, pas de catch-all) et le site
+// marketing (pages statiques à URLs propres).
+function hostingConfig() {
+  if (IS_MARKETING) {
+    return {
+      // `cleanUrls` sert `/fonctionnalites/x` depuis `x.html` sans extension.
+      // Pas de catch-all `**` : les chemins inconnus tombent sur 404.html avec
+      // un vrai code 404 (même principe anti-soft-404 que l'app).
+      cleanUrls: true,
+      headers: [
+        // HTML jamais mis en cache : un correctif de contenu est visible tout
+        // de suite. Les assets (site.css…) ne sont pas hashés → cache court.
+        { glob: "**/*.html", headers: { "Cache-Control": "no-cache" } },
+        { glob: "/assets/**", headers: { "Cache-Control": "public, max-age=3600" } },
+      ],
+    };
+  }
+  return {
+    // ATTENTION : c'est CETTE configuration qui est déployée, pas la section
+    // `hosting` de firebase.json — le déploiement passe par l'API REST et ignore
+    // ce fichier. Les deux sont gardées en phase à la main.
+    //
+    // Pas de réécriture « ** » : l'app n'a pas de routeur, sa seule URL est `/`.
+    // Tout renvoyer vers index.html ferait répondre 200 à n'importe quelle
+    // adresse inexistante — un « soft 404 » que Google pénalise. Sans catch-all,
+    // Hosting sert 404.html avec un vrai code 404.
+    //
+    // Seule exception : le retour de consentement bancaire, seul chemin profond
+    // réellement utilisé (cf. components/BankCallbackHandler.jsx, qui lit
+    // `?code=…&state=…` puis remet l'URL à `/`).
+    rewrites: [{ glob: "/bank-callback", path: "/index.html" }],
+    // Cache : index.html / SW / manifest jamais mis en cache (pour que chaque
+    // déploiement soit visible immédiatement), assets hashés par Vite mis en
+    // cache un an (immuables, le hash change à chaque build).
+    headers: [
+      {
+        glob: "/index.html",
+        headers: { "Cache-Control": "no-cache, no-store, must-revalidate" },
+      },
+      {
+        glob: "/firebase-messaging-sw.js",
+        headers: { "Cache-Control": "no-cache, no-store, must-revalidate" },
+      },
+      {
+        glob: "/manifest.json",
+        headers: { "Cache-Control": "no-cache" },
+      },
+      {
+        glob: "/assets/**",
+        headers: { "Cache-Control": "public, max-age=31536000, immutable" },
+      },
+    ],
+  };
 }
 
 // `--channel=live` ou pas de `--channel` ⇒ déploiement live. « live » est le nom
@@ -43,6 +106,12 @@ const TTL_DAYS = Number(argValue("ttl") ?? 7);
 function validateArgs() {
   if (!/^[a-z0-9][a-z0-9-]{0,29}$/.test(SITE_ID)) {
     throw new Error(`--site invalide: "${SITE_ID}" (minuscules, chiffres et -, 30 caractères max)`);
+  }
+  if (IS_MARKETING && !EXPLICIT_SITE) {
+    throw new Error(
+      "--marketing exige --site=<id-du-site-marketing> : sans lui on déploierait le site " +
+        "marketing sur le site de l'app par défaut (pairwise-12df2), écrasant l'application."
+    );
   }
   if (!CHANNEL_ID) return;
   // Le nom du canal se retrouve dans l'URL générée (`{site}--{canal}-{hash}.web.app`) :
@@ -101,55 +170,18 @@ async function main() {
     token,
     "POST",
     `${HOSTING_API}/sites/${SITE_ID}/versions`,
-    {
-      config: {
-        // ATTENTION : c'est CETTE configuration qui est déployée, pas la
-        // section `hosting` de firebase.json — le déploiement passe par l'API
-        // REST et ignore ce fichier. Les deux sont gardées en phase à la main.
-        //
-        // Pas de réécriture « ** » : l'app n'a pas de routeur, sa seule URL est
-        // `/`. Tout renvoyer vers index.html ferait répondre 200 à n'importe
-        // quelle adresse inexistante — un « soft 404 » que Google pénalise.
-        // Sans catch-all, Hosting sert 404.html avec un vrai code 404.
-        //
-        // Seule exception : le retour de consentement bancaire, seul chemin
-        // profond réellement utilisé (cf. components/BankCallbackHandler.jsx,
-        // qui lit `?code=…&state=…` puis remet l'URL à `/`).
-        rewrites: [{ glob: "/bank-callback", path: "/index.html" }],
-        // Cache : index.html / SW / manifest jamais mis en cache (pour que
-        // chaque déploiement soit visible immédiatement), assets hashés par
-        // Vite mis en cache un an (immuables, le hash change à chaque build).
-        headers: [
-          {
-            glob: "/index.html",
-            headers: { "Cache-Control": "no-cache, no-store, must-revalidate" },
-          },
-          {
-            glob: "/firebase-messaging-sw.js",
-            headers: { "Cache-Control": "no-cache, no-store, must-revalidate" },
-          },
-          {
-            glob: "/manifest.json",
-            headers: { "Cache-Control": "no-cache" },
-          },
-          {
-            glob: "/assets/**",
-            headers: { "Cache-Control": "public, max-age=31536000, immutable" },
-          },
-        ],
-      },
-    }
+    { config: hostingConfig() }
   );
   const versionName = version.name;
   console.log("Version:", versionName);
 
-  const files = walk(DIST_DIR);
+  const files = walk(SOURCE_DIR);
   const hashToGz = new Map();
   const pathToHash = {};
   for (const f of files) {
     const gz = gzipSync(readFileSync(f));
     const hash = createHash("sha256").update(gz).digest("hex");
-    const urlPath = "/" + relative(DIST_DIR, f).split("\\").join("/");
+    const urlPath = "/" + relative(SOURCE_DIR, f).split("\\").join("/");
     pathToHash[urlPath] = hash;
     hashToGz.set(hash, gz);
   }
@@ -198,7 +230,7 @@ async function main() {
     console.log(`Expire le ${new Date(channel.expireTime).toLocaleString("fr-FR")}`);
     console.log("Rappel: ce canal utilise la base Firestore de PRODUCTION.");
   } else {
-    console.log(`Déployé: https://${SITE_ID}.web.app`);
+    console.log(`Déployé (${IS_MARKETING ? "marketing" : "app"}): https://${SITE_ID}.web.app`);
   }
 }
 
