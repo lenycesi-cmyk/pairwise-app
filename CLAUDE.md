@@ -286,15 +286,38 @@ read-modify-merge the whole couple doc client-side (e.g. `addRecurring`, `addAss
 couple-level state.
 
 **Budgets** (`budgets` array field) follow the same shape/CRUD pattern as `recurringTx`/`assets`
-(`addBudget`/`updateBudget`/`removeBudget` in FinanceContext). Each budget has `scope`
-(`"global"` or `"category"`), `categoryIds`, `amount`/`currency`, and `alertThreshold` (% of amount,
-default 80). Spend-vs-budget math for the *current calendar month* lives in one shared hook,
-[useBudgetProgress](src/hooks/useBudgetProgress.js), consumed by `BudgetScreen`, the Dashboard
-progress widget, and `useBudgetAlerts`. `useBudgetAlerts` fires browser `Notification`s when a
-budget crosses its threshold, deduped per `budgetId`+month via `localStorage` — it's mounted
-globally as an always-on "runner" component in App.jsx (`BudgetAlertsRunner`, same pattern as
-`RecurringGeneratorRunner`) so alerts fire regardless of which tab is active. Notifications only
-work while the tab/app is open (no Service Worker/push).
+(`addBudget`/`updateBudget`/`removeBudget` in FinanceContext). A budget is defined on three
+independent axes, and all three matter when touching this code:
+
+- **`scope`** — `"global"`, `"category"` (with `categoryIds`, possibly several) or **`"tag"`**
+  (with `tagKeys`). The tag scope is what lets someone cap `impulsif` spending, which no
+  category can express.
+- **`period`** — `"monthly"` (calendar, or **anchored** on `anchorDay` > 1, e.g. the 25th → the
+  period runs 25→24 so it tracks payday rather than the calendar), `"weekly"` (Mon→Sun),
+  `"quarterly"`, `"yearly"`, `"rolling"` (last `rollingDays`, default 30) or `"event"` (a fixed
+  envelope between `startDate` and `endDate`). All range math lives in
+  [utils/budgetPeriods.js](src/utils/budgetPeriods.js), shared by the progress hook and the
+  history runner — do not recompute ranges anywhere else.
+- **`memberUid`** — `"couple"` or a member key. A personal budget counts only that member's
+  **share** of each expense (`memberShareFraction`, which handles 50/50 and custom splits) and
+  never notifies the partner.
+
+Plus `amount`/`currency` (converted from other currencies), `alertThreshold` (% of amount,
+default 80) and optional **`rollover`**: the previous period's leftover is added to the current
+one — one period back only, and it can be *negative* so an overspend carries too. Rollover is
+disabled for `rolling` and `event`, which have no discrete previous period.
+
+Spend-vs-budget math lives in one shared hook, [useBudgetProgress](src/hooks/useBudgetProgress.js)
+(consumed by `BudgetScreen`, the Dashboard widget and `useBudgetAlerts`), which also computes a
+**pace projection** once more than 15 % of the period has elapsed, and a per-member breakdown.
+`useBudgetAlerts` fires at **two** levels — the threshold, then 100 % overspend — sending a local
+notification to the current user and a **push** (`sendPush`, kind `budgetAlert` with
+`targetKeys`) to the other concerned members, so alerts land even with the app closed. Dedup is
+per budget + month + level in `localStorage`. It's mounted as an always-on "runner" in App.jsx
+(`BudgetAlertsRunner`, same pattern as `RecurringGeneratorRunner`).
+[useBudgetSnapshots](src/hooks/useBudgetSnapshots.js) freezes each **closed** period into
+`budgetHistory` on the couple doc — idempotent, never rewritten, and skipping rolling windows
+(no discrete period to close).
 
 **Income subcategories can be linked to a Wealth account** via the `incomeAccountLinks` map
 (`{ subcategoryName: assetId }`, set whole via `setIncomeAccountLinks`, edited in
