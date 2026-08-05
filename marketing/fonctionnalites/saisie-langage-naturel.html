@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="fr" data-theme-default>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <title>Ajouter une dépense rapidement, en une phrase | PairWise</title>
+  <meta name="description" content="Écris ou dicte « 60 € courses hier » : PairWise remplit montant, catégorie, date et devise. Saisie en langage naturel et vocale, instantanée, 100 % sur ton appareil." />
+
+  <link rel="canonical" href="https://pairwise.finance/fonctionnalites/saisie-langage-naturel" />
+  <link rel="alternate" hreflang="fr" href="https://pairwise.finance/fonctionnalites/saisie-langage-naturel" />
+  <link rel="alternate" hreflang="en" href="https://pairwise.finance/en/features/natural-language-entry" />
+  <link rel="alternate" hreflang="x-default" href="https://pairwise.finance/fonctionnalites/saisie-langage-naturel" />
+
+  <!-- Open Graph / partage social -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="PairWise" />
+  <meta property="og:locale" content="fr_FR" />
+  <meta property="og:title" content="Ajoute une dépense en une phrase — PairWise" />
+  <meta property="og:description" content="Écris ou dicte « 60 € courses hier » : PairWise remplit montant, catégorie, date et devise. Instantané, 100 % sur ton appareil." />
+  <meta property="og:url" content="https://pairwise.finance/fonctionnalites/saisie-langage-naturel" />
+  <meta property="og:image" content="https://pairwise.finance/assets/og-saisie-langage-naturel.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <link rel="icon" type="image/png" href="/icon-192.png" />
+
+  <!-- Mêmes polices et icônes que l'app -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Nunito+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+  <link rel="stylesheet" href="/assets/site.css" />
+
+  <!-- Données structurées : logiciel, fil d'Ariane, FAQ -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "SoftwareApplication",
+        "name": "PairWise",
+        "applicationCategory": "FinanceApplication",
+        "operatingSystem": "Web, iOS, Android",
+        "description": "Application de gestion de budget, dépenses et patrimoine, seul ou à deux, avec saisie en langage naturel et vocale.",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
+        "url": "https://pairwise.finance/"
+      },
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Accueil", "item": "https://pairwise.finance/" },
+          { "@type": "ListItem", "position": 2, "name": "Fonctionnalités", "item": "https://pairwise.finance/fonctionnalites" },
+          { "@type": "ListItem", "position": 3, "name": "Saisie en langage naturel", "item": "https://pairwise.finance/fonctionnalites/saisie-langage-naturel" }
+        ]
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "Comment ajouter une dépense rapidement dans PairWise ?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Écris une phrase dans le champ de saisie — par exemple « 60 € courses hier ». PairWise détecte le montant, la catégorie, la date et la devise, et pré-remplit la transaction. Tu vérifies et tu valides." }
+          },
+          {
+            "@type": "Question",
+            "name": "Peut-on dicter une transaction à la voix ?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Oui. Appuie sur le micro et dis ta phrase — PairWise la transcrit puis l'analyse exactement comme un texte tapé. La reconnaissance vocale utilise ton navigateur (Chrome, Edge, Safari), en français comme en anglais." }
+          },
+          {
+            "@type": "Question",
+            "name": "La saisie en langage naturel fonctionne-t-elle sans connexion ?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Oui. L'analyse est entièrement locale, sur ton appareil. Aucune phrase n'est envoyée à un serveur ni à une IA tierce — ça marche même hors-ligne, et c'est instantané." }
+          },
+          {
+            "@type": "Question",
+            "name": "Quelles langues et quelles devises sont reconnues ?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Le français et l'anglais, dans n'importe quel ordre de mots. Plus de 15 devises sont détectées à partir du symbole ou du nom (€, $, £, dong, baht, franc suisse, yen…)." }
+          },
+          {
+            "@type": "Question",
+            "name": "Et si PairWise se trompe de catégorie ?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Tout reste modifiable en un tap avant de valider. Et PairWise apprend : une description que tu as déjà classée retrouvera automatiquement sa catégorie la fois suivante." }
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+</head>
+<body>
+
+<header class="site">
+  <div class="bar">
+    <a href="/" class="logo"><span class="p">P</span> PairWise</a>
+    <nav>
+      <a class="active" href="/fonctionnalites">Fonctionnalités <i class="ti ti-chevron-down"></i></a>
+      <a href="/pour">Pour qui <i class="ti ti-chevron-down"></i></a>
+      <a href="/comparatifs">Comparatifs</a>
+      <a href="/tarifs">Tarifs</a>
+      <a href="/securite">Sécurité</a>
+    </nav>
+    <a href="https://app.pairwise.finance/" class="login">Connexion</a>
+  </div>
+</header>
+
+<nav class="crumb wrap" aria-label="Fil d'Ariane">
+  <a href="/">Accueil</a><i class="ti ti-chevron-right"></i><a href="/fonctionnalites">Fonctionnalités</a><i class="ti ti-chevron-right"></i><b>Saisie en langage naturel</b>
+</nav>
+
+<!-- ============ HERO ============ -->
+<section class="hero">
+  <div class="wrap grid">
+    <div>
+      <span class="eyebrow">Saisie en langage naturel</span>
+      <h1 class="display">Ajoute une dépense en une phrase.</h1>
+      <p class="sub">Écris comme tu parles — ou <b>dicte au micro</b>. « 60&nbsp;€ courses hier », et PairWise
+        comprend le montant, la catégorie, la date et la devise. Instantané, et 100&nbsp;% sur ton appareil.</p>
+      <div class="actions">
+        <a href="https://app.pairwise.finance/" class="btn-primary">C'est parti <i class="ti ti-arrow-right"></i></a>
+        <span class="microtrust"><i class="ti ti-lock"></i> Aucun compte · tes données restent chez toi</span>
+      </div>
+    </div>
+
+    <div class="demo" aria-hidden="true">
+      <div class="field">
+        <i class="ti ti-sparkles spark"></i>
+        <span class="typed">60&nbsp;€ courses hier<span class="caret"></span></span>
+        <span class="mic-btn" title="Dicter"><i class="ti ti-microphone"></i></span>
+      </div>
+      <div class="voiceline"><i class="ti ti-microphone m"></i> Ou appuie sur le micro et dis-le à voix haute.</div>
+      <div class="arrow"><i class="ti ti-arrow-down"></i></div>
+      <div class="got">PairWise a compris</div>
+      <div class="pills">
+        <span class="pill p-exp"><i class="ti ti-shopping-cart"></i> Dépense · 60&nbsp;€</span>
+        <span class="pill p-cat"><i class="ti ti-apple"></i> Alimentation</span>
+        <span class="pill p-date"><i class="ti ti-calendar"></i> Hier</span>
+        <span class="pill p-cur"><i class="ti ti-currency-euro"></i> EUR</span>
+      </div>
+      <div class="also">Marche aussi avec <span class="swap">« reçu 2000 salaire lundi »</span>,
+        <span class="swap">« ETF 250 »</span>, <span class="swap">« 150k₫ pho »</span>.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ COMMENT ÇA MARCHE ============ -->
+<section class="alt">
+  <div class="wrap">
+    <span class="eyebrow">Comment ça marche</span>
+    <h2 class="h2 display">Une phrase. Un formulaire déjà rempli.</h2>
+    <p class="lede">Tu tapes ou tu dictes, PairWise décode chaque morceau au fil de la frappe et pré-remplit
+      la transaction. Tu vérifies, tu valides. Aucun aller-retour, aucune donnée envoyée.</p>
+
+    <div class="steps">
+      <div class="step-copy">
+        <span class="num">1</span>
+        <h3>Tu écris — ou tu dictes</h3>
+        <p>Tape <span class="kbd">15€ resto hier</span>, <span class="kbd">reçu 2000 salaire lundi</span>,
+          <span class="kbd">Uber 12,50</span> — ou appuie sur le <b>micro</b> et dis-le à voix haute :
+          PairWise transcrit et analyse la phrase pareil.</p>
+        <p>Français ou anglais, peu importe l'ordre des mots. Même les tags à l'oral sont reconnus :
+          « resto <b>pro</b> », « achat <b>regret</b> ».</p>
+      </div>
+      <div class="phone" aria-hidden="true">
+        <div class="screen">
+          <div class="notch"></div>
+          <div class="app-top"><i class="ti ti-arrow-left back"></i><span class="title">Ajouter</span></div>
+          <div class="app-body">
+            <div class="nl-bar"><i class="ti ti-sparkles spark"></i><span class="t">15€ resto hier avec léa</span><span class="mic"><i class="ti ti-microphone"></i></span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="phone" aria-hidden="true">
+        <div class="screen">
+          <div class="notch"></div>
+          <div class="app-top"><i class="ti ti-arrow-left back"></i><span class="title">Ajouter</span></div>
+          <div class="app-body">
+            <div class="nl-bar"><i class="ti ti-sparkles spark"></i><span class="t">15€ resto hier avec léa</span><span class="mic"><i class="ti ti-microphone"></i></span></div>
+            <span class="autofill-tag"><i class="ti ti-check"></i> Rempli automatiquement</span>
+            <div class="seg"><span class="on">Dépense</span><span>Revenu</span><span>Invest.</span></div>
+            <div class="row2">
+              <div class="fld"><div class="lbl">Montant</div><div class="val">15,00 €</div></div>
+              <div class="fld"><div class="lbl">Date</div><div class="val">Hier</div></div>
+            </div>
+            <div class="fld"><div class="lbl">Catégorie</div><div class="val"><span class="catdot"><i class="ti ti-tools-kitchen-2"></i></span> Restaurant</div></div>
+            <div class="fld"><div class="lbl">Tags</div><div class="val tag">#léa</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="step-copy">
+        <span class="num">2</span>
+        <h3>Le formulaire se remplit tout seul</h3>
+        <p>Nature (dépense, revenu, investissement), montant, <b>devise</b>, date, catégorie et
+          sous-catégorie, description, tags. Rien à cliquer si tout est juste.</p>
+        <p>PairWise apprend même de ton historique : une description déjà vue retrouve sa catégorie.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ POUR QUI ============ -->
+<section>
+  <div class="wrap">
+    <span class="eyebrow">Pour qui</span>
+    <h2 class="h2 display">Que tu gères seul, à deux ou en vadrouille.</h2>
+    <div class="aud">
+      <a href="/pour/solo"><i class="ti ti-user ic"></i> <span>En solo <small>Tes finances perso, sans friction</small></span></a>
+      <a href="/pour/couples"><i class="ti ti-users ic"></i> <span>À deux <small>Chacun saisit, tout se partage</small></span></a>
+      <a href="/pour/voyageurs-nomades"><i class="ti ti-plane-tilt ic"></i> <span>Voyageurs &amp; nomades <small>Le multi-devises comme atout</small></span></a>
+      <a href="/pour/expatries"><i class="ti ti-world ic"></i> <span>Expatriés <small>Revenus ici, charges là-bas</small></span></a>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FAQ ============ -->
+<section class="alt">
+  <div class="wrap">
+    <span class="eyebrow">Questions fréquentes</span>
+    <h2 class="h2 display">Ce qu'on nous demande souvent.</h2>
+    <div class="faq">
+      <details class="q" open>
+        <summary>Comment ajouter une dépense rapidement dans PairWise&nbsp;? <span class="plus"><i class="ti ti-plus"></i></span></summary>
+        <p>Écris une phrase dans le champ de saisie — par exemple « 60&nbsp;€ courses hier ». PairWise
+          détecte le montant, la catégorie, la date et la devise, et pré-remplit la transaction. Tu vérifies et tu valides.</p>
+      </details>
+      <details class="q">
+        <summary>Peut-on dicter une transaction à la voix&nbsp;? <span class="plus"><i class="ti ti-plus"></i></span></summary>
+        <p>Oui. Appuie sur le micro et dis ta phrase — PairWise la transcrit puis l'analyse exactement
+          comme un texte tapé. La reconnaissance vocale utilise ton navigateur (Chrome, Edge, Safari), en français comme en anglais.</p>
+      </details>
+      <details class="q">
+        <summary>La saisie en langage naturel fonctionne-t-elle sans connexion&nbsp;? <span class="plus"><i class="ti ti-plus"></i></span></summary>
+        <p>Oui. L'analyse est entièrement locale, sur ton appareil. Aucune phrase n'est envoyée à un
+          serveur ni à une IA tierce — ça marche même hors-ligne, et c'est instantané.</p>
+      </details>
+      <details class="q">
+        <summary>Quelles langues et quelles devises sont reconnues&nbsp;? <span class="plus"><i class="ti ti-plus"></i></span></summary>
+        <p>Le français et l'anglais, dans n'importe quel ordre de mots. Plus de 15 devises sont détectées
+          à partir du symbole ou du nom (€, $, £, dong, baht, franc suisse, yen…).</p>
+      </details>
+      <details class="q">
+        <summary>Et si PairWise se trompe de catégorie&nbsp;? <span class="plus"><i class="ti ti-plus"></i></span></summary>
+        <p>Tout reste modifiable en un tap avant de valider. Et PairWise apprend&nbsp;: une description que
+          tu as déjà classée retrouvera automatiquement sa catégorie la fois suivante.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- ============ BANDE CTA ============ -->
+<div class="cta-band">
+  <i class="ti ti-receipt float" style="left:8%; top:26%;"></i>
+  <i class="ti ti-world float" style="right:10%; top:30%;"></i>
+  <i class="ti ti-sparkles float" style="left:14%; bottom:22%;"></i>
+  <i class="ti ti-coin float" style="right:16%; bottom:24%;"></i>
+  <div class="wrap">
+    <span class="eyebrow">Prêt à y voir clair</span>
+    <h2 class="display">Un outil pensé pour reprendre la main sur ton argent.</h2>
+    <a href="https://app.pairwise.finance/" class="btn-primary">C'est parti <i class="ti ti-arrow-right"></i></a>
+    <div class="fineprint">
+      <span><i class="ti ti-lock"></i> Sans compte pour commencer</span>
+      <span><i class="ti ti-device-mobile"></i> Tes données restent sur ton appareil</span>
+      <span><i class="ti ti-sparkles"></i> Gratuit</span>
+    </div>
+  </div>
+</div>
+
+<!-- ============ FOOTER ============ -->
+<footer class="site">
+  <div class="wrap cols">
+    <div>
+      <a href="/" class="logo"><span class="p">P</span> PairWise</a>
+      <p class="intro">Une seule app pour tes dépenses, ton budget et ton patrimoine — seul ou à deux.</p>
+    </div>
+    <div>
+      <h4>Fonctionnalités</h4>
+      <a href="/fonctionnalites/saisie-langage-naturel">Saisie en langage naturel</a>
+      <a href="/fonctionnalites/multi-devises">Multi-devises</a>
+      <a href="/fonctionnalites/depenses-partagees">Dépenses partagées</a>
+      <a href="/fonctionnalites/patrimoine">Patrimoine &amp; investissements</a>
+    </div>
+    <div>
+      <h4>Pour qui</h4>
+      <a href="/pour/solo">En solo</a>
+      <a href="/pour/couples">À deux</a>
+      <a href="/pour/voyageurs-nomades">Voyageurs &amp; nomades</a>
+      <a href="/pour/expatries">Expatriés</a>
+    </div>
+    <div>
+      <h4>PairWise</h4>
+      <a href="/tarifs">Tarifs</a>
+      <a href="/securite">Sécurité</a>
+      <a href="/faq">FAQ</a>
+      <a href="/a-propos">À propos</a>
+    </div>
+  </div>
+  <div class="wrap copy">© 2026 PairWise · Fait avec soin · Tes données t'appartiennent</div>
+</footer>
+
+</body>
+</html>
