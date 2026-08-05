@@ -40,21 +40,22 @@ Nunito Sans, Tabler Icons).
 (les chemins inconnus tombent sur `404.html` avec un vrai code 404), HTML non caché, `assets/**` en
 cache court. `--marketing` **exige** `--site` : impossible de publier par erreur sur le site de l'app.
 
-**En CI (recommandé, automatique) :** `deploy.yml` a une étape « Deploy marketing site » qui tourne à
-chaque push sur `main` touchant `marketing/`, **à condition** que la variable de dépôt
-`MARKETING_SITE_ID` soit définie (Settings → Variables). Absente ⇒ l'étape est ignorée, l'app n'est pas
-affectée. La CI a déjà les identifiants (`GCP_SERVICE_ACCOUNT_KEY`).
+Le site Hosting dédié est **`pairwise-marketing`** (id ≠ `pairwise-12df2`, le site de l'app), joignable
+sur `https://pairwise-marketing.web.app`. Provisionné via `scripts/create-hosting-site.js`.
+
+**En CI (automatique) :** `deploy.yml` a une étape « Deploy marketing site » qui tourne à chaque push
+sur `main` touchant `marketing/`, et publie sur `pairwise-marketing`. La CI a déjà les identifiants
+(`GCP_SERVICE_ACCOUNT_KEY`).
 
 **À la main (depuis une machine avec la clé de service) :**
 ```bash
-npm run deploy:marketing -- --site=<id-du-site-marketing>
-# ou
-FIREBASE_HOSTING_SITE=<id> npm run deploy:marketing
+npm run deploy:marketing
 ```
 
-**Prérequis, une fois :** le 2ᵉ site Hosting doit exister dans le projet `pairwise-12df2` et le domaine
-`pairwise.finance` y être rattaché. L'`<id>` du site (slug visible dans la console Firebase → Hosting,
-distinct du domaine) est ce qu'on passe à `--site` / met dans `MARKETING_SITE_ID`.
+**Rattachement du domaine (étape manuelle, une fois) :** pour que `pairwise.finance` serve ce site,
+déplacer le domaine personnalisé du site de l'app vers `pairwise-marketing` (le retirer de
+`pairwise-12df2`, l'ajouter sur `pairwise-marketing`). `app.pairwise.finance` reste sur le site de l'app.
+Un site Hosting sert le même contenu sur tous ses domaines, d'où deux sites distincts.
 
 **À faire au fil des pages :** un `sitemap.xml` + `robots.txt` à la racine.
 
