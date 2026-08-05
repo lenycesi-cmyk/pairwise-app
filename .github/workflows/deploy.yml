@@ -165,16 +165,14 @@ jobs:
           GOOGLE_APPLICATION_CREDENTIALS_JSON: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
         run: node scripts/deploy.js
 
-      # Site marketing statique (pairwise.finance), site Hosting distinct de l'app.
-      # Ne tourne QUE si l'id du site est fourni via la variable de dépôt
-      # MARKETING_SITE_ID (Settings → Variables) — absente, l'étape est ignorée
-      # et le déploiement de l'app n'est pas affecté. Aucun build : marketing/ est
-      # déjà du HTML statique.
+      # Site marketing statique (pairwise.finance), site Hosting DISTINCT de l'app
+      # (id `pairwise-marketing`, ≠ `pairwise-12df2`). Ne tourne que si marketing/
+      # a changé. Aucun build : marketing/ est déjà du HTML statique.
       - name: Deploy marketing site
-        if: steps.marketing_changed.outputs.changed == 'true' && vars.MARKETING_SITE_ID != ''
+        if: steps.marketing_changed.outputs.changed == 'true'
         env:
           GOOGLE_APPLICATION_CREDENTIALS_JSON: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
-        run: node scripts/deploy.js --marketing --site=${{ vars.MARKETING_SITE_ID }}
+        run: node scripts/deploy.js --marketing --site=pairwise-marketing
 
       - name: Deploy Firestore rules
         if: steps.rules_changed.outputs.changed == 'true'
