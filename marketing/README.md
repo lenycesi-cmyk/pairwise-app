@@ -33,17 +33,29 @@ Nunito Sans, Tabler Icons).
 - Les « captures d'interface » sont pour l'instant des **reproductions fidèles en CSS** (mêmes tokens).
   À remplacer par de vrais screenshots de l'app au moment voulu.
 
-## Déploiement (à câbler)
+## Déploiement
 
-Le pipeline hosting existant (`scripts/deploy.js`) sait déjà cibler un autre site Hosting du même projet
-via `--site=<id>` (ou `FIREBASE_HOSTING_SITE`). Étapes pour mettre ce dossier en ligne sur l'apex :
+`scripts/deploy.js --marketing --site=<id>` publie ce dossier sur le site Hosting `<id>` : source
+`marketing/`, `cleanUrls: true` (sert `/fonctionnalites/x` depuis `x.html`), **pas** de catch-all `**`
+(les chemins inconnus tombent sur `404.html` avec un vrai code 404), HTML non caché, `assets/**` en
+cache court. `--marketing` **exige** `--site` : impossible de publier par erreur sur le site de l'app.
 
-1. **Créer le 2ᵉ site Hosting** dans le projet Firebase (`pairwise-12df2`) — p. ex. site id
-   `pairwise-marketing` — et y rattacher le domaine `pairwise.finance`. Étape console/CLI, une fois.
-2. **Adapter `scripts/deploy.js`** pour publier le dossier `marketing/` (au lieu de `dist/`) quand
-   `--site=pairwise-marketing` : servir les fichiers tels quels, avec des rewrites « propres »
-   (`/fonctionnalites/saisie-langage-naturel` → le `.html`) et **pas** de catch-all `**` (même règle
-   que l'app : un catch-all crée des soft-404). Prévoir `public/404.html`.
-3. Générer un **`sitemap.xml`** + `robots.txt` à la racine du site marketing au fil des pages.
+**En CI (recommandé, automatique) :** `deploy.yml` a une étape « Deploy marketing site » qui tourne à
+chaque push sur `main` touchant `marketing/`, **à condition** que la variable de dépôt
+`MARKETING_SITE_ID` soit définie (Settings → Variables). Absente ⇒ l'étape est ignorée, l'app n'est pas
+affectée. La CI a déjà les identifiants (`GCP_SERVICE_ACCOUNT_KEY`).
 
-Tant que l'étape 1 n'est pas faite, on itère les pages en local (ouvrir le `.html`, ou `npx serve marketing`).
+**À la main (depuis une machine avec la clé de service) :**
+```bash
+npm run deploy:marketing -- --site=<id-du-site-marketing>
+# ou
+FIREBASE_HOSTING_SITE=<id> npm run deploy:marketing
+```
+
+**Prérequis, une fois :** le 2ᵉ site Hosting doit exister dans le projet `pairwise-12df2` et le domaine
+`pairwise.finance` y être rattaché. L'`<id>` du site (slug visible dans la console Firebase → Hosting,
+distinct du domaine) est ce qu'on passe à `--site` / met dans `MARKETING_SITE_ID`.
+
+**À faire au fil des pages :** un `sitemap.xml` + `robots.txt` à la racine.
+
+Itération locale sans déployer : ouvrir le `.html`, ou `npx serve marketing`.

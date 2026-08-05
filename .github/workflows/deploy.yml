@@ -72,6 +72,22 @@ jobs:
             echo "changed=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Detect marketing site changes
+        id: marketing_changed
+        run: |
+          # On ne redéploie le site marketing (marketing/) que s'il a changé.
+          # workflow_dispatch force, comme les autres cibles.
+          before="${{ github.event.before }}"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          elif [ -z "$before" ] || [ "$before" = "0000000000000000000000000000000000000000" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          elif git diff --name-only "$before" "${{ github.sha }}" | grep -qE '^marketing/'; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Detect rules test-relevant changes
         id: rules_tests_needed
         run: |
@@ -148,6 +164,17 @@ jobs:
         env:
           GOOGLE_APPLICATION_CREDENTIALS_JSON: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
         run: node scripts/deploy.js
+
+      # Site marketing statique (pairwise.finance), site Hosting distinct de l'app.
+      # Ne tourne QUE si l'id du site est fourni via la variable de dépôt
+      # MARKETING_SITE_ID (Settings → Variables) — absente, l'étape est ignorée
+      # et le déploiement de l'app n'est pas affecté. Aucun build : marketing/ est
+      # déjà du HTML statique.
+      - name: Deploy marketing site
+        if: steps.marketing_changed.outputs.changed == 'true' && vars.MARKETING_SITE_ID != ''
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS_JSON: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+        run: node scripts/deploy.js --marketing --site=${{ vars.MARKETING_SITE_ID }}
 
       - name: Deploy Firestore rules
         if: steps.rules_changed.outputs.changed == 'true'
