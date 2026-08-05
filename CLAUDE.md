@@ -319,6 +319,22 @@ totals via on-the-fly reconversion in the screens. There are two parallel FX imp
 `open.er-api.com` and fall back to the same hardcoded `FALLBACK_RATES_EUR_BASE` table if the API and cache
 both fail — keep that table in sync if you touch one file.
 
+**No rate ⇒ no conversion (write path).** The currency catalogue is
+[data/currencies.js](src/data/currencies.js): **161 currencies** (every circulating one `open.er-api.com`
+covers), of which 7 are offered by default; a couple's whitelist is `enabledCurrencies`. Nothing in the
+conversion logic was ever restricted to a list — it queries `latest/{code}` and reads `rates[target]` — so
+the old 31-entry catalogue only stopped users from picking their own currency. But the **fallback table
+still covers 7 currencies**, and it used to substitute `1` for any missing code, silently yielding
+"1 MXN = 1 EUR". Since the write-path conversion is *frozen*, that wrong figure never corrected itself.
+So `buildFallbackRate` now returns `null` for an uncovered pair and `getExchangeRate` returns
+`{ rate: null }`. **Every caller must handle `rate === null`**: `addTransaction` omits the conversion
+fields entirely (absent `convertedAmount` ⇒ screens fall back to display-time conversion, which self-heals
+on reload — writing `null` would break them, since they test `!== undefined`), `updateTransaction`
+`deleteField()`s the stale ones, and asset credits are skipped rather than applied with an invented rate.
+Recurring asset contributions `continue` *without* marking the period applied, so they retry.
+The display path (`useExchangeRates.convert`) still does `rates[x] || 1`; it is self-correcting on reload,
+but tightening it means auditing ~10 call sites that do arithmetic on its result.
+
 **Screens are split into "always mounted" vs lazy.** Dashboard/Transactions/Settings load eagerly;
 everything else (Wealth, Budget, Reports, AddTransaction, Recurring, Categories, Debt, AddAsset,
 MemberBreakdown, InvestmentCalculator, Theme, Language) is `React.lazy` + `Suspense` in App.jsx

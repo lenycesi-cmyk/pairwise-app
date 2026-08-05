@@ -13,6 +13,7 @@ import {
   orderBy,
   arrayUnion,
   writeBatch,
+  deleteField,
 } from "firebase/firestore";
 import { db } from "../firebase";
 import { newInviteExpiry } from "../utils/coupleCode";
@@ -195,16 +196,25 @@ export function FinanceProvider({ children }) {
   async function addTransaction(tx) {
     if (!coupleId) return;
 
-    // Conversion figée au moment de la création (pas de recalcul dynamique ensuite)
+    // Conversion figée au moment de la création (pas de recalcul dynamique ensuite).
+    // Si aucun taux n'est disponible, on n'écrit AUCUN champ de conversion :
+    // laisser `convertedAmount` absent fait retomber tous les écrans sur la
+    // conversion à l'affichage (qui, elle, se corrige au rechargement), alors
+    // qu'un chiffre inventé resterait faux pour toujours.
     const { rate, isFallback } = await getExchangeRate(tx.currency, defaultCurrency);
-    const convertedAmount = tx.amount * rate;
+    const conversion =
+      rate === null
+        ? {}
+        : {
+            convertedAmount: tx.amount * rate,
+            convertedCurrency: defaultCurrency,
+            exchangeRate: rate,
+            exchangeRateIsFallback: isFallback,
+          };
 
     const docRef = await addDoc(collection(db, "couples", coupleId, "transactions"), {
       ...tx,
-      convertedAmount,
-      convertedCurrency: defaultCurrency,
-      exchangeRate: rate,
-      exchangeRateIsFallback: isFallback,
+      ...conversion,
       memberUids: members.map((m) => m.uid),
       createdAt: Date.now(),
       createdBy: user.uid,
@@ -225,7 +235,11 @@ export function FinanceProvider({ children }) {
       const linkedAsset = linkedAssetId && assets.find((a) => a.id === linkedAssetId);
       if (linkedAsset) {
         const { rate } = await getExchangeRate(tx.currency, linkedAsset.currency);
-        await updateAsset(linkedAssetId, { value: linkedAsset.value + tx.amount * rate });
+        // Sans taux, on ne crédite pas : la valeur d'un actif est un solde
+        // cumulé, une erreur s'y incruste définitivement.
+        if (rate !== null) {
+          await updateAsset(linkedAssetId, { value: linkedAsset.value + tx.amount * rate });
+        }
       }
     }
 
@@ -253,13 +267,27 @@ export function FinanceProvider({ children }) {
       const currency = updates.currency !== undefined ? updates.currency : existing?.currency;
 
       const { rate, isFallback } = await getExchangeRate(currency, defaultCurrency);
-      updates = {
-        ...updates,
-        convertedAmount: amount * rate,
-        convertedCurrency: defaultCurrency,
-        exchangeRate: rate,
-        exchangeRateIsFallback: isFallback,
-      };
+      if (rate === null) {
+        // Aucun taux : on EFFACE la conversion précédente au lieu d'en écrire
+        // une fausse ou de laisser l'ancienne, qui se rapporterait désormais à
+        // un autre montant ou à une autre devise. Champs absents ⇒ les écrans
+        // reconvertissent à l'affichage.
+        updates = {
+          ...updates,
+          convertedAmount: deleteField(),
+          convertedCurrency: deleteField(),
+          exchangeRate: deleteField(),
+          exchangeRateIsFallback: deleteField(),
+        };
+      } else {
+        updates = {
+          ...updates,
+          convertedAmount: amount * rate,
+          convertedCurrency: defaultCurrency,
+          exchangeRate: rate,
+          exchangeRateIsFallback: isFallback,
+        };
+      }
     }
 
     await updateDoc(doc(db, "couples", coupleId, "transactions", id), {
@@ -630,6 +658,9 @@ export function FinanceProvider({ children }) {
     if (!asset) return;
     const assetCur = asset.currency || defaultCurrency;
     const { rate } = await getExchangeRate(currency, assetCur);
+    // Sans taux, on n'invente pas de montant : le versement est abandonné
+    // (il se refera), plutôt que d'incruster une erreur dans un solde cumulé.
+    if (rate === null) return;
     const credit = amount * rate;
     await updateAsset(assetId, {
       value: (asset.value || 0) + credit,
@@ -670,6 +701,9 @@ export function FinanceProvider({ children }) {
       if (!type || type.hasApiPrice) continue; // cotés : non gérés ici
       const assetCur = asset.currency || defaultCurrency;
       const { rate } = await getExchangeRate(c.currency, assetCur);
+      // Sans taux : on saute ce versement SANS marquer la période comme
+      // appliquée, pour qu'il soit retenté au prochain passage.
+      if (rate === null) continue;
       const credit = c.amount * rate;
       asset.value = (asset.value || 0) + credit;
       asset.costBasis = (asset.costBasis || 0) + credit;
