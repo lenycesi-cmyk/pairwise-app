@@ -183,11 +183,12 @@ export default function OnboardingEntry({ language, onSignIn, onNext }) {
               style={{
                 display: "inline-flex", alignItems: "center", gap: 6,
                 fontSize: fz, fontWeight: 600, fontFamily: "inherit",
-                background: `var(--${hue}-light)`, color: `var(--${hue})`,
-                // Liseré à 35 % de la teinte : sans lui, la pastille se dilue
-                // dans le fond crème ; à pleine teinte, elle se lirait comme un
-                // bouton d'action (rôle réservé au corail plein).
-                border: `0.5px solid color-mix(in srgb, var(--${hue}) 35%, transparent)`,
+                // Pastille CLAIRE : fond carte + filet neutre, la couleur ne vit
+                // que dans le texte (vert = revenu, corail = dépense, lavande =
+                // investissement). Allège nettement la rangée par rapport au
+                // fond teinté + liseré coloré précédent.
+                background: "var(--bg-card)", color: `var(--${hue})`,
+                border: "0.5px solid var(--rule)",
                 borderRadius: 999, padding: big ? "6px 13px" : "4px 10px", cursor: "pointer",
               }}
             >
@@ -431,8 +432,9 @@ export default function OnboardingEntry({ language, onSignIn, onNext }) {
         <OnboardingHeader language={language} onSignIn={onSignIn} isDesktop={isDesktop} />
         <div style={{ position: "relative", zIndex: 1, flex: 1, overflowY: "auto", padding: "24px 24px 24px", display: "flex", flexDirection: "column" }}>
           <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center" }}>
-            {logo(true, true)}
-            <div style={{ margin: isDesktop ? "30px 0 52px" : "24px 0" }}>{privacyBadge}</div>
+            {/* Pas de logo ici : le header marketing en porte déjà un juste
+                au-dessus. Le hero commence directement au badge confidentialité. */}
+            <div style={{ margin: isDesktop ? "0 0 52px" : "0 0 24px" }}>{privacyBadge}</div>
             <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: isDesktop ? 52 : 29, lineHeight: 1.12, letterSpacing: "-0.02em", color: "var(--ink)", margin: "0 0 20px", maxWidth: isDesktop ? 660 : 340 }}>
               {t("s1_title")}
             </h1>
@@ -479,12 +481,8 @@ export default function OnboardingEntry({ language, onSignIn, onNext }) {
               </button>
             )}
           </div>
-          <div style={{ fontSize: isDesktop ? 18 : 13, color: "var(--ink-3)", textAlign: "center", paddingTop: 28 }}>
-            {t("s1_signin")}{" "}
-            <button onClick={onSignIn} style={{ background: "none", border: "none", fontWeight: 700, color: "var(--sky)", cursor: "pointer", fontSize: isDesktop ? 18 : 13, fontFamily: "inherit" }}>
-              {t("s1_signinCta")}
-            </button>
-          </div>
+          {/* « Déjà un compte ? Se connecter » retiré : le header porte déjà
+              « Connexion » (→ onSignIn), c'était un doublon. */}
         </div>
       </div>
     );
