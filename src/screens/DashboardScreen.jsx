@@ -979,6 +979,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
           opaque background matching the page so content scrolls under it
           rather than through it. */}
       <div
+        className="pw-sticky-header"
         style={{
           position: "sticky",
           top: 0,

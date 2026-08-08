@@ -455,6 +455,31 @@ button[style*="background: var(--ink)"] {
   transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
 }
 
+/* En-tête collant des onglets (Accueil, Budget, Crédits, Flux, Rapports,
+   Patrimoine).
+
+   Il RECOUVRE le contenu qui défile — c'est la définition d'un `position:
+   sticky`, et aucune marge ne peut l'en empêcher : une marge n'existe qu'au
+   repos et défile avec le reste. Ajouter des pixels sous l'en-tête écarte donc
+   le PREMIER widget au chargement, mais ne change rien dès qu'on fait défiler,
+   ce qui était le vrai reproche.
+
+   Ce qui manquait n'était pas de l'espace, c'était une ARÊTE. Sans elle, le haut
+   d'une carte semble tranché à un endroit arbitraire, comme un défaut d'affichage.
+   Avec un filet puis un court dégradé sortant, la carte passe visiblement SOUS une
+   surface — l'œil lit un recouvrement au lieu d'une découpe. Le dégradé déborde
+   sous l'en-tête (top: 100%) et ignore les clics. */
+.pw-sticky-header::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: 14px;
+  background: linear-gradient(to bottom, var(--bg), transparent);
+  pointer-events: none;
+}
+
 /* Carte "brandée" : coins ronds, ombre, barre d'accent colorée optionnelle. */
 .pw-card {
   position: relative;
@@ -517,13 +542,18 @@ button[style*="background: var(--ink)"] {
    un insight reste aligné sur le montant. */
 .pw-networth-head > .pw-nw-ins[data-row="1"] { transform: translateY(10px); }
 .pw-networth-head > .pw-nw-ins[data-row="2"] { transform: translateY(-5px); }
-.pw-card[data-accent="coral"]::before { background: var(--tang); }
-.pw-card[data-accent="ocean"]::before { background: var(--lavi); }
-.pw-card[data-accent="sky"]::before { background: var(--sky); }
-.pw-card[data-accent="amber"]::before { background: var(--amber); }
-.pw-card[data-accent="mint"]::before { background: var(--sage); }
-.pw-card[data-accent="pink"]::before { background: var(--blush); }
-.pw-card[data-accent="red"]::before { background: var(--red); }
+/* Chaque accent nomme SA couleur une seule fois, dans --pw-accent. La barre du
+   haut, la bordure au survol et l'anneau de lecture la réutilisent : sans cette
+   variable il fallait sept règles par effet, et un accent ajouté demandait de
+   penser à trois endroits. */
+.pw-card[data-accent="coral"] { --pw-accent: var(--tang); }
+.pw-card[data-accent="ocean"] { --pw-accent: var(--lavi); }
+.pw-card[data-accent="sky"] { --pw-accent: var(--sky); }
+.pw-card[data-accent="amber"] { --pw-accent: var(--amber); }
+.pw-card[data-accent="mint"] { --pw-accent: var(--sage); }
+.pw-card[data-accent="pink"] { --pw-accent: var(--blush); }
+.pw-card[data-accent="red"] { --pw-accent: var(--red); }
+.pw-card[data-accent]::before { background: var(--pw-accent); }
 .pw-card:active {
   transform: translateY(-1px);
 }
@@ -532,15 +562,18 @@ button[style*="background: var(--ink)"] {
 @media (hover: hover) {
   .pw-card:hover {
     transform: translateY(-4px);
+  }
+  /* Anneau d'accent : la bordure de la carte fait 0,5 px, ce qui se voit à peine
+     quand elle prend une couleur. L'anneau (2e ombre portée, sans flou) l'épaissit
+     visuellement SANS toucher au modèle de boîte — un `border-width` plus épais
+     décalerait le contenu de la carte au survol. */
+  .pw-card[data-accent]:hover {
+    border-color: var(--pw-accent) !important;
+    box-shadow: var(--shadow-lg), 0 0 0 1.5px color-mix(in srgb, var(--pw-accent) 45%, transparent);
+  }
+  .pw-card:not([data-accent]):hover {
     box-shadow: var(--shadow-lg);
   }
-  .pw-card[data-accent="coral"]:hover { border-color: var(--tang) !important; }
-  .pw-card[data-accent="ocean"]:hover { border-color: var(--lavi) !important; }
-  .pw-card[data-accent="sky"]:hover { border-color: var(--sky) !important; }
-  .pw-card[data-accent="amber"]:hover { border-color: var(--amber) !important; }
-  .pw-card[data-accent="mint"]:hover { border-color: var(--sage) !important; }
-  .pw-card[data-accent="pink"]:hover { border-color: var(--blush) !important; }
-  .pw-card[data-accent="red"]:hover { border-color: var(--red) !important; }
 }
 
 /* Équivalent tactile du survol : sur mobile (pas de curseur), la carte au
@@ -553,13 +586,13 @@ button[style*="background: var(--ink)"] {
     transform: translateY(-4px);
     box-shadow: var(--shadow-lg);
   }
-  .pw-card--focus[data-accent="coral"] { border-color: var(--tang) !important; }
-  .pw-card--focus[data-accent="ocean"] { border-color: var(--lavi) !important; }
-  .pw-card--focus[data-accent="sky"] { border-color: var(--sky) !important; }
-  .pw-card--focus[data-accent="amber"] { border-color: var(--amber) !important; }
-  .pw-card--focus[data-accent="mint"] { border-color: var(--sage) !important; }
-  .pw-card--focus[data-accent="pink"] { border-color: var(--blush) !important; }
-  .pw-card--focus[data-accent="red"] { border-color: var(--red) !important; }
+  /* Même anneau que le survol desktop : c'est ce qui rend lisible « la carte que
+     je suis en train de lire » quand son haut est partiellement passé sous
+     l'en-tête collant — la bordure de 0,5 px, elle, disparaissait avec. */
+  .pw-card--focus[data-accent] {
+    border-color: var(--pw-accent) !important;
+    box-shadow: var(--shadow-lg), 0 0 0 1.5px color-mix(in srgb, var(--pw-accent) 45%, transparent);
+  }
   .pw-card--focus .pw-chip {
     transform: scale(1.06);
     background: var(--pw-chip, var(--tang)) !important;
