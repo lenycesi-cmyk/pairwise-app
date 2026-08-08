@@ -129,14 +129,26 @@ export default function BudgetCard({
   const ghostW = Math.max(0, Math.min(projPct, 100) - fillW);
 
   const embedded = variant === "embedded";
+  // L'ombre n'est plus posée en ligne : un style en ligne bat la feuille de
+  // styles, et c'est ce qui privait la carte de l'animation de survol/lecture
+  // (.pw-lift, qui remplace l'ombre au survol). La règle partagée
+  // `[style*="--bg-card"][style*="--rule"]` fournit déjà l'ombre au repos.
   const chrome = embedded
     ? { padding: "2px 0" }
-    : { background: "var(--bg-card)", border: "0.5px solid var(--rule)", borderRadius: "var(--radius-lg)", boxShadow: "0 1px 3px rgba(0,0,0,0.05)", padding: "15px 16px 14px" };
+    : { background: "var(--bg-card)", border: "0.5px solid var(--rule)", borderRadius: "var(--radius-lg)", padding: "15px 16px 14px" };
 
   return (
     <div
+      // Autonome : même montée + anneau que les widgets, au survol (desktop) et
+      // sur la carte en cours de lecture (mobile, via useScrollFocus). L'anneau
+      // reprend la couleur d'ÉTAT du budget — vert tranquille, ambre à
+      // surveiller, rouge dépassé — donc la mise en avant redit le statut au
+      // lieu d'ajouter une couleur de plus. En variante « embedded » la carte
+      // vit déjà dans un widget animé : elle ne s'anime pas elle-même.
+      className={embedded ? undefined : "pw-lift"}
+      data-ring={embedded ? undefined : "true"}
       onClick={() => onEdit?.(budget)}
-      style={{ position: "relative", cursor: onEdit ? "pointer" : "default", opacity: isInactive ? 0.55 : 1, ...chrome }}
+      style={{ position: "relative", cursor: onEdit ? "pointer" : "default", opacity: isInactive ? 0.55 : 1, "--pw-accent": color, ...chrome }}
     >
       {/* En-tête */}
       <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
