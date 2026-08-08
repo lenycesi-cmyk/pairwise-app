@@ -466,9 +466,21 @@ button[style*="background: var(--ink)"] {
 
    Ce qui manquait n'était pas de l'espace, c'était une ARÊTE. Sans elle, le haut
    d'une carte semble tranché à un endroit arbitraire, comme un défaut d'affichage.
-   Avec un filet puis un court dégradé sortant, la carte passe visiblement SOUS une
-   surface — l'œil lit un recouvrement au lieu d'une découpe. Le dégradé déborde
-   sous l'en-tête (top: 100%) et ignore les clics. */
+   Avec un court dégradé sortant, la carte passe visiblement SOUS une surface —
+   l'œil lit un recouvrement au lieu d'une découpe. Le dégradé déborde sous
+   l'en-tête (top: 100%) et ignore les clics.
+
+   L'espacement vit dans la MARGE, pas dans le remplissage, et c'est toute la
+   différence. Le remplissage appartient à la boîte collante : il reste à l'écran
+   une fois l'en-tête épinglé, recouvre d'autant plus de contenu, et le dégradé —
+   posé à la sortie de cette boîte — retombait alors pile sur la bordure du premier
+   widget, qu'il délavait. La marge, elle, n'est pas collante : elle écarte le
+   contenu au repos puis défile avec lui. La boîte collante s'arrête donc désormais
+   juste sous les filtres de membre, et le dégradé couvre l'espace vide plutôt que
+   le haut d'une carte. */
+.pw-sticky-header {
+  margin-bottom: 16px;
+}
 .pw-sticky-header::after {
   content: "";
   position: absolute;
