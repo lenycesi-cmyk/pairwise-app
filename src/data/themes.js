@@ -23,4 +23,10 @@ export function applyTheme(themeKey) {
   }
 
   root.setAttribute("data-theme", next);
+
+  // La barre système (mobile / PWA) suit le thème : sans ça, l'app en mode nuit
+  // garde un liseré crème en haut de l'écran.
+  const meta = document.querySelector('meta[name="theme-color"]');
+  const bg = THEMES.find((t) => t.key === next)?.bg;
+  if (meta && bg) meta.setAttribute("content", bg);
 }

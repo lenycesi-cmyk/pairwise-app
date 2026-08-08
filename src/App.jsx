@@ -1,8 +1,7 @@
 import { useState, useRef, useEffect, lazy, Suspense } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { FinanceProvider, useFinance } from "./context/FinanceContext";
-import { getMemberKey } from "./utils/members";
-import { DEFAULT_NAV_TABS, resolveNavTabs } from "./data/navTabsMeta";
+import { DEFAULT_NAV_TABS } from "./data/navTabsMeta";
 import { useRecurringGenerator } from "./hooks/useRecurringGenerator";
 import { useAssetContributions } from "./hooks/useAssetContributions";
 import { useBudgetAlerts } from "./hooks/useBudgetAlerts";
@@ -52,10 +51,7 @@ const NavTabsPicker = lazy(() => import("./components/NavTabsPicker"));
 // barre du bas (par membre). NavSwipeSync (sous FinanceProvider) le remonte à
 // AppContent, qui le passe à useTabSwipe. Défaut : DEFAULT_NAV_TABS.
 function NavSwipeSync({ onOrder }) {
-  const { members, navTabs } = useFinance();
-  const { user } = useAuth();
-  const myKey = getMemberKey(members.find((m) => m.uid === user?.uid));
-  const order = resolveNavTabs(navTabs[myKey]);
+  const { myNavTabs: order } = useFinance();
   const key = order.join(",");
   useEffect(() => {
     onOrder(order);

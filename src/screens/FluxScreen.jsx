@@ -561,7 +561,7 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
       <div
         style={{
           position: "sticky", top: 0, zIndex: 30, background: "var(--bg)",
-          padding: "1rem 1.25rem",
+          padding: "1rem 1.25rem 1.5rem",
         }}
       >
         {(() => {

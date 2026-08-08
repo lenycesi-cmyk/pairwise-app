@@ -252,9 +252,21 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
   const hiddenBudgetIds = useBudgetHiddenIds();
   // Exclut les budgets que CET utilisateur a masqués (partagés mais cachés de
   // ses vues) avant de prendre les 2 premiers pour le widget.
+  // Le filtre membre s'applique aussi ici : un budget PERSONNEL de l'autre
+  // membre ne concerne pas la personne sélectionnée et n'a rien à faire dans
+  // ses chiffres. Les budgets communs (memberUid absent ou « couple ») restent
+  // affichés dans tous les cas — ils concernent bien les deux.
   const topBudgets = useMemo(
-    () => budgetProgress.filter((p) => !hiddenBudgetIds.has(p.budget.id)).slice(0, 2),
-    [budgetProgress, hiddenBudgetIds]
+    () =>
+      budgetProgress
+        .filter((p) => !hiddenBudgetIds.has(p.budget.id))
+        .filter((p) => {
+          if (globalScope == null) return true;
+          const owner = p.budget.memberUid;
+          return !owner || owner === "couple" || owner === globalScope;
+        })
+        .slice(0, 2),
+    [budgetProgress, hiddenBudgetIds, globalScope]
   );
 
   // Transactions de la PÉRIODE sélectionnée : alimente les widgets « scopés »
@@ -972,7 +984,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
           top: 0,
           zIndex: 40,
           background: "var(--bg)",
-          padding: "1rem 1.25rem",
+          padding: "1rem 1.25rem 1.5rem",
         }}
       >
       {/* Header. Desktop : une ligne [accueil | mois | actions]. Mobile :
