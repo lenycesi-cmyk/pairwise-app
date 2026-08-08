@@ -83,7 +83,7 @@ export default function CreditScreen({ onOpenMenu, openSignal }) {
   return (
     <div style={{ padding: "0 1.25rem 6rem" }}>
       {/* Header sticky uniforme (cf. autres onglets). */}
-      <div style={{ position: "sticky", top: 0, zIndex: 30, background: "var(--bg)", marginLeft: "-1.25rem", marginRight: "-1.25rem", padding: "1rem 1.25rem 1.5rem" }}>
+      <div className="pw-sticky-header" style={{ position: "sticky", top: 0, zIndex: 30, background: "var(--bg)", marginLeft: "-1.25rem", marginRight: "-1.25rem", padding: "1rem 1.25rem 1.5rem" }}>
         {(() => {
           const actions = (
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>

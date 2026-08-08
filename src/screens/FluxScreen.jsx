@@ -559,6 +559,7 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
       )}
       {/* Header sticky : menu (mobile), titre, devise + Personnaliser. */}
       <div
+        className="pw-sticky-header"
         style={{
           position: "sticky", top: 0, zIndex: 30, background: "var(--bg)",
           padding: "1rem 1.25rem 1.5rem",
