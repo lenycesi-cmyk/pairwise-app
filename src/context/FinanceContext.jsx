@@ -25,6 +25,8 @@ import { getMemberKey } from "../utils/members";
 import { getExchangeRate } from "../utils/currencyConversion";
 import { sendPushNotification } from "../utils/sendPush";
 import { dedupeTags } from "../utils/tags";
+import { resolveNavTabs } from "../data/navTabsMeta";
+import { readBootTheme, writeBootTheme, readBootNavTabs, writeBootNavTabs } from "../utils/bootPrefs";
 
 const FinanceContext = createContext(null);
 
@@ -88,11 +90,31 @@ export function FinanceProvider({ children }) {
   // Clé du membre courant : sert autant à filtrer le privé (voir isVisibleToMe)
   // qu'à retrouver SON thème dans la map.
   const myKey = getMemberKey(members.find((m) => m.uid === user?.uid)) || user?.uid;
-  const theme = themePrefs[myKey] || legacyTheme || "pairwise";
+  // Tant que le document du couple n'est pas arrivé, on repart de la valeur
+  // mise en cache au dernier passage (cf. utils/bootPrefs) plutôt que du thème
+  // clair : sinon l'app démarre en clair puis bascule en nuit sous les yeux de
+  // l'utilisateur. Firestore reste prioritaire dès qu'il répond.
+  const theme = themePrefs[myKey] || legacyTheme || readBootTheme() || "pairwise";
 
   useEffect(() => {
     applyTheme(theme);
+    writeBootTheme(theme);
   }, [theme]);
+
+  // Onglets de la barre du bas, résolus une seule fois ici pour tous les
+  // consommateurs (BottomTabBar, ordre de swipe). Même logique que le thème :
+  // on affiche les onglets mémorisés en attendant les vrais, ce qui évite de
+  // montrer les onglets par défaut pendant la première seconde.
+  const myNavTabs = useMemo(
+    () => resolveNavTabs(navTabs[myKey] || readBootNavTabs()),
+    [navTabs, myKey]
+  );
+
+  useEffect(() => {
+    // On ne mémorise qu'une valeur venue de Firestore — sans cette garde, le
+    // repli par défaut du tout premier démarrage se figerait dans le cache.
+    if (navTabs[myKey]) writeBootNavTabs(myNavTabs);
+  }, [navTabs, myKey, myNavTabs]);
 
   useEffect(() => {
     if (!coupleId) {
@@ -924,6 +946,7 @@ export function FinanceProvider({ children }) {
     pushPrefs,
     updateMemberPushPrefs,
     navTabs,
+    myNavTabs,
     updateMemberNavTabs,
     updateCategories,
     customTags,

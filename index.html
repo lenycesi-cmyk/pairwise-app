@@ -17,6 +17,23 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Nunito+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
     <title>Pairwise</title>
+    <script>
+      // Applique le thème AVANT le premier rendu. Le thème réel vit dans
+      // Firestore (par membre) et n'arrive qu'après un aller-retour réseau :
+      // sans cette ligne, l'app peint le thème clair puis bascule en nuit une
+      // seconde plus tard. La clé est écrite par src/utils/bootPrefs.js — la
+      // garder en phase avec THEME_KEY là-bas.
+      try {
+        var t = localStorage.getItem("pw:boot:theme");
+        if (t) {
+          document.documentElement.setAttribute("data-theme", t);
+          var meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) meta.setAttribute("content", t === "pairwise-dark" ? "#0a1520" : "#fdf4ec");
+        }
+      } catch (e) {
+        /* stockage indisponible : on garde le thème clair par défaut */
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

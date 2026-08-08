@@ -1,9 +1,7 @@
 import { useRef, useState, useEffect } from "react";
 import { useFinance } from "../context/FinanceContext";
-import { useAuth } from "../context/AuthContext";
 import { useTranslation } from "../hooks/useTranslation";
-import { getMemberKey } from "../utils/members";
-import { NAV_TABS_META, resolveNavTabs } from "../data/navTabsMeta";
+import { NAV_TABS_META } from "../data/navTabsMeta";
 
 // Barre de navigation du bas (mobile uniquement — masquée en CSS ≥1024px, où le
 // rail latéral prend le relais). Layout : 2 onglets · bouton « + » central · 2
@@ -11,12 +9,12 @@ import { NAV_TABS_META, resolveNavTabs } from "../data/navTabsMeta";
 // modifiables via Réglages OU par un appui long sur la barre (onLongPressEdit).
 export default function BottomTabBar({ active, onChange, onAddClick, onLongPressEdit }) {
   const t = useTranslation();
-  const { members, navTabs } = useFinance();
-  const { user } = useAuth();
+  // `myNavTabs` est résolu dans FinanceContext, avec le cache local en repli le
+  // temps que Firestore réponde — sinon la barre affiche les onglets par défaut
+  // pendant la première seconde avant de se corriger.
+  const { myNavTabs } = useFinance();
 
-  const myKey = getMemberKey(members.find((m) => m.uid === user?.uid));
-  const keys = resolveNavTabs(navTabs[myKey]);
-  const tabs = keys
+  const tabs = myNavTabs
     .map((k) => NAV_TABS_META.find((m) => m.key === k))
     .filter(Boolean);
 
