@@ -645,16 +645,29 @@ button[style*="background: var(--ink)"] {
 .pw-lift {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
+/* `[data-ring]` opte pour le MÊME anneau d'accent que les widgets .pw-card, la
+   couleur venant de --pw-accent posé en ligne par l'appelant (la carte de budget
+   y met sa couleur d'état). Les !important battent la bordure et l'ombre en
+   ligne des cartes concernées. Sans l'attribut, .pw-lift garde son comportement
+   d'origine — la simple montée des éléments de modale. */
 @media (hover: hover) {
   .pw-lift:hover {
     transform: translateY(-4px);
     box-shadow: var(--shadow-lg);
+  }
+  .pw-lift[data-ring]:hover {
+    border-color: var(--pw-accent) !important;
+    box-shadow: var(--shadow-lg), 0 0 0 1.5px color-mix(in srgb, var(--pw-accent) 45%, transparent) !important;
   }
 }
 @media (hover: none) {
   .pw-lift--focus {
     transform: translateY(-4px);
     box-shadow: var(--shadow-lg);
+  }
+  .pw-lift--focus[data-ring] {
+    border-color: var(--pw-accent) !important;
+    box-shadow: var(--shadow-lg), 0 0 0 1.5px color-mix(in srgb, var(--pw-accent) 45%, transparent) !important;
   }
   .pw-lift--focus .pw-chip {
     transform: scale(1.06);
