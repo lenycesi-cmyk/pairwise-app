@@ -985,7 +985,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
           top: 0,
           zIndex: 40,
           background: "var(--bg)",
-          padding: "1rem 1.25rem 1.5rem",
+          padding: "1rem 1.25rem 0.5rem",
         }}
       >
       {/* Header. Desktop : une ligne [accueil | mois | actions]. Mobile :

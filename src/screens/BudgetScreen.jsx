@@ -439,7 +439,7 @@ export default function BudgetScreen({ openSignal, onOpenMenu }) {
 
   return (
     <div style={{ padding: "0 1.25rem 6rem" }}>
-      <div className="pw-sticky-header" style={{ position: "sticky", top: 0, zIndex: 30, background: "var(--bg)", marginLeft: "-1.25rem", marginRight: "-1.25rem", padding: "1rem 1.25rem 1.5rem" }}>
+      <div className="pw-sticky-header" style={{ position: "sticky", top: 0, zIndex: 30, background: "var(--bg)", marginLeft: "-1.25rem", marginRight: "-1.25rem", padding: "1rem 1.25rem 0.5rem" }}>
         {showForm ? (
           <div style={{ display: "flex", alignItems: "center" }}>
             <h1 style={{ fontSize: 20, marginLeft: 0, flex: 1 }}>
