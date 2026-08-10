@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
+import { findCachedTable, writeTable } from "../utils/fxCache";
 
-const CACHE_KEY_PREFIX = "pairwise_fx_rates_v3_";
 const CACHE_DURATION = 1000 * 60 * 60 * 12;
 
 // Taux de secours approximatifs (base EUR), utilisés UNIQUEMENT si l'API
@@ -41,17 +41,16 @@ export function useExchangeRates(baseCurrency = "EUR") {
 
     async function loadRates() {
       try {
-        const cached = localStorage.getItem(`${CACHE_KEY_PREFIX}${baseCurrency}`);
+        // `findCachedTable` accepte de REBASER une table d'une autre devise :
+        // une table EUR déjà téléchargée sert un affichage en USD sans nouvel
+        // appel. Le cache est partagé avec la conversion figée à l'écriture.
+        const cached = findCachedTable(baseCurrency, CACHE_DURATION);
         if (cached) {
-          const parsed = JSON.parse(cached);
-          const age = Date.now() - parsed.timestamp;
-          if (age < CACHE_DURATION && parsed.base === baseCurrency) {
-            if (!cancelled) {
-              setRates(parsed.rates);
-              setLoading(false);
-            }
-            return;
+          if (!cancelled) {
+            setRates(cached.rates);
+            setLoading(false);
           }
+          return;
         }
 
         const res = await fetch(
@@ -66,21 +65,19 @@ export function useExchangeRates(baseCurrency = "EUR") {
         if (!cancelled) {
           setRates(json.rates);
           setLoading(false);
-          localStorage.setItem(
-            `${CACHE_KEY_PREFIX}${baseCurrency}`,
-            JSON.stringify({
-              base: baseCurrency,
-              rates: json.rates,
-              timestamp: Date.now(),
-            })
-          );
+          writeTable(baseCurrency, json.rates);
         }
       } catch (err) {
         if (!cancelled) {
-          const cached = localStorage.getItem(`${CACHE_KEY_PREFIX}${baseCurrency}`);
-          if (cached) {
-            const parsed = JSON.parse(cached);
-            setRates(parsed.rates);
+          // Table périmée, quel que soit son âge : un taux réel d'avant-hier
+          // reste bien meilleur que la table gravée à 7 devises. On le signale
+          // comme approximatif, ce que l'ancien code ne faisait pas — l'écran
+          // affichait des taux vieux de plusieurs jours sans le moindre
+          // avertissement.
+          const stale = findCachedTable(baseCurrency);
+          if (stale) {
+            setRates(stale.rates);
+            setError("using_fallback_rates");
           } else {
             // Dernier recours : taux approximatifs hardcodés, pour ne jamais
             // afficher un montant non converti comme s'il l'était.

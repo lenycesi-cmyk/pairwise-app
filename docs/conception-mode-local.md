@@ -51,9 +51,11 @@ Pour ceux qui veulent la version dure, un interrupteur secondaire coupe **toute*
 un tiers. Conséquences à assumer et à afficher :
 
 - Les cours crypto ne sont plus rafraîchis → valeur saisie à la main, comme l'immobilier.
-- La conversion de devises retombe sur la table de repli embarquée, qui ne couvre que
-  **7 devises** ; au-delà, PairWise refuse de convertir plutôt que d'inventer un taux (règle
-  déjà en vigueur, cf. `CLAUDE.md`).
+- La conversion de devises repose sur le **dernier taux connu** : depuis `utils/fxCache`, la
+  table complète (~161 devises) est conservée dès qu'on a été en ligne une fois, et sert
+  ensuite quel que soit son âge, signalée comme approximative. La table gravée à **7 devises**
+  n'intervient plus que sur une installation qui n'a jamais vu le réseau ; au-delà, PairWise
+  refuse de convertir plutôt que d'inventer un taux (règle en vigueur, cf. `CLAUDE.md`).
 - La synchronisation entre partenaires devient impossible : le fichier ne peut plus atteindre le
   cloud. Le mode strict est donc **mono-appareil par construction**.
 

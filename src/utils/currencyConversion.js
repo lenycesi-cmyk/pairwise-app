@@ -1,4 +1,10 @@
-const CACHE_KEY_PREFIX = "pairwise_fx_rate_";
+import { findCachedRate, writeTable } from "./fxCache";
+
+// Ancienne clé : une seule paire par entrée (`pairwise_fx_rate_EUR_USD`). Le
+// cache est désormais la TABLE entière, partagée avec le chemin d'affichage via
+// utils/fxCache. On continue de lire l'ancien format en dernier recours, le
+// temps que les caches existants expirent d'eux-mêmes.
+const LEGACY_PAIR_KEY_PREFIX = "pairwise_fx_rate_";
 const CACHE_DURATION = 1000 * 60 * 60 * 6; // 6h
 
 // Taux de secours approximatifs (base EUR), utilisés UNIQUEMENT si l'API échoue.
@@ -43,25 +49,27 @@ function buildFallbackRate(fromCurrency, toCurrency) {
  * appelants DOIVENT tester ce cas et s'abstenir d'écrire une conversion plutôt
  * que d'en fabriquer une — un montant converti est figé pour toujours dans la
  * transaction.
+ *
+ * Ordre de repli, du meilleur au pire :
+ *   1. table en cache de moins de 6 h        → taux réel, non signalé
+ *   2. appel réseau                          → taux réel, non signalé
+ *   3. table en cache PÉRIMÉE, quel que soit son âge  ⚠️ signalé
+ *   4. ancienne entrée par paire (format hérité)      ⚠️ signalé
+ *   5. table gravée en dur (7 devises)                ⚠️ signalé
+ *   6. rien                                  → rate: null, aucune conversion
+ *
+ * Les étapes 3 et 4 sont l'apport principal : un taux réel vieux de trois jours
+ * vaut mieux qu'un taux gravé en 2026, et infiniment mieux qu'un refus de
+ * convertir. Elles portent `isFallback: true`, ce qui déclenche l'avertissement
+ * « taux approximatifs » déjà présent dans l'interface.
  */
 export async function getExchangeRate(fromCurrency, toCurrency) {
   if (fromCurrency === toCurrency) {
     return { rate: 1, isFallback: false };
   }
 
-  const cacheKey = `${CACHE_KEY_PREFIX}${fromCurrency}_${toCurrency}`;
-
-  try {
-    const cached = localStorage.getItem(cacheKey);
-    if (cached) {
-      const parsed = JSON.parse(cached);
-      if (Date.now() - parsed.timestamp < CACHE_DURATION) {
-        return { rate: parsed.rate, isFallback: false };
-      }
-    }
-  } catch (e) {
-    // cache illisible, on continue vers l'API
-  }
+  const cached = findCachedRate(fromCurrency, toCurrency, CACHE_DURATION);
+  if (cached) return { rate: cached.rate, isFallback: false };
 
   try {
     const res = await fetch(`https://open.er-api.com/v6/latest/${fromCurrency}`);
@@ -70,19 +78,27 @@ export async function getExchangeRate(fromCurrency, toCurrency) {
     if (json.result !== "success" || !json.rates || !json.rates[toCurrency]) {
       throw new Error("fx_invalid_response");
     }
-    const rate = json.rates[toCurrency];
 
-    try {
-      localStorage.setItem(
-        cacheKey,
-        JSON.stringify({ rate, timestamp: Date.now() })
+    // On conserve la TABLE ENTIÈRE et non la seule paire demandée : la réponse
+    // est déjà payée, et elle couvre tout le catalogue pour le prochain appel,
+    // y compris hors connexion.
+    writeTable(fromCurrency, json.rates);
+
+    return { rate: json.rates[toCurrency], isFallback: false };
+  } catch {
+    const stale = findCachedRate(fromCurrency, toCurrency);
+    if (stale) {
+      console.warn(
+        `Taux de change indisponible pour ${fromCurrency}->${toCurrency}, utilisation du dernier taux connu.`
       );
-    } catch (e) {
-      // localStorage plein ou indisponible, pas bloquant
+      return { rate: stale.rate, isFallback: true };
     }
 
-    return { rate, isFallback: false };
-  } catch (err) {
+    const legacy = readLegacyPairRate(fromCurrency, toCurrency);
+    if (legacy !== null) {
+      return { rate: legacy, isFallback: true };
+    }
+
     const fallback = buildFallbackRate(fromCurrency, toCurrency);
     if (fallback === null) {
       console.warn(
@@ -94,5 +110,21 @@ export async function getExchangeRate(fromCurrency, toCurrency) {
       `Taux de change indisponible pour ${fromCurrency}->${toCurrency}, utilisation du taux de secours.`
     );
     return { rate: fallback, isFallback: true };
+  }
+}
+
+// Lecture de l'ancien format « une entrée par paire », sans limite d'âge : on
+// n'y arrive que hors connexion, où tout taux réel vaut mieux que la table
+// gravée. Plus rien ne l'écrit ; ces entrées disparaîtront d'elles-mêmes.
+function readLegacyPairRate(fromCurrency, toCurrency) {
+  try {
+    const raw = localStorage.getItem(
+      `${LEGACY_PAIR_KEY_PREFIX}${fromCurrency}_${toCurrency}`
+    );
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return typeof parsed?.rate === "number" && parsed.rate > 0 ? parsed.rate : null;
+  } catch {
+    return null;
   }
 }
