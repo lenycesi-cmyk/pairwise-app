@@ -281,9 +281,27 @@ income↔account links, and net-worth history are all fields on that one doc (me
 `setDoc(..., { merge: true })`), while transactions are a subcollection
 (`couples/{coupleId}/transactions`) since they grow unbounded. Both are subscribed in real time via
 `onSnapshot` in [FinanceContext](src/context/FinanceContext.jsx). This means most writes
-read-modify-merge the whole couple doc client-side (e.g. `addRecurring`, `addAsset`, `addBudget`,
-`updateMemberName`) rather than touching individual fields — keep that pattern when adding new
-couple-level state.
+**passent toutes par [context/coupleAdapter.js](src/context/coupleAdapter.js)** — la couture de
+persistance introduite au lot 1 du mode Local. Plus aucun `setDoc` sur `couples/{id}` en dehors de
+cet adaptateur : c'est ce qui permettra d'en brancher une seconde implémentation (journal
+d'opérations + IndexedDB) sans toucher un seul écran.
+
+Son interface est **élémentaire** — `addItem`, `patchItem`, `removeItem`, `replaceList`,
+`setFields` — et non plus « réécris le tableau entier ». Les opérations de liste vivent dans
+[utils/collectionOps.js](src/utils/collectionOps.js), pures et testées.
+
+Un point de correction, pas seulement de style : `addItem` utilise **`arrayUnion`**. Le motif
+historique relisait le tableau depuis l'ÉTAT LOCAL puis le réécrivait en entier, ce qui perd
+l'ajout concurrent du partenaire — si Jessica ajoute un budget et que l'instantané n'est pas encore
+arrivé chez Nicolas, celui de Jessica disparaît dès que Nicolas en ajoute un. `arrayUnion` est une
+transformation appliquée par le serveur : les deux ajouts survivent, et elle reste compatible hors
+connexion.
+
+Modifications et suppressions réécrivent toujours le tableau (`arrayRemove` exige un élément
+identique au caractère près, rien ne cible par `id`), avec la fenêtre de concurrence résiduelle que
+cela suppose. `runTransaction` la fermerait mais **échoue hors connexion** : troquer le hors-ligne
+contre une collision rare serait un mauvais échange. La fermeture définitive viendra du journal
+d'opérations du mode Local.
 
 **Export/import canonique** ([utils/canonicalData.js](src/utils/canonicalData.js), branché via
 `exportAllData`/`importAllData` dans FinanceContext, exposé dans `SettingsScreen`). C'est le lot 0

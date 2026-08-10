@@ -1,7 +1,7 @@
 # Note de conception — mode local / vie privée
 
-Statut : **proposition**. Seul le **lot 0** (format canonique + export/import) est livré ;
-tout le reste attend validation.
+Statut : **proposition**. Les **lots 0 et 1** sont livrés (format canonique et export/import ;
+adaptateur de persistance et écritures élémentaires) ; tout le reste attend validation.
 
 Objet : ajouter à PairWise un second mode de stockage où les données ne quittent pas
 l'appareil, la synchronisation entre partenaires passant par un fichier chiffré déposé dans le cloud
@@ -238,7 +238,7 @@ reconstitue pas après coup, les valeurs d'actifs étant des saisies qui s'écra
 | Lot | Contenu | Utile seul ? |
 |---|---|---|
 | 0 | Format canonique + export/import complet | **oui** — ✅ livré |
-| 1 | Adaptateur de persistance + écritures élémentaires dans `FinanceContext` | oui (moins de collisions) |
+| 1 | Adaptateur de persistance + écritures élémentaires dans `FinanceContext` | oui — ✅ livré |
 | 2 | Magasin IndexedDB, mode local **mono-appareil** | oui |
 | 3 | Connecteur Drive/Dropbox (OAuth PKCE), journaux, chiffrement | non |
 | 4 | Appairage, révocation, compactage des journaux | non |

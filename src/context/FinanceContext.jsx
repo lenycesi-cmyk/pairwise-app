@@ -31,6 +31,8 @@ import {
   buildCouplePatch,
   summarizeImport,
 } from "../utils/canonicalData";
+import { createCoupleAdapter } from "./coupleAdapter";
+import { removeFrom, findIn } from "../utils/collectionOps";
 import { resolveNavTabs } from "../data/navTabsMeta";
 import { readBootTheme, writeBootTheme, readBootNavTabs, writeBootNavTabs } from "../utils/bootPrefs";
 
@@ -96,6 +98,11 @@ export function FinanceProvider({ children }) {
   // Clé du membre courant : sert autant à filtrer le privé (voir isVisibleToMe)
   // qu'à retrouver SON thème dans la map.
   const myKey = getMemberKey(members.find((m) => m.uid === user?.uid)) || user?.uid;
+
+  // Couture de persistance : TOUTE écriture sur le document couple passe par là
+  // (cf. context/coupleAdapter.js). Le mode Local n'aura qu'à en fournir une
+  // seconde implémentation.
+  const couple = useMemo(() => createCoupleAdapter(coupleId), [coupleId]);
   // Tant que le document du couple n'est pas arrivé, on repart de la valeur
   // mise en cache au dernier passage (cf. utils/bootPrefs) plutôt que du thème
   // clair : sinon l'app démarre en clair puis bascule en nuit sous les yeux de
@@ -180,7 +187,7 @@ export function FinanceProvider({ children }) {
           const current = Array.isArray(data.memberUids) ? data.memberUids.filter(Boolean) : null;
           const same = current && current.length === realUids.length && realUids.every((u) => current.includes(u));
           if (!same) {
-            setDoc(doc(db, "couples", coupleId), { memberUids: realUids }, { merge: true }).catch(() => {});
+            couple.setFields({ memberUids: realUids }).catch(() => {});
           }
         }
         if (data.coupleName !== undefined) setCoupleName(data.coupleName);
@@ -219,7 +226,7 @@ export function FinanceProvider({ children }) {
     });
 
     return unsub;
-  }, [coupleId]);
+  }, [coupleId, couple]);
 
   async function addTransaction(tx) {
     if (!coupleId) return;
@@ -368,20 +375,16 @@ export function FinanceProvider({ children }) {
   // recurringReminders } — tout est considéré actif sauf false explicite.
   async function updateMemberPushPrefs(memberKey, prefs) {
     if (!coupleId) return;
-    await setDoc(
-      doc(db, "couples", coupleId),
-      { pushPrefs: { [memberKey]: prefs } },
-      { merge: true }
+    await couple.setFields(
+      { pushPrefs: { [memberKey]: prefs } }
     );
   }
 
   // Onglets de la barre du bas d'UN membre (remplacement complet du tableau).
   async function updateMemberNavTabs(memberKey, tabs) {
     if (!coupleId) return;
-    await setDoc(
-      doc(db, "couples", coupleId),
-      { navTabs: { [memberKey]: tabs } },
-      { merge: true }
+    await couple.setFields(
+      { navTabs: { [memberKey]: tabs } }
     );
   }
 
@@ -401,20 +404,16 @@ export function FinanceProvider({ children }) {
 
   async function updateCategories(newCategories) {
     if (!coupleId) return;
-    await setDoc(
-      doc(db, "couples", coupleId),
-      { categories: newCategories },
-      { merge: true }
+    await couple.setFields(
+      { categories: newCategories }
     );
   }
 
   async function updateCustomTags(tags) {
     if (!coupleId) return;
     setCustomTags(tags); // maj optimiste (le champ n'est pas re-fusionné ailleurs)
-    await setDoc(
-      doc(db, "couples", coupleId),
-      { customTags: tags },
-      { merge: true }
+    await couple.setFields(
+      { customTags: tags }
     );
   }
 
@@ -440,35 +439,29 @@ export function FinanceProvider({ children }) {
 
   async function updateDefaultCurrency(currency) {
     if (!coupleId) return;
-    await setDoc(
-      doc(db, "couples", coupleId),
-      { defaultCurrency: currency },
-      { merge: true }
+    await couple.setFields(
+      { defaultCurrency: currency }
     );
   }
 
   async function updateCurrencyMode(mode) {
     if (!coupleId) return;
-    await setDoc(
-      doc(db, "couples", coupleId),
-      { currencyMode: mode },
-      { merge: true }
+    await couple.setFields(
+      { currencyMode: mode }
     );
   }
 
   async function updateFinanceMode(mode) {
     if (!coupleId) return;
     setFinanceMode(mode); // optimiste
-    await setDoc(doc(db, "couples", coupleId), { financeMode: mode }, { merge: true });
+    await couple.setFields({ financeMode: mode });
   }
 
   async function updateEnabledCurrencies(codes) {
     setEnabledCurrencies(codes);
     if (!coupleId) return;
-    await setDoc(
-      doc(db, "couples", coupleId),
-      { enabledCurrencies: codes },
-      { merge: true }
+    await couple.setFields(
+      { enabledCurrencies: codes }
     );
   }
 
@@ -486,7 +479,7 @@ export function FinanceProvider({ children }) {
       ...debtSettlements,
       { id: `settle_${Date.now()}`, date, note, createdAt: Date.now(), createdBy: user.uid },
     ];
-    await setDoc(doc(db, "couples", coupleId), { debtSettlements: updated }, { merge: true });
+    await couple.setFields({ debtSettlements: updated });
 
     if (members.length > 1) {
       sendPushNotification({
@@ -501,20 +494,17 @@ export function FinanceProvider({ children }) {
 
   async function addRecurring(rule) {
     if (!coupleId) return;
-    const updated = [...recurringTx, { ...rule, id: `rec_${Date.now()}` }];
-    await setDoc(doc(db, "couples", coupleId), { recurringTx: updated }, { merge: true });
+    await couple.addItem("recurringTx", { ...rule, id: `rec_${Date.now()}` });
   }
 
   async function updateRecurring(id, updates) {
     if (!coupleId) return;
-    const updated = recurringTx.map((r) => (r.id === id ? { ...r, ...updates } : r));
-    await setDoc(doc(db, "couples", coupleId), { recurringTx: updated }, { merge: true });
+    await couple.patchItem("recurringTx", recurringTx, id, updates);
   }
 
   async function removeRecurring(id) {
     if (!coupleId) return;
-    const updated = recurringTx.filter((r) => r.id !== id);
-    await setDoc(doc(db, "couples", coupleId), { recurringTx: updated }, { merge: true });
+    await couple.removeItem("recurringTx", recurringTx, id);
   }
 
   async function addBudget(budget) {
@@ -525,8 +515,7 @@ export function FinanceProvider({ children }) {
       active: budget.active ?? true,
       createdAt: Date.now(),
     };
-    const updated = [...budgets, newBudget];
-    await setDoc(doc(db, "couples", coupleId), { budgets: updated }, { merge: true });
+    await couple.addItem("budgets", newBudget);
 
     if (members.length > 1) {
       sendPushNotification({
@@ -550,14 +539,12 @@ export function FinanceProvider({ children }) {
 
   async function updateBudget(id, updates) {
     if (!coupleId) return;
-    const updated = budgets.map((b) => (b.id === id ? { ...b, ...updates } : b));
-    await setDoc(doc(db, "couples", coupleId), { budgets: updated }, { merge: true });
+    await couple.patchItem("budgets", budgets, id, updates);
   }
 
   async function removeBudget(id) {
     if (!coupleId) return;
-    const updated = budgets.filter((b) => b.id !== id);
-    await setDoc(doc(db, "couples", coupleId), { budgets: updated }, { merge: true });
+    await couple.removeItem("budgets", budgets, id);
   }
 
   // Crédits / emprunts (immobilier, auto, conso…) — même pattern read-modify-merge
@@ -571,20 +558,17 @@ export function FinanceProvider({ children }) {
       extraPayments: loan.extraPayments || [],
       createdAt: Date.now(),
     };
-    const updated = [...loans, newLoan];
-    await setDoc(doc(db, "couples", coupleId), { loans: updated }, { merge: true });
+    await couple.addItem("loans", newLoan);
   }
 
   async function updateLoan(id, updates) {
     if (!coupleId) return;
-    const updated = loans.map((l) => (l.id === id ? { ...l, ...updates } : l));
-    await setDoc(doc(db, "couples", coupleId), { loans: updated }, { merge: true });
+    await couple.patchItem("loans", loans, id, updates);
   }
 
   async function removeLoan(id) {
     if (!coupleId) return;
-    const updated = loans.filter((l) => l.id !== id);
-    await setDoc(doc(db, "couples", coupleId), { loans: updated }, { merge: true });
+    await couple.removeItem("loans", loans, id);
   }
 
   // Objectifs d'épargne / patrimoine — même pattern read-modify-merge que les
@@ -598,20 +582,17 @@ export function FinanceProvider({ children }) {
       ownership: goal.ownership || "shared",
       createdAt: Date.now(),
     };
-    const updated = [...goals, newGoal];
-    await setDoc(doc(db, "couples", coupleId), { goals: updated }, { merge: true });
+    await couple.addItem("goals", newGoal);
   }
 
   async function updateGoal(id, updates) {
     if (!coupleId) return;
-    const updated = goals.map((g) => (g.id === id ? { ...g, ...updates } : g));
-    await setDoc(doc(db, "couples", coupleId), { goals: updated }, { merge: true });
+    await couple.patchItem("goals", goals, id, updates);
   }
 
   async function removeGoal(id) {
     if (!coupleId) return;
-    const updated = goals.filter((g) => g.id !== id);
-    await setDoc(doc(db, "couples", coupleId), { goals: updated }, { merge: true });
+    await couple.removeItem("goals", goals, id);
   }
 
   // Réordonne l'ensemble des budgets (drag & drop dans l'onglet Budget). L'ordre
@@ -619,7 +600,7 @@ export function FinanceProvider({ children }) {
   async function reorderBudgets(orderedBudgets) {
     if (!coupleId) return;
     setBudgets(orderedBudgets); // optimiste
-    await setDoc(doc(db, "couples", coupleId), { budgets: orderedBudgets }, { merge: true });
+    await couple.replaceList("budgets", orderedBudgets);
   }
 
   // Enregistre un lot de snapshots d'historique de budget (clôtures de période).
@@ -632,12 +613,12 @@ export function FinanceProvider({ children }) {
       next[budgetId] = { ...(next[budgetId] || {}), [key]: data };
     }
     setBudgetHistory(next); // optimiste
-    await setDoc(doc(db, "couples", coupleId), { budgetHistory: next }, { merge: true });
+    await couple.setFields({ budgetHistory: next });
   }
 
   async function setIncomeAccountLinks(map) {
     if (!coupleId) return;
-    await setDoc(doc(db, "couples", coupleId), { incomeAccountLinks: map }, { merge: true });
+    await couple.setFields({ incomeAccountLinks: map });
   }
 
   async function addAsset(asset) {
@@ -648,8 +629,7 @@ export function FinanceProvider({ children }) {
       createdAt: Date.now(),
       lastUpdated: Date.now(),
     };
-    const updated = [...assets, newAsset];
-    await setDoc(doc(db, "couples", coupleId), { assets: updated }, { merge: true });
+    await couple.addItem("assets", newAsset);
 
     if (members.length > 1) {
       sendPushNotification({
@@ -664,16 +644,12 @@ export function FinanceProvider({ children }) {
 
   async function updateAsset(id, updates) {
     if (!coupleId) return;
-    const updated = assets.map((a) =>
-      a.id === id ? { ...a, ...updates, lastUpdated: Date.now() } : a
-    );
-    await setDoc(doc(db, "couples", coupleId), { assets: updated }, { merge: true });
+    await couple.patchItem("assets", assets, id, { ...updates, lastUpdated: Date.now() });
   }
 
   async function removeAsset(id) {
     if (!coupleId) return;
-    const updated = assets.filter((a) => a.id !== id);
-    await setDoc(doc(db, "couples", coupleId), { assets: updated }, { merge: true });
+    await couple.removeItem("assets", assets, id);
   }
 
   // ── Versements vers des actifs (lot 3) ──────────────────────────────────────
@@ -701,16 +677,20 @@ export function FinanceProvider({ children }) {
   async function addAssetContribution(c) {
     if (!coupleId) return;
     const newC = { ...c, id: `contrib_${Date.now()}`, active: c.active ?? true, createdAt: Date.now() };
-    const updated = [...assetContributions, newC];
-    await setDoc(doc(db, "couples", coupleId), { assetContributions: updated }, { merge: true });
+    await couple.addItem("assetContributions", newC);
   }
 
   async function removeAssetContribution(id) {
     if (!coupleId) return;
-    const updated = assetContributions.filter((c) => c.id !== id);
     const applied = { ...assetContributionsApplied };
     delete applied[id];
-    await setDoc(doc(db, "couples", coupleId), { assetContributions: updated, assetContributionsApplied: applied }, { merge: true });
+    // Le versement et sa trace d'application partent ENSEMBLE : les séparer
+    // laisserait une entrée orpheline qui bloquerait un futur versement de même
+    // identifiant.
+    await couple.setFields({
+      assetContributions: removeFrom(assetContributions, id),
+      assetContributionsApplied: applied,
+    });
   }
 
   // Applique une liste de versements récurrents dus (calculée par le générateur) :
@@ -740,7 +720,7 @@ export function FinanceProvider({ children }) {
       changed = true;
     }
     if (!changed) return;
-    await setDoc(doc(db, "couples", coupleId), { assets: updatedAssets, assetContributionsApplied: applied }, { merge: true });
+    await couple.setFields({ assets: updatedAssets, assetContributionsApplied: applied });
   }
 
   // Allocation cible : la carte envoie la map complète (toutes les classes de
@@ -751,10 +731,8 @@ export function FinanceProvider({ children }) {
   async function updateTargetAllocation(map, profileId = null) {
     if (!coupleId) return;
     setTargetAllocationState(map);
-    await setDoc(
-      doc(db, "couples", coupleId),
-      { targetAllocation: map, targetAllocationProfile: profileId },
-      { merge: true }
+    await couple.setFields(
+      { targetAllocation: map, targetAllocationProfile: profileId }
     );
   }
 
@@ -768,11 +746,10 @@ export function FinanceProvider({ children }) {
       createdAt: Date.now(),
       ...comment,
     };
-    const asset = assets.find((a) => a.id === assetId);
-    const updated = assets.map((a) =>
-      a.id === assetId ? { ...a, comments: [...(a.comments || []), newComment] } : a
-    );
-    await setDoc(doc(db, "couples", coupleId), { assets: updated }, { merge: true });
+    const asset = findIn(assets, assetId);
+    await couple.patchItem("assets", assets, assetId, {
+      comments: [...(asset?.comments || []), newComment],
+    });
 
     if (members.length > 1) {
       sendPushNotification({
@@ -787,10 +764,11 @@ export function FinanceProvider({ children }) {
 
   async function removeAssetComment(assetId, commentId) {
     if (!coupleId) return;
-    const updated = assets.map((a) =>
-      a.id === assetId ? { ...a, comments: (a.comments || []).filter((c) => c.id !== commentId) } : a
-    );
-    await setDoc(doc(db, "couples", coupleId), { assets: updated }, { merge: true });
+    const asset = findIn(assets, assetId);
+    if (!asset) return;
+    await couple.patchItem("assets", assets, assetId, {
+      comments: removeFrom(asset.comments, commentId),
+    });
   }
 
   async function recordNetWorthSnapshot(totalValue, currency) {
@@ -801,10 +779,8 @@ export function FinanceProvider({ children }) {
     const updated = [...filtered, { date: today, value: totalValue, currency }].sort(
       (a, b) => new Date(a.date) - new Date(b.date)
     );
-    await setDoc(
-      doc(db, "couples", coupleId),
-      { netWorthHistory: updated },
-      { merge: true }
+    await couple.setFields(
+      { netWorthHistory: updated }
     );
   }
 
@@ -813,10 +789,8 @@ export function FinanceProvider({ children }) {
     const updatedMembers = members.map((m) =>
       m.uid === uid ? { ...m, photoURL } : m
     );
-    await setDoc(
-      doc(db, "couples", coupleId),
-      { members: updatedMembers, memberUids: updatedMembers.map((m) => m.uid) },
-      { merge: true }
+    await couple.setFields(
+      { members: updatedMembers, memberUids: updatedMembers.map((m) => m.uid) }
     );
   }
 
@@ -825,16 +799,14 @@ export function FinanceProvider({ children }) {
     const updatedMembers = members.map((m) =>
       m.uid === uid ? { ...m, name } : m
     );
-    await setDoc(
-      doc(db, "couples", coupleId),
-      { members: updatedMembers },
-      { merge: true }
+    await couple.setFields(
+      { members: updatedMembers }
     );
   }
 
   async function updateCoupleName(name) {
     if (!coupleId) return;
-    await setDoc(doc(db, "couples", coupleId), { coupleName: name }, { merge: true });
+    await couple.setFields({ coupleName: name });
   }
 
   // Rouvre la fenêtre d'invitation pour 7 jours. Le code lui-même ne change
@@ -843,7 +815,7 @@ export function FinanceProvider({ children }) {
   async function reopenInvite() {
     if (!coupleId) return;
     const expiry = newInviteExpiry();
-    await setDoc(doc(db, "couples", coupleId), { inviteExpiresAt: expiry }, { merge: true });
+    await couple.setFields({ inviteExpiresAt: expiry });
     return expiry;
   }
 
@@ -852,37 +824,29 @@ export function FinanceProvider({ children }) {
     const updatedMembers = members.map((m) =>
       m.uid === uid ? { ...m, avatarColor } : m
     );
-    await setDoc(
-      doc(db, "couples", coupleId),
-      { members: updatedMembers },
-      { merge: true }
+    await couple.setFields(
+      { members: updatedMembers }
     );
   }
 
   async function updateWealthDisplayCurrency(currency) {
     if (!coupleId) return;
-    await setDoc(
-      doc(db, "couples", coupleId),
-      { wealthDisplayCurrency: currency },
-      { merge: true }
+    await couple.setFields(
+      { wealthDisplayCurrency: currency }
     );
   }
 
   async function updateDashboardDisplayCurrency(currency) {
     if (!coupleId) return;
-    await setDoc(
-      doc(db, "couples", coupleId),
-      { dashboardDisplayCurrency: currency },
-      { merge: true }
+    await couple.setFields(
+      { dashboardDisplayCurrency: currency }
     );
   }
 
   async function updateBudgetDisplayCurrency(currency) {
     if (!coupleId) return;
-    await setDoc(
-      doc(db, "couples", coupleId),
-      { budgetDisplayCurrency: currency },
-      { merge: true }
+    await couple.setFields(
+      { budgetDisplayCurrency: currency }
     );
   }
 
@@ -892,18 +856,16 @@ export function FinanceProvider({ children }) {
     if (coupleId) {
       // Écriture ciblée dans la map (merge imbriqué), pour ne toucher que la clé
       // du membre courant et laisser intact le thème du partenaire.
-      await setDoc(
-        doc(db, "couples", coupleId),
-        { themePrefs: { [myKey]: themeKey } },
-        { merge: true }
-      );
+      await couple.setFields(
+        { themePrefs: { [myKey]: themeKey } }
+    );
     }
   }
 
   async function updateLanguage(lang) {
     setLanguageState(lang);
     if (coupleId) {
-      await setDoc(doc(db, "couples", coupleId), { language: lang }, { merge: true });
+      await couple.setFields({ language: lang });
     }
   }
 
@@ -960,7 +922,7 @@ export function FinanceProvider({ children }) {
       parsed.couple
     );
     if (Object.keys(patch).length > 0) {
-      await setDoc(doc(db, "couples", coupleId), patch, { merge: true });
+      await couple.setFields(patch);
     }
 
     // `memberUids` est réécrit à partir des membres RÉELS du couple, jamais
