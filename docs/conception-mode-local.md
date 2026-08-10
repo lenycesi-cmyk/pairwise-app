@@ -1,16 +1,16 @@
-# Note de conception — mode hors-ligne / vie privée
+# Note de conception — mode local / vie privée
 
 Statut : **proposition, pas encore approuvée**. Aucun code n'est écrit.
 
 Objet : ajouter à PairWise un second mode de stockage où les données ne quittent pas
-l'appareil, la synchronisation entre partenaires passant par un fichier déposé dans le cloud
+l'appareil, la synchronisation entre partenaires passant par un fichier chiffré déposé dans le cloud
 personnel de l'utilisateur (Google Drive ou Dropbox). Le mode actuel reste inchangé.
 
 ---
 
 ## 1. Les deux modes
 
-| | **Connecté** (actuel) | **Hors-ligne** (nouveau) |
+| | **Connecté** (actuel) | **Local** (nouveau) |
 |---|---|---|
 | Stockage | Firestore | IndexedDB + fichiers dans le cloud de l'utilisateur |
 | Synchro du couple | temps réel | par journaux, à l'ouverture et périodiquement |
@@ -18,22 +18,65 @@ personnel de l'utilisateur (Google Drive ou Dropbox). Le mode actuel reste incha
 | Synchro bancaire | ✅ | ❌ (structurel) |
 | Instantané de patrimoine 23 h | ✅ ventilé par actif | ⚠️ total seul, écrit à l'ouverture de l'onglet |
 | Notifications | push, app fermée | locales seulement |
-| Cours crypto | ✅ | ✅ (CoinGecko, sans clé) |
-| Cours actions | ✅ | ⚠️ clé `demo`, très limitée |
+| Cours crypto | ✅ | ✅ (CoinGecko, sans clé — donc requête réseau) |
+| Cours actions | ✅ | ❌ saisie manuelle (la clé doit rester côté serveur) |
 | Charges récurrentes, budgets, alertes, insights | ✅ | ✅ (déjà côté client) |
 
 Ce qui tombe ne tombe pas parce que les octets sont ailleurs, mais parce que **le serveur ne
 peut plus lire**. C'est la même frontière qui découperait un mode chiffré de bout en bout.
 
+### Le nom « hors-ligne » est faux — à ne pas garder
+
+Ce mode **utilise le réseau**. Le nier serait une promesse intenable dès la première inspection
+du trafic. Voici exactement ce qui sort de l'appareil :
+
+| Destination | Ce qui part | Ce qui NE part pas |
+|---|---|---|
+| Google Drive / Dropbox | le fichier **chiffré** | rien de lisible par eux |
+| `api.coingecko.com` | les **symboles** détenus (`bitcoin`, `ethereum`…) + adresse IP | montants, quantités, identité |
+| `open.er-api.com` | les **codes devises** utilisés | montants, identité |
+| Serveurs PairWise | **rien** | — |
+
+La fuite n'est donc pas nulle : quelqu'un qui observerait ces appels apprendrait *quels* actifs
+et *quelles* devises tu utilises — jamais combien, ni qui tu es, ni la moindre transaction.
+C'est un ordre de grandeur en dessous de « une entreprise détient ton livre de comptes », mais
+ce n'est pas rien, et un utilisateur soucieux de sa vie privée posera la question.
+
+**Le mode s'appelle donc « Local », pas « Hors-ligne ».** Ce qui est vrai, et suffisant :
+*aucune donnée sur nos serveurs*.
+
+### Sous-option « strict » : aucune requête sortante
+
+Pour ceux qui veulent la version dure, un interrupteur secondaire coupe **toute** requête vers
+un tiers. Conséquences à assumer et à afficher :
+
+- Les cours crypto ne sont plus rafraîchis → valeur saisie à la main, comme l'immobilier.
+- La conversion de devises retombe sur la table de repli embarquée, qui ne couvre que
+  **7 devises** ; au-delà, PairWise refuse de convertir plutôt que d'inventer un taux (règle
+  déjà en vigueur, cf. `CLAUDE.md`).
+- La synchronisation entre partenaires devient impossible : le fichier ne peut plus atteindre le
+  cloud. Le mode strict est donc **mono-appareil par construction**.
+
+Ce dernier point mérite d'être dit tôt : « strict » et « couple » s'excluent.
+
+### Les actions : à retirer du périmètre
+
+Twelve Data exige une clé, qui doit rester côté serveur — la mettre dans le paquet du navigateur
+l'exposerait à tous. Sans serveur, il ne reste que la clé `demo`, trop limitée pour être
+honnête. En mode Local, **les actions se saisissent à la main**, comme l'immobilier ou un
+véhicule. Mieux vaut l'annoncer que livrer une cotation qui échoue une fois sur deux.
+
 ### Ce qu'on a le droit d'écrire
 
 - Mode connecté : *« Tes données sont chiffrées, isolées et jamais revendues. »*
-- Mode hors-ligne : *« Tes données ne quittent jamais ton appareil, sauf pour le fichier que tu
-  ranges dans ton propre cloud. Nous n'y avons pas accès. »*
+- Mode local : *« Aucune donnée sur nos serveurs. Tes finances vivent sur ton appareil et dans un
+  fichier chiffré rangé dans ton propre cloud — nous n'y avons pas accès. »*
 
 Ne pas écrire « full privacy » sur le mode connecté : `functions/netWorthSnapshots.js:176`
-parcourt tous les couples et lit leurs `assets` en clair. Deux promesses distinctes et vraies
-valent mieux qu'une promesse floue, qui se retourne au premier examen.
+parcourt tous les couples et lit leurs `assets` en clair. Ne pas écrire « hors-ligne » ni
+« aucune connexion » sur le mode local : c'est faux tant que les cours et le cloud sont
+interrogés. Deux promesses distinctes et vraies valent mieux qu'une promesse floue, qui se
+retourne au premier examen.
 
 ---
 
@@ -54,7 +97,7 @@ Chaque migration devient alors « exporter d'un côté, importer de l'autre », 
 morceau de code exercé dans les deux sens** — donc testé deux fois plus par le simple usage.
 
 C'est aussi le lot le plus utile isolément : un export/import complet a de la valeur pour tout
-le monde, même si le mode hors-ligne n'est jamais livré.
+le monde, même si le mode local n'est jamais livré.
 
 ---
 
@@ -160,7 +203,7 @@ de compte dans ce mode — la promesse en devient nettement plus crédible.
 
 ## 6. Migration, dans les deux sens
 
-**Connecté → hors-ligne**
+**Connecté → local**
 1. Export canonique, et **sauvegarde de sécurité téléchargée sur l'appareil** avant tout.
 2. Déconnexion des banques via `purgeBankConnections` (les jetons doivent disparaître, pas
    dormir).
@@ -168,14 +211,14 @@ de compte dans ce mode — la promesse en devient nettement plus crédible.
 4. Amorçage du magasin local, création du dossier, premier snapshot.
 5. Effacement des données serveur, après confirmation explicite.
 
-**Hors-ligne → connecté**
+**Local → connecté**
 1. Repli des journaux en un export canonique.
 2. Import dans Firestore.
 3. Les banques et l'instantané nocturne redeviennent disponibles.
 4. Les journaux sont conservés en archive, jamais supprimés automatiquement.
 
 **Ce qui ne se rattrape pas, et qu'il faut annoncer :** l'historique de patrimoine **ventilé par
-actif** est écrit par la fonction planifiée de 23 h. Pendant la période hors-ligne, seuls les
+actif** est écrit par la fonction planifiée de 23 h. Pendant la période en mode local, seuls les
 totaux existent. Au retour, le détail de ces mois-là restera absent — un instantané ne se
 reconstitue pas après coup, les valeurs d'actifs étant des saisies qui s'écrasent.
 
@@ -187,7 +230,7 @@ reconstitue pas après coup, les valeurs d'actifs étant des saisies qui s'écra
 |---|---|---|
 | 0 | Format canonique + export/import complet | **oui**, tout de suite |
 | 1 | Adaptateur de persistance + écritures élémentaires dans `FinanceContext` | oui (moins de collisions) |
-| 2 | Magasin IndexedDB, mode hors-ligne **mono-appareil** | oui |
+| 2 | Magasin IndexedDB, mode local **mono-appareil** | oui |
 | 3 | Connecteur Drive/Dropbox (OAuth PKCE), journaux, chiffrement | non |
 | 4 | Appairage, révocation, compactage des journaux | non |
 | 5 | Migrations dans les deux sens, textes et garde-fous | non |
@@ -227,7 +270,7 @@ Ce dernier test est le filet de sécurité des migrations, et il doit exister **
 
 ## 10. Questions ouvertes
 
-1. Le mode hors-ligne est-il proposé **à l'inscription** ou seulement dans les réglages ?
-2. Un couple peut-il être **mixte** (un partenaire connecté, l'autre hors-ligne) ? Recommandation :
+1. Le mode local est-il proposé **à l'inscription** ou seulement dans les réglages ?
+2. Un couple peut-il être **mixte** (un partenaire connecté, l'autre local) ? Recommandation :
    **non**, le mode appartient au couple. Le supporter multiplierait les cas de fusion.
-3. Le mode hors-ligne est-il **payant**, gratuit, ou l'argument d'appel ?
+3. Le mode local est-il **payant**, gratuit, ou l'argument d'appel ?
