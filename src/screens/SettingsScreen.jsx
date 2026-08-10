@@ -9,6 +9,7 @@ import { getMemberKey } from "../utils/members";
 import { usePushNotifications } from "../hooks/usePushNotifications";
 import { getNavOffset, setNavOffset } from "../utils/navOffset";
 import HeaderMenuButton from "../components/HeaderMenuButton";
+import { parseExportDocument, summarizeImport } from "../utils/canonicalData";
 
 export default function SettingsScreen({ onOpenMenu, onOpenRecurring, onOpenCategories, onOpenTags, onOpenTheme, onOpenLanguage, onOpenNavPicker }) {
   const t = useTranslation();
@@ -29,8 +30,18 @@ export default function SettingsScreen({ onOpenMenu, onOpenRecurring, onOpenCate
     updateCoupleName,
     pushPrefs,
     updateMemberPushPrefs,
+    exportAllData,
+    importAllData,
   } = useFinance();
   const { inviteExpiresAt, reopenInvite } = useFinance();
+  // Export / import canonique. `pendingImport` retient le fichier LU ET VALIDÉ
+  // avant toute écriture : l'utilisateur voit ce qu'il s'apprête à importer,
+  // compté, plutôt qu'un « Confirmer ? » qui ne dit rien.
+  const dataFileInputRef = useRef(null);
+  const [pendingImport, setPendingImport] = useState(null);
+  const [dataError, setDataError] = useState(null);
+  const [dataNotice, setDataNotice] = useState(null);
+  const [importing, setImporting] = useState(false);
   const [showCode, setShowCode] = useState(false);
   const [copied, setCopied] = useState(false);
   const [reopening, setReopening] = useState(false);
@@ -160,6 +171,59 @@ export default function SettingsScreen({ onOpenMenu, onOpenRecurring, onOpenCate
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   }
+
+  // ── Export / import canonique ────────────────────────────────────────────
+  function handleExport() {
+    setDataError(null);
+    const document_ = exportAllData();
+    const blob = new Blob([JSON.stringify(document_, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `pairwise-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+    // Le privé du partenaire n'est pas dans le fichier : le dire au moment de
+    // l'export, pas au moment où quelqu'un s'en apercevra.
+    setDataNotice(
+      document_.scope.omittedPrivate > 0
+        ? t("data_export_omitted").replace("{n}", document_.scope.omittedPrivate)
+        : null
+    );
+  }
+
+  async function handleImportFile(e) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setDataError(null);
+    setDataNotice(null);
+    try {
+      const raw = await file.text();
+      // On valide AVANT d'écrire quoi que ce soit, et on montre le décompte :
+      // « Confirmer ? » sans contenu ne veut rien dire sur des données d'argent.
+      const parsed = parseExportDocument(raw);
+      setPendingImport({ raw, counts: summarizeImport(parsed) });
+    } catch (err) {
+      setDataError(t(err.message));
+    }
+  }
+
+  async function confirmImport() {
+    if (!pendingImport) return;
+    setImporting(true);
+    setDataError(null);
+    try {
+      await importAllData(pendingImport.raw);
+      setPendingImport(null);
+      setDataNotice(t("data_import_done"));
+    } catch (err) {
+      setDataError(t(err.message));
+    } finally {
+      setImporting(false);
+    }
+  }
+
 
   return (
     <div style={{ minHeight: "100dvh" }}>
@@ -578,6 +642,75 @@ export default function SettingsScreen({ onOpenMenu, onOpenRecurring, onOpenCate
           <span style={{ fontSize: 14, flex: 1 }}>{t("settings_navbar_customize")}</span>
           <i className="ti ti-chevron-right" style={{ fontSize: 14, color: "var(--ink-3)" }} aria-hidden="true" />
         </div>
+      </Card>
+
+      <SectionLabel icon="ti-database" accent="sky">{t("settings_data")}</SectionLabel>
+      <Card>
+        <div
+          onClick={handleExport}
+          style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 0 12px", cursor: "pointer", borderBottom: "0.5px solid var(--rule)" }}
+        >
+          <i className="ti ti-download" style={{ fontSize: 18, color: "var(--sage)" }} aria-hidden="true" />
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: 14, margin: 0 }}>{t("settings_data_export")}</p>
+            <p style={{ fontSize: 11, color: "var(--ink-3)", margin: "2px 0 0" }}>{t("settings_data_export_hint")}</p>
+          </div>
+        </div>
+        <div
+          onClick={() => dataFileInputRef.current?.click()}
+          style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 0 4px", cursor: "pointer" }}
+        >
+          <i className="ti ti-upload" style={{ fontSize: 18, color: "var(--lavi)" }} aria-hidden="true" />
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: 14, margin: 0 }}>{t("settings_data_import")}</p>
+            <p style={{ fontSize: 11, color: "var(--ink-3)", margin: "2px 0 0" }}>{t("settings_data_import_hint")}</p>
+          </div>
+        </div>
+        <input
+          ref={dataFileInputRef}
+          type="file"
+          accept="application/json,.json"
+          onChange={handleImportFile}
+          style={{ display: "none" }}
+        />
+
+        {dataError && (
+          <p style={{ fontSize: 12, color: "var(--red)", margin: "10px 0 0" }}>{dataError}</p>
+        )}
+        {dataNotice && !dataError && (
+          <p style={{ fontSize: 12, color: "var(--ink-2)", margin: "10px 0 0" }}>{dataNotice}</p>
+        )}
+
+        {pendingImport && (
+          <div style={{ marginTop: 12, paddingTop: 12, borderTop: "0.5px solid var(--rule)" }}>
+            <p style={{ fontSize: 12.5, fontWeight: 600, margin: "0 0 6px" }}>{t("data_import_title")}</p>
+            <ul style={{ margin: "0 0 8px", paddingLeft: 18 }}>
+              {Object.entries(pendingImport.counts).map(([key, n]) => (
+                <li key={key} style={{ fontSize: 12.5, color: "var(--ink-2)" }}>
+                  {n} {t(`data_count_${key}`)}
+                </li>
+              ))}
+            </ul>
+            <p style={{ fontSize: 11.5, color: "var(--ink-3)", margin: "0 0 4px" }}>{t("data_import_nondestructive")}</p>
+            <p style={{ fontSize: 11.5, color: "var(--ink-3)", margin: "0 0 10px" }}>{t("data_import_members_skipped")}</p>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                onClick={confirmImport}
+                disabled={importing}
+                style={{ height: 34, padding: "0 16px", borderRadius: 99, border: "none", background: "var(--tang)", color: "#fff", fontSize: 13, fontWeight: 600 }}
+              >
+                {importing ? t("data_import_running") : t("data_import_confirm")}
+              </button>
+              <button
+                onClick={() => setPendingImport(null)}
+                disabled={importing}
+                style={{ height: 34, padding: "0 16px", borderRadius: 99, border: "0.5px solid var(--rule)", background: "var(--bg-card)", color: "var(--ink)", fontSize: 13, fontWeight: 600 }}
+              >
+                {t("data_import_cancel")}
+              </button>
+            </div>
+          </div>
+        )}
       </Card>
 
       <SectionLabel icon="ti-bell" accent="mint">{t("settings_notifications_section")}</SectionLabel>

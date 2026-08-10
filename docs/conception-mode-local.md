@@ -1,6 +1,7 @@
 # Note de conception — mode local / vie privée
 
-Statut : **proposition, pas encore approuvée**. Aucun code n'est écrit.
+Statut : **proposition**. Seul le **lot 0** (format canonique + export/import) est livré ;
+tout le reste attend validation.
 
 Objet : ajouter à PairWise un second mode de stockage où les données ne quittent pas
 l'appareil, la synchronisation entre partenaires passant par un fichier chiffré déposé dans le cloud
@@ -88,12 +89,18 @@ La réversibilité est le point qui fixe l'architecture. Supporter les deux sens
 le travail** suppose que les deux modes sachent produire et relire **le même document** :
 
 ```
-PairwiseExport v1
-  meta          { version, exportedAt, coupleId, mode }
-  couple        { tous les champs du doc couple : members, categories, assets,
-                  budgets, goals, recurringTx, enabledCurrencies, … }
-  transactions  [ … ]
+{ format: "pairwise-export", version: 1, exportedAt,
+  scope:        { memberKey, omittedPrivate },
+  couple:       { … liste blanche COUPLE_FIELDS … },
+  transactions: [ … ] }
 ```
+
+Livré dans [src/utils/canonicalData.js](../src/utils/canonicalData.js). Trois propriétés y sont
+tenues par des tests : liste **blanche** des champs exportés (un champ ajouté au doc couple ne
+fuit pas par défaut), `members` exporté mais **jamais importé** (il alimente `memberUids`, sur
+lequel reposent les règles de sécurité), et un import **non destructif** — l'export ne contenant
+que ce que le membre courant peut voir, s'en servir pour remplacer effacerait le privé du
+partenaire.
 
 Chaque migration devient alors « exporter d'un côté, importer de l'autre », avec **un seul
 morceau de code exercé dans les deux sens** — donc testé deux fois plus par le simple usage.
@@ -230,7 +237,7 @@ reconstitue pas après coup, les valeurs d'actifs étant des saisies qui s'écra
 
 | Lot | Contenu | Utile seul ? |
 |---|---|---|
-| 0 | Format canonique + export/import complet | **oui**, tout de suite |
+| 0 | Format canonique + export/import complet | **oui** — ✅ livré |
 | 1 | Adaptateur de persistance + écritures élémentaires dans `FinanceContext` | oui (moins de collisions) |
 | 2 | Magasin IndexedDB, mode local **mono-appareil** | oui |
 | 3 | Connecteur Drive/Dropbox (OAuth PKCE), journaux, chiffrement | non |

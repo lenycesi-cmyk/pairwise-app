@@ -285,6 +285,25 @@ read-modify-merge the whole couple doc client-side (e.g. `addRecurring`, `addAss
 `updateMemberName`) rather than touching individual fields — keep that pattern when adding new
 couple-level state.
 
+**Export/import canonique** ([utils/canonicalData.js](src/utils/canonicalData.js), branché via
+`exportAllData`/`importAllData` dans FinanceContext, exposé dans `SettingsScreen`). C'est le lot 0
+du mode Local (voir [docs/conception-mode-local.md](docs/conception-mode-local.md)) : les deux modes
+de stockage produisent et relisent LE MÊME document, si bien qu'une migration se ramène à
+« exporter d'un côté, importer de l'autre » — un seul code, exercé dans les deux sens.
+
+Trois propriétés à préserver si on y touche :
+
+- **Liste blanche, jamais liste noire.** `COUPLE_FIELDS` énumère ce qui sort ; un champ ajouté au
+  doc couple n'est donc pas exporté par défaut. C'est ainsi qu'on évite de publier un secret par
+  distraction (`fcmTokens`, `memberUids`, et la sous-collection serveur `bankConnections`).
+- **`members` est exporté mais JAMAIS importé** (`IMPORT_SKIP_FIELDS`). La liste des membres est
+  resynchronisée vers `memberUids`, sur lequel `firestore.rules` fonde tout accès : laisser un
+  fichier y ajouter quelqu'un rouvrirait la faille refermée en retirant l'auto-ajout côté client.
+- **L'import n'efface rien.** L'export ne contient que ce que le membre courant peut voir (filtre
+  `privateTo`), donc s'en servir pour remplacer effacerait le privé du partenaire. Union par `id`
+  pour les collections identifiées, remplacement pour les champs simples. Les transactions
+  importées se voient réécrire `memberUids` à partir des membres réels du couple.
+
 **Budgets** (`budgets` array field) follow the same shape/CRUD pattern as `recurringTx`/`assets`
 (`addBudget`/`updateBudget`/`removeBudget` in FinanceContext). A budget is defined on three
 independent axes, and all three matter when touching this code:

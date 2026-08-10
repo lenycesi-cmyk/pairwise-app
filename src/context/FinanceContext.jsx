@@ -25,6 +25,12 @@ import { getMemberKey } from "../utils/members";
 import { getExchangeRate } from "../utils/currencyConversion";
 import { sendPushNotification } from "../utils/sendPush";
 import { dedupeTags } from "../utils/tags";
+import {
+  buildExportDocument,
+  parseExportDocument,
+  buildCouplePatch,
+  summarizeImport,
+} from "../utils/canonicalData";
 import { resolveNavTabs } from "../data/navTabsMeta";
 import { readBootTheme, writeBootTheme, readBootNavTabs, writeBootNavTabs } from "../utils/bootPrefs";
 
@@ -920,6 +926,67 @@ export function FinanceProvider({ children }) {
     [assets, myKey]
   );
 
+  // ── Export / import canonique (lot 0 du mode Local) ──────────────────────
+  //
+  // L'export ne contient QUE ce que le membre courant peut voir : le privé du
+  // partenaire en est exclu, comme partout ailleurs. C'est ce qui impose un
+  // import NON DESTRUCTIF — remplacer à partir d'un fichier forcément partiel
+  // effacerait des données que son auteur n'a jamais vues.
+  function exportAllData() {
+    const couple = {
+      coupleName, members, categories, customTags,
+      defaultCurrency, currencyMode, enabledCurrencies, financeMode, language,
+      recurringTx, recurringLastGen,
+      budgets, budgetHistory, goals, loans,
+      assets: visibleAssets, assetContributions, assetContributionsApplied,
+      targetAllocation, incomeAccountLinks, netWorthHistory, debtSettlements,
+    };
+    return buildExportDocument({
+      couple,
+      transactions: visibleTransactions,
+      memberKey: myKey,
+      omittedPrivate:
+        transactions.length - visibleTransactions.length +
+        (assets.length - visibleAssets.length),
+    });
+  }
+
+  async function importAllData(raw) {
+    if (!coupleId) throw new Error("import_error_no_couple");
+    const parsed = parseExportDocument(raw);
+
+    const patch = buildCouplePatch(
+      { members, categories, assets, budgets, goals, loans, recurringTx },
+      parsed.couple
+    );
+    if (Object.keys(patch).length > 0) {
+      await setDoc(doc(db, "couples", coupleId), patch, { merge: true });
+    }
+
+    // `memberUids` est réécrit à partir des membres RÉELS du couple, jamais
+    // repris du fichier : c'est le champ sur lequel les règles de sécurité
+    // fondent l'accès, et une transaction importée avec la liste d'un autre
+    // couple serait illisible ici — ou lisible ailleurs.
+    const currentMemberUids = members.map((m) => m.uid).filter(Boolean);
+
+    // Firestore plafonne une écriture groupée à 500 opérations.
+    const CHUNK = 400;
+    for (let i = 0; i < parsed.transactions.length; i += CHUNK) {
+      const batch = writeBatch(db);
+      for (const tx of parsed.transactions.slice(i, i + CHUNK)) {
+        const { id, ...data } = tx;
+        batch.set(
+          doc(db, "couples", coupleId, "transactions", id),
+          { ...data, memberUids: currentMemberUids },
+          { merge: true }
+        );
+      }
+      await batch.commit();
+    }
+
+    return summarizeImport(parsed);
+  }
+
   const value = {
     transactions: visibleTransactions,
     categories,
@@ -1005,6 +1072,8 @@ export function FinanceProvider({ children }) {
     updateLanguage,
     debtSettlements,
     addDebtSettlement,
+    exportAllData,
+    importAllData,
   };
 
   return (
