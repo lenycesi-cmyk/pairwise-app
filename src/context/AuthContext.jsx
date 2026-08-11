@@ -115,9 +115,20 @@ export function AuthProvider({ children }) {
       // longer client-accessible). Best-effort: never block account deletion.
       try {
         const { getFunctions, httpsCallable } = await import("firebase/functions");
-        await httpsCallable(getFunctions(undefined, "europe-west1"), "purgeBankConnections")({ coupleId });
+        const fns = getFunctions(undefined, "europe-west1");
+        await httpsCallable(fns, "purgeBankConnections")({ coupleId });
+        // Pièces jointes : reçus de chaque membre et photos de profil. Elles ne
+        // partaient PAS jusqu'ici — les images survivaient à la fermeture du
+        // compte, et restaient atteignables par leur URL à jeton, que les règles
+        // de sécurité ne savent pas révoquer.
+        //
+        // C'est bien ici, et nulle part ailleurs, que la purge a lieu : tant
+        // qu'un partenaire reste, l'historique du couple lui appartient aussi.
+        // Rien n'est supprimé avant que LES DEUX membres aient fermé leur
+        // compte — ce point est atteint quand il ne reste plus aucun membre réel.
+        await httpsCallable(fns, "purgeCoupleStorage")({ coupleId });
       } catch (err) {
-        console.warn("purgeBankConnections failed (continuing deletion):", err?.message);
+        console.warn("purge serveur échouée (suppression poursuivie) :", err?.message);
       }
       // Delete remaining couple data
       const txSnap = await getDocs(collection(db, "couples", coupleId, "transactions"));

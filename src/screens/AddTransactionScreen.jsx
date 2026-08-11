@@ -3,6 +3,8 @@ import { useFinance } from "../context/FinanceContext";
 import { useAuth } from "../context/AuthContext";
 import { CURRENCIES, ALL_CURRENCIES } from "../data/categories";
 import { uploadPhoto } from "../utils/photoUpload";
+import { receiptPathOf } from "../utils/receiptPaths";
+import { purgeReceiptPaths } from "../utils/purgeReceipts";
 import IconPicker from "../components/IconPicker";
 import { AVATAR_COLOR_PALETTE } from "../utils/memberColors";
 import { useTranslation } from "../hooks/useTranslation";
@@ -89,7 +91,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
     updateEnabledCurrencies,
     language,
   } = useFinance();
-  const { user } = useAuth();
+  const { user, coupleId } = useAuth();
   // Desktop large → corps en 2 colonnes (même breakpoint que le modal élargi).
   const wide = useMediaQuery("(min-width: 1024px)");
 
@@ -509,15 +511,22 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
           // l'affichage passant par `receiptURL` (URL à jeton), pas par le SDK.
           const path = `receipts/${user.uid}/${txId}.jpg`;
           const url = await uploadPhoto(receiptFile, path);
-          await updateTransaction(txId, { receiptURL: url });
+          // `receiptPath` est enregistré en plus de l'URL : on ne supprime pas
+          // un objet Storage par son URL de téléchargement, et sans le chemin
+          // l'image survivrait à la suppression de la transaction.
+          await updateTransaction(txId, { receiptURL: url, receiptPath: path });
         } catch (err) {
           console.error("Upload du reçu échoué:", err);
           alert(t("tx_receipt_failed"));
         }
         setUploadingReceipt(false);
       } else if (receiptPreview === null && editingTx?.receiptURL) {
-        // L'utilisateur a retiré le reçu existant
-        await updateTransaction(txId, { receiptURL: null });
+        // L'utilisateur a retiré le reçu existant : l'objet Storage part avec.
+        // Sans ça, l'image restait accessible par son URL à jeton alors que la
+        // transaction ne la montrait plus.
+        const oldPath = receiptPathOf(editingTx);
+        if (oldPath) await purgeReceiptPaths(coupleId, [oldPath]);
+        await updateTransaction(txId, { receiptURL: null, receiptPath: null });
       }
 
       if (isEditing) haptic("tap");

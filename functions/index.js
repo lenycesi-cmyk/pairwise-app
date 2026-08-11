@@ -8,6 +8,7 @@ const { KeyManagementServiceClient } = require("@google-cloud/kms");
 const { PlaidApi, PlaidEnvironments, Configuration } = require("plaid");
 const eb = require("./enableBanking");
 const netWorth = require("./netWorthSnapshots");
+const receipts = require("./receipts");
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -1184,3 +1185,9 @@ exports.recordNetWorthSnapshots = onSchedule(
     await netWorth.runDailySnapshots(db, { apiKey: process.env.TWELVE_DATA_KEY });
   }
 );
+
+// ── Cycle de vie des pièces jointes ─────────────────────────────────────────
+// Définies dans ./receipts.js et réexportées ici : le pipeline de déploiement
+// (scripts/deploy-functions.js) résout `entryPoint` sur ce module.
+exports.purgeReceipts = receipts.purgeReceipts;
+exports.purgeCoupleStorage = receipts.purgeCoupleStorage;
