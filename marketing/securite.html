@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <title>Sécurité et confidentialité — PairWise</title>
-  <meta name="description" content="Ce que PairWise protège, comment, et ce qu'il ne protège pas encore. Aucun traqueur, aucune publicité, règles d'accès testées avant chaque déploiement, export et suppression complets." />
+  <meta name="description" content="Qui peut accéder à tes données, et ce qui empêche quelqu'un d'autre d'y arriver. Aucun traqueur, aucune publicité, règles d'accès testées avant chaque déploiement, export et suppression complets." />
 
   <link rel="canonical" href="https://pairwise.finance/securite" />
   <link rel="alternate" hreflang="fr" href="https://pairwise.finance/securite" />
@@ -16,7 +16,7 @@
   <meta property="og:site_name" content="PairWise" />
   <meta property="og:locale" content="fr_FR" />
   <meta property="og:title" content="Sécurité et confidentialité — PairWise" />
-  <meta property="og:description" content="Ce que PairWise protège, comment, et ce qu'il ne protège pas encore. Sans traqueur ni publicité." />
+  <meta property="og:description" content="Qui peut accéder à tes données, et ce qui empêche quelqu'un d'autre d'y arriver. Sans traqueur ni publicité." />
   <meta property="og:url" content="https://pairwise.finance/securite" />
   <meta property="og:image" content="https://pairwise.finance/assets/og-home.png" />
   <meta name="twitter:card" content="summary_large_image" />
@@ -38,7 +38,7 @@
         "name": "Sécurité et confidentialité — PairWise",
         "url": "https://pairwise.finance/securite",
         "inLanguage": "fr-FR",
-        "description": "Ce que PairWise protège, comment, et ce qu'il ne protège pas encore."
+        "description": "Qui peut accéder à tes données, et ce qui empêche quelqu'un d'autre d'y arriver."
       },
       {
         "@type": "BreadcrumbList",
@@ -112,8 +112,8 @@
     <span class="eyebrow">Sécurité &amp; confidentialité</span>
     <h1 class="display">Des mécanismes, pas des adjectifs.</h1>
     <p class="lede">« Sécurité de niveau bancaire », « chiffrement militaire » : tout le monde
-      l'écrit, personne ne peut le vérifier. Voici plutôt ce que PairWise fait précisément de tes
-      données, contre qui il te protège — et ce qu'il ne fait pas encore.</p>
+      l'écrit, personne ne peut le vérifier. Voici précisément ce que PairWise fait de tes
+      données, qui peut y accéder, et ce qui empêche quelqu'un d'autre d'y arriver.</p>
   </div>
 </section>
 
@@ -188,12 +188,24 @@
 <!-- ============ CONTRE QUI ============ -->
 <section class="alt">
   <div class="wrap">
-    <span class="eyebrow">Le détail qui compte</span>
-    <h2 class="h2">Contre qui on te protège</h2>
-    <p class="lede">Une protection ne veut rien dire tant qu'on n'a pas nommé la menace. En voici
-      quatre, et le mécanisme précis derrière chacune.</p>
+    <span class="eyebrow">Le cœur du sujet</span>
+    <h2 class="h2">Qui peut accéder à tes données</h2>
+    <p class="lede">Une seule réponse compte : <b>les membres de ton espace, et personne
+      d'autre</b>. Une protection ne voulant rien dire tant qu'on n'a pas nommé la menace, voici
+      les quatre qui comptent, et le mécanisme précis derrière chacune.</p>
 
     <div class="feat">
+      <div class="fcard">
+        <div class="fic" style="background: var(--tang-light); color: var(--tang);"><i class="ti ti-shield-lock"></i></div>
+        <div>
+          <b>Contre une intrusion</b>
+          <small>Ton mot de passe n'est <b>jamais stocké ni même vu par nous</b> : l'authentification
+            est assurée par Google Identity, l'un des systèmes les plus éprouvés au monde. Tout
+            transite chiffré, et tout est chiffré au repos sur les serveurs. Les actions
+            sensibles — supprimer ton compte, par exemple — exigent de <b>ressaisir ton mot de
+            passe</b>, même si ta session est déjà ouverte.</small>
+        </div>
+      </div>
       <div class="fcard">
         <div class="fic" style="background: var(--tang-light); color: var(--tang);"><i class="ti ti-users-group"></i></div>
         <div>
@@ -202,16 +214,6 @@
             de la liste des membres. Un espace mal formé est refusé à tout le monde plutôt
             qu'ouvert par défaut. Rejoindre un couple passe uniquement par une fonction serveur :
             personne ne peut s'ajouter soi-même.</small>
-        </div>
-      </div>
-      <div class="fcard">
-        <div class="fic" style="background: var(--lavi-light); color: var(--lavi);"><i class="ti ti-eye-off"></i></div>
-        <div>
-          <b>Contre ton/ta partenaire</b>
-          <small>Une dépense ou un compte peut être marqué <b>privé</b> : il reste invisible pour
-            l'autre, y compris dans les totaux et les rapports. Partager ses finances ne devrait
-            jamais vouloir dire tout montrer — c'est la confidentialité dont on parle le moins,
-            et souvent celle qui compte le plus.</small>
         </div>
       </div>
       <div class="fcard">
@@ -256,30 +258,8 @@
   </div>
 </section>
 
-<!-- ============ CE QU'ON NE FAIT PAS ============ -->
-<section class="alt">
-  <div class="wrap">
-    <span class="eyebrow">Honnêteté</span>
-    <h2 class="h2">Ce que PairWise ne fait pas</h2>
-    <p class="lede">C'est la section la plus importante de cette page. Une liste de garanties sans
-      limites annoncées ne veut rien dire — et tu ne peux juger la première qu'en lisant la
-      seconde.</p>
-
-    <div class="sec-two">
-      <ul class="sec-list">
-        <li class="no"><i class="ti ti-x"></i><span><b>Pas de chiffrement de bout en bout.</b> Tes données sont chiffrées en transit et au repos par notre hébergeur, mais nos serveurs peuvent techniquement les lire. C'est ce qui rend possibles l'instantané quotidien de ton patrimoine et la synchronisation bancaire. Nous ne prétendrons pas le contraire.</span></li>
-        <li class="no"><i class="ti ti-x"></i><span><b>Un départ ne supprime pas tout.</b> Si tu fermes ton compte et que ton/ta partenaire continue, l'historique du couple reste : il lui appartient aussi. Tout est effacé quand le dernier membre part.</span></li>
-      </ul>
-      <ul class="sec-list">
-        <li class="no"><i class="ti ti-x"></i><span><b>Nous ne sommes pas une banque</b> et ne détenons jamais ton argent. PairWise lit des soldes, il ne déplace aucun fonds.</span></li>
-        <li class="no"><i class="ti ti-x"></i><span><b>Aucun audit de sécurité externe</b> n'a encore été mené. Le jour où ce sera le cas, ce sera écrit ici, avec sa date et son périmètre.</span></li>
-      </ul>
-    </div>
-  </div>
-</section>
-
 <!-- ============ CONTRÔLE ============ -->
-<section>
+<section class="alt">
   <div class="wrap">
     <span class="eyebrow">Ton contrôle</span>
     <h2 class="h2">Partir quand tu veux, avec tout</h2>
@@ -295,7 +275,7 @@
 </section>
 
 <!-- ============ FAQ ============ -->
-<section class="alt">
+<section>
   <div class="wrap">
     <span class="eyebrow">Questions fréquentes</span>
     <h2 class="h2">Ce qu'on nous demande le plus</h2>
