@@ -25,6 +25,8 @@ import { getMemberKey } from "../utils/members";
 import { getExchangeRate } from "../utils/currencyConversion";
 import { sendPushNotification } from "../utils/sendPush";
 import { dedupeTags } from "../utils/tags";
+import { receiptPathOf } from "../utils/receiptPaths";
+import { purgeReceiptPaths } from "../utils/purgeReceipts";
 import {
   buildExportDocument,
   parseExportDocument,
@@ -399,6 +401,12 @@ export function FinanceProvider({ children }) {
 
   async function deleteTransaction(id) {
     if (!coupleId) return;
+    // Le reçu se purge AVANT le document : une fois celui-ci supprimé, plus
+    // rien ne dit quel objet Storage lui appartenait, et l'image resterait
+    // accessible pour toujours par son URL à jeton. Best-effort : un échec de
+    // purge ne doit pas empêcher la suppression demandée.
+    const path = receiptPathOf(transactions.find((t) => t.id === id));
+    if (path) await purgeReceiptPaths(coupleId, [path]);
     await deleteDoc(doc(db, "couples", coupleId, "transactions", id));
   }
 

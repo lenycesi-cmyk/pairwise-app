@@ -66,6 +66,8 @@ const FUNCTIONS_TO_DEPLOY = [
   "monthlySummary",
   "recordNetWorthSnapshots",
   "sendInactivityReminders",
+  "purgeReceipts",
+  "purgeCoupleStorage",
 ];
 
 function loadServiceAccountKey() {

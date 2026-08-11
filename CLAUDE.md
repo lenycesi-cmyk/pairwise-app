@@ -447,9 +447,36 @@ Ce n'est pas une régression : **rien dans l'app ne lit un reçu par son chemin*
 affichent `receiptURL`, une URL de téléchargement à jeton qui court-circuite ces règles — y
 compris pour le/la partenaire. Aucun accès SDK en lecture n'est donc nécessaire.
 
-Corollaire à garder en tête pour toute question de confidentialité : **une URL à jeton ne se
-révoque pas par les règles**. Un reçu reste lisible par quiconque détient son URL, y compris
-après suppression de la transaction — d'autant que `deleteTransaction` ne supprime que le
-document Firestore et laisse l'objet Storage en place. Idem pour les anciens reçus à plat
-(`receipts/{txId}.jpg`), qui n'ont aucune règle. Les reprendre en main suppose de supprimer les
-objets, pas d'ajuster les règles.
+Corollaire qui gouverne toute question de confidentialité ici : **une URL à jeton ne se révoque
+pas par les règles**. Seule la suppression de l'objet reprend la main — d'où le cycle de vie
+ci-dessous.
+
+**Cycle de vie des pièces jointes** ([functions/receipts.js](functions/receipts.js),
+[utils/receiptPaths.js](src/utils/receiptPaths.js)). Supprimer une transaction, ou retirer son
+reçu à l'édition, supprime désormais l'objet Storage ; fermer le dernier compte du couple purge
+reçus et photos de profil. Quatre points à ne pas défaire :
+
+- **La purge passe par le SERVEUR** (`purgeReceipts`, `purgeCoupleStorage`). `storage.rules`
+  range les reçus par auteur du dépôt, donc le/la partenaire peut supprimer une transaction sans
+  pouvoir supprimer le reçu qu'il/elle n'a pas envoyé. Le SDK admin n'a pas cette limite. Les
+  deux fonctions vérifient l'appartenance au couple **et** que chaque chemin appartient à un
+  membre de ce couple — sans quoi un membre légitime pourrait faire supprimer les fichiers d'un
+  autre couple en forgeant un chemin.
+- **Un déclencheur Firestore serait plus élégant, mais ne marcherait pas** :
+  `scripts/deploy-functions.js` ne pose aucun `eventTrigger`, donc un `onDocumentDeleted` se
+  déploierait en fonction HTTP et ne se déclencherait jamais — en silence.
+- **On purge AVANT de supprimer le document** : après, plus rien ne dit quel objet lui
+  appartenait. La purge est best-effort, un échec ne bloque jamais la suppression demandée.
+- **Le chemin se retrouve même sans `receiptPath`** : les nouvelles transactions l'enregistrent,
+  les anciennes le laissent déduire de `receiptURL` (`storagePathFromDownloadURL`). Aucune
+  reprise de données n'a donc été nécessaire.
+
+Ce qui reste hors de portée, faute de reprise de données : les objets **déjà** orphelins
+(transactions supprimées avant ce lot). Il faudrait un script d'administration listant le bucket
+et le croisant avec Firestore — écarté volontairement, seul le futur est traité.
+
+**Suppression de compte : rien ne part tant que les deux membres n'ont pas fermé leur compte.**
+Un membre qui part est retiré de `members`/`memberUids`, mais transactions, reçus et patrimoine
+restent — l'historique partagé appartient aussi au partenaire. La purge complète (banques,
+transactions, document couple, Storage) n'a lieu qu'au départ du **dernier membre réel** ; un
+partenaire fantôme (invité jamais inscrit, `uid: null`) ne compte pas comme membre restant.
