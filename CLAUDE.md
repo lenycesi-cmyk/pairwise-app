@@ -436,9 +436,20 @@ must hold `roles/firebaserules.firestoreServiceAgent` (create the agent with
 `scripts/diagnose-rules.js` to simulate a request against the deployed ruleset rather than guessing
 from a browser-side `storage/unauthorized`.
 
-[storage.rules](storage.rules) is stricter: profile photos are writable only by their owner
-(`profiles/{uid}.jpg`), and receipts live under `receipts/{coupleId}/{txId}.jpg` with membership
-checked via `firestore.get`. It does **not** tolerate a missing `memberUids`. Receipts written before
-that layout sit at the flat `receipts/{txId}.jpg` path, which has no rule at all (so the SDK denies
-it); they still display because the app renders `receiptURL`, a tokenized download URL that bypasses
-rules entirely — and for the same reason those old objects stay readable to anyone holding the URL.
+[storage.rules](storage.rules) is stricter, and **not** couple-scoped — c'est un point où ce
+fichier a longtemps décrit une version qui n'existe plus. Le cloisonnement par couple via
+`firestore.get` a été retiré : l'appel inter-services échouait à l'évaluation, ce qui faisait
+échouer TOUTE la règle et refusait tout, sans la moindre erreur au déploiement. Le rangement se
+fait donc par **auteur du dépôt** : `profiles/{uid}.jpg` et `receipts/{uid}/{fileName}`, chacun
+n'accédant qu'aux siens (voir `AddTransactionScreen.jsx`, qui écrit bien `receipts/${uid}/`).
+
+Ce n'est pas une régression : **rien dans l'app ne lit un reçu par son chemin**. Les écrans
+affichent `receiptURL`, une URL de téléchargement à jeton qui court-circuite ces règles — y
+compris pour le/la partenaire. Aucun accès SDK en lecture n'est donc nécessaire.
+
+Corollaire à garder en tête pour toute question de confidentialité : **une URL à jeton ne se
+révoque pas par les règles**. Un reçu reste lisible par quiconque détient son URL, y compris
+après suppression de la transaction — d'autant que `deleteTransaction` ne supprime que le
+document Firestore et laisse l'objet Storage en place. Idem pour les anciens reçus à plat
+(`receipts/{txId}.jpg`), qui n'ont aucune règle. Les reprendre en main suppose de supprimer les
+objets, pas d'ajuster les règles.

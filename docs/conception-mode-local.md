@@ -1,11 +1,17 @@
 # Note de conception — mode local / vie privée
 
-Statut : **proposition**. Les **lots 0 et 1** sont livrés (format canonique et export/import ;
-adaptateur de persistance et écritures élémentaires) ; tout le reste attend validation.
-
-Objet : ajouter à PairWise un second mode de stockage où les données ne quittent pas
-l'appareil, la synchronisation entre partenaires passant par un fichier chiffré déposé dans le cloud
-personnel de l'utilisateur (Google Drive ou Dropbox). Le mode actuel reste inchangé.
+> **ABANDONNÉ (décision produit).** Le mode Local n'est plus au programme : multiplier les modes
+> de stockage complique le choix de l'utilisateur pour un bénéfice que le chiffrement et une
+> bonne hygiène de données apportent sans fork. **Ne pas reprendre les lots 2 à 5.**
+>
+> La note reste ici pour ce qu'elle établit et qui vaut toujours : la cartographie de ce qui
+> sort de l'appareil (§1), la raison pour laquelle « full privacy » ne peut pas s'écrire sur le
+> mode connecté, et le fait que les pertes de fonctions viennent de « le serveur ne peut pas
+> lire » et non du lieu de stockage.
+>
+> **Les lots 0 et 1 sont livrés et restent en production**, parce qu'ils valent indépendamment :
+> l'export/import canonique est une fonction de portabilité des données, et l'adaptateur de
+> persistance a corrigé une perte de données réelle sur les ajouts concurrents.
 
 ---
 
