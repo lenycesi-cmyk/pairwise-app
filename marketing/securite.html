@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <title>Sécurité et confidentialité — PairWise</title>
+  <meta name="description" content="Ce que PairWise protège, comment, et ce qu'il ne protège pas encore. Aucun traqueur, aucune publicité, règles d'accès testées avant chaque déploiement, export et suppression complets." />
+
+  <link rel="canonical" href="https://pairwise.finance/securite" />
+  <link rel="alternate" hreflang="fr" href="https://pairwise.finance/securite" />
+  <link rel="alternate" hreflang="en" href="https://pairwise.finance/en/security" />
+  <link rel="alternate" hreflang="x-default" href="https://pairwise.finance/securite" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="PairWise" />
+  <meta property="og:locale" content="fr_FR" />
+  <meta property="og:title" content="Sécurité et confidentialité — PairWise" />
+  <meta property="og:description" content="Ce que PairWise protège, comment, et ce qu'il ne protège pas encore. Sans traqueur ni publicité." />
+  <meta property="og:url" content="https://pairwise.finance/securite" />
+  <meta property="og:image" content="https://pairwise.finance/assets/og-home.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <link rel="icon" type="image/png" href="/icon-192.png" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Nunito+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+  <link rel="stylesheet" href="/assets/site.css" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebPage",
+        "name": "Sécurité et confidentialité — PairWise",
+        "url": "https://pairwise.finance/securite",
+        "inLanguage": "fr-FR",
+        "description": "Ce que PairWise protège, comment, et ce qu'il ne protège pas encore."
+      },
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Accueil", "item": "https://pairwise.finance/" },
+          { "@type": "ListItem", "position": 2, "name": "Sécurité", "item": "https://pairwise.finance/securite" }
+        ]
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "PairWise revend-il mes données ?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Non. L'application n'embarque aucun traqueur, aucun outil de mesure d'audience et aucune régie publicitaire. Il n'y a donc rien à revendre, et vous pouvez le vérifier vous-même dans l'onglet réseau de votre navigateur." }
+          },
+          {
+            "@type": "Question",
+            "name": "Mes données sont-elles chiffrées de bout en bout ?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Non, et nous préférons l'écrire. Les données sont chiffrées en transit et au repos par l'hébergeur, mais nos serveurs peuvent techniquement les lire — c'est ce qui permet l'instantané de patrimoine quotidien et la synchronisation bancaire." }
+          },
+          {
+            "@type": "Question",
+            "name": "Mon/ma partenaire voit-il tout ce que je saisis ?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Non. Une dépense ou un compte peut être marqué privé : il reste alors invisible pour l'autre membre du couple, y compris dans les totaux et les rapports." }
+          },
+          {
+            "@type": "Question",
+            "name": "Que devient mon reçu quand je supprime une transaction ?",
+            "acceptedAnswer": { "@type": "Answer", "text": "L'image est supprimée du stockage en même temps que la transaction. Elle n'est plus accessible, y compris par un lien de partage obtenu auparavant." }
+          },
+          {
+            "@type": "Question",
+            "name": "Que se passe-t-il si je supprime mon compte ?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Votre compte et vos identifiants disparaissent immédiatement. L'historique du couple, lui, reste tant que votre partenaire utilise PairWise : il lui appartient aussi. Quand le dernier membre ferme son compte, tout est supprimé — transactions, reçus, photos et connexions bancaires." }
+          },
+          {
+            "@type": "Question",
+            "name": "Puis-je récupérer mes données ?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Oui, à tout moment, depuis Réglages → Mes données. L'export est un fichier JSON complet et lisible, que vous gardez où vous voulez." }
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+</head>
+<body>
+
+<header class="site">
+  <div class="bar">
+    <a href="/" class="logo"><span class="p">P</span> PairWise</a>
+    <nav>
+      <span class="soon">Fonctionnalités</span>
+      <span class="soon">Pour qui</span>
+      <span class="soon">Comparatifs</span>
+      <span class="soon">Tarifs</span>
+      <a href="/securite" class="active" aria-current="page">Sécurité</a>
+    </nav>
+    <a href="https://app.pairwise.finance/" class="login">Connexion</a>
+  </div>
+</header>
+
+<div class="crumb">
+  <a href="/">Accueil</a> <i class="ti ti-chevron-right"></i> <b>Sécurité</b>
+</div>
+
+<!-- ============ HERO ============ -->
+<section class="hero">
+  <div class="wrap">
+    <span class="eyebrow">Sécurité &amp; confidentialité</span>
+    <h1 class="display">Des mécanismes, pas des adjectifs.</h1>
+    <p class="lede">« Sécurité de niveau bancaire », « chiffrement militaire » : tout le monde
+      l'écrit, personne ne peut le vérifier. Voici plutôt ce que PairWise fait précisément de tes
+      données, contre qui il te protège — et ce qu'il ne fait pas encore.</p>
+  </div>
+</section>
+
+<!-- ============ VÉRIFIABLE ============ -->
+<section class="alt">
+  <div class="wrap">
+    <span class="eyebrow">Le point de départ</span>
+    <h2 class="h2">Aucun traqueur. Aucune publicité. Rien à revendre.</h2>
+    <p class="lede">Un budget raconte où tu vis, ce que tu manges, quand tu voyages et combien tu
+      gagnes. C'est exactement le genre de données qu'une régie publicitaire adore. PairWise n'en
+      envoie à personne, parce qu'il n'embarque rien pour le faire.</p>
+
+    <ul class="sec-list">
+      <li class="yes"><i class="ti ti-check"></i><span><b>Aucun outil de mesure d'audience</b> — pas de Google Analytics, pas de Mixpanel, pas de Meta Pixel.</span></li>
+      <li class="yes"><i class="ti ti-check"></i><span><b>Aucune régie publicitaire</b>, et aucun modèle économique qui en dépendrait.</span></li>
+      <li class="yes"><i class="ti ti-check"></i><span><b>Aucune revente, aucun partage commercial</b> de tes données, sous quelque forme que ce soit.</span></li>
+      <li class="yes"><i class="ti ti-check"></i><span><b>Tes analyses sont calculées sur ton appareil</b> — les conseils de la bande « Pour toi » ne passent par aucun serveur.</span></li>
+    </ul>
+
+    <div class="sec-check">
+      <b><i class="ti ti-eye"></i> Vérifie-le toi-même, sans nous croire sur parole</b>
+      <p>Ouvre PairWise, appuie sur F12, onglet « Réseau », et recharge la page. Tu verras
+        exactement ce que l'app contacte. C'est la seule promesse de cette page que tu peux
+        contrôler en trente secondes — et c'est pour ça qu'on la met en premier.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CE QUI SORT ============ -->
+<section>
+  <div class="wrap">
+    <span class="eyebrow">Transparence</span>
+    <h2 class="h2">Ce qui sort de ton appareil, et ce qui n'en sort pas</h2>
+    <p class="lede">Une app qui affiche des cours et des taux de change fait forcément des appels
+      réseau. Prétendre le contraire serait faux dès la première inspection. Les voici tous.</p>
+
+    <div class="sec-scroll">
+      <table class="sec-table">
+        <thead>
+          <tr><th>Destination</th><th>Ce qui part</th><th>Ce qui ne part jamais</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Nos serveurs<small>Google Cloud / Firebase</small></td>
+            <td>Tes données financières, pour les synchroniser entre tes appareils et avec ton/ta partenaire.</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td>Taux de change<small>open.er-api.com</small></td>
+            <td>Les <b>codes des devises</b> que tu utilises (EUR, THB…).</td>
+            <td>Aucun montant, aucune transaction, aucune identité.</td>
+          </tr>
+          <tr>
+            <td>Cours des actifs<small>CoinGecko, Twelve Data</small></td>
+            <td>Les <b>symboles</b> que tu suis (bitcoin, une action…).</td>
+            <td>Les quantités détenues, la valeur de ton patrimoine, ton identité.</td>
+          </tr>
+          <tr>
+            <td>Polices &amp; icônes<small>Google Fonts, jsDelivr</small></td>
+            <td>Ton adresse IP, comme pour tout fichier chargé depuis un autre domaine.</td>
+            <td>Rien de ce que tu saisis dans l'app.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="sec-note">Les deux dernières lignes sont le genre de détail que la plupart des pages
+      « confidentialité » passent sous silence. On préfère les écrire : une page qui omet ce qui la
+      dérange n'est pas crédible sur le reste.</p>
+  </div>
+</section>
+
+<!-- ============ CONTRE QUI ============ -->
+<section class="alt">
+  <div class="wrap">
+    <span class="eyebrow">Le détail qui compte</span>
+    <h2 class="h2">Contre qui on te protège</h2>
+    <p class="lede">Une protection ne veut rien dire tant qu'on n'a pas nommé la menace. En voici
+      quatre, et le mécanisme précis derrière chacune.</p>
+
+    <div class="feat">
+      <div class="fcard">
+        <div class="fic" style="background: var(--tang-light); color: var(--tang);"><i class="ti ti-users-group"></i></div>
+        <div>
+          <b>Contre les autres utilisateurs</b>
+          <small>L'accès à un espace est vérifié <b>sur le serveur</b>, à chaque lecture, à partir
+            de la liste des membres. Un espace mal formé est refusé à tout le monde plutôt
+            qu'ouvert par défaut. Rejoindre un couple passe uniquement par une fonction serveur :
+            personne ne peut s'ajouter soi-même.</small>
+        </div>
+      </div>
+      <div class="fcard">
+        <div class="fic" style="background: var(--lavi-light); color: var(--lavi);"><i class="ti ti-eye-off"></i></div>
+        <div>
+          <b>Contre ton/ta partenaire</b>
+          <small>Une dépense ou un compte peut être marqué <b>privé</b> : il reste invisible pour
+            l'autre, y compris dans les totaux et les rapports. Partager ses finances ne devrait
+            jamais vouloir dire tout montrer — c'est la confidentialité dont on parle le moins,
+            et souvent celle qui compte le plus.</small>
+        </div>
+      </div>
+      <div class="fcard">
+        <div class="fic" style="background: var(--sky-light); color: var(--sky);"><i class="ti ti-key"></i></div>
+        <div>
+          <b>Contre le vol d'un code d'invitation</b>
+          <small>Le code d'un espace <b>expire au bout de 7 jours</b> et se referme dès que ton/ta
+            partenaire l'a utilisé. Hors de cette fenêtre, aucun code ne fonctionne. Ils sont
+            tirés d'un générateur cryptographique, jamais d'un simple hasard de programmation.</small>
+        </div>
+      </div>
+      <div class="fcard">
+        <div class="fic" style="background: var(--sage-light); color: var(--sage);"><i class="ti ti-building-bank"></i></div>
+        <div>
+          <b>Contre une fuite par ta banque</b>
+          <small>Les jetons d'accès bancaires sont rangés dans un espace <b>que l'application ne
+            peut pas lire</b> — seul le serveur y accède. Même quelqu'un qui prendrait la main sur
+            ton navigateur ne pourrait pas les en extraire.</small>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ RÈGLES TESTÉES ============ -->
+<section>
+  <div class="wrap">
+    <span class="eyebrow">Ce qui nous distingue vraiment</span>
+    <h2 class="h2">Nos règles d'accès sont testées avant chaque mise en ligne</h2>
+    <p class="lede">Une règle de sécurité peut se déployer <b>sans la moindre erreur</b> et
+      pourtant ne rien protéger : les fautes ne se voient qu'à l'exécution, une fois vos données
+      dedans. C'est un piège classique, et il a coûté cher à beaucoup d'applications.</p>
+
+    <ul class="sec-list">
+      <li class="yes"><i class="ti ti-check"></i><span>Nos règles sont <b>exécutées contre le vrai moteur de sécurité</b> à chaque modification, avec de faux comptes qui tentent d'accéder à ce qui ne leur appartient pas.</span></li>
+      <li class="yes"><i class="ti ti-check"></i><span>Cette suite de tests est <b>bloquante</b> : si un test échoue, la mise en ligne n'a pas lieu. Ce n'est pas une bonne intention, c'est un verrou.</span></li>
+      <li class="yes"><i class="ti ti-check"></i><span>Un test conserve volontairement une règle <b>cassée</b> comme sentinelle, pour vérifier que nos tests savent encore détecter une vraie faille.</span></li>
+    </ul>
+    <p class="sec-note">On ne te demande pas de nous faire confiance : on te dit ce qui est
+      automatisé, parce qu'un processus tient quand la vigilance individuelle, elle, finit
+      toujours par flancher.</p>
+  </div>
+</section>
+
+<!-- ============ CE QU'ON NE FAIT PAS ============ -->
+<section class="alt">
+  <div class="wrap">
+    <span class="eyebrow">Honnêteté</span>
+    <h2 class="h2">Ce que PairWise ne fait pas</h2>
+    <p class="lede">C'est la section la plus importante de cette page. Une liste de garanties sans
+      limites annoncées ne veut rien dire — et tu ne peux juger la première qu'en lisant la
+      seconde.</p>
+
+    <div class="sec-two">
+      <ul class="sec-list">
+        <li class="no"><i class="ti ti-x"></i><span><b>Pas de chiffrement de bout en bout.</b> Tes données sont chiffrées en transit et au repos par notre hébergeur, mais nos serveurs peuvent techniquement les lire. C'est ce qui rend possibles l'instantané quotidien de ton patrimoine et la synchronisation bancaire. Nous ne prétendrons pas le contraire.</span></li>
+        <li class="no"><i class="ti ti-x"></i><span><b>Un départ ne supprime pas tout.</b> Si tu fermes ton compte et que ton/ta partenaire continue, l'historique du couple reste : il lui appartient aussi. Tout est effacé quand le dernier membre part.</span></li>
+      </ul>
+      <ul class="sec-list">
+        <li class="no"><i class="ti ti-x"></i><span><b>Nous ne sommes pas une banque</b> et ne détenons jamais ton argent. PairWise lit des soldes, il ne déplace aucun fonds.</span></li>
+        <li class="no"><i class="ti ti-x"></i><span><b>Aucun audit de sécurité externe</b> n'a encore été mené. Le jour où ce sera le cas, ce sera écrit ici, avec sa date et son périmètre.</span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CONTRÔLE ============ -->
+<section>
+  <div class="wrap">
+    <span class="eyebrow">Ton contrôle</span>
+    <h2 class="h2">Partir quand tu veux, avec tout</h2>
+    <p class="lede">Une app de finances qui retient ses utilisateurs par leurs données n'a pas
+      confiance en elle-même.</p>
+
+    <ul class="sec-list">
+      <li class="yes"><i class="ti ti-download"></i><span><b>Export complet en un clic</b> — Réglages → Mes données. Un fichier lisible, que tu gardes où tu veux et que tu peux réimporter.</span></li>
+      <li class="yes"><i class="ti ti-trash"></i><span><b>Supprimer veut dire supprimer.</b> Effacer une transaction efface aussi la photo du reçu ; elle n'est plus atteignable, même par un lien obtenu avant.</span></li>
+      <li class="yes"><i class="ti ti-user-off"></i><span><b>Fermer ton compte</b> révoque les accès bancaires et efface tes données. Quand le dernier membre part, reçus et photos sont purgés avec le reste.</span></li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ FAQ ============ -->
+<section class="alt">
+  <div class="wrap">
+    <span class="eyebrow">Questions fréquentes</span>
+    <h2 class="h2">Ce qu'on nous demande le plus</h2>
+
+    <div class="faq">
+      <details class="q"><summary>PairWise revend-il mes données ?<span class="plus">+</span></summary>
+        <p>Non. L'application n'embarque aucun traqueur, aucun outil de mesure d'audience et aucune
+          régie publicitaire — il n'y a donc rien à revendre, et rien à désactiver. Tu peux le
+          vérifier toi-même dans l'onglet réseau de ton navigateur.</p></details>
+
+      <details class="q"><summary>Mes données sont-elles chiffrées de bout en bout ?<span class="plus">+</span></summary>
+        <p>Non, et nous préférons l'écrire noir sur blanc. Elles sont chiffrées en transit et au
+          repos par notre hébergeur, mais nos serveurs peuvent techniquement les lire : c'est ce
+          qui permet d'enregistrer ton patrimoine chaque soir et de synchroniser tes comptes
+          bancaires.</p></details>
+
+      <details class="q"><summary>Mon/ma partenaire voit-il tout ce que je saisis ?<span class="plus">+</span></summary>
+        <p>Non. Une dépense ou un compte peut être marqué privé : il reste invisible pour l'autre
+          membre, y compris dans les totaux et les rapports.</p></details>
+
+      <details class="q"><summary>Que devient mon reçu quand je supprime une transaction ?<span class="plus">+</span></summary>
+        <p>L'image est supprimée du stockage en même temps que la transaction. Elle cesse d'être
+          accessible, y compris pour quelqu'un qui aurait récupéré son lien de partage
+          auparavant.</p></details>
+
+      <details class="q"><summary>Que se passe-t-il si je supprime mon compte ?<span class="plus">+</span></summary>
+        <p>Ton compte et tes identifiants disparaissent immédiatement. L'historique du couple, lui,
+          reste tant que ton/ta partenaire utilise PairWise — il lui appartient aussi. Quand le
+          dernier membre ferme son compte, tout est supprimé : transactions, reçus, photos et
+          connexions bancaires.</p></details>
+
+      <details class="q"><summary>Où sont hébergées mes données ?<span class="plus">+</span></summary>
+        <p>Chez Google Cloud, l'infrastructure qui fait tourner Firebase. Nos traitements serveur
+          s'exécutent dans la région européenne <code>europe-west1</code> (Belgique).</p></details>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CTA ============ -->
+<div class="cta-band">
+  <i class="ti ti-shield-lock float" style="top: 18%; left: 12%;"></i>
+  <i class="ti ti-lock float" style="bottom: 20%; right: 14%;"></i>
+  <div class="wrap">
+    <span class="eyebrow">Prêt ?</span>
+    <h2>Tes finances, sans contrepartie cachée.</h2>
+    <a href="https://app.pairwise.finance/" class="btn-primary">C'est parti <i class="ti ti-arrow-right"></i></a>
+    <div class="fineprint">
+      <span><i class="ti ti-check"></i> Gratuit</span>
+      <span><i class="ti ti-check"></i> Aucune carte bancaire</span>
+      <span><i class="ti ti-check"></i> Export de tes données à tout moment</span>
+    </div>
+  </div>
+</div>
+
+<!-- ============ FOOTER ============ -->
+<footer class="site">
+  <div class="wrap cols">
+    <div>
+      <a href="/" class="logo"><span class="p">P</span> PairWise</a>
+      <p class="intro">Une seule app pour tes dépenses, ton budget et ton patrimoine — seul ou à deux.</p>
+    </div>
+    <div>
+      <h4>Fonctionnalités</h4>
+      <a href="/fonctionnalites/saisie-langage-naturel">Saisie en langage naturel</a>
+      <span class="soon">Multi-devises</span>
+      <span class="soon">Dépenses partagées</span>
+      <span class="soon">Patrimoine &amp; investissements</span>
+    </div>
+    <div>
+      <h4>Pour qui</h4>
+      <span class="soon">En solo</span>
+      <span class="soon">À deux</span>
+      <span class="soon">Voyageurs &amp; nomades</span>
+      <span class="soon">Expatriés</span>
+    </div>
+    <div>
+      <h4>PairWise</h4>
+      <a href="https://app.pairwise.finance/">Ouvrir l'app</a>
+      <span class="soon">Tarifs</span>
+      <a href="/securite">Sécurité</a>
+      <a href="/en/security">English</a>
+    </div>
+  </div>
+  <div class="wrap copy">© 2026 PairWise · Fait avec soin · Tes données t'appartiennent</div>
+</footer>
+
+</body>
+</html>
