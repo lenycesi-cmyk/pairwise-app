@@ -287,3 +287,56 @@ footer.site span.soon { display: block; font-size: 14px; margin-bottom: 8px; col
 .sec-check b { display: block; margin-bottom: 6px; font-size: 15.5px; }
 .sec-check p { margin: 0; color: var(--ink-2); font-size: 15px; line-height: 1.55; }
 .sec-note { font-size: 13.5px; color: var(--ink-3); margin-top: 14px; line-height: 1.55; }
+
+/* ============ Page Transactions & reçus ============ */
+/* Lignes de transaction reproduites en CSS, avec les tokens de l'app.
+   Sémantique des montants : dépense = tangerine, revenu = sage,
+   investissement/virement d'épargne = sky. L'icône suit la CATÉGORIE,
+   jamais le signe du montant. */
+.tx-day { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-3); margin: 16px 0 8px; }
+.tx-day:first-child { margin-top: 0; }
+.tx { display: flex; align-items: center; gap: 10px; background: var(--bg-card); border: .5px solid var(--rule); border-radius: 13px; padding: 10px 11px; margin-bottom: 8px; }
+.tx .ic { flex: none; width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+.tx .body { flex: 1; min-width: 0; }
+.tx .body b { display: block; font-size: 13.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tx .body small { font-size: 11.5px; color: var(--ink-3); }
+.tx .amt { font-size: 13.5px; font-weight: 700; white-space: nowrap; }
+.tx .amt.exp { color: var(--tang); }
+.tx .amt.inc { color: var(--sage); }
+.tx .amt.inv { color: var(--sky); }
+.tx .thumb { flex: none; width: 22px; height: 22px; border-radius: 6px; border: .5px solid var(--rule); }
+/* Vignette / photo de reçu : motif hachuré, aucune image à charger. */
+.hatch { background: repeating-linear-gradient(45deg, var(--panel) 0 3px, var(--rule) 3px 6px); }
+
+/* ---- Recherche et filtres ---- */
+.srch { display: flex; align-items: center; gap: 9px; background: var(--bg-card); border: .5px solid var(--rule); border-radius: 12px; padding: 11px 12px; margin-bottom: 14px; }
+.srch i { color: var(--ink-3); font-size: 16px; }
+.srch .term { font-size: 13.5px; font-weight: 700; color: var(--tang); }
+.filt-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.filt-top b { font-family: var(--font-display); font-size: 15px; }
+.filt-top i { color: var(--ink-3); font-size: 16px; }
+.chips { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 12px; }
+.chips span { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--rule); border-radius: 20px; padding: 6px 11px; font-size: 12px; font-weight: 700; color: var(--ink-2); }
+.chips span i { font-size: 13px; color: var(--ink-3); }
+.selrow { display: flex; align-items: center; justify-content: space-between; background: var(--bg-card); border: .5px solid var(--rule); border-radius: 11px; padding: 11px 12px; margin-bottom: 8px; font-size: 13.5px; font-weight: 600; }
+.selrow .on { display: inline-flex; align-items: center; gap: 7px; }
+.selrow .dot { width: 8px; height: 8px; border-radius: 99px; background: var(--tang); }
+.selrow i { color: var(--ink-3); font-size: 15px; }
+
+/* ---- Reçu en plein écran ---- */
+/* Plein-bleed : le voile doit couvrir tout l'écran du téléphone, pas seulement
+   la zone de contenu — d'où les marges négatives qui annulent le padding de
+   .app-body. Le débord est rogné par le overflow:hidden de .screen. */
+.rcpt { position: relative; background: rgba(0, 0, 0, .55); margin: -14px -15px -20px; padding: 40px 20px 44px; }
+.rcpt .close { position: absolute; top: 11px; right: 13px; color: #fff; font-size: 17px; }
+.rcpt .card { background: var(--bg-card); border-radius: 14px; padding: 12px; }
+.rcpt .photo { height: 170px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 11px; color: var(--ink-3); }
+.rcpt .cap { margin: 10px 2px 2px; font-size: 13px; font-weight: 700; }
+.rcpt .cap small { display: block; font-weight: 500; font-size: 11.5px; color: var(--ink-3); margin-top: 1px; }
+
+/* ---- « Pour qui », version cartes détaillées ---- */
+.aud-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; }
+.aud-cards > div { background: var(--bg-card); border: 1px solid var(--rule); border-radius: 16px; padding: 22px; box-shadow: var(--shadow); }
+.aud-cards .ic { font-size: 23px; color: var(--tang); }
+.aud-cards h3 { font-family: var(--font-display); font-size: 18px; font-weight: 700; margin: 10px 0 6px; letter-spacing: -.02em; }
+.aud-cards p { margin: 0; font-size: 14.5px; color: var(--ink-2); }

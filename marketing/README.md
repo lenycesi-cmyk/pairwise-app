@@ -12,6 +12,7 @@ marketing/
   assets/site.css                     Feuille partagée (tokens de l'app, thème clair + nuit)
   fonctionnalites/
     saisie-langage-naturel.html       1ʳᵉ page livrée
+    transactions-recus.html           2ᵉ page livrée
   README.md
 ```
 

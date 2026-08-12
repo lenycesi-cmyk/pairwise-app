@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <title>Suivi des dépenses : historique et photo de reçu | PairWise</title>
+  <meta name="description" content="Retrouve chaque dépense en un instant : recherche par tag, filtres par catégorie, photo de reçu et export CSV, pour un suivi des dépenses sans effort." />
+
+  <link rel="canonical" href="https://pairwise.finance/fonctionnalites/transactions-recus" />
+  <link rel="alternate" hreflang="fr" href="https://pairwise.finance/fonctionnalites/transactions-recus" />
+  <link rel="alternate" hreflang="en" href="https://pairwise.finance/en/features/transactions-receipts" />
+  <link rel="alternate" hreflang="x-default" href="https://pairwise.finance/fonctionnalites/transactions-recus" />
+
+  <!-- Open Graph / partage social -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="PairWise" />
+  <meta property="og:locale" content="fr_FR" />
+  <meta property="og:title" content="Suivi des dépenses : historique et photo de reçu — PairWise" />
+  <meta property="og:description" content="Revenus, dépenses, virements ou investissements : chaque mouvement est classé et retrouvable en un instant, reçu compris." />
+  <meta property="og:url" content="https://pairwise.finance/fonctionnalites/transactions-recus" />
+  <meta property="og:image" content="https://pairwise.finance/assets/og-transactions-recus.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <link rel="icon" type="image/png" href="/icon-192.png" />
+
+  <!-- Mêmes polices et icônes que l'app -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Nunito+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+  <link rel="stylesheet" href="/assets/site.css" />
+
+  <!-- Données structurées : logiciel, fil d'Ariane, FAQ -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "SoftwareApplication",
+        "name": "PairWise",
+        "applicationCategory": "FinanceApplication",
+        "operatingSystem": "Web, iOS, Android",
+        "description": "Application de gestion de budget, dépenses et patrimoine, seul ou à deux, avec historique de transactions, recherche par tag et photo de reçu.",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
+        "url": "https://pairwise.finance/"
+      },
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Accueil", "item": "https://pairwise.finance/" },
+          { "@type": "ListItem", "position": 2, "name": "Fonctionnalités", "item": "https://pairwise.finance/fonctionnalites" },
+          { "@type": "ListItem", "position": 3, "name": "Transactions & reçus", "item": "https://pairwise.finance/fonctionnalites/transactions-recus" }
+        ]
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "Comment retrouver une dépense précise dans mon historique ?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Tape un mot dans la recherche : elle cherche dans la description, la sous-catégorie et les tags. Pour cibler un tag précis, tape # suivi de son nom, par exemple #vacances. Tu peux aussi ouvrir les filtres pour affiner par membre, période, catégorie, sous-catégorie ou tag." }
+          },
+          {
+            "@type": "Question",
+            "name": "Peut-on joindre la photo d'un ticket de caisse à une dépense ?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Oui. Au moment de saisir une dépense, tu peux prendre le reçu en photo directement dans l'app. Une vignette apparaît sur la ligne de la transaction, et un tap l'affiche en plein écran." }
+          },
+          {
+            "@type": "Question",
+            "name": "Les photos de reçus sont-elles privées ?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Oui. Elles ne s'affichent que dans ton espace : rien n'est public, rien n'est indexé, et personne d'autre que toi et ta/ton partenaire n'y accède depuis l'app. Chaque photo est compressée sur l'appareil avant l'envoi, et supprimer la transaction supprime aussi le fichier." }
+          },
+          {
+            "@type": "Question",
+            "name": "Peut-on exporter ses transactions ?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Oui, en CSV. L'export porte sur la sélection filtrée, pas seulement sur tout l'historique : date, type, catégorie, sous-catégorie, description, montant, devise, montant converti, qui a payé et la répartition. Pratique pour la compta ou un tableur." }
+          },
+          {
+            "@type": "Question",
+            "name": "Peut-on partager une dépense à deux ?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Oui. Une transaction peut être partagée 50/50 ou selon une répartition personnalisée, en pourcentage ou en montant. La ligne affiche ensuite la part de chacun." }
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+</head>
+<body>
+
+<header class="site">
+  <div class="bar">
+    <a href="/" class="logo"><span class="p">P</span> PairWise</a>
+    <nav>
+      <span class="soon" style="color:var(--tang)">Fonctionnalités</span>
+      <span class="soon">Pour qui</span>
+      <span class="soon">Comparatifs</span>
+      <span class="soon">Tarifs</span>
+      <a href="/securite">Sécurité</a>
+    </nav>
+    <a href="https://app.pairwise.finance/" class="login">Connexion</a>
+  </div>
+</header>
+
+<nav class="crumb wrap" aria-label="Fil d'Ariane">
+  <a href="/">Accueil</a><i class="ti ti-chevron-right"></i><span>Fonctionnalités</span><i class="ti ti-chevron-right"></i><b>Transactions &amp; reçus</b>
+</nav>
+
+<!-- ============ HERO ============ -->
+<section class="hero">
+  <div class="wrap grid">
+    <div>
+      <span class="eyebrow">Transactions, flux financiers &amp; reçus</span>
+      <h1 class="display">Tous les mouvements de ton argent, au même endroit.</h1>
+      <p class="sub">Revenus, dépenses, virements ou investissements&nbsp;: chaque mouvement est classé,
+        facile à retrouver et toujours à portée de main. Suis tes finances personnelles, organise tes
+        transactions et garde une vue claire sur tout ton argent, où qu'il soit.</p>
+      <div class="actions">
+        <a href="https://app.pairwise.finance/" class="btn-primary">C'est parti <i class="ti ti-arrow-right"></i></a>
+        <span class="microtrust"><i class="ti ti-lock"></i> Aucun compte · tes données restent chez toi</span>
+      </div>
+    </div>
+
+    <div class="phone" aria-hidden="true">
+      <div class="screen">
+        <div class="notch"></div>
+        <div class="app-top"><i class="ti ti-arrow-left back"></i><span class="title">Transactions</span></div>
+        <div class="app-body">
+          <div class="tx-day">Aujourd'hui</div>
+          <div class="tx">
+            <span class="ic" style="background:var(--amber-light);color:var(--amber)"><i class="ti ti-shopping-cart"></i></span>
+            <span class="body"><b>Carrefour City</b><small>Courses</small></span>
+            <span class="amt exp">-47,20&nbsp;€</span>
+          </div>
+          <div class="tx">
+            <span class="ic" style="background:var(--lavi-light);color:var(--lavi)"><i class="ti ti-car"></i></span>
+            <span class="body"><b>Uber</b><small>Transport</small></span>
+            <span class="amt exp">-12,50&nbsp;€</span>
+          </div>
+          <div class="tx">
+            <span class="ic" style="background:var(--tang-light);color:var(--tang)"><i class="ti ti-coffee"></i></span>
+            <span class="body"><b>Restaurant Le Central</b><small>Sorties</small></span>
+            <span class="thumb hatch"></span>
+            <span class="amt exp">-68,00&nbsp;€</span>
+          </div>
+          <div class="tx-day">Hier</div>
+          <div class="tx">
+            <span class="ic" style="background:var(--sage-light);color:var(--sage)"><i class="ti ti-briefcase"></i></span>
+            <span class="body"><b>Salaire</b><small>Revenu</small></span>
+            <span class="amt inc">+2&nbsp;600,00&nbsp;€</span>
+          </div>
+          <div class="tx">
+            <span class="ic" style="background:var(--sky-light);color:var(--sky)"><i class="ti ti-chart-line"></i></span>
+            <span class="body"><b>Virement assurance vie</b><small>Investissement</small></span>
+            <span class="amt inv">-300,00&nbsp;€</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ COMMENT ÇA MARCHE ============ -->
+<section class="alt">
+  <div class="wrap">
+    <span class="eyebrow">Comment ça marche</span>
+    <h2 class="h2 display">Un historique qui se laisse fouiller.</h2>
+    <p class="lede">Chercher, filtrer, retrouver le ticket de caisse&nbsp;: les trois gestes qui font la
+      différence entre un historique qu'on consulte et un historique qu'on subit.</p>
+
+    <div class="steps">
+      <div class="step-copy">
+        <span class="num">1</span>
+        <h3>Cherche par mot ou par tag</h3>
+        <p>La recherche instantanée fouille la <b>description</b>, la <b>sous-catégorie</b> et les
+          <b>tags</b>. Tape <span class="kbd">#</span> suivi d'un nom pour cibler directement un tag,
+          comme <span class="kbd">#vacances</span>.</p>
+      </div>
+      <div class="phone" aria-hidden="true">
+        <div class="screen">
+          <div class="notch"></div>
+          <div class="app-top"><i class="ti ti-arrow-left back"></i><span class="title">Rechercher</span></div>
+          <div class="app-body">
+            <div class="srch"><i class="ti ti-search"></i><span class="term">#vacances</span></div>
+            <div class="tx">
+              <span class="ic" style="background:var(--sky-light);color:var(--sky)"><i class="ti ti-plane"></i></span>
+              <span class="body"><b>Hôtel Lisbonne</b><small>Voyage · #vacances</small></span>
+              <span class="amt exp">-184,00&nbsp;€</span>
+            </div>
+            <div class="tx">
+              <span class="ic" style="background:var(--amber-light);color:var(--amber)"><i class="ti ti-car"></i></span>
+              <span class="body"><b>Location voiture</b><small>Transport · #vacances</small></span>
+              <span class="amt exp">-95,00&nbsp;€</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="phone" aria-hidden="true">
+        <div class="screen">
+          <div class="notch"></div>
+          <div class="app-top"><i class="ti ti-arrow-left back"></i><span class="title">Transactions</span></div>
+          <div class="app-body">
+            <div class="filt-top"><b>Filtres</b><i class="ti ti-x"></i></div>
+            <div class="chips">
+              <span><i class="ti ti-users"></i> Toi &amp; Léa</span>
+              <span><i class="ti ti-calendar"></i> Ce mois-ci</span>
+            </div>
+            <div class="selrow"><span class="on">Catégorie <span class="dot"></span></span><i class="ti ti-chevron-right"></i></div>
+            <div class="selrow"><span>Sous-catégorie</span><i class="ti ti-chevron-right"></i></div>
+            <div class="selrow"><span>Tag</span><i class="ti ti-chevron-right"></i></div>
+          </div>
+        </div>
+      </div>
+      <div class="step-copy">
+        <span class="num">2</span>
+        <h3>Filtre sans encombrer l'écran</h3>
+        <p>Les filtres se replient derrière une icône entonnoir. <b>Membre, période, catégorie,
+          sous-catégorie, tag</b>&nbsp;: chaque dimension ouvre son propre sélecteur, et une pastille
+          signale qu'un filtre est actif.</p>
+      </div>
+
+      <div class="step-copy">
+        <span class="num">3</span>
+        <h3>Sauvegarde tes reçus</h3>
+        <p>La photo du ticket est prise <b>au moment de la saisie</b>, compressée sur l'appareil avant
+          l'envoi. Un tap sur la vignette l'affiche en plein écran.</p>
+        <p>Supprimer la transaction supprime aussi la photo&nbsp;: rien ne traîne derrière.</p>
+      </div>
+      <div class="phone" aria-hidden="true">
+        <div class="screen">
+          <div class="notch"></div>
+          <div class="app-top"><i class="ti ti-arrow-left back"></i><span class="title">Transactions</span></div>
+          <div class="app-body">
+            <div class="rcpt">
+              <i class="ti ti-x close"></i>
+              <div class="card">
+                <div class="photo hatch">photo du reçu</div>
+                <div class="cap">Restaurant Le Central <small>Aujourd'hui · -68,00&nbsp;€</small></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ POUR QUI ============ -->
+<section>
+  <div class="wrap">
+    <span class="eyebrow">Pour qui</span>
+    <h2 class="h2 display">Utile dès la première semaine.</h2>
+    <div class="aud-cards">
+      <div>
+        <i class="ti ti-user ic"></i>
+        <h3>En solo</h3>
+        <p>Ton historique se classe seul&nbsp;: chaque dépense a sa catégorie, cherchable des mois plus tard.</p>
+      </div>
+      <div>
+        <i class="ti ti-users ic"></i>
+        <h3>À deux</h3>
+        <p>Chaque transaction partagée affiche la part de chacun, et la bulle de discussion règle les
+          questions sans sortir de l'app.</p>
+      </div>
+      <div>
+        <i class="ti ti-plane ic"></i>
+        <h3>Voyageurs &amp; nomades</h3>
+        <p>Reçus photographiés, recherche par tag&nbsp;: le ticket de resto à Lisbonne reste
+          retrouvable, converti dans ta devise.</p>
+      </div>
+      <div>
+        <i class="ti ti-world ic"></i>
+        <h3>Expatriés</h3>
+        <p>Loyer, salaire, virements&nbsp;: l'export CSV reprend le montant converti pour chaque ligne,
+          prêt pour ta compta.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FAQ ============ -->
+<section class="alt">
+  <div class="wrap">
+    <span class="eyebrow">Questions fréquentes</span>
+    <h2 class="h2 display">Ce qu'on nous demande souvent.</h2>
+    <div class="faq">
+      <details class="q" open>
+        <summary>Comment retrouver une dépense précise dans mon historique&nbsp;? <span class="plus"><i class="ti ti-plus"></i></span></summary>
+        <p>Tape un mot dans la recherche&nbsp;: elle cherche dans la description, la sous-catégorie et
+          les tags. Pour cibler un tag précis, tape <b>#</b> suivi de son nom, par exemple
+          <b>#vacances</b>. Tu peux aussi ouvrir les filtres pour affiner par membre, période,
+          catégorie, sous-catégorie ou tag.</p>
+      </details>
+      <details class="q">
+        <summary>Peut-on joindre la photo d'un ticket de caisse à une dépense&nbsp;? <span class="plus"><i class="ti ti-plus"></i></span></summary>
+        <p>Oui. Au moment de saisir une dépense, tu peux prendre le reçu en photo directement dans
+          l'app. Une vignette apparaît sur la ligne de la transaction, et un tap l'affiche en plein écran.</p>
+      </details>
+      <details class="q">
+        <summary>Les photos de reçus sont-elles privées&nbsp;? <span class="plus"><i class="ti ti-plus"></i></span></summary>
+        <p>Oui. Elles ne s'affichent que dans ton espace&nbsp;: rien n'est public, rien n'est indexé, et
+          personne d'autre que toi et ta/ton partenaire n'y accède depuis l'app. Chaque photo est
+          compressée sur l'appareil avant l'envoi, et supprimer la transaction supprime aussi le fichier.</p>
+      </details>
+      <details class="q">
+        <summary>Peut-on exporter ses transactions&nbsp;? <span class="plus"><i class="ti ti-plus"></i></span></summary>
+        <p>Oui, en CSV. L'export porte sur la <b>sélection filtrée</b>, pas seulement sur tout
+          l'historique&nbsp;: date, type, catégorie, sous-catégorie, description, montant, devise,
+          montant converti, qui a payé et la répartition. Pratique pour la compta ou un tableur.</p>
+      </details>
+      <details class="q">
+        <summary>Peut-on partager une dépense à deux&nbsp;? <span class="plus"><i class="ti ti-plus"></i></span></summary>
+        <p>Oui. Une transaction peut être partagée 50/50 ou selon une répartition personnalisée, en
+          pourcentage ou en montant. La ligne affiche ensuite la part de chacun.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- ============ BANDE CTA ============ -->
+<div class="cta-band">
+  <i class="ti ti-receipt float" style="left:8%; top:26%;"></i>
+  <i class="ti ti-search float" style="right:10%; top:30%;"></i>
+  <i class="ti ti-photo float" style="left:14%; bottom:22%;"></i>
+  <i class="ti ti-coin float" style="right:16%; bottom:24%;"></i>
+  <div class="wrap">
+    <span class="eyebrow">Prêt à y voir clair</span>
+    <h2 class="display">Toute ta vie financière, au même endroit</h2>
+    <a href="https://app.pairwise.finance/" class="btn-primary">C'est parti <i class="ti ti-arrow-right"></i></a>
+    <div class="fineprint">
+      <span><i class="ti ti-lock"></i> Sans compte pour commencer</span>
+      <span><i class="ti ti-device-mobile"></i> Tes données restent sur ton appareil</span>
+      <span><i class="ti ti-sparkles"></i> Gratuit</span>
+    </div>
+  </div>
+</div>
+
+<!-- ============ FOOTER ============ -->
+<footer class="site">
+  <div class="wrap cols">
+    <div>
+      <a href="/" class="logo"><span class="p">P</span> PairWise</a>
+      <p class="intro">Une seule app pour tes dépenses, ton budget et ton patrimoine — seul ou à deux.</p>
+    </div>
+    <div>
+      <h4>Fonctionnalités</h4>
+      <a href="/fonctionnalites/transactions-recus">Transactions &amp; reçus</a>
+      <a href="/fonctionnalites/saisie-langage-naturel">Saisie en langage naturel</a>
+      <span class="soon">Multi-devises</span>
+      <span class="soon">Dépenses partagées</span>
+      <span class="soon">Patrimoine &amp; investissements</span>
+    </div>
+    <div>
+      <h4>Pour qui</h4>
+      <div>En solo</div>
+      <div>À deux</div>
+      <div>Voyageurs &amp; nomades</div>
+      <div>Expatriés</div>
+    </div>
+    <div>
+      <h4>PairWise</h4>
+      <span class="soon">Tarifs</span>
+      <a href="/securite">Sécurité</a>
+      <span class="soon">FAQ</span>
+      <span class="soon">À propos</span>
+    </div>
+  </div>
+  <div class="wrap copy">© 2026 PairWise · Fait avec soin · Tes données t'appartiennent</div>
+</footer>
+
+</body>
+</html>
