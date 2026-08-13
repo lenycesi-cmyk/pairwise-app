@@ -45,7 +45,7 @@ export default function RecurringScreen({ onClose, initialEditId }) {
   const t = useTranslation();
   const { catName, subName: tSubName } = useCategoryName();
   const FREQUENCIES = getFrequencies(t);
-  const { categories, members, recurringTx, addRecurring, updateRecurring, removeRecurring, defaultCurrency } =
+  const { categories, members, recurringTx, addRecurring, updateRecurring, removeRecurring, defaultCurrency, isSolo } =
     useFinance();
   const { user } = useAuth();
   const [showForm, setShowForm] = useState(false);
@@ -128,6 +128,10 @@ export default function RecurringScreen({ onClose, initialEditId }) {
   async function handleSave() {
     if (!amount || !categoryId) return;
 
+    // Solo : on écrit l'attribution sur le membre unique plutôt que le "50/50"
+    // par défaut, que l'écran ne permet plus de corriger — et qui, à l'arrivée
+    // d'un partenaire, partagerait rétroactivement chaque échéance avec lui.
+    const soloKey = isSolo ? getMemberKey(members[0]) || user?.uid : null;
     const payload = {
       type,
       amount: parseFloat(amount),
@@ -137,8 +141,8 @@ export default function RecurringScreen({ onClose, initialEditId }) {
       description: description || selectedCategory?.name,
       frequency,
       dayOfMonth: parseInt(dayOfMonth),
-      paidBy: type === "expense" || needsMemberAttribution ? paidBy : user.uid,
-      split: type === "expense" || needsMemberAttribution ? split : "100",
+      paidBy: soloKey || (type === "expense" || needsMemberAttribution ? paidBy : user.uid),
+      split: soloKey || (type === "expense" || needsMemberAttribution ? split : "100"),
     };
 
     if (editingId) {
@@ -368,7 +372,9 @@ export default function RecurringScreen({ onClose, initialEditId }) {
               </>
             )}
 
-            {(type === "expense" || needsMemberAttribution) && members.length > 0 && (
+            {/* Même règle que dans « Ajouter une transaction » : seul, « qui
+                paie / pour qui » n'offre qu'un bouton déjà sélectionné. */}
+            {!isSolo && (type === "expense" || needsMemberAttribution) && members.length > 0 && (
               <>
                 <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>
                   {needsMemberAttribution ? t("tx_received_by") : t("recurring_who_pays")}

@@ -90,6 +90,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
     enabledCurrencies,
     updateEnabledCurrencies,
     language,
+    isSolo,
   } = useFinance();
   const { user, coupleId } = useAuth();
   // Desktop large → corps en 2 colonnes (même breakpoint que le modal élargi).
@@ -449,6 +450,13 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
     setBusy(true);
     try {
       const isoDate = new Date(dateTime).toISOString();
+      // Espace solo : on ÉCRIT l'attribution sur le membre unique au lieu de
+      // laisser le "50/50" par défaut, que l'écran ne permet plus de corriger.
+      // Ce n'est pas cosmétique : le jour où un partenaire rejoint, un "50/50"
+      // dormant lui attribuerait RÉTROACTIVEMENT la moitié de dépenses faites
+      // avant son arrivée.
+      const soloKey = isSolo ? getMemberKey(members[0]) || myMemberKey : null;
+      const effectivePaidBy = soloKey || paidBy;
       const payload = {
         type,
         amount: parseFloat(amount),
@@ -458,14 +466,16 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
         description: description || selectedCategory?.name,
         // Tags explicites (chips) + #hashtags éventuellement tapés dans la description
         tags: dedupeTags([...tags, ...extractTagsFromText(description)]),
-        paidBy,
+        paidBy: effectivePaidBy,
         // En mode surprise, la dépense est portée à 100 % par l'acheteur·se :
         // un partage laisserait une dette visible d'un seul côté (le/la
         // partenaire ne voit pas la transaction) → soldes divergents.
-        split: isPrivate
-          ? paidBy
-          : type === "expense" || needsMemberAttribution ? split : "100",
-        splitDetails: isPrivate || splitMode !== "advanced" ? null : splitDetails,
+        split: soloKey
+          ? soloKey
+          : isPrivate
+            ? paidBy
+            : type === "expense" || needsMemberAttribution ? split : "100",
+        splitDetails: soloKey || isPrivate || splitMode !== "advanced" ? null : splitDetails,
         date: isoDate,
         privateTo: isPrivate ? myMemberKey : null,
       };
@@ -486,8 +496,8 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
             description: description || selectedCategory?.name,
             frequency: recurringFrequency,
             dayOfMonth: parseInt(recurringDayOfMonth) || 1,
-            paidBy,
-            split: type === "expense" || needsMemberAttribution ? split : "100",
+            paidBy: effectivePaidBy,
+            split: soloKey || (type === "expense" || needsMemberAttribution ? split : "100"),
             active: true,
             // This transaction IS the first occurrence — mark it as already
             // generated so the recurring generator doesn't immediately
@@ -1103,7 +1113,12 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
     </SectionCard>
   );
 
-  const attributionCard = members.length > 0 && (
+  // « Payé par / Pour » n'a de sens qu'à plusieurs : seul, ses deux lignes
+  // n'offrent qu'un bouton déjà sélectionné, impossible à désélectionner.
+  // L'attribution reste ÉCRITE sur le membre unique (voir soloAttribution
+  // ci-dessous) : un partenaire qui rejoint plus tard retrouve un historique
+  // déjà attribué, pas des transactions orphelines.
+  const attributionCard = !isSolo && members.length > 0 && (
     <SectionCard accent="var(--mint)" icon="ti-users" title={t("tx_paid_for")}>
       <div style={{ marginTop: 14, fontSize: 11.5, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: "0.04em", fontWeight: 600 }}>
         {needsMemberAttribution ? t("tx_received_by") : t("tx_paid_by")}

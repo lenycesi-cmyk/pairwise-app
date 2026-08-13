@@ -49,6 +49,9 @@ import { slotSpan12, BENTO_MAX_HEIGHT } from "../utils/bentoLayout";
 // Grille bento desktop (12 colonnes, taille selon la position) — factorisée dans
 // utils/bentoLayout pour être partagée avec les autres onglets (Patrimoine…).
 
+// Widgets qui supposent deux personnes. Masqués tant que l'espace est solo.
+const COUPLE_ONLY_WIDGETS = new Set(["debt_tracker"]);
+
 // Palette cyclique des pastilles de compte (Liquidités) — comme la maquette 1B,
 // chaque banque a une couleur distincte plutôt qu'un vert uniforme.
 const BANK_DOT_COLORS = ["var(--sage)", "var(--sky)", "var(--lavi)", "var(--amber)", "var(--mint)", "var(--blush)"];
@@ -149,7 +152,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
   const {
     transactions, categories, members, assets, recurringTx, coupleName, debtSettlements,
     defaultCurrency, dashboardDisplayCurrency, updateDashboardDisplayCurrency, loading, language, financeMode,
-    updateBudget,
+    updateBudget, isSolo,
   } = useFinance();
   // Noms de mois localisés selon la langue des réglages (l'ancien tableau
   // MONTHS était figé en français).
@@ -171,9 +174,14 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
   const currencyButtonRef = useRef(null);
   const [trendPeriod, setTrendPeriod] = useState(6);
   const isDesktop = useMediaQuery("(min-width: 1024px)");
-  const summaryLabel = coupleName
-    ? `${coupleName} ${t("widget_summary_word")}`
-    : t("widget_couple_summary_default");
+  // Seul, la carte s'appelle simplement « Résumé » : ni « du couple », ni le nom
+  // de l'espace suivi de « résumé », qui parlent tous deux d'un partage
+  // inexistant.
+  const summaryLabel = isSolo
+    ? t("widget_summary_default")
+    : coupleName
+      ? `${coupleName} ${t("widget_summary_word")}`
+      : t("widget_couple_summary_default");
 
   const { widgets, saveWidgets } = useDashboardPrefs();
   const { items: loanItems, aggregate: loanAgg } = useLoanProgress(displayCurrency);
@@ -449,7 +457,6 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
     health_score: t("health_title"),
     available_savings: t("widget_available_savings"),
     budget_tracking: t("widget_budget_tracking"),
-    member_breakdown: t("widget_member_breakdown"),
     spending_by_category: t("widget_spending_by_category"),
     transaction_history: t("widget_transaction_history"),
     net_worth: t("widget_net_worth"),
@@ -472,16 +479,33 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
             icon="ti-heart"
             accent="red"
             title={summaryLabel}
+            action={!isSolo && !editMode && (
+              <button onClick={onOpenBreakdown} style={{ background: "none", border: "none", color: "var(--sky)", fontSize: 12, display: "flex", alignItems: "center", gap: 3, flexShrink: 0 }}>
+                {t("dashboard_detail")} <i className="ti ti-chevron-right" style={{ fontSize: 12 }} aria-hidden="true" />
+              </button>
+            )}
           >
             <p className="pw-num" style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 46, lineHeight: 1, letterSpacing: "-0.02em", marginTop: 4, color: totals.net >= 0 ? "var(--good)" : "var(--over)" }}>
               {totals.net >= 0 ? "+" : "−"}
               <AnimatedNumber value={Math.abs(totals.net)} format={formatAmount} /> {currencySymbol}
             </p>
-            <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
+            <div style={{ display: "flex", gap: HERO_GAP, marginTop: 18 }}>
               <HeroStat dot="var(--good)" label={t("dashboard_income")} value={`${formatAmount(totals.income)} ${currencySymbol}`} />
               <HeroStat dot="var(--tang)" label={t("dashboard_expenses")} value={`${formatAmount(totals.expense)} ${currencySymbol}`} />
               <HeroStat dot="var(--sky)" label={t("dashboard_invested")} value={`${formatAmount(totals.invested)} ${currencySymbol}`} />
             </div>
+            {/* Second étage : la ventilation par membre, anciennement une carte
+                à part (« Résumé par membre »). Masquée en solo, où elle n'aurait
+                qu'une colonne répétant à l'identique les trois cellules. */}
+            {!isSolo && (
+              <MemberBreakdownTable
+                members={members}
+                memberTotals={memberTotals}
+                formatAmount={formatAmount}
+                currencySymbol={currencySymbol}
+                t={t}
+              />
+            )}
             {!editMode && <InsightInline insight={heroInsight} onClose={() => heroInsight && dismissInsight(heroInsight.id)} dismissLabel={t("insight_dismiss")} />}
           </WidgetCard>
         );
@@ -561,76 +585,6 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
               const bi = insightFor(["budget"]);
               return <InsightInline insight={bi} onClose={() => bi && dismissInsight(bi.id)} dismissLabel={t("insight_dismiss")} />;
             })()}
-          </WidgetCard>
-        );
-
-      case "member_breakdown":
-        if (members.length === 0) return null;
-        return (
-          <WidgetCard
-            icon="ti-users"
-            accent="ocean"
-            title={t("dashboard_member_summary")}
-            action={!editMode && (
-              <button onClick={onOpenBreakdown} style={{ background: "none", border: "none", color: "var(--sky)", fontSize: 12, display: "flex", alignItems: "center", gap: 3, flexShrink: 0 }}>
-                {t("dashboard_detail")} <i className="ti ti-chevron-right" style={{ fontSize: 12 }} aria-hidden="true" />
-              </button>
-            )}
-          >
-            {/* Tableau comparatif : une colonne par membre, séparateur
-                vertical, montants au code couleur sémantique. */}
-            <div>
-              {(() => {
-                const mts = members.map((m) => ({
-                  m,
-                  mt: memberTotals[getMemberKey(m)] || { income: 0, expense: 0, invested: 0 },
-                }));
-                // Colonnes des valeurs : libellé fluide + une colonne par membre.
-                const gridCols = `1fr ${members.map(() => "minmax(84px, auto)").join(" ")}`;
-                // La colonne de chaque membre après la première porte le
-                // séparateur vertical + l'espacement inter-membres.
-                const colStyle = (i) =>
-                  i === 0
-                    ? { textAlign: "right" }
-                    : { textAlign: "right", borderLeft: "0.5px solid var(--rule)", paddingLeft: 18, marginLeft: 6 };
-                const rows = [
-                  { label: t("dashboard_income"), color: "var(--sage)", get: (mt) => mt.income },
-                  { label: t("dashboard_expenses"), color: "var(--tang)", get: (mt) => mt.expense },
-                  { label: t("dashboard_invested"), color: "var(--lavi)", get: (mt) => mt.invested },
-                ];
-                return (
-                  <div style={{ display: "grid", gridTemplateColumns: gridCols, rowGap: 10, alignItems: "center" }}>
-                    <span />
-                    {mts.map(({ m }, i) => (
-                      <div key={getMemberKey(m)} style={{ ...colStyle(i), display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 6 }}>
-                        <Avatar member={m} colorMap={memberColorMap} size={22} />
-                        <span style={{ fontSize: 13, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{m.name}</span>
-                      </div>
-                    ))}
-                    {rows.map((row) => (
-                      <Fragment key={row.label}>
-                        <span style={{ fontSize: 12, color: "var(--ink-3)" }}>{row.label}</span>
-                        {mts.map(({ m, mt }, i) => (
-                          <span key={getMemberKey(m)} style={{ ...colStyle(i), fontSize: 13, fontWeight: 500, color: row.color }}>
-                            {formatAmount(row.get(mt))} {currencySymbol}
-                          </span>
-                        ))}
-                      </Fragment>
-                    ))}
-                    <div style={{ gridColumn: "1 / -1", height: 0.5, background: "var(--rule)", margin: "2px 0" }} />
-                    <span style={{ fontSize: 12, fontWeight: 700 }}>{t("dashboard_balance")}</span>
-                    {mts.map(({ m, mt }, i) => {
-                      const bal = mt.income - mt.expense - mt.invested;
-                      return (
-                        <span key={getMemberKey(m)} style={{ ...colStyle(i), fontSize: 14, fontWeight: 700, color: bal >= 0 ? "var(--good)" : "var(--over)" }}>
-                          {formatAmount(bal)} {currencySymbol}
-                        </span>
-                      );
-                    })}
-                  </div>
-                );
-              })()}
-            </div>
           </WidgetCard>
         );
 
@@ -961,7 +915,14 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
   // reste un empilement 1 colonne sur mobile (pas de bento — cf. bentoEnabled),
   // mais l'Accueil montre désormais exactement les mêmes cartes que le desktop,
   // y compris Répartition du patrimoine et Tendance (anciennement desktop-only).
-  const displayList = activeWidgets;
+  // Widgets qui n'ont aucun sens seul. Ils sont retirés de la LISTE, pas
+  // seulement de leur rendu : sinon « Suivi des dettes » resterait proposé dans
+  // le tiroir « Personnaliser » et occuperait une case vide en mode édition
+  // (renderWidgetContent renvoie déjà null, mais l'édition rend la carte quand
+  // même pour permettre de la déplacer).
+  const displayList = isSolo
+    ? activeWidgets.filter((w) => !COUPLE_ONLY_WIDGETS.has(w.id))
+    : activeWidgets;
   // Seuls les widgets visibles occupent la grille (et donc un emplacement dont
   // la taille dépend du rang) ; les masqués passent dans le tiroir d'édition.
   const gridWidgets = displayList.filter((w) => w.visible);
@@ -1253,6 +1214,84 @@ function InsightInline({ insight, onClose, dismissLabel }) {
 
 // Cellule stat du héros (refonte 1B) : pastille de couleur + libellé + valeur,
 // sur un fond très léger neutre.
+// Gouttière des trois cellules du widget Résumé. Partagée avec le tableau par
+// membre juste en dessous : les deux étages doivent tomber sur la MÊME grille,
+// sans quoi la carte se lit comme deux blocs empilés au lieu d'un seul objet.
+const HERO_GAP = 10;
+
+// Second étage du widget « Résumé » : une colonne par membre, alignée sur les
+// trois cellules du dessus.
+//
+// La grille est `repeat(members.length + 1, 1fr)` — libellé + une colonne par
+// personne — ce qui, à deux membres, reproduit exactement les trois colonnes
+// égales des cellules : la colonne du premier membre tombe sous « Dépenses »,
+// celle du second sous « Investi ». C'est ce qui fait coïncider les bords des
+// deux étages. Cette correspondance est exacte parce que l'app est verrouillée
+// à deux membres (contrôle « couple plein ») ; à trois, la grille resterait
+// cohérente mais ne s'alignerait plus sur les cellules.
+//
+// Pas de filet vertical entre les membres : il tomberait au milieu d'une
+// gouttière déjà alignée sur les cellules, et casserait précisément l'effet
+// recherché.
+function MemberBreakdownTable({ members, memberTotals, formatAmount, currencySymbol, t }) {
+  const mts = members.map((m) => ({
+    m,
+    mt: memberTotals[getMemberKey(m)] || { income: 0, expense: 0, invested: 0 },
+  }));
+  const rows = [
+    { label: t("dashboard_income"), color: "var(--sage)", get: (mt) => mt.income },
+    { label: t("dashboard_expenses"), color: "var(--tang)", get: (mt) => mt.expense },
+    { label: t("dashboard_invested"), color: "var(--lavi)", get: (mt) => mt.invested },
+  ];
+  const cell = { textAlign: "right", minWidth: 0 };
+
+  return (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: `repeat(${members.length + 1}, 1fr)`,
+        columnGap: HERO_GAP,
+        rowGap: 10,
+        alignItems: "center",
+        marginTop: 18,
+      }}
+    >
+      <span />
+      {mts.map(({ m }) => (
+        <span
+          key={getMemberKey(m)}
+          style={{ ...cell, fontSize: 12, color: "var(--ink-3)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
+        >
+          {m.name}
+        </span>
+      ))}
+      {rows.map((row) => (
+        <Fragment key={row.label}>
+          <span style={{ fontSize: 12, color: "var(--ink-3)" }}>{row.label}</span>
+          {mts.map(({ m, mt }) => (
+            <span key={getMemberKey(m)} style={{ ...cell, fontSize: 13, fontWeight: 500, color: row.color }}>
+              {formatAmount(row.get(mt))} {currencySymbol}
+            </span>
+          ))}
+        </Fragment>
+      ))}
+      {/* Solde par personne : la seule information que ni les cellules du haut
+          ni le grand chiffre ne donnent. Elle existait dans l'ancien widget —
+          la fusion ne doit pas la faire disparaître au passage. */}
+      <div style={{ gridColumn: "1 / -1", height: 0.5, background: "var(--rule)", margin: "2px 0" }} />
+      <span style={{ fontSize: 12, fontWeight: 700 }}>{t("dashboard_balance")}</span>
+      {mts.map(({ m, mt }) => {
+        const bal = mt.income - mt.expense - mt.invested;
+        return (
+          <span key={getMemberKey(m)} style={{ ...cell, fontSize: 13, fontWeight: 700, color: bal >= 0 ? "var(--good)" : "var(--over)" }}>
+            {formatAmount(bal)} {currencySymbol}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
 function HeroStat({ dot, label, value }) {
   return (
     <div style={{ flex: 1, minWidth: 0, background: "color-mix(in srgb, var(--ink) 5%, transparent)", borderRadius: "var(--radius-md)", padding: "11px 13px" }}>

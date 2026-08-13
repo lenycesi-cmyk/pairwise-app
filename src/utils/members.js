@@ -33,6 +33,15 @@ export function memberShareFraction(tx, memberKey, members) {
   const aKey = members[0] ? getMemberKey(members[0]) : null;
   const bKey = members[1] ? getMemberKey(members[1]) : null;
 
+  // Espace à UN SEUL membre : tout lui revient, quoi que dise le partage.
+  // Sans ce garde-fou, le `split` par défaut "50/50" — écrit sur chaque
+  // transaction, y compris quand l'écran de saisie ne pose pas la question —
+  // ne lui attribuait que la MOITIÉ de ses propres dépenses, ce qui faussait
+  // silencieusement tout budget personnel. Le test porte sur le nombre de
+  // membres et non sur la valeur stockée : il répare donc aussi les
+  // transactions déjà enregistrées, sans reprise de données.
+  if (!bKey) return memberKey === aKey ? 1 : 0;
+
   const d = tx.splitDetails;
   if (d && aKey && bKey) {
     let fa, fb;
@@ -61,6 +70,8 @@ export function memberShareFraction(tx, memberKey, members) {
 export function assetMemberShareFraction(asset, memberKey, members) {
   if (!memberKey) return 1;
   if (asset.ownership === memberKey) return 1;
+  // Même règle qu'au-dessus : seul, on possède 100 % de « partagé ».
+  if (members.length < 2) return getMemberKey(members[0]) === memberKey ? 1 : 0;
   if (asset.ownership === "shared") {
     const isFirst = members[0] && getMemberKey(members[0]) === memberKey;
     const pct = isFirst ? (asset.sharePct ?? 50) : 100 - (asset.sharePct ?? 50);

@@ -13,8 +13,11 @@ export const DEFAULT_WIDGETS = [
   // rangée 2 : Liquidités(4) · Budget(5) · Transactions(3)
   // rangée 3 : Patrimoine(4) · Répartition(5) · Dettes(3)
   // rangée 4 : Revenus/Dépenses(4) · Dépenses par catégorie(5) · [récurrences masquées]
+  // « member_breakdown » n'existe plus : la ventilation par membre est devenue
+  // le second étage du widget « Résumé » (net_balance). Les préférences déjà
+  // enregistrées qui le contiennent sont ignorées à la lecture — voir le filtre
+  // sur les ids connus dans useWidgetPrefs.
   { id: "net_balance", visible: true },
-  { id: "member_breakdown", visible: true },
   { id: "health_score", visible: true },
   { id: "available_savings", visible: true },
   { id: "budget_tracking", visible: true },
@@ -95,7 +98,12 @@ function useWidgetPrefs(field, defaults) {
     if (!user) return;
     getDoc(doc(db, "users", user.uid)).then((snap) => {
       if (snap.exists() && snap.data()[field]) {
-        const saved = snap.data()[field];
+        // On ne garde que les ids qui existent ENCORE dans la base : un widget
+        // retiré du produit (p. ex. « member_breakdown », fusionné dans
+        // « Résumé ») survivrait sinon dans les prefs de chaque utilisateur qui
+        // l'a un jour réordonné, et occuperait une case vide de la grille.
+        const knownIds = new Set(defaults.map((w) => w.id));
+        const saved = snap.data()[field].filter((w) => knownIds.has(w.id));
         const savedIds = new Set(saved.map((w) => w.id));
         // Append any new default widgets not yet in saved prefs
         const merged = [

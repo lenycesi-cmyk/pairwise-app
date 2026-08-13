@@ -55,7 +55,7 @@ export default function AddAssetScreen({ onClose, editingAsset, initialTypeId })
   const t = useTranslation();
   const { language } = useFinance();
   const {
-    addAsset, updateAsset, removeAsset, defaultCurrency, members,
+    addAsset, updateAsset, removeAsset, defaultCurrency, members, isSolo,
     contributeToAsset, addAssetContribution, removeAssetContribution, assetContributions,
     recurringTx, addRecurring, removeRecurring, loans,
   } = useFinance();
@@ -582,8 +582,12 @@ export default function AddAssetScreen({ onClose, editingAsset, initialTypeId })
           </SectionCard>
         )}
 
-        {/* Propriété / partage */}
-        {members.length > 0 && (
+        {/* Propriété / partage — sans objet seul : la question n'a qu'une
+            réponse possible, et « Partagé » ouvrirait un partage entre une
+            personne et personne. L'état `ownership` vaut déjà la clé du membre
+            unique (voir son initialisation), donc l'actif reste correctement
+            attribué sans qu'on le demande. */}
+        {!isSolo && members.length > 0 && (
           <SectionCard accent="var(--lavi)" icon="ti-users" title={t("asset_ownership_label")}>
             <div style={{ display: "flex", gap: 6, marginBottom: ownership === "shared" ? 14 : 0 }}>
               {members.map((m) => (

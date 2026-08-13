@@ -961,6 +961,15 @@ export function FinanceProvider({ children }) {
     transactions: visibleTransactions,
     categories,
     members,
+    // Espace « solo » : un seul membre. Tout ce qui suppose deux personnes
+    // (suivi des dettes, ventilation par membre, « Payé par / Pour »,
+    // propriétaire d'un actif, filtre par membre) se masque là-dessus.
+    //
+    // Un partenaire INVITÉ MAIS PAS ENCORE INSCRIT compte comme un membre :
+    // il porte `uid: null` mais un `memberId` bien réel, et on l'ajoute
+    // précisément pour partager des dépenses avec lui avant qu'il n'installe
+    // l'app. L'exclure viderait la fonctionnalité de son sens.
+    isSolo: members.length < 2,
     coupleName,
     updateCoupleName,
     inviteExpiresAt,
