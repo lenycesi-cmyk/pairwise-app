@@ -403,6 +403,29 @@ function in [vite.config.js](vite.config.js), which only works as a function (ob
 Vite 8's rolldown bundler. Adding a new heavy dependency should follow the same lazy-screen +
 manualChunks split.
 
+**Espace solo : `isSolo` (un seul membre) masque tout ce qui suppose deux personnes.** Exposé par
+`FinanceContext`, ce prédicat gouverne le suivi des dettes, la ventilation par membre, la carte
+« Payé par / Pour », le propriétaire d'un actif, la comparaison entre membres et le filtre par
+membre. Deux règles à ne pas défaire :
+
+- **Un partenaire invité mais pas encore inscrit COMPTE comme membre** (`uid: null`, `memberId` réel).
+  On l'ajoute précisément pour partager des dépenses avant qu'il n'installe l'app ; l'exclure
+  viderait la fonctionnalité de son sens.
+- **Masquer un champ ne dispense pas de l'écrire.** `split` valait `"50/50"` par défaut sur toute
+  transaction, y compris en solo — et `memberShareFraction` n'attribuait donc que la MOITIÉ de ses
+  dépenses au membre unique, ce qui divisait par deux la consommation de tout budget personnel, sans
+  signe visible. Corrigé aux deux bouts : les utils rendent 1 dès qu'il y a moins de deux membres
+  (ce qui répare aussi l'historique, sans reprise de données), et les écrans de saisie écrivent la
+  clé du membre unique. Ce second point n'est pas cosmétique : un `"50/50"` dormant partagerait
+  RÉTROACTIVEMENT avec un partenaire qui rejoint des dépenses faites avant son arrivée.
+
+Le widget « Résumé par membre » n'existe plus : il est devenu le second étage du widget « Résumé »
+(`net_balance`), sur la MÊME grille que les trois cellules Revenus/Dépenses/Investi
+(`repeat(members.length + 1, 1fr)` + `HERO_GAP`) — c'est ce qui fait coïncider les bords des deux
+étages. Un widget retiré du produit doit aussi être filtré à la LECTURE des préférences
+(`useWidgetPrefs` ne garde que les ids encore présents dans les défauts), sinon il survit dans les
+prefs de chaque utilisateur qui l'a un jour réordonné et occupe une case vide.
+
 **Always-mounted side-effect hooks use a "runner" component.** Logic that must run regardless of
 the active tab (e.g. generating due recurring transactions, firing budget-threshold notifications)
 is wrapped in a tiny component that calls the hook and renders `null`, then mounted unconditionally

@@ -103,7 +103,7 @@ function previousRanges(periodType, anchor, customRange, range, locale, n) {
 
 export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMonthChange, onOpenMenu }) {
   const t = useTranslation();
-  const { transactions, categories, members, defaultCurrency, dashboardDisplayCurrency, updateDashboardDisplayCurrency, netWorthHistory, language } = useFinance();
+  const { transactions, categories, members, defaultCurrency, dashboardDisplayCurrency, updateDashboardDisplayCurrency, netWorthHistory, language, isSolo } = useFinance();
   const locale = language === "en" ? "en-US" : "fr-FR";
   const displayCurrency = dashboardDisplayCurrency || defaultCurrency;
   const { convert, loading: ratesLoading } = useExchangeRates(displayCurrency);
@@ -938,7 +938,9 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
           </WidgetCard>
         );
       case "member_comparison":
-        if (members.length === 0) return null;
+        // « Comparaison entre membres » n'a personne à comparer en solo : la
+        // carte affichait une colonne unique, à côté d'une case vide.
+        if (isSolo || members.length === 0) return null;
         return (
           <WidgetCard
             icon="ti-users"
@@ -1533,7 +1535,7 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
       {/* Cartes — même moteur que l'Accueil/Flux/Patrimoine : grille bento
           personnalisable sur desktop, empilement 1 colonne sur mobile. */}
       <WidgetCanvas
-        widgets={widgets}
+        widgets={isSolo ? widgets.filter((w) => w.id !== "member_comparison") : widgets}
         onSave={saveWidgets}
         editMode={editMode}
         renderContent={renderWidgetContent}
