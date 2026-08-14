@@ -4,6 +4,7 @@ import { useExchangeRates } from "../hooks/useExchangeRates";
 import { getCryptoPrice, getCryptoPriceAtDate, getStockPrice } from "../utils/assetPrices";
 import { CURRENCIES } from "../data/categories";
 import { useTranslation } from "../hooks/useTranslation";
+import { AMOUNT_MASK } from "../utils/hideAmounts";
 
 function getPeriods(t) {
   return [
@@ -16,7 +17,7 @@ function getPeriods(t) {
 export default function InvestmentCalculatorScreen({ onClose }) {
   const t = useTranslation();
   const PERIODS = getPeriods(t);
-  const { transactions, categories, assets, defaultCurrency } = useFinance();
+  const { transactions, categories, assets, defaultCurrency, hideAmounts } = useFinance();
   const { convert } = useExchangeRates(defaultCurrency);
 
   const [period, setPeriod] = useState("6m");
@@ -105,6 +106,8 @@ export default function InvestmentCalculatorScreen({ onClose }) {
   }
 
   function formatAmount(n) {
+    // Masquage : des points, jamais un zéro — un zéro se lirait comme un montant.
+    if (hideAmounts) return AMOUNT_MASK;
     return Math.round(n).toLocaleString("fr-FR");
   }
 

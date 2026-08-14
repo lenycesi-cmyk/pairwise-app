@@ -1,5 +1,7 @@
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { CHART_ANIM, TOOLTIP_ANIM } from "../utils/chartAnim";
+import { useFinance } from "../context/FinanceContext";
+import { AMOUNT_MASK } from "../utils/hideAmounts";
 
 function formatTick(v) {
   const abs = Math.abs(v);
@@ -10,6 +12,7 @@ function formatTick(v) {
 const TREND_COLORS = { income: "var(--sage)", expense: "var(--tang)", investment: "var(--lavi)" };
 
 export default function IncomeExpenseTrendChart({ data, currencySymbol }) {
+  const { hideAmounts } = useFinance();
   function CustomTooltip({ active, payload, label }) {
     if (!active || !payload?.length) return null;
     return (
@@ -25,7 +28,7 @@ export default function IncomeExpenseTrendChart({ data, currencySymbol }) {
         <p style={{ marginBottom: 2 }}>{label}</p>
         {payload.map((p) => (
           <p key={p.dataKey} style={{ color: TREND_COLORS[p.dataKey] || "var(--tang)" }}>
-            {Math.round(p.value).toLocaleString("fr-FR")} {currencySymbol}
+            {hideAmounts ? AMOUNT_MASK : Math.round(p.value).toLocaleString("fr-FR")} {currencySymbol}
           </p>
         ))}
       </div>
@@ -41,7 +44,7 @@ export default function IncomeExpenseTrendChart({ data, currencySymbol }) {
             tick={{ fontSize: 11, fill: "var(--ink-3)" }}
             axisLine={false}
             tickLine={false}
-            tickFormatter={formatTick}
+            tickFormatter={hideAmounts ? () => "" : formatTick}
             width={38}
           />
           <Tooltip content={<CustomTooltip />} {...TOOLTIP_ANIM} />

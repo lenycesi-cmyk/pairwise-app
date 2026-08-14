@@ -15,6 +15,7 @@ import ProjectionCard from "../components/ProjectionCard";
 import Avatar from "../components/Avatar";
 import { buildMemberColorMap } from "../utils/memberColors";
 import { useTranslation } from "../hooks/useTranslation";
+import { AMOUNT_MASK } from "../utils/hideAmounts";
 import SpotlightHint from "../components/SpotlightHint";
 import GreetingHeader from "../components/GreetingHeader";
 import HeaderMenuButton from "../components/HeaderMenuButton";
@@ -64,6 +65,8 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
     assetContributions,
     archivedAssets,
     unarchiveAsset,
+    hideAmounts,
+    toggleHideAmounts,
   } = useFinance();
 
   // La devise d'affichage du patrimoine peut différer de la devise des transactions
@@ -383,6 +386,8 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
   );
 
   function formatAmount(n) {
+    // Masquage : des points, jamais un zéro — un zéro se lirait comme un montant.
+    if (hideAmounts) return AMOUNT_MASK;
     return Math.round(n).toLocaleString("fr-FR");
   }
 
@@ -1791,6 +1796,24 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
                 </button>
               ) : (
                 <>
+                  {/* Masquer les montants : geste du moment, propre à
+                      l'appareil — montrer son patrimoine à quelqu'un sans lui
+                      montrer combien. */}
+                  <button
+                    onClick={toggleHideAmounts}
+                    aria-pressed={hideAmounts}
+                    aria-label={t("hide_amounts_toggle")}
+                    title={t("hide_amounts_toggle")}
+                    style={{
+                      width: 34, height: 34, borderRadius: "50%",
+                      background: hideAmounts ? "color-mix(in srgb, var(--lavi) 16%, transparent)" : "var(--bg-card)",
+                      border: `0.5px solid ${hideAmounts ? "var(--lavi)" : "var(--rule)"}`,
+                      color: hideAmounts ? "var(--lavi)" : "var(--ink-2)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}
+                  >
+                    <i className={`ti ${hideAmounts ? "ti-eye-off" : "ti-eye"}`} style={{ fontSize: 17 }} aria-hidden="true" />
+                  </button>
                   <button
                     onClick={() => setShowCurrencyPicker(!showCurrencyPicker)}
                     style={{

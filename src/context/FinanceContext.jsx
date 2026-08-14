@@ -38,6 +38,7 @@ import { removeFrom, findIn } from "../utils/collectionOps";
 import { partitionArchived, mergeReorder, isArchived } from "../utils/archive";
 import { resolveNavTabs } from "../data/navTabsMeta";
 import { readBootTheme, writeBootTheme, readBootNavTabs, writeBootNavTabs } from "../utils/bootPrefs";
+import { readHideAmounts, writeHideAmounts } from "../utils/hideAmounts";
 
 const FinanceContext = createContext(null);
 
@@ -97,6 +98,9 @@ export function FinanceProvider({ children }) {
   // Liste de tags personnalisée du couple (ordonnée). Vide tant que non
   // personnalisée : les suggestions retombent alors sur les presets + historique.
   const [customTags, setCustomTags] = useState([]);
+  // Masquage des montants : réglage D'APPAREIL (voir utils/hideAmounts), donc
+  // hors du document couple — il ne se synchronise pas avec le/la partenaire.
+  const [hideAmounts, setHideAmountsState] = useState(readHideAmounts);
 
   // Archivage : `budgets`/`goals` gardent le tableau COMPLET en état (les
   // écritures font un read-modify-write dessus et doivent voir les archivés),
@@ -111,6 +115,15 @@ export function FinanceProvider({ children }) {
     () => partitionArchived(goals),
     [goals]
   );
+
+  // La valeur suivante est calculée AVANT, jamais dans l'updater : celui-ci doit
+  // rester pur (React peut le rejouer), et une écriture localStorage à
+  // l'intérieur serait donc exécutée deux fois.
+  function toggleHideAmounts() {
+    const next = !hideAmounts;
+    setHideAmountsState(next);
+    writeHideAmounts(next);
+  }
 
   // Clé du membre courant : sert autant à filtrer le privé (voir isVisibleToMe)
   // qu'à retrouver SON thème dans la map.
@@ -281,19 +294,12 @@ export function FinanceProvider({ children }) {
       );
     }
 
-    // Si la sous-catégorie de revenu est liée à un compte du Patrimoine, on crédite ce compte
-    if (tx.type === "income" && tx.subcategory) {
-      const linkedAssetId = incomeAccountLinks[tx.subcategory];
-      const linkedAsset = linkedAssetId && assets.find((a) => a.id === linkedAssetId);
-      if (linkedAsset) {
-        const { rate } = await getExchangeRate(tx.currency, linkedAsset.currency);
-        // Sans taux, on ne crédite pas : la valeur d'un actif est un solde
-        // cumulé, une erreur s'y incruste définitivement.
-        if (rate !== null) {
-          await updateAsset(linkedAssetId, { value: linkedAsset.value + tx.amount * rate });
-        }
-      }
-    }
+    // NOTE — le crédit automatique d'un compte du Patrimoine par les revenus
+    // d'une sous-catégorie liée a été RETIRÉ avec son éditeur (Réglages →
+    // Catégories). Garder l'automatisme sans écran pour l'éteindre revenait à
+    // faire apparaître de l'argent sur un compte sans cause visible.
+    // `incomeAccountLinks` reste stocké sur le doc couple, dormant : rien ne
+    // l'applique, et un retour en arrière n'aurait aucune donnée à reconstituer.
 
     // Push au partenaire (fire-and-forget, selon ses préférences)
     if (members.length > 1) {
@@ -718,22 +724,8 @@ export function FinanceProvider({ children }) {
       archivedAt: Date.now(),
       ...(archivedValue != null ? { archivedValue } : {}),
     });
-
-    // Un lien revenu → compte qui pointe vers cet actif doit être rompu, sinon
-    // les revenus de cette sous-catégorie continueraient de créditer un compte
-    // que plus personne ne voit.
-    const orphaned = Object.entries(incomeAccountLinks).filter(([, assetId]) => assetId === id);
-    if (orphaned.length > 0) {
-      const next = { ...incomeAccountLinks };
-      for (const [sub] of orphaned) delete next[sub];
-      setIncomeAccountLinksState(next); // optimiste
-      await couple.setFields({ incomeAccountLinks: next });
-    }
   }
 
-  // Le lien revenu → compte rompu à l'archivage n'est PAS rétabli ici : rien ne
-  // dit qu'on veut de nouveau y verser ses revenus, et le rétablir en silence
-  // enverrait de l'argent quelque part sans que personne l'ait demandé.
   async function unarchiveAsset(id) {
     if (!coupleId) return;
     await couple.patchItem("assets", assets, id, { archivedAt: null });
@@ -1086,6 +1078,8 @@ export function FinanceProvider({ children }) {
     updateMemberNavTabs,
     updateCategories,
     customTags,
+    hideAmounts,
+    toggleHideAmounts,
     updateCustomTags,
     replaceTagInTransactions,
     updateDefaultCurrency,

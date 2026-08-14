@@ -1,6 +1,21 @@
+// Types d'actifs.
+//
+// Deux champs gouvernent ce que la modale d'actif propose, plutôt qu'une pile de
+// conditions dans l'écran — même principe que `hasApiPrice`, qui fonctionne déjà
+// ainsi :
+//
+//   - `incomeKinds` : natures de revenu que le type peut réellement produire.
+//     Un tableau VIDE masque toute la section « Revenus générés » : une voiture
+//     ne verse pas de dividende, une résidence principale ne rapporte pas
+//     d'intérêts. « Autres actifs » les garde toutes — c'est la catégorie
+//     fourre-tout, y restreindre le choix reviendrait à interdire ce qu'on n'a
+//     pas su nommer.
+//   - Les versements suivent `hasApiPrice` : un actif coté tire sa valeur du
+//     cours, qui écraserait tout versement crédité à la main.
 export const ASSET_TYPES = [
   {
     id: "account",
+    incomeKinds: ["interest"],
     name: "Compte en banque",
     nameEn: "Bank Account",
     icon: "ti-building-bank",
@@ -11,6 +26,7 @@ export const ASSET_TYPES = [
   },
   {
     id: "cash",
+    incomeKinds: [],
     name: "Liquidités",
     nameEn: "Cash",
     icon: "ti-cash",
@@ -21,6 +37,7 @@ export const ASSET_TYPES = [
   },
   {
     id: "stocks",
+    incomeKinds: ["dividend"],
     name: "Actions & ETF",
     nameEn: "Stocks & ETFs",
     icon: "ti-chart-candle",
@@ -32,6 +49,7 @@ export const ASSET_TYPES = [
   },
   {
     id: "crypto",
+    incomeKinds: ["interest"],
     name: "Cryptomonnaies",
     nameEn: "Cryptocurrencies",
     icon: "ti-currency-bitcoin",
@@ -43,6 +61,7 @@ export const ASSET_TYPES = [
   },
   {
     id: "life_insurance",
+    incomeKinds: ["interest", "dividend"],
     name: "Assurance-vie",
     nameEn: "Life Insurance",
     icon: "ti-shield-check",
@@ -53,6 +72,7 @@ export const ASSET_TYPES = [
   },
   {
     id: "bonds",
+    incomeKinds: ["interest"],
     name: "Obligations & taux",
     nameEn: "Bonds & fixed income",
     icon: "ti-percentage",
@@ -63,6 +83,7 @@ export const ASSET_TYPES = [
   },
   {
     id: "real_estate",
+    incomeKinds: ["rent"],
     name: "Immobilier",
     nameEn: "Real Estate",
     icon: "ti-building",
@@ -73,6 +94,7 @@ export const ASSET_TYPES = [
   },
   {
     id: "vehicle",
+    incomeKinds: [],
     name: "Véhicule",
     nameEn: "Vehicle",
     icon: "ti-car",
@@ -83,6 +105,7 @@ export const ASSET_TYPES = [
   },
   {
     id: "retirement",
+    incomeKinds: [],
     name: "Épargne retraite",
     nameEn: "Retirement Savings",
     icon: "ti-hourglass",
@@ -93,6 +116,7 @@ export const ASSET_TYPES = [
   },
   {
     id: "other_assets",
+    incomeKinds: ["rent", "dividend", "interest", "other"],
     name: "Autres actifs",
     nameEn: "Other Assets",
     icon: "ti-diamond",
@@ -103,6 +127,7 @@ export const ASSET_TYPES = [
   },
   {
     id: "debt",
+    incomeKinds: [],
     name: "Dettes & crédits",
     nameEn: "Debts & Loans",
     icon: "ti-trending-down",
