@@ -8,7 +8,7 @@ import { purgeReceiptPaths } from "../utils/purgeReceipts";
 import IconPicker from "../components/IconPicker";
 import { AVATAR_COLOR_PALETTE } from "../utils/memberColors";
 import { useTranslation } from "../hooks/useTranslation";
-import { useRevealOnOpen } from "../hooks/useRevealOnOpen";
+import { useRevealOnOpen, revealElement } from "../hooks/useRevealOnOpen";
 import { useCategoryName } from "../hooks/useCategoryName";
 import AdvancedSplitSelector from "../components/AdvancedSplitSelector";
 import { getMemberKey } from "../utils/members";
@@ -181,6 +181,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
   const splitRef = useRef(null);
   const tagPanelRef = useRef(null);
   const currencyPanelRef = useRef(null);
+  const attributionRef = useRef(null);
   const [description, setDescription] = useState(editingTx?.description || "");
   const [tags, setTags] = useState(editingTx?.tags || []);
   const [showTagManager, setShowTagManager] = useState(false);
@@ -1144,7 +1145,14 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
   // L'attribution reste ÉCRITE sur le membre unique (voir soloAttribution
   // ci-dessous) : un partenaire qui rejoint plus tard retrouve un historique
   // déjà attribué, pas des transactions orphelines.
+  // Choisir un membre remonte la carte plus haut que les panneaux (12 px au lieu
+  // de 72) : ici on ne cherche pas à montrer la carte — elle est sous le doigt —
+  // mais à DÉGAGER CE QUI SUIT, partage et tags, qui restaient sous le bord de
+  // l'écran et obligeaient encore à faire défiler.
+  const revealAfterAttribution = () => revealElement(attributionRef.current, 12);
+
   const attributionCard = !isSolo && members.length > 0 && (
+    <div ref={attributionRef}>
     <SectionCard accent="var(--mint)" icon="ti-users" title={t("tx_paid_for")}>
       <div style={{ marginTop: 14, fontSize: 11.5, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: "0.04em", fontWeight: 600 }}>
         {needsMemberAttribution ? t("tx_received_by") : t("tx_paid_by")}
@@ -1153,7 +1161,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
         {members.map((m) => {
           const sel = paidBy === getMemberKey(m);
           return (
-            <button key={getMemberKey(m)} onClick={() => setPaidBy(getMemberKey(m))} style={segStyle(sel, "var(--mint)")}>
+            <button key={getMemberKey(m)} onClick={() => { setPaidBy(getMemberKey(m)); revealAfterAttribution(); }} style={segStyle(sel, "var(--mint)")}>
               {m.name}
             </button>
           );
@@ -1166,7 +1174,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
       <div style={{ marginTop: 8, display: "flex", gap: 8 }}>
         {financeMode === "common" && (
           <button
-            onClick={() => { setSplit("50/50"); setSplitMode("simple"); setSplitDetails(null); }}
+            onClick={() => { setSplit("50/50"); setSplitMode("simple"); setSplitDetails(null); revealAfterAttribution(); }}
             style={{ ...segStyle(split === "50/50" && splitMode === "simple", "var(--mint)"), flex: 1 }}
           >
             {t("tx_common")}
@@ -1177,7 +1185,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
           return (
             <button
               key={getMemberKey(m)}
-              onClick={() => { setSplit(getMemberKey(m)); setSplitMode("simple"); }}
+              onClick={() => { setSplit(getMemberKey(m)); setSplitMode("simple"); revealAfterAttribution(); }}
               style={{ ...segStyle(sel, "var(--mint)"), flex: 1 }}
             >
               {m.name}
@@ -1213,6 +1221,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
         </div>
       )}
     </SectionCard>
+    </div>
   );
 
   const tagsCard = (
