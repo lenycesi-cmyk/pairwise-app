@@ -63,11 +63,49 @@
 <header class="site">
   <div class="bar">
     <a href="/" class="logo"><span class="p">P</span> PairWise</a>
-    <!-- Les rubriques dont la page n'existe pas encore ne sont pas des liens :
-         on ne pose pas de lien mort sur le site (chaque 404 coûte en SEO). -->
+    <!-- Méga-menu repris de l'en-tête de l'app (OnboardingHeader.jsx). Les
+         rubriques dont la page existe sont de vrais liens ; les autres restent
+         inertes — on ne pose pas de lien mort (chaque 404 coûte en SEO). -->
     <nav>
-      <span class="soon">Fonctionnalités</span>
-      <span class="soon">Pour qui</span>
+      <span class="mm" data-mm>
+        <button type="button" aria-expanded="false">Fonctionnalités <i class="ti ti-chevron-down"></i></button>
+        <span class="mm-panel">
+          <span class="mm-cols">
+            <span class="mm-col">
+              <span class="mm-h5">Suivre son argent</span>
+              <a class="mm-it" href="/fonctionnalites/saisie-langage-naturel"><span class="mi" style="background:var(--tang-light);color:var(--tang)"><i class="ti ti-sparkles"></i></span><span><b>Saisie en langage naturel</b><small>« 60€ course hier » et c'est rempli</small></span></a>
+              <a class="mm-it" href="/fonctionnalites/transactions-recus"><span class="mi" style="background:var(--sky-light);color:var(--sky)"><i class="ti ti-list-details"></i></span><span><b>Transactions &amp; reçus</b><small>Historique, photos, recherche</small></span></a>
+              <span class="mm-it dim"><span class="mi" style="background:var(--amber-light);color:var(--amber)"><i class="ti ti-tag"></i></span><span><b>Catégories &amp; tags</b><small>Rangement automatique</small></span></span>
+              <span class="mm-it dim"><span class="mi" style="background:var(--sage-light);color:var(--sage)"><i class="ti ti-world"></i></span><span><b>Multi-devises</b><small>Idéal voyageurs &amp; nomades</small></span></span>
+            </span>
+            <span class="mm-col">
+              <span class="mm-h5">Analyser</span>
+              <span class="mm-it dim"><span class="mi" style="background:var(--amber-light);color:var(--amber)"><i class="ti ti-chart-pie"></i></span><span><b>Budgets</b><small>Par catégorie, avec alertes</small></span></span>
+              <span class="mm-it dim"><span class="mi" style="background:var(--sky-light);color:var(--sky)"><i class="ti ti-chart-line"></i></span><span><b>Rapports &amp; insights</b><small>Ce qui bouge, mois par mois</small></span></span>
+              <span class="mm-it dim"><span class="mi" style="background:var(--lavi-light);color:var(--lavi)"><i class="ti ti-diamond"></i></span><span><b>Patrimoine &amp; investissements</b><small>Actifs, crédits, évolution</small></span></span>
+            </span>
+            <span class="mm-col">
+              <span class="mm-h5">Aller plus loin</span>
+              <span class="mm-it dim"><span class="mi" style="background:var(--tang-light);color:var(--tang)"><i class="ti ti-users"></i></span><span><b>Dépenses partagées</b><small>Qui doit quoi, à deux</small></span></span>
+              <a class="mm-it" href="/fonctionnalites/objectifs"><span class="mi" style="background:var(--lavi-light);color:var(--lavi)"><i class="ti ti-target-arrow"></i></span><span><b>Objectifs &amp; projets</b><small>Seul ou en commun</small></span></a>
+              <a class="mm-it" href="/securite"><span class="mi" style="background:var(--sky-light);color:var(--sky)"><i class="ti ti-shield-lock"></i></span><span><b>Sécurité</b><small>Chiffré, lecture seule</small></span></a>
+            </span>
+          </span>
+        </span>
+      </span>
+      <span class="mm" data-mm>
+        <button type="button" aria-expanded="false">Pour qui <i class="ti ti-chevron-down"></i></button>
+        <span class="mm-panel">
+          <span class="mm-cols one">
+            <span class="mm-col">
+              <span class="mm-it dim"><span class="mi" style="background:var(--sky-light);color:var(--sky)"><i class="ti ti-user"></i></span><span><b>En solo</b><small>Gérer ses finances personnelles</small></span></span>
+              <span class="mm-it dim"><span class="mi" style="background:var(--tang-light);color:var(--tang)"><i class="ti ti-users"></i></span><span><b>À deux</b><small>Dépenses partagées, budgets communs</small></span></span>
+              <span class="mm-it dim"><span class="mi" style="background:var(--sage-light);color:var(--sage)"><i class="ti ti-plane-tilt"></i></span><span><b>Voyageurs &amp; nomades</b><small>Le multi-devises comme atout</small></span></span>
+              <span class="mm-it dim"><span class="mi" style="background:var(--lavi-light);color:var(--lavi)"><i class="ti ti-world"></i></span><span><b>Expatriés</b><small>Revenus ici, charges là-bas</small></span></span>
+            </span>
+          </span>
+        </span>
+      </span>
       <span class="soon">Comparatifs</span>
       <span class="soon">Tarifs</span>
       <a href="/securite">Sécurité</a>
@@ -76,18 +114,34 @@
   </div>
 </header>
 
-<!-- ============ HERO ============ -->
-<section class="home-hero">
-  <div class="wrap">
-    <span class="badge"><i class="ti ti-lock"></i> Sans compte pour commencer · tes données restent chez toi</span>
-    <h1 class="display">Tes dépenses, ton budget et ton patrimoine. Une seule app.</h1>
-    <p class="sub">Note une dépense en une phrase, suis tes budgets, partage les frais et vois ton
-      patrimoine grandir — seul, à deux, et dans toutes les devises.</p>
-    <div class="actions">
-      <a href="https://app.pairwise.finance/" class="btn-primary">C'est parti <i class="ti ti-arrow-right"></i></a>
-      <span class="microtrust"><i class="ti ti-sparkles"></i> Gratuit · aucune carte bancaire</span>
-    </div>
+<!-- ============ HERO : l'accueil de l'app, en statique ============ -->
+<!-- Reproduit OnboardingEntry.jsx à l'état « aucune entrée ». Valider la
+     saisie emmène sur app.pairwise.finance en passant le texte dans l'URL :
+     localStorage ne traverse pas la frontière d'origine, donc sans ce relais
+     l'utilisateur devrait retaper ce qu'il vient d'écrire. -->
+<section class="app-hero">
+  <span class="badge"><i class="ti ti-lock"></i> Aucune inscription · tes données restent sur cet appareil</span>
+  <h1 class="display">Entre un revenu, une dépense ou un investissement.</h1>
+  <p class="sub">On organise et analyse tout pour toi.</p>
 
+  <form class="nl-hero" id="nlform" action="https://app.pairwise.finance/" method="get">
+    <i class="ti ti-sparkles"></i>
+    <!-- `name="e"` : c'est le paramètre que lit `consumeHandoff` côté app.
+         Le formulaire fonctionne SANS JavaScript — la navigation et le passage
+         du texte sont natifs ; le script n'ajoute que les exemples défilants
+         et les pastilles. -->
+    <input type="text" name="e" id="nlinput" autocomplete="off"
+           placeholder="🛒 60€ course hier" aria-label="Entre un revenu, une dépense ou un investissement" />
+    <button type="submit">C'est parti <i class="ti ti-arrow-right"></i></button>
+  </form>
+
+  <p class="ex-label">Essaie :</p>
+  <div class="ex" id="exlist"></div>
+</section>
+
+<!-- ============ APERÇUS ============ -->
+<section>
+  <div class="wrap">
     <div class="shots" aria-hidden="true">
       <div class="shot">
         <div class="cap">Noter une dépense</div>
@@ -275,6 +329,96 @@
   </div>
   <div class="wrap copy">© 2026 PairWise · Fait avec soin · Tes données t'appartiennent</div>
 </footer>
+
+<script>
+// Accueil de l'apex — trois comportements, aucun framework.
+//
+// Tout est PROGRESSIF : le formulaire navigue et transmet son texte sans une
+// ligne de JavaScript (action + method=get + name="e"). Ce script n'ajoute que
+// le confort. Si le navigateur ne l'exécute pas, la page reste utilisable.
+(function () {
+  "use strict";
+
+  // 1. Exemples cliquables. Mêmes libellés que src/data/onboardingChips.js, et
+  //    surtout même code couleur par NATURE — sage ce qui entre, corail ce qui
+  //    sort, lavande ce qui est placé. Un exemple qui changerait de couleur
+  //    entre le site et l'app dirait deux choses différentes du même mot.
+  var CHIPS = [
+    { em: "💰", text: "2400€ salaire Juillet", kind: "income" },
+    { em: "🛒", text: "60€ course hier", kind: "expense" },
+    { em: "🍽️", text: "30€ Déjeuner", kind: "expense" },
+    { em: "🏠", text: "800€ Crédit Immo", kind: "expense" },
+    { em: "🔑", text: "400€ Loyer perçu Studio", kind: "income" },
+    { em: "📱", text: "20€ Abonnement Téléphone", kind: "expense" },
+    { em: "📈", text: "ETF 250 €", kind: "investment" },
+    { em: "🛡️", text: "300 € Assurance Vie", kind: "investment" }
+  ];
+
+  var input = document.getElementById("nlinput");
+  var list = document.getElementById("exlist");
+
+  if (list && input) {
+    CHIPS.forEach(function (c) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "k-" + c.kind;
+      b.textContent = c.em + " " + c.text;
+      // Un clic REMPLIT le champ, il ne valide pas : l'utilisateur voit ce
+      // qu'il s'apprête à envoyer, et peut le corriger avant de partir.
+      b.addEventListener("click", function () {
+        input.value = c.text;
+        input.focus();
+      });
+      list.appendChild(b);
+    });
+  }
+
+  // 2. Exemples défilants dans le champ vide. S'arrête dès que l'utilisateur
+  //    tape : un texte fantôme qui bouge sous une vraie saisie se lit comme un
+  //    bug. Respecte aussi « animations réduites ».
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (input && !reduce) {
+    var i = 0;
+    var timer = setInterval(function () {
+      if (input.value) { clearInterval(timer); return; }
+      i = (i + 1) % CHIPS.length;
+      input.placeholder = CHIPS[i].em + " " + CHIPS[i].text;
+    }, 2600);
+  }
+
+  // 3. Méga-menus. Ouverture au clic (et non au survol) : au survol, un menu
+  //    de cette taille s'ouvre par accident dès qu'on traverse la barre.
+  var menus = [].slice.call(document.querySelectorAll("[data-mm]"));
+  menus.forEach(function (m) {
+    var btn = m.querySelector("button");
+    btn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      var isOpen = m.getAttribute("data-open") === "1";
+      menus.forEach(function (o) {
+        o.setAttribute("data-open", "0");
+        o.querySelector("button").setAttribute("aria-expanded", "false");
+      });
+      m.setAttribute("data-open", isOpen ? "0" : "1");
+      btn.setAttribute("aria-expanded", isOpen ? "false" : "true");
+    });
+  });
+  // Refermer au clic ailleurs et à Échap — sans quoi un menu ouvert reste
+  // en travers de la page et il faut deviner comment s'en débarrasser.
+  document.addEventListener("click", function () {
+    menus.forEach(function (o) {
+      o.setAttribute("data-open", "0");
+      o.querySelector("button").setAttribute("aria-expanded", "false");
+    });
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key !== "Escape") return;
+    menus.forEach(function (o) {
+      o.setAttribute("data-open", "0");
+      o.querySelector("button").setAttribute("aria-expanded", "false");
+    });
+  });
+})();
+</script>
 
 </body>
 </html>
