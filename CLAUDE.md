@@ -380,11 +380,27 @@ Trois points à ne pas défaire :
 Ce qui motive l'archivage plutôt que la suppression, côté budgets : `budgetHistory` est indexé par id de
 budget, donc **supprimer un budget orpheline ses périodes clôturées** — invisibles et irrécupérables.
 
-L'archivage du **patrimoine** n'est PAS fait et n'est pas symétrique : archiver un actif *change le
-patrimoine net*, alors qu'archiver un budget est cosmétique. Il faudra le nommer « Vendu / Clôturé »,
-filtrer aussi côté serveur dans [functions/netWorthSnapshots.js](functions/netWorthSnapshots.js) (sinon
-l'actif reste coté chaque nuit et pèse dans les instantanés), rompre le lien `incomeAccountLinks`
-correspondant, et prévenir quand un objectif s'adosse à l'actif archivé.
+**L'archivage du patrimoine n'est PAS symétrique des deux autres** : archiver un actif *change le
+patrimoine net*, là où archiver un budget est cosmétique. D'où quatre différences, toutes délibérées :
+
+- **Le geste s'appelle « Vendu / Clôturé »**, pas « Archiver » (`asset_archive_button`, dans
+  `AddAssetScreen`). Le libellé nomme l'effet sur le chiffre plutôt que de le laisser découvrir après coup.
+- **Le filtre est AUSSI côté serveur.** `functions/netWorthSnapshots.js` relit les actifs depuis le doc
+  couple : sans filtre, un actif vendu resterait coté chaque nuit (quota d'API dépensé pour rien) et
+  pèserait dans l'instantané du lendemain — figé pour toujours. Pour que les deux côtés ne divergent
+  jamais, `utils/archive.js` est **copié à l'empaquetage** dans le zip des fonctions (`SHARED_MODULES`),
+  comme `assetValuation.js` ; `activeItems` existe pour ça.
+- **Le lien `incomeAccountLinks` est rompu à l'archivage**, sinon les revenus de la sous-catégorie
+  continueraient de créditer un compte que plus personne ne voit. Il n'est **pas rétabli** au
+  désarchivage : rien ne dit qu'on le veut, et le remettre en silence enverrait de l'argent quelque part
+  sans que personne l'ait demandé.
+- **On prévient avant, jamais après** : un objectif adossé à l'actif verrait sa progression retomber, et
+  ni cette chute ni le lien rompu ne se voient une fois le geste fait.
+
+`archivedValue` fige la dernière valeur connue au moment d'archiver — un actif archivé n'étant plus coté,
+plus rien ne saurait dire ensuite ce qu'il valait. L'historique, lui, n'a demandé aucun travail : les
+instantanés sont figés date par date et jamais recalculés, donc la courbe montre l'actif tant qu'il était
+détenu, puis la marche à la vente.
 
 **Income subcategories can be linked to a Wealth account** via the `incomeAccountLinks` map
 (`{ subcategoryName: assetId }`, set whole via `setIncomeAccountLinks`, edited in

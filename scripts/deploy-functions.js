@@ -49,6 +49,7 @@ const SHARED_MODULES = [
   ["src/utils/priceTargets.js", "shared/priceTargets.mjs"],
   ["src/utils/loanMath.js", "shared/loanMath.mjs"],
   ["src/data/assetTypes.js", "shared/assetTypes.mjs"],
+  ["src/utils/archive.js", "shared/archive.mjs"],
 ];
 
 const FUNCTIONS_TO_DEPLOY = [

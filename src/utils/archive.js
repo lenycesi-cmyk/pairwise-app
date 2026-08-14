@@ -16,6 +16,15 @@ export function isArchived(item) {
   return Boolean(item && item.archivedAt);
 }
 
+// Les seuls éléments encore vivants. Existe à part de `partitionArchived` parce
+// que le serveur en a besoin SANS le reste : ce module est copié tel quel dans
+// le paquet des Cloud Functions (voir SHARED_MODULES), où la règle d'archivage
+// doit être exactement la même qu'au navigateur — un actif vendu qui resterait
+// coté chaque nuit continuerait de peser dans les instantanés du lendemain.
+export function activeItems(list) {
+  return (list || []).filter((x) => !isArchived(x));
+}
+
 // Sépare une liste en { active, archived }. `active` GARDE l'ordre d'origine
 // (celui du glisser-déposer), `archived` est trié du plus récemment archivé au
 // plus ancien : dans une archive, ce qu'on vient de ranger est ce qu'on cherche.

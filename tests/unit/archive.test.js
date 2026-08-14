@@ -1,5 +1,26 @@
 import { describe, it, expect } from "vitest";
-import { isArchived, partitionArchived, mergeReorder, archivedTags } from "../../src/utils/archive.js";
+import { isArchived, activeItems, partitionArchived, mergeReorder, archivedTags } from "../../src/utils/archive.js";
+
+describe("activeItems", () => {
+  // C'est la fonction que la fonction planifiée importe (copiée dans le paquet
+  // des Cloud Functions). Le serveur et le navigateur doivent trancher
+  // exactement pareil, sans quoi un actif vendu resterait coté chaque nuit et
+  // pèserait dans un instantané que rien ne recalcule ensuite.
+  it("ne garde que les éléments non archivés", () => {
+    const list = [{ id: "a" }, { id: "b", archivedAt: 1 }, { id: "c", archivedAt: null }];
+    expect(activeItems(list).map((x) => x.id)).toEqual(["a", "c"]);
+  });
+
+  it("tolère une liste absente — le serveur lit un champ qui peut ne pas exister", () => {
+    expect(activeItems(undefined)).toEqual([]);
+    expect(activeItems(null)).toEqual([]);
+  });
+
+  it("s'accorde avec partitionArchived sur la même liste", () => {
+    const list = [{ id: "a" }, { id: "b", archivedAt: 5 }, { id: "c" }];
+    expect(activeItems(list)).toEqual(partitionArchived(list).active);
+  });
+});
 
 describe("isArchived", () => {
   it("ne considère archivé que ce qui porte un archivedAt exploitable", () => {

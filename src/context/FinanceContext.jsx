@@ -35,7 +35,7 @@ import {
 } from "../utils/canonicalData";
 import { createCoupleAdapter } from "./coupleAdapter";
 import { removeFrom, findIn } from "../utils/collectionOps";
-import { partitionArchived, mergeReorder } from "../utils/archive";
+import { partitionArchived, mergeReorder, isArchived } from "../utils/archive";
 import { resolveNavTabs } from "../data/navTabsMeta";
 import { readBootTheme, writeBootTheme, readBootNavTabs, writeBootNavTabs } from "../utils/bootPrefs";
 
@@ -704,6 +704,41 @@ export function FinanceProvider({ children }) {
     await couple.removeItem("assets", assets, id);
   }
 
+  // Archive un actif — « Vendu / Clôturé » à l'écran, et le mot compte : à la
+  // différence d'un budget archivé (purement cosmétique), un actif archivé
+  // FAIT BAISSER LE PATRIMOINE NET du jour où on le fait. Nommer le geste par
+  // son effet réel évite de le faire découvrir après coup.
+  //
+  // `archivedValue` fige la dernière valeur connue pour que la ligne archivée
+  // reste lisible : la valorisation d'un actif coté passe par les cours en
+  // direct, qu'on cesse justement de demander une fois l'actif archivé.
+  async function archiveAsset(id, { archivedValue = null } = {}) {
+    if (!coupleId) return;
+    await couple.patchItem("assets", assets, id, {
+      archivedAt: Date.now(),
+      ...(archivedValue != null ? { archivedValue } : {}),
+    });
+
+    // Un lien revenu → compte qui pointe vers cet actif doit être rompu, sinon
+    // les revenus de cette sous-catégorie continueraient de créditer un compte
+    // que plus personne ne voit.
+    const orphaned = Object.entries(incomeAccountLinks).filter(([, assetId]) => assetId === id);
+    if (orphaned.length > 0) {
+      const next = { ...incomeAccountLinks };
+      for (const [sub] of orphaned) delete next[sub];
+      setIncomeAccountLinksState(next); // optimiste
+      await couple.setFields({ incomeAccountLinks: next });
+    }
+  }
+
+  // Le lien revenu → compte rompu à l'archivage n'est PAS rétabli ici : rien ne
+  // dit qu'on veut de nouveau y verser ses revenus, et le rétablir en silence
+  // enverrait de l'argent quelque part sans que personne l'ait demandé.
+  async function unarchiveAsset(id) {
+    if (!coupleId) return;
+    await couple.patchItem("assets", assets, id, { archivedAt: null });
+  }
+
   // ── Versements vers des actifs (lot 3) ──────────────────────────────────────
   // Crédite immédiatement un actif à valeur stockée d'un montant (converti dans
   // la devise de l'actif) et alimente son coût investi (plus-value latente). Sert
@@ -934,8 +969,19 @@ export function FinanceProvider({ children }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [transactions, myKey]
   );
+  // Deux filtres se composent ici : le privé (ci-dessus) et l'archivage. Un
+  // actif archivé — vendu ou clôturé — sort du patrimoine net, de la
+  // répartition, du score de santé et des objectifs, tous branchés sur
+  // `assets`. Il reste dans les instantanés des jours où il était détenu :
+  // ceux-ci sont figés date par date et jamais recalculés, donc la courbe
+  // raconte l'histoire vraie sans qu'on ait rien à faire.
   const visibleAssets = useMemo(
-    () => assets.filter(isVisibleToMe),
+    () => assets.filter((a) => isVisibleToMe(a) && !isArchived(a)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [assets, myKey]
+  );
+  const archivedAssets = useMemo(
+    () => partitionArchived(assets.filter(isVisibleToMe)).archived,
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [assets, myKey]
   );
@@ -1071,9 +1117,12 @@ export function FinanceProvider({ children }) {
     incomeAccountLinks,
     setIncomeAccountLinks,
     assets: visibleAssets,
+    archivedAssets,
     addAsset,
     updateAsset,
     removeAsset,
+    archiveAsset,
+    unarchiveAsset,
     assetContributions,
     assetContributionsApplied,
     contributeToAsset,
