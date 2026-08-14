@@ -23,6 +23,16 @@ export function getRange(periodType, anchor, customRange, locale) {
       start: new Date(y, m, 1),
       end: new Date(y, m + 1, 1),
       label: anchor.toLocaleDateString(locale, { month: "long", year: "numeric" }),
+      // Libellé COMPACT réservé au bouton de sélection, qui est encadré par les
+      // flèches ‹ › : en mois long, sa largeur changeait à chaque navigation et
+      // les flèches se déplaçaient sous le doigt. Le format court d'Intl suit
+      // exactement la règle voulue en français — les mois de 4 lettres ou moins
+      // restent entiers (mars, mai, juin, août), les autres s'abrègent
+      // (janv., sept., déc.).
+      //
+      // `label` reste LONG : il alimente aussi une phrase (« Voici le résumé de
+      // tes flux pour Septembre 2026 »), où une abréviation serait déplacée.
+      labelShort: anchor.toLocaleDateString(locale, { month: "short", year: "numeric" }),
     };
   }
   if (periodType === "last3") {

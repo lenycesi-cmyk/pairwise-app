@@ -781,7 +781,7 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
       anchor={anchor}
       setAnchor={setAnchor}
       setAnchorNow={() => setAnchorRaw(new Date())}
-      rangeLabel={range.label}
+      rangeLabel={range.labelShort || range.label}
       customRange={customRange}
       setCustomRange={setCustomRange}
     />
