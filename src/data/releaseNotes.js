@@ -1,0 +1,55 @@
+// Notes de version — ÉCRITES À LA MAIN, et c'est délibéré.
+//
+// Une génération automatique à partir des commits ne serait pas lisible : elle
+// dirait « corrige la zone morte temporelle » là où l'utilisateur doit lire
+// « l'ajout de transaction remarche ». Le prix est un entretien : sans quelques
+// lignes ajoutées ici à chaque lot livré, la feuille se tait.
+//
+// Ordre : le plus RÉCENT en premier. `version` sert de clé de comparaison — on
+// prend la date au format `AAAA.MM.JJ`, qui se trie comme une chaîne et se lit
+// comme une date, l'app n'ayant par ailleurs aucun numéro de version.
+//
+// `icon` est un emoji : le fichier est du contenu, pas de l'interface, et une
+// classe d'icône y ferait entrer une dépendance de rendu.
+
+export const RELEASE_NOTES = [
+  {
+    version: "2026.08.14",
+    date: "2026-08-14",
+    items: [
+      {
+        icon: "🗂",
+        fr: { title: "Archiver plutôt que supprimer", body: "Budgets, objectifs, tags et actifs se rangent dans une section « Archivés » au lieu de disparaître. Un budget archivé garde son historique de périodes." },
+        en: { title: "Archive instead of deleting", body: "Budgets, goals, tags and assets move to an “Archived” section instead of vanishing. An archived budget keeps its period history." },
+      },
+      {
+        icon: "🙈",
+        fr: { title: "Masquer les montants", body: "Un œil dans l'en-tête du Patrimoine remplace les chiffres par des points — de quoi montrer un écran sans montrer ce qu'on possède." },
+        en: { title: "Hide amounts", body: "An eye in the Wealth header replaces figures with dots — show a screen without showing what you own." },
+      },
+      {
+        icon: "↩️",
+        fr: { title: "Retour plus juste", body: "Le bouton retour ramène à l'onglet d'où l'on vient, à l'endroit exact où on l'avait laissé, au lieu de renvoyer à l'Accueil tout en haut." },
+        en: { title: "Better back button", body: "Back returns to the tab you came from, at the exact spot you left it, instead of jumping to Home at the top." },
+      },
+      {
+        icon: "⚡",
+        fr: { title: "Saisie sans faire défiler", body: "Catégorie, sous-catégorie, membres, récurrence et tags remontent d'eux-mêmes à l'écran quand on les ouvre." },
+        en: { title: "Entry without scrolling", body: "Category, subcategory, members, recurrence and tags scroll themselves into view when opened." },
+      },
+      {
+        icon: "🗓",
+        fr: { title: "Sélecteur de période", body: "Flèches et choix du mois réunis en un seul bouton, mois abrégés pour une largeur stable, et période personnalisée qui affiche enfin les bonnes dates." },
+        en: { title: "Period selector", body: "Arrows and month picker merged into one control, abbreviated months for a stable width, and a custom period that finally shows the right dates." },
+      },
+      {
+        icon: "👤",
+        fr: { title: "Espace solo", body: "Seul, tout ce qui suppose deux personnes disparaît — suivi des dettes, « payé par », propriétaire d'un actif. Au passage, les dépenses ne sont plus comptées pour moitié dans les budgets personnels." },
+        en: { title: "Solo space", body: "On your own, everything that assumes two people is hidden — debt tracking, “paid by”, asset ownership. Personal budgets also stop counting only half of your spending." },
+      },
+    ],
+  },
+];
+
+// Version la plus récente publiée, ou null si le fichier est vide.
+export const LATEST_RELEASE = RELEASE_NOTES[0]?.version || null;

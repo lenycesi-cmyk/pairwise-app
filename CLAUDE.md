@@ -529,6 +529,21 @@ is wrapped in a tiny component that calls the hook and renders `null`, then moun
 inside `<FinanceProvider>` in App.jsx (`RecurringGeneratorRunner`, `BudgetAlertsRunner`). Follow this
 pattern for new cross-tab background effects instead of embedding them in a specific screen.
 
+**Notes de version** ([data/releaseNotes.js](src/data/releaseNotes.js)) — une feuille « Quoi de neuf »
+s'ouvre au démarrage quand des notes ont paru depuis la dernière visite. Quatre décisions :
+
+- **Écrites à la main**, jamais générées depuis les commits : un journal de commits dirait « corrige la
+  zone morte temporelle » là où l'utilisateur doit lire « l'ajout de transaction remarche ». Le prix est
+  un ENTRETIEN — sans quelques lignes ajoutées à chaque lot livré, la feuille se tait.
+- **La version vue est gardée sur l'APPAREIL** (localStorage, `utils/releaseSeen.js`), pas sur le compte :
+  une mise à jour est propre à une installation. Corollaire assumé, le/la partenaire la verra de son côté.
+- **On montre TOUT ce qui a été manqué**, pas seulement la dernière version : revenir après plusieurs
+  lots et n'en voir qu'un cacherait le reste sans le dire. D'où des versions en `AAAA.MM.JJ`, qui se
+  comparent comme des chaînes.
+- **Rien à la première ouverture** (`seedReleasesIfFirstRun`) : tout est nouveau pour qui découvre l'app.
+  Et une entrée « Nouveautés » dans les Réglages rouvre l'historique complet, sans quoi une feuille
+  refermée par réflexe serait perdue pour toujours.
+
 **i18n is a flat key lookup**, not a library: `data/translations.js` holds FR/EN strings, `useTranslation()`
 reads `language` off FinanceContext and returns a `t(key)` function.
 
