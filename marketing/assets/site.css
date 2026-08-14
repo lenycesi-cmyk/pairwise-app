@@ -484,6 +484,11 @@ footer.site span.soon { display: block; font-size: 14px; margin-bottom: 8px; col
 .mm { position: relative; }
 .mm > button { background: none; border: none; font-family: inherit; font-weight: 600; font-size: 14.5px; color: var(--ink-2); cursor: pointer; display: inline-flex; align-items: center; gap: 4px; padding: 0; }
 .mm > button:hover, .mm[data-open="1"] > button { color: var(--ink); }
+/* Sur une page de fonctionnalité, la rubrique se colore : sans ça, rien
+   n'indique où l'on se trouve dans le site. */
+nav[data-in-features] .mm[data-menu="features"] > button { color: var(--tang); }
+.mm-it[aria-current="page"] { background: var(--panel); }
+.mm-it[aria-current="page"] b { color: var(--tang); }
 .mm > button i { font-size: 15px; transition: transform .15s ease; }
 .mm[data-open="1"] > button i { transform: rotate(180deg); }
 .mm-panel { display: none; position: absolute; top: calc(100% + 14px); left: 50%; transform: translateX(-50%); background: var(--bg-card); border: 1px solid var(--rule); border-radius: 16px; box-shadow: var(--shadow-lg); padding: 18px; z-index: 30; }
@@ -500,3 +505,10 @@ a.mm-it:hover { background: var(--panel); }
 .mm-it small { display: block; font-size: 12px; color: var(--ink-3); line-height: 1.4; }
 .mm-it.dim b { color: var(--ink-2); font-weight: 600; }
 @media (max-width: 980px) { .mm-panel { display: none !important; } }
+
+/* Zone inversée : maquette à GAUCHE, texte à droite. L'ordre du DOM reste
+   texte-puis-maquette — c'est lui que suivent les lecteurs d'écran, et une
+   maquette décorative (aria-hidden) annoncée en premier n'aurait aucun sens.
+   Seul l'affichage change. */
+.steps.rev .step-copy { order: 2; }
+.steps.rev .phone { order: 1; }
