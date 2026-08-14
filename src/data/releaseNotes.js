@@ -14,6 +14,17 @@
 
 export const RELEASE_NOTES = [
   {
+    version: "2026.08.14.3",
+    date: "2026-08-14",
+    items: [
+      {
+        icon: "⌨️",
+        fr: { title: "Champs de saisie et clavier", body: "Dans l'ajout d'un actif, toucher un champ de texte remonte l'écran une fois le clavier ouvert, au lieu de laisser le champ coincé au milieu." },
+        en: { title: "Text fields and keyboard", body: "In the add-asset form, tapping a text field scrolls the screen once the keyboard is up, instead of leaving the field stuck mid-screen." },
+      },
+    ],
+  },
+  {
     version: "2026.08.14.2",
     date: "2026-08-14",
     items: [
