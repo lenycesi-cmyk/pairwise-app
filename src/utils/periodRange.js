@@ -59,10 +59,20 @@ export function getRange(periodType, anchor, customRange, locale) {
     const end = customRange?.end
       ? new Date(new Date(customRange.end).getTime() + 24 * 60 * 60 * 1000)
       : new Date(y + 1, 0, 1);
+    const last = new Date(end.getTime() - 1);
+    const sameYear = start.getFullYear() === last.getFullYear();
+    // L'année n'est écrite qu'UNE fois quand la plage ne change pas d'année :
+    // « 1 janv. – 31 déc. 2026 » plutôt que de la répéter deux fois.
+    const fmt = (d, opts, withYear) =>
+      d.toLocaleDateString(locale, withYear ? { ...opts, year: "numeric" } : opts);
     return {
       start,
       end,
-      label: `${start.toLocaleDateString(locale)} – ${new Date(end.getTime() - 1).toLocaleDateString(locale)}`,
+      label: `${fmt(start, { day: "numeric", month: "long" }, !sameYear)} – ${fmt(last, { day: "numeric", month: "long" }, true)}`,
+      // Format court pour la pastille, qui est contrainte en largeur. Le format
+      // numérique complet d'avant (« 01/01/2026 – 31/12/2026 ») faisait 23
+      // caractères et débordait de l'en-tête.
+      labelShort: `${fmt(start, { day: "numeric", month: "short" }, !sameYear)} – ${fmt(last, { day: "numeric", month: "short" }, true)}`,
     };
   }
   return {
@@ -147,4 +157,12 @@ export function periodBuckets(periodType, range, locale, granularityOverride) {
 export function monthsInRange(range) {
   const ms = range.end.getTime() - range.start.getTime();
   return Math.max(1, Math.round(ms / (1000 * 60 * 60 * 24 * 30.44)));
+}
+
+// Date → "YYYY-MM-DD" en heure LOCALE. `toISOString()` passerait par UTC et
+// décalerait d'un jour à l'est de Greenwich — un 1er janvier deviendrait un
+// 31 décembre.
+export function toDateInputValue(d) {
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
