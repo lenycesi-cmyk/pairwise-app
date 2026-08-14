@@ -340,3 +340,86 @@ footer.site span.soon { display: block; font-size: 14px; margin-bottom: 8px; col
 .aud-cards .ic { font-size: 23px; color: var(--tang); }
 .aud-cards h3 { font-family: var(--font-display); font-size: 18px; font-weight: 700; margin: 10px 0 6px; letter-spacing: -.02em; }
 .aud-cards p { margin: 0; font-size: 14.5px; color: var(--ink-2); }
+
+/* ============ Page Objectifs & projets ============ */
+/* Sémantique de couleur propre à cette page, reprise de l'app : un objectif est
+   LAVANDE (barre, pourcentage, pastille, comptes liés) ; le SAGE signale un
+   objectif atteint ou une trajectoire tenue ; le SKY une progression portée par
+   des placements cotés. La couleur porte donc une information, elle ne décore
+   pas — d'où trois variantes de bandeau plutôt qu'un accent unique. */
+
+/* ---- Liste d'objectifs (maquette) ---- */
+.goal { background: var(--panel); border-radius: 16px; padding: 13px; margin-bottom: 10px; }
+.goal.done { background: var(--sage-light); }
+.goal .top { display: flex; align-items: center; gap: 10px; }
+.goal .ic { flex: none; width: 32px; height: 32px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; background: var(--lavi-light); color: var(--lavi); }
+.goal.done .ic { background: var(--bg-card); color: var(--sage); }
+.goal .nm { flex: 1; min-width: 0; font-size: 14.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.goal .pc { font-size: 13px; font-weight: 800; color: var(--lavi); }
+.goal.done .pc { color: var(--sage); }
+.goal .track { height: 8px; border-radius: 99px; background: var(--bg-card); overflow: hidden; margin: 10px 0 7px; }
+.goal .track span { display: block; height: 100%; border-radius: 99px; background: var(--lavi); }
+.goal.done .track span { background: var(--sage); }
+.goal .foot { display: flex; justify-content: space-between; font-size: 12px; color: var(--ink-2); }
+.goal.done .foot { color: var(--sage); font-weight: 700; }
+
+/* ---- Formulaire « Nouvel objectif » (maquette) ---- */
+.gfld { background: var(--bg-card); border: .5px solid var(--rule); border-radius: 11px; padding: 10px 12px; margin-bottom: 9px; }
+.gfld .lbl { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-3); }
+.gfld .lbl em { font-style: normal; color: var(--ink-4); font-weight: 700; }
+.gfld .val { font-size: 15px; font-weight: 700; margin-top: 3px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.gfld .val.empty { color: var(--ink-4); font-weight: 500; }
+.gfld .val i { color: var(--ink-3); font-size: 15px; }
+.icons { display: flex; gap: 7px; margin-top: 6px; }
+.icons span { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; background: var(--panel); color: var(--ink-3); }
+.icons span.on { background: var(--lavi); color: #fff; }
+/* Comptes liés : le coché est lavande sur fond teinté, le décoché reste gris —
+   c'est ce contraste qui montre qu'un objectif choisit SES comptes. */
+.acct { display: flex; align-items: center; gap: 9px; border-radius: 10px; padding: 9px 11px; margin-bottom: 6px; font-size: 13px; background: var(--lavi-light); }
+.acct i { font-size: 16px; color: var(--lavi); flex: none; }
+.acct b { flex: 1; font-weight: 700; }
+.acct s { text-decoration: none; font-weight: 700; }
+.acct.off { background: var(--panel); color: var(--ink-3); }
+.acct.off i { color: var(--ink-4); }
+
+/* ---- Carte de détail d'un objectif ---- */
+.gdetail { background: var(--bg-card); border-radius: 18px; padding: 22px; box-shadow: var(--shadow-lg); }
+.gdetail .hd { display: flex; align-items: center; gap: 12px; }
+.gdetail .hd .ic { flex: none; width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; background: var(--lavi-light); color: var(--lavi); }
+.gdetail .hd b { display: block; font-family: var(--font-display); font-size: 18px; font-weight: 700; }
+.gdetail .hd small { color: var(--ink-3); font-size: 13px; }
+.gdetail .track { height: 10px; border-radius: 99px; background: var(--panel); overflow: hidden; margin: 18px 0 9px; }
+.gdetail .track span { display: block; height: 100%; border-radius: 99px; background: var(--lavi); }
+.gdetail .amts { display: flex; justify-content: space-between; font-size: 14.5px; font-weight: 700; }
+.gdetail .amts .pc { color: var(--lavi); }
+.gdetail .lines { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--rule); display: grid; gap: 10px; }
+.gdetail .lines div { display: flex; align-items: center; gap: 9px; font-size: 14.5px; color: var(--ink-2); }
+.gdetail .lines i { font-size: 17px; flex: none; color: var(--ink-3); }
+.gdetail .lines .lav i, .gdetail .lines .lav b { color: var(--lavi); }
+.gdetail .lines .sag i, .gdetail .lines .sag b { color: var(--sage); }
+
+/* ---- Liste de points à icône ---- */
+.pts { list-style: none; padding: 0; margin: 22px 0 0; display: grid; gap: 11px; }
+.pts li { display: flex; gap: 11px; align-items: flex-start; font-size: 15px; color: var(--ink-2); }
+.pts li i { font-size: 18px; flex: none; margin-top: 3px; color: var(--lavi); }
+.pts li b { color: var(--ink); font-weight: 700; }
+
+/* ---- Trois projets ---- */
+.projs { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+.proj { background: var(--bg-card); border: 1px solid var(--rule); border-radius: 16px; padding: 20px; box-shadow: var(--shadow); }
+.proj .hd { display: flex; align-items: center; gap: 11px; margin-bottom: 14px; }
+.proj .hd .ic { flex: none; width: 38px; height: 38px; border-radius: 11px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+.proj .hd b { display: block; font-family: var(--font-display); font-size: 17px; font-weight: 700; }
+.proj .hd small { color: var(--ink-3); font-size: 12px; }
+.proj .track { height: 8px; border-radius: 99px; background: var(--panel); overflow: hidden; margin-bottom: 7px; }
+.proj .track span { display: block; height: 100%; border-radius: 99px; }
+.proj .amts { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--ink-2); font-weight: 600; }
+.proj p { font-size: 14.5px; color: var(--ink-2); margin: 13px 0; }
+.proj .verdict { border-radius: 10px; padding: 10px 12px; font-size: 14px; font-weight: 700; }
+.proj .note { font-size: 13px; color: var(--ink-3); margin: 11px 0 0; }
+.proj.lav .hd .ic, .proj.lav .verdict { background: var(--lavi-light); color: var(--lavi); }
+.proj.lav .track span { background: var(--lavi); }
+.proj.sag .hd .ic, .proj.sag .verdict { background: var(--sage-light); color: var(--sage); }
+.proj.sag .track span { background: var(--sage); }
+.proj.sky .hd .ic, .proj.sky .verdict { background: var(--sky-light); color: var(--sky); }
+.proj.sky .track span { background: var(--sky); }
