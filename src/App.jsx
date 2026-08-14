@@ -11,6 +11,9 @@ import { useRecurringReminders } from "./hooks/useRecurringReminders";
 import { useGoalCelebration } from "./hooks/useGoalCelebration";
 import { usePushNotifications, useForegroundPush } from "./hooks/usePushNotifications";
 import { useBackGuard } from "./hooks/useBackGuard";
+import ReleaseNotesSheet from "./components/ReleaseNotesSheet";
+import { RELEASE_NOTES } from "./data/releaseNotes";
+import { unseenReleases, markReleasesSeen, seedReleasesIfFirstRun } from "./utils/releaseSeen";
 import { useTabSwipe } from "./hooks/useTabSwipe";
 import { useScrollFocus } from "./hooks/useScrollFocus";
 import { useTranslation } from "./hooks/useTranslation";
@@ -225,6 +228,14 @@ function AppContent() {
   const [showBreakdown, setShowBreakdown] = useState(false);
   const [showTheme, setShowTheme] = useState(false);
   const [showLanguage, setShowLanguage] = useState(false);
+  // Nouveautés. L'initialiseur PARESSEUX est important : il sème la version
+  // courante au premier lancement (sans rien afficher) et calcule les notes
+  // manquées une seule fois, pas à chaque rendu.
+  const [releaseQueue, setReleaseQueue] = useState(() => {
+    seedReleasesIfFirstRun();
+    return unseenReleases();
+  });
+  const [showAllReleases, setShowAllReleases] = useState(false);
   const [showTransactions, setShowTransactions] = useState(false);
   // Un·e utilisateur·rice existant·e qui clique "Se connecter" depuis l'accueil
   // de l'onboarding : on affiche l'écran de connexion classique au lieu du
@@ -262,6 +273,7 @@ function AppContent() {
   useBackGuard(showTags, () => setShowTags(false));
   useBackGuard(showTheme, () => setShowTheme(false));
   useBackGuard(showLanguage, () => setShowLanguage(false));
+  useBackGuard(showAllReleases, () => setShowAllReleases(false));
   useBackGuard(drawerOpen, () => setDrawerOpen(false));
 
   // Swipe horizontal entre onglets (mobile). Coupé quand un overlay/modale est
@@ -453,6 +465,7 @@ function AppContent() {
             onOpenTheme={() => setShowTheme(true)}
             onOpenLanguage={() => setShowLanguage(true)}
             onOpenNavPicker={() => setShowNavPicker(true)}
+            onOpenReleaseNotes={() => setShowAllReleases(true)}
           />
         </Suspense>
       )}
@@ -530,6 +543,20 @@ function AppContent() {
             <LanguageScreen onClose={() => setShowLanguage(false)} />
           </div>
         )}
+        {/* Nouveautés : au démarrage seulement ce qui a été manqué ; depuis les
+            Réglages, tout l'historique. */}
+        {showAllReleases ? (
+          <ReleaseNotesSheet
+            releases={RELEASE_NOTES}
+            showAll
+            onClose={() => setShowAllReleases(false)}
+          />
+        ) : releaseQueue.length > 0 ? (
+          <ReleaseNotesSheet
+            releases={releaseQueue}
+            onClose={() => { markReleasesSeen(); setReleaseQueue([]); }}
+          />
+        ) : null}
       </Suspense>
     </FinanceProvider>
   );

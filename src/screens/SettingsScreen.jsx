@@ -10,7 +10,7 @@ import { usePushNotifications } from "../hooks/usePushNotifications";
 import HeaderMenuButton from "../components/HeaderMenuButton";
 import { parseExportDocument, summarizeImport } from "../utils/canonicalData";
 
-export default function SettingsScreen({ onOpenMenu, onOpenRecurring, onOpenCategories, onOpenTags, onOpenTheme, onOpenLanguage, onOpenNavPicker }) {
+export default function SettingsScreen({ onOpenMenu, onOpenRecurring, onOpenCategories, onOpenTags, onOpenTheme, onOpenLanguage, onOpenNavPicker, onOpenReleaseNotes }) {
   const t = useTranslation();
   const { coupleId, logout, user, updateProfilePhoto, updateDisplayName, deleteAccount, resetHints } = useAuth();
   const {
@@ -913,6 +913,16 @@ export default function SettingsScreen({ onOpenMenu, onOpenRecurring, onOpenCate
         >
           <i className="ti ti-language" style={{ fontSize: 18, color: "var(--sky)" }} aria-hidden="true" />
           <span style={{ fontSize: 14, flex: 1 }}>{t("settings_language")}</span>
+          <i className="ti ti-chevron-right" style={{ fontSize: 14, color: "var(--ink-3)" }} aria-hidden="true" />
+        </div>
+        {/* Rouvre la feuille des nouveautés avec TOUT l'historique : sans cette
+            porte, une feuille refermée par réflexe au démarrage serait perdue. */}
+        <div
+          onClick={onOpenReleaseNotes}
+          style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 0", cursor: "pointer" }}
+        >
+          <i className="ti ti-sparkles" style={{ fontSize: 18, color: "var(--amber)" }} aria-hidden="true" />
+          <span style={{ fontSize: 14, flex: 1 }}>{t("settings_release_notes")}</span>
           <i className="ti ti-chevron-right" style={{ fontSize: 14, color: "var(--ink-3)" }} aria-hidden="true" />
         </div>
       </Card>
