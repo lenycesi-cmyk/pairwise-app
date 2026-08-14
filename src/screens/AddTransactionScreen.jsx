@@ -181,23 +181,31 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
   const splitRef = useRef(null);
   const tagPanelRef = useRef(null);
   const currencyPanelRef = useRef(null);
-  useRevealOnOpen(showCatPicker, catPickerRef);
-  useRevealOnOpen(showSubPicker, subPickerRef);
-  useRevealOnOpen(makeRecurring, recurringRef);
-  useRevealOnOpen(showTagManager, tagPanelRef);
-  useRevealOnOpen(showCurrencyPicker, currencyPanelRef);
   const [description, setDescription] = useState(editingTx?.description || "");
   const [tags, setTags] = useState(editingTx?.tags || []);
   const [showTagManager, setShowTagManager] = useState(false);
   const [paidBy, setPaidBy] = useState(() => editingTx?.paidBy || findLastOwnTx()?.paidBy || user?.uid);
   const [split, setSplit] = useState(() => editingTx?.split || findLastOwnTx()?.split || "50/50");
   const [splitMode, setSplitMode] = useState(editingTx?.splitDetails ? "advanced" : "simple");
-  // Partage avancé : c'est le panneau qui porte la répartition entre membres,
-  // donc celui qu'on vise quand on parle de « payé par / pour ».
-  useRevealOnOpen(splitMode === "advanced", splitRef);
   const [splitDetails, setSplitDetails] = useState(editingTx?.splitDetails || null);
   const [dateTime, setDateTime] = useState(toDateTimeLocal(editingTx?.date));
   const [makeRecurring, setMakeRecurring] = useState(false);
+
+  // ── Révélation des panneaux ────────────────────────────────────────────────
+  // Ces appels DOIVENT rester après toutes les déclarations qu'ils lisent.
+  // Un `const` n'existe pas avant sa ligne (zone morte temporelle) : placés plus
+  // haut, ils levaient « Cannot access … before initialization » et l'écran de
+  // saisie ne s'ouvrait plus du tout. Le build ne l'attrape pas — c'est du
+  // JavaScript valide, l'erreur est à l'exécution — et aucun test ne couvre les
+  // écrans. Les regrouper ici est ce qui rend la dépendance visible.
+  useRevealOnOpen(showCatPicker, catPickerRef);
+  useRevealOnOpen(showSubPicker, subPickerRef);
+  useRevealOnOpen(makeRecurring, recurringRef);
+  useRevealOnOpen(showTagManager, tagPanelRef);
+  useRevealOnOpen(showCurrencyPicker, currencyPanelRef);
+  // Partage avancé : le panneau qui porte la répartition entre membres, donc
+  // celui qu'on vise quand on parle de « payé par / pour ».
+  useRevealOnOpen(splitMode === "advanced", splitRef);
   const [recurringFrequency, setRecurringFrequency] = useState("monthly");
   const [recurringDayOfMonth, setRecurringDayOfMonth] = useState(new Date().getDate().toString());
   const [busy, setBusy] = useState(false);
