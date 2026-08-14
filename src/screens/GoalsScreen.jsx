@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useFinance } from "../context/FinanceContext";
 import { useTranslation } from "../hooks/useTranslation";
 import { useGoalProgress } from "../hooks/useGoalProgress";
 import { currencySymbol } from "../utils/onboardingDraft";
 import HeaderMenuButton from "../components/HeaderMenuButton";
 import CurrencyPicker from "../components/CurrencyPicker";
+import ArchivedSection from "../components/ArchivedSection";
 
 const PRESET_ICONS = ["ti-target", "ti-lifebuoy", "ti-home", "ti-plane", "ti-pig-money", "ti-diamond", "ti-car", "ti-heart"];
 
@@ -14,7 +15,8 @@ const PRESET_ICONS = ["ti-target", "ti-lifebuoy", "ti-home", "ti-plane", "ti-pig
 // Patrimoine viendront ensuite.
 export default function GoalsScreen({ onOpenMenu, openSignal }) {
   const t = useTranslation();
-  const { assets, defaultCurrency, dashboardDisplayCurrency, addGoal, updateGoal, removeGoal, language } = useFinance();
+  const { assets, defaultCurrency, dashboardDisplayCurrency, addGoal, updateGoal, removeGoal, language,
+    archivedGoals, archiveGoal, unarchiveGoal } = useFinance();
   const displayCurrency = dashboardDisplayCurrency || defaultCurrency;
   const { items: progress } = useGoalProgress(displayCurrency);
   const locale = language === "en" ? "en-US" : "fr-FR";
@@ -22,6 +24,19 @@ export default function GoalsScreen({ onOpenMenu, openSignal }) {
   const fmt = (n) => Math.round(n).toLocaleString(locale);
 
   const [editing, setEditing] = useState(null); // objet goal ou {} (nouveau) ou null (fermé)
+
+  // Objectifs archivés : le montant cible suffit à les reconnaître, la
+  // progression n'a plus de sens une fois l'objectif rangé.
+  const archivedGoalItems = useMemo(
+    () => archivedGoals.map((g) => ({
+      id: g.id,
+      title: g.label || t("nav_goals"),
+      meta: `${t("archived_on")} ${new Date(g.archivedAt).toLocaleDateString(locale, { day: "numeric", month: "short", year: "numeric" })}`
+        + (g.targetAmount ? ` · ${fmt(g.targetAmount)} ${symbol}` : ""),
+    })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [archivedGoals, locale, symbol]
+  );
 
   // Le FAB « Ajouter » de App.jsx incrémente openSignal → ouvre un nouvel objectif.
   useEffect(() => {
@@ -66,6 +81,13 @@ export default function GoalsScreen({ onOpenMenu, openSignal }) {
         ) : (
           progress.map((p) => <GoalCard key={p.goal.id} p={p} symbol={symbol} fmt={fmt} locale={locale} t={t} onEdit={() => setEditing(p.goal)} />)
         )}
+
+        <ArchivedSection
+          items={archivedGoalItems}
+          onRestore={unarchiveGoal}
+          onDelete={removeGoal}
+          emptyHint={t("archived_goal_hint")}
+        />
       </div>
 
       {editing && (
@@ -82,6 +104,7 @@ export default function GoalsScreen({ onOpenMenu, openSignal }) {
             else await addGoal(data);
             setEditing(null);
           }}
+          onArchive={editing.id ? async () => { await archiveGoal(editing.id); setEditing(null); } : null}
           onDelete={editing.id ? async () => { await removeGoal(editing.id); setEditing(null); } : null}
         />
       )}
@@ -133,7 +156,7 @@ function GoalCard({ p, symbol, fmt, locale, t, onEdit }) {
   );
 }
 
-function GoalEditor({ goal, assets, defaultCurrency, t, onClose, onSave, onDelete }) {
+function GoalEditor({ goal, assets, defaultCurrency, t, onClose, onSave, onArchive, onDelete }) {
   const [label, setLabel] = useState(goal.label || "");
   const [icon, setIcon] = useState(goal.icon || "ti-target");
   const [targetAmount, setTargetAmount] = useState(goal.targetAmount ? String(goal.targetAmount) : "");
@@ -246,6 +269,15 @@ function GoalEditor({ goal, assets, defaultCurrency, t, onClose, onSave, onDelet
           </div>
         </div>
 
+        {/* Archiver AVANT supprimer, et en neutre face au rouge : c'est le
+            geste attendu pour un objectif atteint ou abandonné, la suppression
+            reste l'exception. */}
+        {onArchive && (
+          <button onClick={onArchive} style={{ padding: "11px 0", borderRadius: "var(--radius-md)", border: "0.5px solid var(--rule)", background: "transparent", color: "var(--ink-2)", fontSize: 14, fontWeight: 500, display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
+            <i className="ti ti-archive" style={{ fontSize: 15 }} aria-hidden="true" />
+            {t("archived_archive")}
+          </button>
+        )}
         {onDelete && (
           <button onClick={onDelete} style={{ padding: "11px 0", borderRadius: "var(--radius-md)", border: "0.5px solid var(--red)", background: "transparent", color: "var(--red)", fontSize: 14, fontWeight: 500 }}>
             {t("goals_delete")}

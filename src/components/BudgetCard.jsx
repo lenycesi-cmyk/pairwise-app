@@ -14,6 +14,7 @@ export default function BudgetCard({
   displayCurrency,
   onEdit,
   onToggleActive,
+  onArchive,
   onDelete,
   dragHandleProps = null,
   variant = "standalone",
@@ -209,6 +210,15 @@ export default function BudgetCard({
             >
               <i className={`ti ${isInactive ? "ti-player-play" : "ti-player-pause"}`} style={{ fontSize: 15, color: "var(--ink-3)" }} aria-hidden="true" />
               {isInactive ? t("recurring_resume") : t("recurring_pause")}
+            </button>
+          )}
+          {onArchive && (
+            <button
+              onClick={() => { onArchive(budget); setMenuOpen(false); }}
+              style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "10px 12px", background: "none", border: "none", borderTop: "0.5px solid var(--rule)", fontSize: 13, color: "var(--ink)", textAlign: "left" }}
+            >
+              <i className="ti ti-archive" style={{ fontSize: 15, color: "var(--ink-3)" }} aria-hidden="true" />
+              {t("archived_archive")}
             </button>
           )}
           {onDelete && (
