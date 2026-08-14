@@ -14,6 +14,17 @@
 
 export const RELEASE_NOTES = [
   {
+    version: "2026.08.14.4",
+    date: "2026-08-14",
+    items: [
+      {
+        icon: "⌨️",
+        fr: { title: "Le champ touché monte vraiment en haut", body: "Même en bas du formulaire d'actif : la place manquante pour défiler est ajoutée le temps de la saisie, puis rendue." },
+        en: { title: "The focused field really goes to the top", body: "Even at the bottom of the asset form: the missing scroll room is added while you type, then given back." },
+      },
+    ],
+  },
+  {
     version: "2026.08.14.3",
     date: "2026-08-14",
     items: [
