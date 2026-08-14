@@ -52,7 +52,9 @@ export default function DebtScreen() {
     setViewYear(y);
   }
 
-  const monthLabel = new Date(viewYear, viewMonth, 1).toLocaleDateString(locale, { month: "long", year: "numeric" });
+  // Mois COURT, comme le sélecteur de période : ce libellé est encadré par les
+  // flèches ‹ ›, et sa largeur variable les faisait glisser d'un mois à l'autre.
+  const monthLabel = new Date(viewYear, viewMonth, 1).toLocaleDateString(locale, { month: "short", year: "numeric" });
 
   async function handleMarkAsPaid() {
     if (!confirm(t("debt_mark_paid_confirm"))) return;
@@ -145,7 +147,7 @@ export default function DebtScreen() {
           <button onClick={() => changeMonth(-1)} aria-label={t("debt_filter_month")} style={navBtnStyle}>
             <i className="ti ti-chevron-left" style={{ fontSize: 16 }} aria-hidden="true" />
           </button>
-          <p style={{ fontSize: 14, fontWeight: 500, textTransform: "capitalize" }}>{monthLabel}</p>
+          <p style={{ fontSize: 14, fontWeight: 500, textTransform: "capitalize", minWidth: 78, textAlign: "center" }}>{monthLabel}</p>
           <button onClick={() => changeMonth(1)} aria-label={t("debt_filter_month")} style={navBtnStyle}>
             <i className="ti ti-chevron-right" style={{ fontSize: 16 }} aria-hidden="true" />
           </button>

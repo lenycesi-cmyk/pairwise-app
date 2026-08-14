@@ -46,7 +46,12 @@ export default function PeriodSelector({
             }}
           >
             <i className="ti ti-calendar-event" style={{ fontSize: 15, color: "var(--sky)" }} aria-hidden="true" />
-            <span style={{ fontWeight: 600, textTransform: "capitalize" }}>{rangeLabel}</span>
+            {/* Largeur plancher : le bouton est encadré par les flèches ‹ ›, donc
+                un libellé plus court ferait glisser la cible sous le doigt d'un
+                mois à l'autre. C'est un MINIMUM, pas une largeur fixe — les
+                libellés plus longs (plages de dates, « 12 derniers mois »)
+                s'étendent normalement plutôt que d'être tronqués. */}
+            <span style={{ fontWeight: 600, textTransform: "capitalize", minWidth: 78, textAlign: "center" }}>{rangeLabel}</span>
             <i className={`ti ti-chevron-${open ? "up" : "down"}`} style={{ fontSize: 14, color: "var(--ink-3)" }} aria-hidden="true" />
           </button>
           {open && (

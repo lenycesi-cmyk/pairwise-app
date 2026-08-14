@@ -611,7 +611,7 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
               anchor={anchor}
               setAnchor={setAnchor}
               setAnchorNow={() => setAnchorRaw(new Date())}
-              rangeLabel={range.label}
+              rangeLabel={range.labelShort || range.label}
               customRange={customRange}
               setCustomRange={setCustomRange}
             />
