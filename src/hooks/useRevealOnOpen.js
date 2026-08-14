@@ -68,10 +68,38 @@ export function useRevealOnOpen(open, ref) {
   }, [open, ref]);
 }
 
-// Décalage au FOCUS : plus serré que celui des panneaux, parce qu'ici l'enjeu
-// n'est pas de montrer le champ — le doigt vient de le toucher — mais de
-// dégager tout ce qui suit dans le formulaire.
-const FOCUS_OFFSET = 16;
+// Décalage au FOCUS : quasiment le bord haut. L'enjeu n'est pas de montrer le
+// champ — le doigt vient de le toucher — mais de dégager tout ce qui suit.
+const FOCUS_OFFSET = 8;
+
+// Ajoute au conteneur JUSTE la marge basse qui manque pour que `target` puisse
+// atteindre le haut.
+//
+// C'est la pièce sans laquelle aucun décalage ne suffit : un champ situé vers la
+// fin du formulaire ne peut pas remonter, faute de contenu en dessous pour
+// défiler. Le navigateur bute sur le bas et le champ reste au milieu de l'écran.
+// On n'ajoute que le manque, et seulement le temps de la saisie — une marge
+// permanente laisserait un vide au bas du formulaire.
+function ensureRoomBelow(scroller, target, offset) {
+  // Pas de rembourrage sur la page elle-même : le conteneur visé est la modale.
+  if (scroller === document.scrollingElement || scroller === document.documentElement) return;
+
+  const delta = target.getBoundingClientRect().top - scroller.getBoundingClientRect().top - offset;
+  const remaining = scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight;
+  const missing = delta - remaining;
+  if (missing <= 0) return;
+
+  if (scroller.dataset.pwPadBase === undefined) {
+    scroller.dataset.pwPadBase = String(parseFloat(getComputedStyle(scroller).paddingBottom) || 0);
+  }
+  scroller.style.paddingBottom = `${Number(scroller.dataset.pwPadBase) + missing}px`;
+}
+
+function releaseRoom(scroller) {
+  if (!scroller || scroller.dataset?.pwPadBase === undefined) return;
+  scroller.style.paddingBottom = `${scroller.dataset.pwPadBase}px`;
+  delete scroller.dataset.pwPadBase;
+}
 
 // Révèle le champ qui prend le focus dans un conteneur. Le focus n'est pas un
 // panneau qui s'ouvre : aucun booléen ne bascule, et câbler chaque champ un par
@@ -82,10 +110,22 @@ export function useRevealOnFocus(containerRef, offset = FOCUS_OFFSET) {
     const container = containerRef.current;
     if (!container) return;
 
+    let releaseTimer = null;
+    let padded = null;
+
+    function place(target) {
+      const scroller = findScroller(target);
+      if (!scroller) return;
+      padded = scroller;
+      ensureRoomBelow(scroller, target, offset);
+      revealElement(target, offset);
+    }
+
     function onFocusIn(e) {
       const target = e.target;
       if (!target?.matches?.("input, textarea, select")) return;
-      revealElement(target, offset);
+      clearTimeout(releaseTimer);
+      place(target);
 
       // Le clavier réduit la zone visible APRÈS le focus : mesurer maintenant,
       // c'est mesurer un écran qui n'a pas encore rétréci. On rejoue donc une
@@ -94,7 +134,7 @@ export function useRevealOnFocus(containerRef, offset = FOCUS_OFFSET) {
       const vv = window.visualViewport;
       if (!vv) return;
       const replay = () => {
-        revealElement(target, offset);
+        place(target);
         vv.removeEventListener("resize", replay);
       };
       vv.addEventListener("resize", replay);
@@ -103,7 +143,20 @@ export function useRevealOnFocus(containerRef, offset = FOCUS_OFFSET) {
       setTimeout(() => vv.removeEventListener("resize", replay), 1000);
     }
 
+    // Le délai évite de rendre puis reprendre la marge en passant d'un champ à
+    // l'autre : `focusout` précède le `focusin` suivant.
+    function onFocusOut() {
+      clearTimeout(releaseTimer);
+      releaseTimer = setTimeout(() => releaseRoom(padded), 150);
+    }
+
     container.addEventListener("focusin", onFocusIn);
-    return () => container.removeEventListener("focusin", onFocusIn);
+    container.addEventListener("focusout", onFocusOut);
+    return () => {
+      clearTimeout(releaseTimer);
+      releaseRoom(padded);
+      container.removeEventListener("focusin", onFocusIn);
+      container.removeEventListener("focusout", onFocusOut);
+    };
   }, [containerRef, offset]);
 }
