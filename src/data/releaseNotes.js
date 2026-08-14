@@ -14,6 +14,17 @@
 
 export const RELEASE_NOTES = [
   {
+    version: "2026.08.14.6",
+    date: "2026-08-14",
+    items: [
+      {
+        icon: "⌨️",
+        fr: { title: "Ajout d'actif : le champ touché monte vraiment", body: "Toucher « Nom » dégage désormais « Valeur actuelle » et « Montant investi » sous le champ, sans faire défiler." },
+        en: { title: "Add asset: the focused field really moves up", body: "Tapping “Name” now clears “Current value” and “Amount invested” below the field, with no scrolling." },
+      },
+    ],
+  },
+  {
     version: "2026.08.14.5",
     date: "2026-08-14",
     items: [
