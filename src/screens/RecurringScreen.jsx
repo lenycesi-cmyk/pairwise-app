@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useFinance } from "../context/FinanceContext";
 import { useAuth } from "../context/AuthContext";
 import { CURRENCIES } from "../data/categories";
 import { useTranslation } from "../hooks/useTranslation";
+import { useRevealOnOpen } from "../hooks/useRevealOnOpen";
 import { useCategoryName } from "../hooks/useCategoryName";
 import { getMemberKey } from "../utils/members";
 
@@ -61,6 +62,9 @@ export default function RecurringScreen({ onClose, initialEditId }) {
   const [subcategory, setSubcategory] = useState(null);
   const [description, setDescription] = useState("");
   const [frequency, setFrequency] = useState("monthly");
+  // Après la déclaration qu'il lit — un `const` n'existe pas avant sa ligne.
+  const monthlyDayRef = useRef(null);
+  useRevealOnOpen(frequency === "monthly", monthlyDayRef);
   const [dayOfMonth, setDayOfMonth] = useState("1");
   const [paidBy, setPaidBy] = useState(user?.uid);
   const [split, setSplit] = useState("50/50");
@@ -349,7 +353,7 @@ export default function RecurringScreen({ onClose, initialEditId }) {
             </div>
 
             {frequency === "monthly" && (
-              <>
+              <div ref={monthlyDayRef}>
                 <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>
                   {t("recurring_day_of_month")}
                 </p>
@@ -369,7 +373,7 @@ export default function RecurringScreen({ onClose, initialEditId }) {
                     outline: "none",
                   }}
                 />
-              </>
+              </div>
             )}
 
             {/* Même règle que dans « Ajouter une transaction » : seul, « qui

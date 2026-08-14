@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useFinance } from "../context/FinanceContext";
 import { useTranslation } from "../hooks/useTranslation";
 import { useGoalProgress } from "../hooks/useGoalProgress";
@@ -6,6 +6,7 @@ import { currencySymbol } from "../utils/onboardingDraft";
 import HeaderMenuButton from "../components/HeaderMenuButton";
 import CurrencyPicker from "../components/CurrencyPicker";
 import ArchivedSection from "../components/ArchivedSection";
+import { useRevealOnOpen } from "../hooks/useRevealOnOpen";
 
 const PRESET_ICONS = ["ti-target", "ti-lifebuoy", "ti-home", "ti-plane", "ti-pig-money", "ti-diamond", "ti-car", "ti-heart"];
 
@@ -165,6 +166,9 @@ function GoalEditor({ goal, assets, defaultCurrency, t, onClose, onSave, onArchi
   const [deadline, setDeadline] = useState(goal.deadline || "");
   const [monthlyContribution, setMonthlyContribution] = useState(goal.monthlyContribution ? String(goal.monthlyContribution) : "");
   const [showCurrency, setShowCurrency] = useState(false);
+  // Après la déclaration qu'il lit — un `const` n'existe pas avant sa ligne.
+  const currencyPanelRef = useRef(null);
+  useRevealOnOpen(showCurrency, currencyPanelRef);
 
   const toggleAsset = (id) =>
     setLinkedAssetIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
@@ -228,7 +232,7 @@ function GoalEditor({ goal, assets, defaultCurrency, t, onClose, onSave, onArchi
         </div>
 
         {showCurrency && (
-          <div style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "0.75rem 1rem", marginTop: -8 }}>
+          <div ref={currencyPanelRef} style={{ background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "0.75rem 1rem", marginTop: -8 }}>
             <CurrencyPicker value={currency} onSelect={(c) => { setCurrency(c); setShowCurrency(false); }} />
           </div>
         )}
