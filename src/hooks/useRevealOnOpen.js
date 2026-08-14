@@ -72,33 +72,53 @@ export function useRevealOnOpen(open, ref) {
 // champ — le doigt vient de le toucher — mais de dégager tout ce qui suit.
 const FOCUS_OFFSET = 8;
 
-// Ajoute au conteneur JUSTE la marge basse qui manque pour que `target` puisse
+// Ajoute au conteneur JUSTE la place qui manque pour que `target` puisse
 // atteindre le haut.
 //
 // C'est la pièce sans laquelle aucun décalage ne suffit : un champ situé vers la
 // fin du formulaire ne peut pas remonter, faute de contenu en dessous pour
 // défiler. Le navigateur bute sur le bas et le champ reste au milieu de l'écran.
-// On n'ajoute que le manque, et seulement le temps de la saisie — une marge
-// permanente laisserait un vide au bas du formulaire.
+//
+// La place est fournie par une CALE ajoutée en fin de conteneur, et non par une
+// marge posée sur le conteneur lui-même : ce conteneur reçoit son `style` de
+// React, qui peut le réécrire au premier rendu venu — et la frappe au clavier
+// en provoque à chaque caractère. Une cale est un nœud à part, que React ne
+// gère pas et ne peut donc pas effacer.
+const ROOM_ATTR = "data-pw-room";
+
+function roomSpacer(scroller) {
+  let spacer = scroller.querySelector(`:scope > [${ROOM_ATTR}]`);
+  if (!spacer) {
+    spacer = document.createElement("div");
+    spacer.setAttribute(ROOM_ATTR, "");
+    spacer.setAttribute("aria-hidden", "true");
+    spacer.style.flexShrink = "0"; // le corps est une colonne flex : sans ça, la cale s'écrase
+    scroller.appendChild(spacer);
+  }
+  return spacer;
+}
+
 function ensureRoomBelow(scroller, target, offset) {
-  // Pas de rembourrage sur la page elle-même : le conteneur visé est la modale.
+  // Pas de cale dans la page elle-même : le conteneur visé est la modale.
   if (scroller === document.scrollingElement || scroller === document.documentElement) return;
 
   const delta = target.getBoundingClientRect().top - scroller.getBoundingClientRect().top - offset;
   const remaining = scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight;
-  const missing = delta - remaining;
-  if (missing <= 0) return;
-
-  if (scroller.dataset.pwPadBase === undefined) {
-    scroller.dataset.pwPadBase = String(parseFloat(getComputedStyle(scroller).paddingBottom) || 0);
+  const spacer = scroller.querySelector(`:scope > [${ROOM_ATTR}]`);
+  const current = spacer ? parseFloat(spacer.style.height) || 0 : 0;
+  // `remaining` inclut déjà la cale posée au passage précédent : on raisonne sur
+  // la hauteur TOTALE nécessaire, sinon deux mesures successives l'empileraient.
+  const needed = Math.max(current + delta - remaining, 0);
+  if (needed <= 0) {
+    if (spacer) spacer.style.height = "0px";
+    return;
   }
-  scroller.style.paddingBottom = `${Number(scroller.dataset.pwPadBase) + missing}px`;
+  roomSpacer(scroller).style.height = `${needed}px`;
 }
 
 function releaseRoom(scroller) {
-  if (!scroller || scroller.dataset?.pwPadBase === undefined) return;
-  scroller.style.paddingBottom = `${scroller.dataset.pwPadBase}px`;
-  delete scroller.dataset.pwPadBase;
+  const spacer = scroller?.querySelector?.(`:scope > [${ROOM_ATTR}]`);
+  if (spacer) spacer.remove();
 }
 
 // Révèle le champ qui prend le focus dans un conteneur. Le focus n'est pas un
@@ -112,6 +132,9 @@ export function useRevealOnFocus(containerRef, offset = FOCUS_OFFSET) {
 
     let releaseTimer = null;
     let padded = null;
+    // Minuteries en vol, à annuler au démontage : sans ça, un `place()` tardif
+    // ferait défiler une modale déjà fermée.
+    let pending = [];
 
     function place(target) {
       const scroller = findScroller(target);
@@ -130,25 +153,30 @@ export function useRevealOnFocus(containerRef, offset = FOCUS_OFFSET) {
       // partagée par les formulaires de transaction et d'actif.
       const target = field.closest?.(".pw-lift") || field;
       clearTimeout(releaseTimer);
+      pending.forEach(clearTimeout);
+      pending = [];
       place(target);
 
-      // Le clavier réduit la zone visible APRÈS le focus : mesurer maintenant,
-      // c'est mesurer un écran qui n'a pas encore rétréci. On rejoue donc une
-      // fois qu'il est en place, puis on se désabonne — sans quoi le moindre
-      // changement de hauteur ferait ensuite sauter la page.
+      // Le clavier réduit la zone visible APRÈS le focus, et le moment où il le
+      // fait n'est pas garanti : selon le navigateur, `visualViewport` émet un
+      // `resize`, plusieurs, ou aucun. Un rendez-vous unique laissait donc le
+      // champ à mi-hauteur quand il tombait au mauvais moment.
+      //
+      // On rejoue donc le placement quelques fois sur ~400 ms. C'est sans effet
+      // visible une fois la position atteinte : en deçà de MIN_SHIFT, rien ne
+      // bouge.
+      const timers = [
+        setTimeout(() => place(target), 150),
+        setTimeout(() => place(target), 400),
+      ];
       const vv = window.visualViewport;
-      if (!vv) return;
-      const replay = () => {
-        place(target);
-        vv.removeEventListener("resize", replay);
-      };
-      vv.addEventListener("resize", replay);
-      // Garde-fou : si le clavier ne s'ouvre pas (souris, clavier physique),
-      // l'écouteur ne doit pas rester en attente indéfiniment.
-      setTimeout(() => vv.removeEventListener("resize", replay), 1000);
+      const replay = () => place(target);
+      vv?.addEventListener("resize", replay);
+      timers.push(setTimeout(() => vv?.removeEventListener("resize", replay), 1000));
+      pending.push(...timers);
     }
 
-    // Le délai évite de rendre puis reprendre la marge en passant d'un champ à
+    // Le délai évite de rendre puis reprendre la place en passant d'un champ à
     // l'autre : `focusout` précède le `focusin` suivant.
     function onFocusOut() {
       clearTimeout(releaseTimer);
@@ -159,6 +187,7 @@ export function useRevealOnFocus(containerRef, offset = FOCUS_OFFSET) {
     container.addEventListener("focusout", onFocusOut);
     return () => {
       clearTimeout(releaseTimer);
+      pending.forEach(clearTimeout);
       releaseRoom(padded);
       container.removeEventListener("focusin", onFocusIn);
       container.removeEventListener("focusout", onFocusOut);
