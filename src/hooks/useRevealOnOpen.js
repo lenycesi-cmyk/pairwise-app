@@ -1,24 +1,30 @@
 import { useEffect } from "react";
 
-// Fait défiler juste ce qu'il faut pour qu'un panneau qui vient de s'ouvrir soit
-// visible — les tiroirs « Catégorie » et « Sous-catégorie » de la saisie de
-// transaction s'ouvraient sous le bord de l'écran, obligeant à faire défiler
-// soi-même pour voir ce qu'on venait de demander.
+// Amène en haut de l'écran le panneau qui vient de s'ouvrir, dans la saisie de
+// transaction — tiroirs Catégorie / Sous-catégorie, options de récurrence,
+// partage avancé entre membres, tags, devises.
 //
-// Trois règles, qui expliquent pourquoi ce n'est pas un simple
-// `scrollIntoView` :
+// L'objectif est explicite : ne plus avoir à faire défiler pour compléter une
+// transaction. La première version ne révélait que le strict nécessaire, ce qui
+// laissait le panneau collé au bas de l'écran, sans place pour ce qui suit. On
+// le POSITIONNE donc désormais, plutôt que de le « rendre visible ».
 //
-//   - Le pied « Enregistrer » est COLLANT : il recouvre le bas de la zone de
-//     défilement. Aligner le tiroir sur ce bas le cacherait derrière le bouton,
-//     d'où la marge de sécurité.
-//   - On ne fait JAMAIS sortir le haut du tiroir de l'écran. Un tiroir plus haut
-//     que la place disponible est révélé partiellement, par le haut : c'est là
-//     que commencent les choix.
-//   - Déjà visible ⇒ on ne bouge pas. Un défilement gratuit à chaque ouverture
-//     serait plus désorientant que l'absence de défilement.
+// Trois choix qui expliquent le code :
+//
+//   - La cible n'est pas le bord supérieur mais 72 px en dessous : de quoi
+//     laisser au-dessus la ligne qui a ouvert le panneau (« Choisir une
+//     catégorie »), qui rappelle ce qu'on est en train de choisir.
+//   - Le déplacement est appliqué même quand le panneau est DÉJÀ visible. Un
+//     positionnement constant est plus prévisible qu'une règle qui agit parfois,
+//     et c'est ce qui garantit la place en dessous.
+//   - En deçà de 8 px, on ne bouge pas : à cette échelle, le mouvement se lit
+//     comme un tremblement plutôt que comme une intention.
 
-// Hauteur du pied collant « Enregistrer », plus une respiration.
-const STICKY_FOOTER_SAFE = 88;
+// Distance entre le haut de la zone visible et le haut du panneau.
+const TOP_OFFSET = 72;
+
+// En deçà, le déplacement ne vaut pas d'être joué.
+const MIN_SHIFT = 8;
 
 function findScroller(el) {
   let node = el.parentElement;
@@ -38,26 +44,17 @@ export function useRevealOnOpen(open, ref) {
     const el = ref.current;
     const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
-    // Deux images : la première laisse React poser le tiroir, la seconde laisse
+    // Deux images : la première laisse React poser le panneau, la seconde laisse
     // le navigateur en calculer la hauteur. Mesurer avant, c'est mesurer un
     // élément qui n'a pas encore de taille.
     const id = requestAnimationFrame(() => requestAnimationFrame(() => {
       const scroller = findScroller(el);
       if (!scroller) return;
 
-      const elRect = el.getBoundingClientRect();
       const isPage = scroller === document.scrollingElement || scroller === document.documentElement;
-      const top = isPage ? 0 : scroller.getBoundingClientRect().top;
-      const bottom = isPage ? window.innerHeight : scroller.getBoundingClientRect().bottom;
-
-      const hidden = elRect.bottom - (bottom - STICKY_FOOTER_SAFE);
-      if (hidden <= 0) return; // déjà visible
-
-      // Plafond : ce qui sépare le tiroir du haut de la zone visible, moins une
-      // marge — au-delà, son en-tête sortirait par le haut.
-      const room = Math.max(elRect.top - top - 12, 0);
-      const delta = Math.min(hidden, room);
-      if (delta <= 0) return;
+      const viewportTop = isPage ? 0 : scroller.getBoundingClientRect().top;
+      const delta = el.getBoundingClientRect().top - viewportTop - TOP_OFFSET;
+      if (Math.abs(delta) < MIN_SHIFT) return;
 
       scroller.scrollBy({ top: delta, behavior: reduceMotion ? "auto" : "smooth" });
     }));

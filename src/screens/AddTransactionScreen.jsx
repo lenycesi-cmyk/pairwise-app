@@ -177,14 +177,24 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
   // qu'il vient de demander.
   const catPickerRef = useRef(null);
   const subPickerRef = useRef(null);
+  const recurringRef = useRef(null);
+  const splitRef = useRef(null);
+  const tagPanelRef = useRef(null);
+  const currencyPanelRef = useRef(null);
   useRevealOnOpen(showCatPicker, catPickerRef);
   useRevealOnOpen(showSubPicker, subPickerRef);
+  useRevealOnOpen(makeRecurring, recurringRef);
+  useRevealOnOpen(showTagManager, tagPanelRef);
+  useRevealOnOpen(showCurrencyPicker, currencyPanelRef);
   const [description, setDescription] = useState(editingTx?.description || "");
   const [tags, setTags] = useState(editingTx?.tags || []);
   const [showTagManager, setShowTagManager] = useState(false);
   const [paidBy, setPaidBy] = useState(() => editingTx?.paidBy || findLastOwnTx()?.paidBy || user?.uid);
   const [split, setSplit] = useState(() => editingTx?.split || findLastOwnTx()?.split || "50/50");
   const [splitMode, setSplitMode] = useState(editingTx?.splitDetails ? "advanced" : "simple");
+  // Partage avancé : c'est le panneau qui porte la répartition entre membres,
+  // donc celui qu'on vise quand on parle de « payé par / pour ».
+  useRevealOnOpen(splitMode === "advanced", splitRef);
   const [splitDetails, setSplitDetails] = useState(editingTx?.splitDetails || null);
   const [dateTime, setDateTime] = useState(toDateTimeLocal(editingTx?.date));
   const [makeRecurring, setMakeRecurring] = useState(false);
@@ -620,7 +630,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
       </div>
 
       {showCurrencyPicker && !manageCurrencies && (
-        <div style={{ marginTop: 12, display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "center", alignItems: "center" }}>
+        <div ref={currencyPanelRef} style={{ marginTop: 12, display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "center", alignItems: "center" }}>
           {currencyList.map((c) => (
             <button
               key={c.code}
@@ -1085,7 +1095,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
           </label>
 
           {makeRecurring && (
-            <div style={{ marginTop: 12 }}>
+            <div ref={recurringRef} style={{ marginTop: 12 }}>
               <div style={{ fontSize: 11.5, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: "0.04em", fontWeight: 600, marginBottom: 8 }}>{t("recurring_frequency")}</div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 10 }}>
                 {[
@@ -1185,7 +1195,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
       </div>
 
       {financeMode !== "common" && splitMode === "advanced" && members.length === 2 && (
-        <div style={{ marginTop: 10 }}>
+        <div ref={splitRef} style={{ marginTop: 10 }}>
           <AdvancedSplitSelector
             members={members}
             totalAmount={parseFloat(amount) || 0}
@@ -1226,7 +1236,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
         <TagInput value={tags} onChange={setTags} />
       </div>
       {showTagManager && (
-        <div style={{ marginTop: 12, borderTop: "0.5px solid var(--rule)", paddingTop: 10 }}>
+        <div ref={tagPanelRef} style={{ marginTop: 12, borderTop: "0.5px solid var(--rule)", paddingTop: 10 }}>
           <p style={{ fontSize: 11, color: "var(--ink-3)", marginBottom: 8 }}>
             <i className="ti ti-grip-vertical" style={{ fontSize: 12, verticalAlign: -2 }} aria-hidden="true" />
             {" "}{t("tags_drag_hint")}
