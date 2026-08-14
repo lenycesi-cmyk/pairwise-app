@@ -67,3 +67,43 @@ export function useRevealOnOpen(open, ref) {
     revealElement(el);
   }, [open, ref]);
 }
+
+// Décalage au FOCUS : plus serré que celui des panneaux, parce qu'ici l'enjeu
+// n'est pas de montrer le champ — le doigt vient de le toucher — mais de
+// dégager tout ce qui suit dans le formulaire.
+const FOCUS_OFFSET = 16;
+
+// Révèle le champ qui prend le focus dans un conteneur. Le focus n'est pas un
+// panneau qui s'ouvre : aucun booléen ne bascule, et câbler chaque champ un par
+// un aurait été aussi long qu'oubliable. Un seul écouteur sur le conteneur
+// couvre donc tous les champs, présents et à venir.
+export function useRevealOnFocus(containerRef, offset = FOCUS_OFFSET) {
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    function onFocusIn(e) {
+      const target = e.target;
+      if (!target?.matches?.("input, textarea, select")) return;
+      revealElement(target, offset);
+
+      // Le clavier réduit la zone visible APRÈS le focus : mesurer maintenant,
+      // c'est mesurer un écran qui n'a pas encore rétréci. On rejoue donc une
+      // fois qu'il est en place, puis on se désabonne — sans quoi le moindre
+      // changement de hauteur ferait ensuite sauter la page.
+      const vv = window.visualViewport;
+      if (!vv) return;
+      const replay = () => {
+        revealElement(target, offset);
+        vv.removeEventListener("resize", replay);
+      };
+      vv.addEventListener("resize", replay);
+      // Garde-fou : si le clavier ne s'ouvre pas (souris, clavier physique),
+      // l'écouteur ne doit pas rester en attente indéfiniment.
+      setTimeout(() => vv.removeEventListener("resize", replay), 1000);
+    }
+
+    container.addEventListener("focusin", onFocusIn);
+    return () => container.removeEventListener("focusin", onFocusIn);
+  }, [containerRef, offset]);
+}

@@ -10,7 +10,7 @@ import CurrencyField from "../components/CurrencyField";
 import AssetComments from "../components/AssetComments";
 import { getMemberKey } from "../utils/members";
 import { notifySuccess } from "../utils/successCheck";
-import { useRevealOnOpen } from "../hooks/useRevealOnOpen";
+import { useRevealOnOpen, useRevealOnFocus } from "../hooks/useRevealOnOpen";
 
 // Carte de section « 1B Chaleureux » : en-tête pastille (icône teintée + titre),
 // identique à AddTransactionScreen. `accent` est une couleur token.
@@ -174,6 +174,10 @@ export default function AddAssetScreen({ onClose, editingAsset, initialTypeId })
   // Après les déclarations qu'il lit — un `const` n'existe pas avant sa ligne.
   const searchResultsRef = useRef(null);
   useRevealOnOpen(showResults && searchResults.length > 0, searchResultsRef);
+  // Toucher un champ de texte (« Nom », montant, quantité…) remonte aussi
+  // l'écran : c'était le cas non couvert, puisqu'un focus n'ouvre aucun panneau.
+  const modalRef = useRef(null);
+  useRevealOnFocus(modalRef);
   const debounceRef = useRef(null);
 
   // Propriété de l'actif (qui possède quoi)
@@ -301,7 +305,7 @@ export default function AddAssetScreen({ onClose, editingAsset, initialTypeId })
   }
 
   return (
-    <div className="app-modal tx-modal" style={{ display: "flex", flexDirection: "column" }}>
+    <div ref={modalRef} className="app-modal tx-modal" style={{ display: "flex", flexDirection: "column" }}>
       {/* En-tête : pastille fermer · titre centré · supprimer (édition) */}
       <div
         style={{
