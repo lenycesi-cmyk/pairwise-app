@@ -122,8 +122,13 @@ export function useRevealOnFocus(containerRef, offset = FOCUS_OFFSET) {
     }
 
     function onFocusIn(e) {
-      const target = e.target;
-      if (!target?.matches?.("input, textarea, select")) return;
+      const field = e.target;
+      if (!field?.matches?.("input, textarea, select")) return;
+      // On positionne la CARTE de section, pas le champ nu : sinon son titre
+      // (« Description », « Montant investi »…) passe au-dessus du bord et l'on
+      // ne sait plus ce qu'on remplit. `.pw-lift` est la carte de section,
+      // partagée par les formulaires de transaction et d'actif.
+      const target = field.closest?.(".pw-lift") || field;
       clearTimeout(releaseTimer);
       place(target);
 

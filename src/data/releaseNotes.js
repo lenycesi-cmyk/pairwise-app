@@ -14,6 +14,17 @@
 
 export const RELEASE_NOTES = [
   {
+    version: "2026.08.14.5",
+    date: "2026-08-14",
+    items: [
+      {
+        icon: "⌨️",
+        fr: { title: "Saisie de transaction : le champ touché monte en haut", body: "Toucher « Description » remonte l'écran jusqu'à dégager les catégories, sans avoir à faire défiler. Le titre de la section reste visible." },
+        en: { title: "Transaction entry: the focused field goes up", body: "Tapping “Description” scrolls up far enough to clear the categories, with no manual scrolling. The section title stays visible." },
+      },
+    ],
+  },
+  {
     version: "2026.08.14.4",
     date: "2026-08-14",
     items: [
