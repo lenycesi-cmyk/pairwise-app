@@ -1221,9 +1221,9 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
         <div style={{ marginTop: 12, borderTop: "0.5px solid var(--rule)", paddingTop: 10 }}>
           <p style={{ fontSize: 11, color: "var(--ink-3)", marginBottom: 8 }}>
             <i className="ti ti-grip-vertical" style={{ fontSize: 12, verticalAlign: -2 }} aria-hidden="true" />
-            {" "}{t("categories_drag_hint")}
+            {" "}{t("tags_drag_hint")}
           </p>
-          <TagManager />
+          <TagManager showArchived />
         </div>
       )}
     </SectionCard>

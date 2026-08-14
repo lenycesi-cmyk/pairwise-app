@@ -374,13 +374,18 @@ Trois points à ne pas défaire :
 - **L'archive des tags ne stocke RIEN** (`archivedTags`). `customTags` n'est qu'une liste ordonnée de
   chaînes, la vérité vit sur les transactions : retirer un tag de la liste ne supprime rien, et le rapport
   par tag continue de l'afficher. L'archive est exactement cette différence — tags encore portés, absents
-  de la liste — donc une lecture calculée que rien ne peut désynchroniser. Elle ne s'affiche que dans
-  l'écran Tags (`<TagManager showArchived />`), pas dans le panneau replié de la saisie de transaction.
-  **Le GESTE d'archivage est gouverné par le même `showArchived`** : il avait d'abord été laissé dans
-  le panneau de saisie, où le tag disparaissait sans que rien ne montre où — une action dont on ne peut
-  pas voir la conséquence n'a rien à faire dans un écran. Corollaire du calcul plutôt que du stockage :
-  archiver un tag que **plus aucune transaction ne porte** revient à le supprimer (il ne peut pas
-  figurer dans une archive déduite des transactions), d'où la confirmation explicite dans ce cas.
+  de la liste — donc une lecture calculée que rien ne peut désynchroniser. `showArchived` gouverne
+  **ensemble la section ET le geste d'archivage** : les deux vont toujours de pair, dans l'écran Tags
+  comme dans le panneau replié de la saisie de transaction. C'est la seule règle à tenir ici — le geste
+  avait un temps été offert là où la section ne l'était pas, si bien qu'un tag disparaissait sans que
+  rien ne montre où. Corollaire du calcul plutôt que du stockage : archiver un tag que **plus aucune
+  transaction ne porte** revient à le supprimer (il ne peut pas figurer dans une archive déduite des
+  transactions), d'où la confirmation explicite dans ce cas.
+- **Un glissement vers une cible hors liste exige un `DragOverlay`** (`renderDragOverlay` de
+  `SortableList`). Sans lui, l'élément traîné cesse d'être positionné par la stratégie de tri dès qu'il
+  quitte la liste et semble s'évanouir en approchant de la zone : on ne sait plus si le geste marche.
+  Le calque n'est monté que quand une zone de dépôt existe, donc les autres listes triables gardent le
+  comportement d'avant.
 
 Ce qui motive l'archivage plutôt que la suppression, côté budgets : `budgetHistory` est indexé par id de
 budget, donc **supprimer un budget orpheline ses périodes clôturées** — invisibles et irrécupérables.
