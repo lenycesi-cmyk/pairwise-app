@@ -20,6 +20,7 @@ import TagChip from "../components/TagChip";
 import { SUGGESTED_TAGS } from "../data/suggestedTags";
 import BudgetCard from "../components/BudgetCard";
 import { budgetLevel } from "../utils/budgetStatus";
+import ArchivedSection from "../components/ArchivedSection";
 
 const EXPENSE_EXCLUDED = ["income", "investment", "savings"];
 const GROUP_PCT = { essential: 0.5, fun: 0.3, investment: 0.2 };
@@ -35,7 +36,8 @@ export default function BudgetScreen({ openSignal, onOpenMenu }) {
   const { catName, subName } = useCategoryName();
   const { categories, transactions, budgets, addBudget, updateBudget, removeBudget, defaultCurrency, members, coupleName,
     customTags, budgetDisplayCurrency, updateBudgetDisplayCurrency,
-    enabledCurrencies, updateEnabledCurrencies, language } =
+    enabledCurrencies, updateEnabledCurrencies, language,
+    archivedBudgets, archiveBudget, unarchiveBudget, budgetHistory } =
     useFinance();
 
   const displayCurrency = budgetDisplayCurrency || defaultCurrency;
@@ -63,6 +65,32 @@ export default function BudgetScreen({ openSignal, onOpenMenu }) {
     return m;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allProgress, language]);
+  // Budgets archivés — hors de useBudgetProgress (le contexte ne les expose
+  // plus), donc pas de progression à afficher : le libellé, la date d'archivage
+  // et le nombre de périodes CONSERVÉES. Ce dernier chiffre est le tout l'objet
+  // de l'archivage : budgetHistory est indexé par id de budget, et supprimer le
+  // budget rendrait ces relevés inatteignables.
+  const archivedBudgetItems = useMemo(
+    () => archivedBudgets.map((b) => {
+      const periods = Object.keys(budgetHistory?.[b.id] || {}).length;
+      const when = new Date(b.archivedAt).toLocaleDateString(language === "en" ? "en-US" : "fr-FR", {
+        day: "numeric", month: "short", year: "numeric",
+      });
+      return {
+        id: b.id,
+        title: b.name
+          || (b.scope === "global" ? t("budget_scope_global")
+            : b.scope === "tag" ? t("budget_scope_tag")
+            : t("budget_scope_category")),
+        meta: periods > 0
+          ? `${t("archived_on")} ${when} · ${periods} ${t("archived_periods_kept")}`
+          : `${t("archived_on")} ${when}`,
+      };
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [archivedBudgets, budgetHistory, language]
+  );
+
   const coupleLabel = coupleName || t("budget_for_couple");
   const { convert } = useExchangeRates(defaultCurrency);
   // Liste de tags disponibles pour un budget "tag" : personnalisés du couple,
@@ -432,7 +460,11 @@ export default function BudgetScreen({ openSignal, onOpenMenu }) {
         scope={globalScope}
         onEdit={openEdit}
         onToggleActive={toggleActive}
-        onDelete={removeBudget}
+        onArchive={(b) => archiveBudget(b.id)}
+        // BudgetCard passe le BUDGET à ses callbacks (comme onToggleActive),
+        // alors que removeBudget attend un id : sans ce déballage, removeFrom
+        // comparait `x.id` à un objet et la suppression ne retirait rien.
+        onDelete={(b) => removeBudget(b.id)}
       />
     );
   }
@@ -1207,6 +1239,15 @@ export default function BudgetScreen({ openSignal, onOpenMenu }) {
           labels={canvasLabels}
           isDesktop={isDesktop}
           heroGrid
+        />
+      )}
+
+      {!showForm && (
+        <ArchivedSection
+          items={archivedBudgetItems}
+          onRestore={unarchiveBudget}
+          onDelete={removeBudget}
+          emptyHint={t("archived_budget_hint")}
         />
       )}
     </div>

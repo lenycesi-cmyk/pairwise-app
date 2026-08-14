@@ -21,7 +21,7 @@ export default function TagsScreen() {
           overflow: "hidden",
         }}
       >
-        <TagManager />
+        <TagManager showArchived />
       </div>
     </div>
   );

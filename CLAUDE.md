@@ -356,6 +356,36 @@ per budget + month + level in `localStorage`. It's mounted as an always-on "runn
 `budgetHistory` on the couple doc — idempotent, never rewritten, and skipping rolling windows
 (no discrete period to close).
 
+**Archivage : ranger sans supprimer** ([utils/archive.js](src/utils/archive.js)). Un budget ou un
+objectif archivé porte un `archivedAt` et **ne bouge pas de son tableau** ; c'est la LECTURE qui le met
+de côté. Le détail reste donc intégralement consultable avec le code de son écran d'origine — d'où la
+section « Archivés » repliée EN BAS de l'écran concerné plutôt qu'un écran d'historique central, qui
+aurait dû tenir une seconde implémentation de chaque vue de détail.
+
+Trois points à ne pas défaire :
+
+- **Le filtre vit dans `FinanceContext`, à un seul endroit.** `budgets`/`goals` exposés par le contexte
+  sont les ACTIFS (`archivedBudgets`/`archivedGoals` à côté), tandis que l'ÉTAT interne garde le tableau
+  complet — les écritures font un read-modify-write dessus et doivent voir les archivés. Filtrer chez les
+  consommateurs aurait voulu dire le refaire dans `useBudgetProgress`, `useBudgetSnapshots`,
+  `useGoalProgress` et les widgets, et en oublier un.
+- **Le glisser-déposer doit recoller les archivés** (`mergeReorder`). L'écran ne connaît que les actifs
+  et `reorderBudgets` réécrit le tableau entier : sans ça, réordonner deux budgets viderait l'archive.
+- **L'archive des tags ne stocke RIEN** (`archivedTags`). `customTags` n'est qu'une liste ordonnée de
+  chaînes, la vérité vit sur les transactions : retirer un tag de la liste ne supprime rien, et le rapport
+  par tag continue de l'afficher. L'archive est exactement cette différence — tags encore portés, absents
+  de la liste — donc une lecture calculée que rien ne peut désynchroniser. Elle ne s'affiche que dans
+  l'écran Tags (`<TagManager showArchived />`), pas dans le panneau replié de la saisie de transaction.
+
+Ce qui motive l'archivage plutôt que la suppression, côté budgets : `budgetHistory` est indexé par id de
+budget, donc **supprimer un budget orpheline ses périodes clôturées** — invisibles et irrécupérables.
+
+L'archivage du **patrimoine** n'est PAS fait et n'est pas symétrique : archiver un actif *change le
+patrimoine net*, alors qu'archiver un budget est cosmétique. Il faudra le nommer « Vendu / Clôturé »,
+filtrer aussi côté serveur dans [functions/netWorthSnapshots.js](functions/netWorthSnapshots.js) (sinon
+l'actif reste coté chaque nuit et pèse dans les instantanés), rompre le lien `incomeAccountLinks`
+correspondant, et prévenir quand un objectif s'adosse à l'actif archivé.
+
 **Income subcategories can be linked to a Wealth account** via the `incomeAccountLinks` map
 (`{ subcategoryName: assetId }`, set whole via `setIncomeAccountLinks`, edited in
 `CategoriesScreen`). When `addTransaction` creates an `income` transaction whose subcategory has a

@@ -35,6 +35,7 @@ import {
 } from "../utils/canonicalData";
 import { createCoupleAdapter } from "./coupleAdapter";
 import { removeFrom, findIn } from "../utils/collectionOps";
+import { partitionArchived, mergeReorder } from "../utils/archive";
 import { resolveNavTabs } from "../data/navTabsMeta";
 import { readBootTheme, writeBootTheme, readBootNavTabs, writeBootNavTabs } from "../utils/bootPrefs";
 
@@ -96,6 +97,20 @@ export function FinanceProvider({ children }) {
   // Liste de tags personnalisée du couple (ordonnée). Vide tant que non
   // personnalisée : les suggestions retombent alors sur les presets + historique.
   const [customTags, setCustomTags] = useState([]);
+
+  // Archivage : `budgets`/`goals` gardent le tableau COMPLET en état (les
+  // écritures font un read-modify-write dessus et doivent voir les archivés),
+  // mais le contexte n'expose que les actifs. Le filtre est ici et nulle part
+  // ailleurs — sinon il faudrait le répéter dans useBudgetProgress,
+  // useBudgetSnapshots, useGoalProgress et les widgets, et en oublier un.
+  const { active: activeBudgets, archived: archivedBudgets } = useMemo(
+    () => partitionArchived(budgets),
+    [budgets]
+  );
+  const { active: activeGoals, archived: archivedGoals } = useMemo(
+    () => partitionArchived(goals),
+    [goals]
+  );
 
   // Clé du membre courant : sert autant à filtrer le privé (voir isVisibleToMe)
   // qu'à retrouver SON thème dans la map.
@@ -603,12 +618,41 @@ export function FinanceProvider({ children }) {
     await couple.removeItem("goals", goals, id);
   }
 
+  async function archiveGoal(id) {
+    if (!coupleId) return;
+    await couple.patchItem("goals", goals, id, { archivedAt: Date.now() });
+  }
+
+  async function unarchiveGoal(id) {
+    if (!coupleId) return;
+    await couple.patchItem("goals", goals, id, { archivedAt: null });
+  }
+
+  // Archive / désarchive un budget. L'élément ne bouge pas du tableau : seul
+  // `archivedAt` change, et le contexte le range à la lecture. Son historique
+  // (budgetHistory, indexé par id de budget) reste donc rattaché à lui — c'est
+  // précisément ce que la suppression, elle, orpheline sans retour possible.
+  async function archiveBudget(id) {
+    if (!coupleId) return;
+    await couple.patchItem("budgets", budgets, id, { archivedAt: Date.now() });
+  }
+
+  async function unarchiveBudget(id) {
+    if (!coupleId) return;
+    await couple.patchItem("budgets", budgets, id, { archivedAt: null });
+  }
+
   // Réordonne l'ensemble des budgets (drag & drop dans l'onglet Budget). L'ordre
   // du tableau pilote aussi les 3 budgets affichés dans le widget d'Accueil.
+  //
+  // L'écran ne connaît que les budgets ACTIFS ; comme on réécrit ici le tableau
+  // entier, il faut y remettre les archivés, sinon un simple glisser-déposer
+  // viderait l'archive.
   async function reorderBudgets(orderedBudgets) {
     if (!coupleId) return;
-    setBudgets(orderedBudgets); // optimiste
-    await couple.replaceList("budgets", orderedBudgets);
+    const full = mergeReorder(orderedBudgets, budgets);
+    setBudgets(full); // optimiste
+    await couple.replaceList("budgets", full);
   }
 
   // Enregistre un lot de snapshots d'historique de budget (clôtures de période).
@@ -1003,10 +1047,13 @@ export function FinanceProvider({ children }) {
     addRecurring,
     updateRecurring,
     removeRecurring,
-    budgets,
+    budgets: activeBudgets,
+    archivedBudgets,
     addBudget,
     updateBudget,
     removeBudget,
+    archiveBudget,
+    unarchiveBudget,
     reorderBudgets,
     loans,
     addLoan,
@@ -1014,10 +1061,13 @@ export function FinanceProvider({ children }) {
     removeLoan,
     budgetHistory,
     saveBudgetSnapshots,
-    goals,
+    goals: activeGoals,
+    archivedGoals,
     addGoal,
     updateGoal,
     removeGoal,
+    archiveGoal,
+    unarchiveGoal,
     incomeAccountLinks,
     setIncomeAccountLinks,
     assets: visibleAssets,

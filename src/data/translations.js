@@ -599,6 +599,20 @@ export const TRANSLATIONS = {
     categories_new_subcategory_placeholder: "Nouvelle sous-catégorie",
     categories_tags_title: "Tags",
     categories_new_tag_placeholder: "Nouveau tag",
+
+    // Archivage — ranger sans supprimer (budgets, objectifs, tags)
+    archived_section_title: "Archivés",
+    archived_tags_title: "Tags archivés",
+    archived_archive: "Archiver",
+    archived_restore: "Réactiver",
+    archived_delete: "Supprimer définitivement",
+    archived_confirm_delete: "Confirmer",
+    archived_cancel: "Annuler",
+    archived_on: "Archivé le",
+    archived_periods_kept: "périodes conservées",
+    archived_budget_hint: "Un budget archivé ne compte plus nulle part, mais garde son historique de périodes.",
+    archived_goal_hint: "Un objectif archivé disparaît de la liste sans être perdu.",
+    archived_tags_hint: "Retirés de ta liste mais toujours portés par des transactions. Touche + pour remettre un tag dans la liste.",
     categories_edit_tag: "Modifier le tag",
     categories_delete_confirm: "Supprimer cette catégorie et toutes ses sous-catégories ?",
 
@@ -1503,6 +1517,20 @@ export const TRANSLATIONS = {
     categories_new_subcategory_placeholder: "New subcategory",
     categories_tags_title: "Tags",
     categories_new_tag_placeholder: "New tag",
+
+    // Archiving — put away without deleting (budgets, goals, tags)
+    archived_section_title: "Archived",
+    archived_tags_title: "Archived tags",
+    archived_archive: "Archive",
+    archived_restore: "Restore",
+    archived_delete: "Delete permanently",
+    archived_confirm_delete: "Confirm",
+    archived_cancel: "Cancel",
+    archived_on: "Archived on",
+    archived_periods_kept: "periods kept",
+    archived_budget_hint: "An archived budget no longer counts anywhere, but keeps its period history.",
+    archived_goal_hint: "An archived goal leaves the list without being lost.",
+    archived_tags_hint: "Removed from your list but still carried by transactions. Tap + to put a tag back.",
     categories_edit_tag: "Edit tag",
     categories_delete_confirm: "Delete this category and all its subcategories?",
 
