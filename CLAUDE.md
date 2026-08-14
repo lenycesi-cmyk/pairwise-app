@@ -470,6 +470,28 @@ Recurring asset contributions `continue` *without* marking the period applied, s
 The display path (`useExchangeRates.convert`) still does `rates[x] || 1`; it is self-correcting on reload,
 but tightening it means auditing ~10 call sites that do arithmetic on its result.
 
+**Navigation : pile d'onglets + position de défilement.** L'app n'a pas de router — `tab` est un
+`useState` dans [App.jsx](src/App.jsx) — et le bouton « retour » est rattrapé par
+[useBackGuard](src/hooks/useBackGuard.js), qui empile une entrée d'historique par overlay ouvert (LIFO).
+Trois points à ne pas défaire :
+
+- **Le retour dépile les onglets VISITÉS** (`tabStack`), il ne renvoie plus à l'Accueil. L'ancienne
+  garde disait littéralement « retour depuis n'importe quel onglet ⇒ Accueil » : depuis Budget on
+  atterrissait à l'Accueil même en venant du Patrimoine.
+- **Une entrée d'historique PAR changement d'onglet.** `useBackGuard` n'en empile qu'une, à la bascule
+  de son `active` ; sans le `pushState` explicite de `setTab`, le deuxième « retour » sortirait de
+  l'app. Symétriquement `popTab` réarme une entrée tant qu'il reste des onglets à dépiler.
+- **La position de défilement se mémorise par onglet** (`tabScrollRef`) : `key={tab}` sur `.tab-slide`
+  remonte l'écran à chaque changement — c'est ce qui rend l'animation de glissement possible — donc la
+  position est perdue par construction. La restauration attend DEUX images : la première laisse React
+  poser le DOM, la seconde laisse le navigateur en calculer la hauteur, sans quoi le défilement est
+  écrêté à la hauteur d'un écran encore vide.
+
+Corollaire pour les écrans : **un éditeur plein écran se pose PAR-DESSUS, jamais à la place**.
+`.app-modal` est en position fixe, donc l'écran derrière garde sa position sans rien à restaurer.
+L'édition d'un actif faisait un `if (editingAsset) return <AddAssetScreen/>` : fermer reconstruisait le
+Patrimoine de zéro, et un écran neuf commence par le haut.
+
 **Screens are split into "always mounted" vs lazy.** Dashboard/Transactions/Settings load eagerly;
 everything else (Wealth, Budget, Reports, AddTransaction, Recurring, Categories, Debt, AddAsset,
 MemberBreakdown, InvestmentCalculator, Theme, Language) is `React.lazy` + `Suspense` in App.jsx

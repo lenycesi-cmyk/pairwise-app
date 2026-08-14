@@ -1491,6 +1491,21 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
               </p>
             )}
           </div>
+          {/* Crayon : la ligne entière ouvrait déjà l'édition, mais rien ne le
+              disait. Il ne change pas le comportement, il le rend visible — et
+              lève l'ambiguïté là où la ligne porte déjà d'autres cibles (bulle
+              de commentaires, bouton « Connecter »). */}
+          <span
+            aria-hidden="true"
+            style={{
+              width: 26, height: 26, borderRadius: 99, flexShrink: 0,
+              display: "grid", placeItems: "center",
+              background: "color-mix(in srgb, var(--ink) 6%, transparent)",
+              color: "var(--ink-3)",
+            }}
+          >
+            <i className="ti ti-pencil" style={{ fontSize: 12 }} />
+          </span>
         </div>
       </div>
     );
@@ -1764,17 +1779,18 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
   }
 
 
-  if (editingAsset) {
-    return (
-      <AddAssetScreen
-        editingAsset={editingAsset}
-        onClose={() => setEditingAsset(null)}
-      />
-    );
-  }
-
   return (
     <div style={{ padding: "0 1.25rem 6rem" }}>
+      {/* L'édition se pose PAR-DESSUS (`.app-modal` est en position fixe) au
+          lieu de remplacer l'écran. Le Patrimoine reste monté derrière, donc sa
+          position de défilement n'est jamais perdue : il n'y a rien à
+          « restaurer », elle n'a pas bougé. */}
+      {editingAsset && (
+        <AddAssetScreen
+          editingAsset={editingAsset}
+          onClose={() => setEditingAsset(null)}
+        />
+      )}
       {commentsAsset && (
         <CommentsModal title={commentsAsset.name} onClose={() => setCommentsAsset(null)}>
           <AssetComments assetId={commentsAsset.id} bare />

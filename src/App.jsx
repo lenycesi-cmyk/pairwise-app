@@ -151,7 +151,52 @@ function ModalWrapper({ onClose, title, children }) {
 
 function AppContent() {
   const { user, coupleId, onboardingComplete, loading } = useAuth();
-  const [tab, setTab] = useState("dashboard");
+  const [tab, setTabState] = useState("dashboard");
+  // Pile des onglets VISITÉS. Le « retour » y dépile, au lieu de renvoyer
+  // systématiquement à l'Accueil : depuis Budget, on revient au Patrimoine si
+  // c'est de là qu'on venait. L'Accueil n'est la destination que quand il n'y a
+  // plus rien à dépiler.
+  const [tabStack, setTabStack] = useState([]);
+  // Position de défilement mémorisée par onglet. `key={tab}` sur .tab-slide
+  // remonte l'écran à chaque changement (c'est ce qui rend l'animation de
+  // glissement possible), donc la position est perdue par construction : on la
+  // relève avant de quitter l'onglet et on la rend après le remontage.
+  const tabScrollRef = useRef({});
+
+  function setTab(next) {
+    if (next === tab) return;
+    // Relevé AVANT le changement : après, l'écran est déjà remonté à zéro.
+    tabScrollRef.current[tab] = window.scrollY;
+    // Une entrée d'historique PAR changement d'onglet. Sans elle, la garde
+    // n'en empile qu'une seule (son `active` ne rebascule pas), et le deuxième
+    // « retour » sortirait de l'app au lieu de dépiler.
+    if (tabStack.length > 0) window.history.pushState({ pwGuard: true }, "");
+    setTabStack([...tabStack, tab]);
+    setTabState(next);
+  }
+
+  function popTab() {
+    if (tabStack.length === 0) return;
+    const target = tabStack[tabStack.length - 1];
+    const rest = tabStack.slice(0, -1);
+    tabScrollRef.current[tab] = window.scrollY;
+    setTabState(target);
+    setTabStack(rest);
+    // Tant qu'il reste des onglets à dépiler, on réarme une entrée : celle que
+    // le navigateur vient de consommer.
+    if (rest.length > 0) window.history.pushState({ pwGuard: true }, "");
+  }
+
+  // Rendu de la position après le remontage provoqué par `key={tab}`.
+  useEffect(() => {
+    const y = tabScrollRef.current[tab];
+    if (y == null) return;
+    // Deux images d'attente : la première laisse React poser le DOM, la seconde
+    // laisse le navigateur en calculer la hauteur — sans quoi le défilement est
+    // écrêté à la hauteur d'un écran encore vide.
+    const id = requestAnimationFrame(() => requestAnimationFrame(() => window.scrollTo(0, y)));
+    return () => cancelAnimationFrame(id);
+  }, [tab]);
   const [showNavPicker, setShowNavPicker] = useState(false);
   // Ordre du swipe = onglets de la barre du bas du membre (mis à jour par
   // NavSwipeSync, rendu sous FinanceProvider).
@@ -205,7 +250,7 @@ function AppContent() {
   // de quitter. Doit être le PREMIER useBackGuard (fond de pile) pour que les
   // overlays/onglets, empilés au-dessus, soient traités avant.
   useBackGuard(true, () => {}, { persistent: true });
-  useBackGuard(tab !== "dashboard", () => setTab("dashboard"));
+  useBackGuard(tabStack.length > 0, popTab);
   useBackGuard(showAdd, () => closeAdd());
   useBackGuard(showAddAsset, () => setShowAddAsset(false));
   useBackGuard(showBreakdown, () => setShowBreakdown(false));
