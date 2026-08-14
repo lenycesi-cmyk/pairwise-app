@@ -49,8 +49,21 @@ export default function TagManager({ showArchived = false }) {
   // n'est touchée. On déplie l'archive dans la foulée pour montrer où le tag a
   // atterri, sinon le geste n'aurait aucun retour visible.
   function archiveByDrop(tag) {
+    if (archiveTag(tag)) setArchivedOpen(true);
+  }
+
+  // Archive un tag, en prévenant quand il n'y a RIEN à archiver.
+  //
+  // L'archive se calcule à partir des transactions : un tag que plus aucune
+  // d'elles ne porte ne peut donc pas y figurer — l'archiver revient à le
+  // supprimer, et le tag disparaîtrait sans laisser de trace ni d'endroit où
+  // le retrouver. On le dit avant plutôt que de le laisser constater après.
+  // Renvoie false si le geste a été annulé.
+  function archiveTag(tag) {
+    const used = (transactions || []).some((tx) => (tx.tags || []).includes(tag));
+    if (!used && !confirm(t("archived_tag_unused_confirm").replace("{tag}", tag))) return false;
     removeTag(tag);
-    setArchivedOpen(true);
+    return true;
   }
 
   // Zone toujours présente dans l'écran Tags, MÊME VIDE : elle ne s'affichait
@@ -175,13 +188,21 @@ export default function TagManager({ showArchived = false }) {
                 {/* Icône d'ARCHIVE et non de corbeille : retirer un tag de la
                     liste ne supprime rien — les transactions le portent
                     toujours. Une corbeille promettait une suppression qu'elle
-                    n'effectuait pas. */}
-                <i
-                  className="ti ti-archive"
-                  style={{ fontSize: 13, color: "var(--ink-3)", cursor: "pointer", flexShrink: 0 }}
-                  aria-label={t("archived_archive")}
-                  onClick={() => removeTag(item.id)}
-                />
+                    n'effectuait pas.
+
+                    Le geste n'existe QUE là où l'archive est visible (écran
+                    Tags). Dans le panneau de saisie d'une transaction, il
+                    faisait disparaître un tag sans montrer où il atterrissait :
+                    une action dont on ne peut pas voir la conséquence n'a rien à
+                    faire dans un écran. */}
+                {showArchived && (
+                  <i
+                    className="ti ti-archive"
+                    style={{ fontSize: 13, color: "var(--ink-3)", cursor: "pointer", flexShrink: 0 }}
+                    aria-label={t("archived_archive")}
+                    onClick={() => archiveTag(item.id)}
+                  />
+                )}
               </>
             )}
           </div>
