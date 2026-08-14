@@ -1,8 +1,11 @@
+import { useState } from "react";
 import {
   DndContext,
   closestCenter,
+  pointerWithin,
   PointerSensor,
   TouchSensor,
+  useDroppable,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
@@ -52,20 +55,57 @@ export function SortableItem({ id, children }) {
 }
 
 /**
+ * Cible de dépôt SITUÉE HORS DE LA LISTE (p. ex. « archiver ce tag »). Elle
+ * n'est pas triable : on ne peut que lâcher dessus.
+ */
+function DropZone({ id, render, dragging }) {
+  const { setNodeRef, isOver } = useDroppable({ id });
+  return <div ref={setNodeRef}>{render({ isOver, dragging })}</div>;
+}
+
+/**
  * Liste réorganisable. `items` = tableau d'objets avec un champ `id`.
  * `onReorder` reçoit le nouveau tableau d'items dans l'ordre choisi.
  * `renderItem` reçoit chaque item et doit retourner son contenu (sans la poignée,
  * déjà gérée par SortableItem).
+ *
+ * Optionnel — une cible de dépôt hors liste : `dropZoneId` +
+ * `renderDropZone({ isOver, dragging })` pour son rendu, et `onDropZone(id)`
+ * appelé quand un élément y est lâché. Sans ces props, le composant se comporte
+ * exactement comme avant.
  */
-export default function SortableList({ items, onReorder, renderItem, getId = (i) => i.id }) {
+export default function SortableList({
+  items,
+  onReorder,
+  renderItem,
+  getId = (i) => i.id,
+  dropZoneId = null,
+  renderDropZone = null,
+  onDropZone = null,
+  // Contenu intercalé ENTRE la liste et la zone de dépôt (p. ex. le champ
+  // « nouveau tag »), pour que la zone reste en dernier sans reléguer ce qui
+  // appartient visuellement à la liste sous elle.
+  children = null,
+}) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } })
   );
+  // Sert au rendu de la zone : au repos elle reste discrète, elle ne s'allume
+  // qu'une fois un élément en main.
+  const [dragging, setDragging] = useState(false);
+
+  const hasDropZone = Boolean(dropZoneId && renderDropZone);
 
   function handleDragEnd(event) {
+    setDragging(false);
     const { active, over } = event;
     if (!over || active.id === over.id) return;
+
+    if (hasDropZone && over.id === dropZoneId) {
+      onDropZone?.(active.id);
+      return;
+    }
 
     const oldIndex = items.findIndex((i) => getId(i) === active.id);
     const newIndex = items.findIndex((i) => getId(i) === over.id);
@@ -75,7 +115,17 @@ export default function SortableList({ items, onReorder, renderItem, getId = (i)
   }
 
   return (
-    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+    <DndContext
+      sensors={sensors}
+      // `closestCenter` convient à une liste homogène, mais avec une cible d'une
+      // AUTRE NATURE en dehors de la liste elle désigne la ligne dont le centre
+      // est le plus proche — donc jamais la zone, qui est en bout de course.
+      // `pointerWithin` suit le doigt, ce qui est le seul comportement juste ici.
+      collisionDetection={hasDropZone ? pointerWithin : closestCenter}
+      onDragStart={() => setDragging(true)}
+      onDragCancel={() => setDragging(false)}
+      onDragEnd={handleDragEnd}
+    >
       <SortableContext items={items.map(getId)} strategy={verticalListSortingStrategy}>
         {items.map((item) => (
           <SortableItem key={getId(item)} id={getId(item)}>
@@ -83,6 +133,10 @@ export default function SortableList({ items, onReorder, renderItem, getId = (i)
           </SortableItem>
         ))}
       </SortableContext>
+      {children}
+      {hasDropZone && (
+        <DropZone id={dropZoneId} render={renderDropZone} dragging={dragging} />
+      )}
     </DndContext>
   );
 }

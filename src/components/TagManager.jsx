@@ -3,9 +3,13 @@ import { useFinance } from "../context/FinanceContext";
 import { useTranslation } from "../hooks/useTranslation";
 import { normalizeTag, dedupeTags } from "../utils/tags";
 import { archivedTags } from "../utils/archive";
+
 import { SUGGESTED_TAGS } from "../data/suggestedTags";
 import SortableList from "./SortableList";
 import TagChip from "./TagChip";
+
+// Identifiant de la cible de dépôt « archiver » (hors de la liste triable).
+const ARCHIVE_DROP_ID = "__archive_tag__";
 
 // Gestion de la liste de tags du couple : ajouter / réordonner (glisser) /
 // supprimer. Partagé entre l'écran Tags (Réglages) et le panneau inline de
@@ -38,6 +42,48 @@ export default function TagManager({ showArchived = false }) {
   // couple plutôt qu'un repli implicite sur les suggestions.
   function restoreTag(tag) {
     updateCustomTags(dedupeTags([...tagList, tag]));
+  }
+
+  // Dépôt d'un tag sur la zone d'archive : exactement le même effet que l'icône
+  // d'archive de la ligne — retirer la chaîne de la liste. Aucune transaction
+  // n'est touchée. On déplie l'archive dans la foulée pour montrer où le tag a
+  // atterri, sinon le geste n'aurait aucun retour visible.
+  function archiveByDrop(tag) {
+    removeTag(tag);
+    setArchivedOpen(true);
+  }
+
+  // Zone toujours présente dans l'écran Tags, MÊME VIDE : elle ne s'affichait
+  // qu'une fois peuplée, si bien qu'on ne pouvait jamais y déposer le premier
+  // tag — la cible n'existait pas encore.
+  function renderArchiveDropZone({ isOver, dragging }) {
+    return (
+      <div style={{ padding: "12px 14px 0" }}>
+        <button
+          onClick={() => setArchivedOpen((v) => !v)}
+          aria-expanded={archivedOpen}
+          style={{
+            width: "100%", display: "flex", alignItems: "center", gap: 9,
+            padding: "11px 12px", borderRadius: "var(--radius-md)",
+            border: `1.5px dashed ${isOver ? "var(--tang)" : "var(--rule)"}`,
+            background: isOver ? "color-mix(in srgb, var(--tang) 8%, transparent)" : "transparent",
+            font: "inherit", fontSize: 13, fontWeight: 700, textAlign: "left",
+            color: isOver ? "var(--tang)" : "var(--ink-3)",
+            cursor: "pointer", transition: "border-color .15s, background .15s, color .15s",
+          }}
+        >
+          <i
+            className={dragging ? "ti ti-archive" : archivedOpen ? "ti ti-chevron-down" : "ti ti-chevron-right"}
+            style={{ fontSize: 14 }}
+            aria-hidden="true"
+          />
+          {/* Pendant le glissement, la zone dit ce qu'elle fait ; au repos elle
+              redevient l'en-tête replié de l'archive. */}
+          {dragging ? t("archived_tags_drop") : t("archived_tags_title")}
+          <span style={{ marginLeft: "auto", fontSize: 11.5 }}>{archived.length}</span>
+        </button>
+      </div>
+    );
   }
 
   function addTag() {
@@ -83,6 +129,9 @@ export default function TagManager({ showArchived = false }) {
       <SortableList
         items={tagList.map((tag) => ({ id: tag }))}
         onReorder={reorderTags}
+        dropZoneId={showArchived ? ARCHIVE_DROP_ID : null}
+        renderDropZone={showArchived ? renderArchiveDropZone : null}
+        onDropZone={archiveByDrop}
         renderItem={(item) => (
           <div style={{ padding: "8px 14px 8px 6px", borderBottom: "0.5px solid var(--rule)", display: "flex", alignItems: "center", gap: 8 }}>
             {editingTag === item.id ? (
@@ -123,55 +172,39 @@ export default function TagManager({ showArchived = false }) {
                   aria-label={t("categories_edit_tag")}
                   onClick={() => startEdit(item.id)}
                 />
+                {/* Icône d'ARCHIVE et non de corbeille : retirer un tag de la
+                    liste ne supprime rien — les transactions le portent
+                    toujours. Une corbeille promettait une suppression qu'elle
+                    n'effectuait pas. */}
                 <i
-                  className="ti ti-trash"
+                  className="ti ti-archive"
                   style={{ fontSize: 13, color: "var(--ink-3)", cursor: "pointer", flexShrink: 0 }}
-                  aria-hidden="true"
+                  aria-label={t("archived_archive")}
                   onClick={() => removeTag(item.id)}
                 />
               </>
             )}
           </div>
         )}
-      />
-      <div style={{ padding: "8px 14px 0 42px", display: "flex", gap: 8 }}>
-        <input
-          type="text"
-          placeholder={t("categories_new_tag_placeholder")}
-          value={newTagInput}
-          onChange={(e) => setNewTagInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && addTag()}
-          style={{ flex: 1, border: "none", borderBottom: "0.5px solid var(--rule)", outline: "none", fontSize: 13, background: "transparent", paddingBottom: 4 }}
-        />
-        <button onClick={addTag} style={{ background: "none", border: "none", color: "var(--sky)", fontSize: 13 }}>
-          <i className="ti ti-plus" style={{ fontSize: 14 }} aria-hidden="true" />
-        </button>
-      </div>
-
-      {archived.length > 0 && (
-        <div style={{ marginTop: 12, borderTop: "0.5px solid var(--rule)" }}>
-          <button
-            onClick={() => setArchivedOpen((v) => !v)}
-            aria-expanded={archivedOpen}
-            style={{
-              width: "100%", display: "flex", alignItems: "center", gap: 9,
-              padding: "12px 14px", background: "none", border: "none",
-              font: "inherit", fontSize: 13, fontWeight: 700,
-              color: "var(--ink-2)", cursor: "pointer", textAlign: "left",
-            }}
-          >
-            <i
-              className={archivedOpen ? "ti ti-chevron-down" : "ti ti-chevron-right"}
-              style={{ fontSize: 14, color: "var(--ink-3)" }}
-              aria-hidden="true"
-            />
-            {t("archived_tags_title")}
-            <span style={{ marginLeft: "auto", fontSize: 11.5, color: "var(--ink-3)" }}>
-              {archived.length}
-            </span>
+      >
+        <div style={{ padding: "8px 14px 0 42px", display: "flex", gap: 8 }}>
+          <input
+            type="text"
+            placeholder={t("categories_new_tag_placeholder")}
+            value={newTagInput}
+            onChange={(e) => setNewTagInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && addTag()}
+            style={{ flex: 1, border: "none", borderBottom: "0.5px solid var(--rule)", outline: "none", fontSize: 13, background: "transparent", paddingBottom: 4 }}
+          />
+          <button onClick={addTag} style={{ background: "none", border: "none", color: "var(--sky)", fontSize: 13 }}>
+            <i className="ti ti-plus" style={{ fontSize: 14 }} aria-hidden="true" />
           </button>
+        </div>
+      </SortableList>
 
-          {archivedOpen && (
+      {showArchived && (
+        <div>
+          {archivedOpen && archived.length > 0 && (
             <div style={{ padding: "0 14px 14px" }}>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "9px 12px" }}>
                 {/* Pas de pastille autour de la pastille : TagChip porte déjà
