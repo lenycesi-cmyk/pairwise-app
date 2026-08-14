@@ -958,14 +958,14 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
           gauche), ligne 2 le bloc « Bonjour … » sur toute la largeur. */}
       {(() => {
         const monthNav = (
-          <div style={{ justifySelf: "center", display: "flex", alignItems: "center", gap: 6 }}>
+          <div style={{ justifySelf: "center", minWidth: 0, display: "flex", alignItems: "center", gap: 6 }}>
             <PeriodSelector
               periodType={periodType}
               setPeriodType={setPeriodType}
               anchor={anchor}
               setAnchor={setAnchor}
               setAnchorNow={() => setAnchorRaw(new Date())}
-              rangeLabel={range.label}
+              rangeLabel={range.labelShort || range.label}
               customRange={customRange}
               setCustomRange={setCustomRange}
             />
@@ -1037,7 +1037,12 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
             {/* Ligne 1 : [Réglages] [période centrée] [devise/actions], alignés
                 sur une même ligne (Réglages intégré ici, plus de FAB flottant
                 sur l'accueil). */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", gap: 8, marginBottom: 10 }}>
+            {/* Colonnes latérales en `auto` et centre en `minmax(0, 1fr)` : le
+                sélecteur de période prend la place qui RESTE, au lieu de la
+                prendre d'abord et de pousser les actions hors de l'écran. Avec
+                `1fr auto 1fr`, un libellé long élargissait la colonne du milieu
+                sans limite et le bouton « personnaliser » sortait à droite. */}
+            <div style={{ display: "grid", gridTemplateColumns: "auto minmax(0, 1fr) auto", alignItems: "center", gap: 8, marginBottom: 10 }}>
               <button
                 ref={settingsButtonRef}
                 onClick={onOpenMenu}

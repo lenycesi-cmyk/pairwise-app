@@ -638,7 +638,10 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
           // Mobile : ligne 1 [menu | période | actions], ligne 2 le message d'accueil.
           return (
             <>
-              <div style={{ display: "grid", gridTemplateColumns: "auto 1fr auto", alignItems: "center", gap: 8, marginBottom: 10 }}>
+              {/* `minmax(0, 1fr)` et non `1fr` : sans plancher à zéro, la colonne
+                  du milieu ne peut pas descendre sous la largeur de son contenu
+                  et pousse les actions hors de l'écran. */}
+              <div style={{ display: "grid", gridTemplateColumns: "auto minmax(0, 1fr) auto", alignItems: "center", gap: 8, marginBottom: 10 }}>
                 <div style={{ justifySelf: "start" }}><HeaderMenuButton onClick={onOpenMenu} /></div>
                 <div style={{ justifySelf: "center", minWidth: 0 }}>{periodSel}</div>
                 <div style={{ justifySelf: "end" }}>{actions}</div>
