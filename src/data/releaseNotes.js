@@ -14,6 +14,17 @@
 
 export const RELEASE_NOTES = [
   {
+    version: "2026.08.15.1",
+    date: "2026-08-15",
+    items: [
+      {
+        icon: "\ud83c\udfe0",
+        fr: { title: "L'accueil du site, c'est l'app", body: "pairwise.finance affiche d\u00e9sormais le m\u00eame \u00e9cran d'accueil que l'app. Ta premi\u00e8re saisie te suit : tu ne la retapes plus en arrivant." },
+        en: { title: "The site's home is the app", body: "pairwise.finance now shows the same home screen as the app. Your first entry follows you across \u2014 no retyping on arrival." },
+      },
+    ],
+  },
+  {
     version: "2026.08.15",
     date: "2026-08-15",
     items: [

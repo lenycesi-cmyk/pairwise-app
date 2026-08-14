@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { onboardingT } from "../../data/onboardingCopy";
 import {
-  loadDraft,
+  consumeHandoff,
   saveDraft,
   clearDraft,
   parseDraftEntry,
@@ -34,7 +34,12 @@ export default function OnboardingEntry({ language, onSignIn, onNext }) {
   const isDesktop = useMediaQuery("(min-width: 760px)");
   const lg = language === "en" ? "en" : "fr";
 
-  const [draft, setDraft] = useState(() => loadDraft());
+  // Initialiseur paresseux : il consomme aussi la saisie éventuellement
+  // transmise par l'apex (`?e=…`), qui ne peut pas passer par localStorage
+  // — les deux sites sont sur des origines distinctes. Le faire ici plutôt
+  // que dans un effet évite un premier rendu à l'état « accueil » suivi d'un
+  // saut vers l'étape 2 : l'écran s'ouvre directement au bon endroit.
+  const [draft, setDraft] = useState(() => consumeHandoff(language, defCur));
   const [input, setInput] = useState("");
   const [editId, setEditId] = useState(null);
   const [form, setForm] = useState(null); // valeurs en cours d'édition d'une entrée

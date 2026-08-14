@@ -294,3 +294,56 @@ export function deriveInsight(draft, language, t) {
     insight,
   };
 }
+
+// ── Passage de relais depuis l'apex (pairwise.finance) ───────────────────
+//
+// La page d'accueil publique et l'app vivent sur DEUX ORIGINES différentes
+// (`pairwise.finance` et `app.pairwise.finance`). localStorage est cloisonné
+// par origine, donc la première saisie faite sur l'apex n'existe tout
+// simplement pas ici : sans relais, l'utilisateur retape ce qu'il vient
+// d'écrire, et le « C'est parti » du site perd tout son sens.
+//
+// Le texte voyage donc dans l'URL (`?e=…`), seul canal qui traverse la
+// frontière. C'est du texte que l'utilisateur vient de saisir lui-même, jamais
+// un identifiant ni une valeur de confiance : il est analysé par le même
+// parseur que la saisie locale, et une entrée non reconnue est simplement
+// ignorée.
+export const HANDOFF_PARAM = "e";
+
+// Retire le paramètre de la barre d'adresse sans recharger ni empiler
+// d'entrée d'historique. Sans ça, un rafraîchissement rejouerait la saisie et
+// créerait un doublon — et le bouton « retour » aussi.
+function stripHandoffFromUrl() {
+  try {
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has(HANDOFF_PARAM)) return;
+    url.searchParams.delete(HANDOFF_PARAM);
+    window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
+  } catch {
+    /* environnement sans history (tests) — non bloquant */
+  }
+}
+
+// Brouillon de départ : ce qui est déjà sur l'appareil, plus l'éventuelle
+// saisie transmise par l'apex. À appeler UNE FOIS, à l'initialisation de
+// l'écran — d'où la consommation immédiate du paramètre.
+export function consumeHandoff(language, defaultCurrency) {
+  const draft = loadDraft();
+  let text;
+  try {
+    text = new URLSearchParams(window.location.search).get(HANDOFF_PARAM);
+  } catch {
+    // Pas d'URL exploitable (environnement de test) : rien à relayer.
+    return draft;
+  }
+  if (!text || !text.trim()) return draft;
+  stripHandoffFromUrl();
+
+  const entry = parseDraftEntry(text, language, defaultCurrency);
+  // Texte illisible (aucun montant) : on n'invente rien et on n'affiche pas
+  // d'erreur — l'accueil s'ouvre normalement, champ vide.
+  if (!entry) return draft;
+  // Un brouillon déjà présent n'est jamais écrasé : quelqu'un qui revient sur
+  // l'apex et retape une ligne l'AJOUTE à ce qu'il avait commencé.
+  return [...draft, entry];
+}
