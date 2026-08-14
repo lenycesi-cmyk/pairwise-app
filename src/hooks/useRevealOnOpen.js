@@ -38,27 +38,32 @@ function findScroller(el) {
   return document.scrollingElement || document.documentElement;
 }
 
+// Positionne un élément à `offset` px du haut de la zone visible. Exporté à part
+// du hook parce que tous les déclencheurs ne sont pas des ouvertures de panneau :
+// choisir un membre dans « Payé par / Pour » est un CLIC, pas un booléen qui
+// bascule, et il doit pourtant dégager ce qui suit dans le formulaire.
+export function revealElement(el, offset = TOP_OFFSET) {
+  if (!el) return;
+  const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    const scroller = findScroller(el);
+    if (!scroller) return;
+    const isPage = scroller === document.scrollingElement || scroller === document.documentElement;
+    const viewportTop = isPage ? 0 : scroller.getBoundingClientRect().top;
+    const delta = el.getBoundingClientRect().top - viewportTop - offset;
+    if (Math.abs(delta) < MIN_SHIFT) return;
+    scroller.scrollBy({ top: delta, behavior: reduceMotion ? "auto" : "smooth" });
+  }));
+}
+
 export function useRevealOnOpen(open, ref) {
   useEffect(() => {
     if (!open || !ref.current) return;
     const el = ref.current;
-    const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
     // Deux images : la première laisse React poser le panneau, la seconde laisse
     // le navigateur en calculer la hauteur. Mesurer avant, c'est mesurer un
     // élément qui n'a pas encore de taille.
-    const id = requestAnimationFrame(() => requestAnimationFrame(() => {
-      const scroller = findScroller(el);
-      if (!scroller) return;
-
-      const isPage = scroller === document.scrollingElement || scroller === document.documentElement;
-      const viewportTop = isPage ? 0 : scroller.getBoundingClientRect().top;
-      const delta = el.getBoundingClientRect().top - viewportTop - TOP_OFFSET;
-      if (Math.abs(delta) < MIN_SHIFT) return;
-
-      scroller.scrollBy({ top: delta, behavior: reduceMotion ? "auto" : "smooth" });
-    }));
-
-    return () => cancelAnimationFrame(id);
+    revealElement(el);
   }, [open, ref]);
 }
