@@ -541,6 +541,10 @@ s'ouvre au démarrage quand des notes ont paru depuis la dernière visite. Quatr
   lots et n'en voir qu'un cacherait le reste sans le dire. D'où des versions en `AAAA.MM.JJ`, qui se
   comparent comme des chaînes.
 - **Rien à la première ouverture** (`seedReleasesIfFirstRun`) : tout est nouveau pour qui découvre l'app.
+  Mais une **installation déjà utilisée n'est pas une première ouverture**, même sans clé de version —
+  c'est le cas de tout le parc le jour où la fonctionnalité paraît, et la confondre avec une nouvelle
+  installation faisait perdre la première note à tout le monde. La distinction se lit à la présence
+  d'une autre clé `pw:`/`pw_` dans localStorage.
   Et une entrée « Nouveautés » dans les Réglages rouvre l'historique complet, sans quoi une feuille
   refermée par réflexe serait perdue pour toujours.
 

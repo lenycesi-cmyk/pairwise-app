@@ -8,6 +8,11 @@ function installFakeStorage(initial = {}) {
     getItem: (k) => (k in store ? store[k] : null),
     setItem: (k, v) => { store[k] = String(v); },
     removeItem: (k) => { delete store[k]; },
+    // `length` et `key()` sont indispensables : c'est par eux que le module
+    // reconnaît une installation déjà utilisée. Un faux qui les omet laisserait
+    // ce chemin sans test.
+    get length() { return Object.keys(store).length; },
+    key: (i) => Object.keys(store)[i] ?? null,
   };
   return store;
 }
@@ -31,6 +36,29 @@ describe("releaseSeen", () => {
     expect(seedReleasesIfFirstRun()).toBe(true);
     expect(localStorage.getItem(KEY)).toBe(LATEST_RELEASE);
     // Dérouler l'historique à quelqu'un qui découvre l'app n'aurait aucun sens.
+    expect(unseenReleases()).toEqual([]);
+  });
+
+  it("ne sème PAS sur une installation deja utilisée, et lui montre tout", async () => {
+    // Cas de toute installation en place le jour où la fonctionnalité paraît :
+    // aucune clé de version, mais l'app a manifestement déjà servi. La traiter
+    // comme une première ouverture lui aurait fait perdre la première note.
+    installFakeStorage({ "pw:boot:theme": "pairwise-dark" });
+    const { seedReleasesIfFirstRun, unseenReleases } = await loadModule();
+    const { RELEASE_NOTES } = await import("../../src/data/releaseNotes.js");
+
+    expect(seedReleasesIfFirstRun()).toBe(false);
+    expect(localStorage.getItem(KEY)).toBe(null);
+    expect(unseenReleases()).toHaveLength(RELEASE_NOTES.length);
+  });
+
+  it("sème sur une installation vraiment neuve (aucune autre clé PairWise)", async () => {
+    installFakeStorage({ "autre-app:truc": "1" });
+    const { seedReleasesIfFirstRun, unseenReleases } = await loadModule();
+    const { LATEST_RELEASE } = await import("../../src/data/releaseNotes.js");
+
+    expect(seedReleasesIfFirstRun()).toBe(true);
+    expect(localStorage.getItem(KEY)).toBe(LATEST_RELEASE);
     expect(unseenReleases()).toEqual([]);
   });
 
@@ -104,7 +132,9 @@ describe("RELEASE_NOTES", () => {
   it("utilise des versions au format AAAA.MM.JJ, qui se trient comme des chaînes", async () => {
     const { RELEASE_NOTES } = await import("../../src/data/releaseNotes.js");
     for (const rel of RELEASE_NOTES) {
-      expect(rel.version).toMatch(/^\d{4}\.\d{2}\.\d{2}$/);
+      // AAAA.MM.JJ, avec un rang optionnel quand deux lots paraissent le même
+      // jour. La comparaison reste une comparaison de chaînes.
+      expect(rel.version).toMatch(/^\d{4}\.\d{2}\.\d{2}(\.\d+)?$/);
       expect(Number.isNaN(new Date(rel.date).getTime())).toBe(false);
     }
   });
