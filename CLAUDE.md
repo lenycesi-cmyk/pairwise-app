@@ -376,6 +376,11 @@ Trois points à ne pas défaire :
   par tag continue de l'afficher. L'archive est exactement cette différence — tags encore portés, absents
   de la liste — donc une lecture calculée que rien ne peut désynchroniser. Elle ne s'affiche que dans
   l'écran Tags (`<TagManager showArchived />`), pas dans le panneau replié de la saisie de transaction.
+  **Le GESTE d'archivage est gouverné par le même `showArchived`** : il avait d'abord été laissé dans
+  le panneau de saisie, où le tag disparaissait sans que rien ne montre où — une action dont on ne peut
+  pas voir la conséquence n'a rien à faire dans un écran. Corollaire du calcul plutôt que du stockage :
+  archiver un tag que **plus aucune transaction ne porte** revient à le supprimer (il ne peut pas
+  figurer dans une archive déduite des transactions), d'où la confirmation explicite dans ce cas.
 
 Ce qui motive l'archivage plutôt que la suppression, côté budgets : `budgetHistory` est indexé par id de
 budget, donc **supprimer un budget orpheline ses périodes clôturées** — invisibles et irrécupérables.
