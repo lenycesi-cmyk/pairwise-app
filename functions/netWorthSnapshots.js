@@ -33,13 +33,20 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // front en ESM, d'où l'import dynamique — voir SHARED_MODULES dans
 // scripts/deploy-functions.js, qui les dépose dans shared/ à l'empaquetage.
 async function loadShared() {
-  const [valuation, targets, types, loans] = await Promise.all([
+  const [valuation, targets, types, loans, archive] = await Promise.all([
     import("./shared/assetValuation.mjs"),
     import("./shared/priceTargets.mjs"),
     import("./shared/assetTypes.mjs"),
     import("./shared/loanMath.mjs"),
+    import("./shared/archive.mjs"),
   ]);
-  return { ...valuation, ...targets, ASSET_TYPES: types.ASSET_TYPES, loanState: loans.loanState };
+  return {
+    ...valuation,
+    ...targets,
+    ASSET_TYPES: types.ASSET_TYPES,
+    loanState: loans.loanState,
+    activeItems: archive.activeItems,
+  };
 }
 
 // ── Cours ───────────────────────────────────────────────────────────────────
@@ -105,8 +112,13 @@ async function fetchRates(base) {
  * calculable — on préfère un trou dans l'historique à une valeur fabriquée.
  */
 function buildCoupleSnapshot(data, shared, { rates, cryptoPrices, stockPrices, rateBase }) {
-  const { buildSnapshotEntries, sumEntriesByType, makeConverter, ASSET_TYPES, loanState } = shared;
-  const assets = data.assets || [];
+  const { buildSnapshotEntries, sumEntriesByType, makeConverter, ASSET_TYPES, loanState, activeItems } = shared;
+  // Les actifs ARCHIVÉS (vendus / clôturés) sortent ici, avec la même règle
+  // qu'au navigateur — le module vient du même fichier. Sans ce filtre, un actif
+  // vendu resterait coté chaque nuit et continuerait de peser dans l'instantané
+  // du lendemain, ce qu'aucun rechargement ne corrigerait : un instantané est
+  // figé pour toujours.
+  const assets = activeItems(data.assets);
   if (assets.length === 0) return null;
 
   // Devise de l'instantané : celle du patrimoine si elle est réglée, sinon la
@@ -173,7 +185,7 @@ async function runDailySnapshots(db, { today, apiKey, rateBase = "EUR" } = {}) {
   const date = today || new Date().toISOString().slice(0, 10);
 
   const couplesSnap = await db.collection("couples").get();
-  const couples = couplesSnap.docs.filter((d) => (d.data().assets || []).length > 0);
+  const couples = couplesSnap.docs.filter((d) => shared.activeItems(d.data().assets).length > 0);
   if (couples.length === 0) {
     console.log("Aucun couple avec des actifs — rien à enregistrer.");
     return { written: 0, skipped: 0 };
@@ -181,7 +193,9 @@ async function runDailySnapshots(db, { today, apiKey, rateBase = "EUR" } = {}) {
 
   // Union des symboles de TOUS les couples : chaque cours n'est demandé qu'une
   // fois, quel que soit le nombre de foyers qui détiennent la valeur.
-  const allAssets = couples.flatMap((d) => d.data().assets || []);
+  // Union des actifs ENCORE DÉTENUS : un actif archivé ne doit pas déclencher
+  // une requête de cotation, qui se paie sur le quota de l'API pour rien.
+  const allAssets = couples.flatMap((d) => shared.activeItems(d.data().assets));
   const targets = shared.collectPriceTargets(allAssets, shared.ASSET_TYPES);
   console.log(
     `${couples.length} couple(s), ${allAssets.length} actif(s) → ` +

@@ -62,6 +62,8 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
     targetAllocation,
     updateTargetAllocation,
     assetContributions,
+    archivedAssets,
+    unarchiveAsset,
   } = useFinance();
 
   // La devise d'affichage du patrimoine peut différer de la devise des transactions
@@ -1553,6 +1555,90 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
     );
   }
 
+  // Ligne repliable « Archivés » : même forme que les lignes de catégorie, mais
+  // SANS montant — un actif vendu ne compte plus, et un chiffre aligné sur les
+  // autres lignes suggérerait l'inverse. Chaque entrée garde sa dernière valeur
+  // connue (`archivedValue`, figée à l'archivage), parce qu'on cesse justement
+  // de coter un actif archivé.
+  function renderArchivedGroupRow(list, isLiability) {
+    const key = `archived_${isLiability ? "liab" : "asset"}`;
+    const open = openGroups.includes(key);
+    return (
+      <div key={key}>
+        <button
+          type="button"
+          onClick={() => toggleGroup(key)}
+          aria-expanded={open}
+          style={{
+            display: "flex", alignItems: "center", gap: 10, width: "100%",
+            padding: "11px 14px", border: 0, background: "none",
+            font: "inherit", color: "var(--ink-2)", textAlign: "left", cursor: "pointer",
+            borderBottom: open ? "0.5px solid var(--rule)" : "none",
+          }}
+        >
+          <i className="ti ti-archive" style={{ fontSize: 16, width: 22, textAlign: "center", flexShrink: 0, color: "var(--ink-3)" }} aria-hidden="true" />
+          <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, fontWeight: 600 }}>
+            {t("archived_section_title")}
+          </span>
+          <span style={{ fontSize: 11, color: "var(--ink-3)", background: "var(--rule)", borderRadius: 20, padding: "1px 7px", flexShrink: 0 }}>
+            {list.length}
+          </span>
+          <span style={{ fontSize: 11.5, color: "var(--ink-3)", flexShrink: 0 }}>
+            {t("archived_out_of_total")}
+          </span>
+          <i
+            className="ti ti-chevron-right"
+            style={{
+              fontSize: 14, color: "var(--ink-4)", flexShrink: 0,
+              transform: open ? "rotate(90deg)" : "none", transition: "transform 0.18s ease",
+            }}
+            aria-hidden="true"
+          />
+        </button>
+        {open && (
+          <div>
+            {list.map((a, i) => {
+              const type = ASSET_TYPES.find((ty) => ty.id === a.typeId);
+              const when = new Date(a.archivedAt).toLocaleDateString(language === "en" ? "en-US" : "fr-FR", {
+                day: "numeric", month: "short", year: "numeric",
+              });
+              return (
+                <div
+                  key={a.id}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 10,
+                    padding: "10px 14px 10px 36px",
+                    borderBottom: i === list.length - 1 ? "none" : "0.5px solid var(--rule)",
+                  }}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: 12, color: "var(--ink-2)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {a.name || (language === "en" && type?.nameEn ? type.nameEn : type?.name)}
+                    </p>
+                    <p style={{ fontSize: 10, color: "var(--ink-3)" }}>
+                      {t("archived_closed_on").replace("{date}", when)}
+                      {a.archivedValue != null
+                        ? ` · ${t("archived_last_value")} ${formatAmount(a.archivedValue)} ${currencySymbol}`
+                        : ""}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => unarchiveAsset(a.id)}
+                    aria-label={t("archived_restore")}
+                    title={t("archived_restore")}
+                    style={{ background: "none", border: "none", color: "var(--tang)", cursor: "pointer", padding: 4, lineHeight: 1, flexShrink: 0 }}
+                  >
+                    <i className="ti ti-arrow-back-up" style={{ fontSize: 15 }} aria-hidden="true" />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   // Carte « Mes actifs » / « Mes passifs » : une ligne repliable par catégorie,
   // là où chaque catégorie occupait auparavant un widget de premier rang. Onze
   // cartes possibles se replient ainsi en deux, et le patrimoine net cesse
@@ -1632,7 +1718,16 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
       typeRows.sort((a, b) => b.total - a.total);
     }
 
-    if (typeRows.length === 0) return null;
+    // Actifs archivés de cette carte (vendus / clôturés). Ils forment une ligne
+    // repliable de plus, EN BAS — la structure existe déjà, il n'y a rien de
+    // neuf à inventer. Leur total est délibérément absent : ils ne comptent plus
+    // dans le patrimoine, et afficher un montant à côté des autres lignes
+    // laisserait croire le contraire.
+    const archivedHere = archivedAssets.filter(
+      (a) => !!ASSET_TYPES.find((ty) => ty.id === a.typeId)?.isLiability === isLiability
+    );
+
+    if (typeRows.length === 0 && archivedHere.length === 0) return null;
     const sectionTotal = typeRows.reduce((s, r) => s + r.total, 0);
 
     return (
@@ -1652,8 +1747,12 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
             </div>
           </div>
           {typeRows.map((row, i) =>
-            renderGroupRow({ ...row, isLiability, children: row.render, isLast: i === typeRows.length - 1 })
+            renderGroupRow({
+              ...row, isLiability, children: row.render,
+              isLast: i === typeRows.length - 1 && archivedHere.length === 0,
+            })
           )}
+          {archivedHere.length > 0 && renderArchivedGroupRow(archivedHere, isLiability)}
         </div>
       </WidgetCard>
     );

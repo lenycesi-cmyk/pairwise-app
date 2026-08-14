@@ -58,6 +58,7 @@ export default function AddAssetScreen({ onClose, editingAsset, initialTypeId })
     addAsset, updateAsset, removeAsset, defaultCurrency, members, isSolo,
     contributeToAsset, addAssetContribution, removeAssetContribution, assetContributions,
     recurringTx, addRecurring, removeRecurring, loans,
+    archiveAsset, goals, incomeAccountLinks,
   } = useFinance();
   const { user } = useAuth();
   const isEditing = !!editingAsset;
@@ -260,6 +261,32 @@ export default function AddAssetScreen({ onClose, editingAsset, initialTypeId })
     } finally {
       setBusy(false);
     }
+  }
+
+  // Archivage d'un actif. Deux avertissements AVANT le geste, parce qu'aucun
+  // des deux ne se voit après coup :
+  //   - un objectif adossé à cet actif retomberait silencieusement ;
+  //   - une sous-catégorie de revenu qui le crédite verrait son lien rompu.
+  async function handleArchive() {
+    const backing = goals.filter((g) => (g.linkedAssetIds || []).includes(editingAsset.id));
+    const linkedIncome = Object.entries(incomeAccountLinks)
+      .filter(([, assetId]) => assetId === editingAsset.id)
+      .map(([sub]) => sub);
+
+    let message = t("asset_archive_confirm");
+    if (backing.length > 0) {
+      message += "\n\n" + t("asset_archive_warn_goals")
+        .replace("{names}", backing.map((g) => g.label || t("nav_goals")).join(", "));
+    }
+    if (linkedIncome.length > 0) {
+      message += "\n\n" + t("asset_archive_warn_income").replace("{names}", linkedIncome.join(", "));
+    }
+    if (!confirm(message)) return;
+
+    // On fige la dernière valeur connue : une fois archivé, l'actif n'est plus
+    // coté, donc plus rien ne saurait dire ce qu'il valait.
+    await archiveAsset(editingAsset.id, { archivedValue: Number(value) || 0 });
+    onClose();
   }
 
   async function handleDelete() {
@@ -758,6 +785,25 @@ export default function AddAssetScreen({ onClose, editingAsset, initialTypeId })
           <div style={{ padding: "0 20px" }}>
             <AssetComments assetId={editingAsset.id} />
           </div>
+        )}
+
+        {/* « Vendu / Clôturé » plutôt qu'« Archiver » : à la différence d'un
+            budget, archiver un actif FAIT BAISSER LE PATRIMOINE NET. Le libellé
+            dit ce qui arrive au chiffre, au lieu de le laisser découvrir. */}
+        {isEditing && (
+          <button
+            onClick={handleArchive}
+            style={{
+              width: "100%", marginTop: 18, padding: "12px 0",
+              borderRadius: "var(--radius-md)", border: "0.5px solid var(--rule)",
+              background: "transparent", color: "var(--ink-2)",
+              fontSize: 14, fontWeight: 500, cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+            }}
+          >
+            <i className="ti ti-archive" style={{ fontSize: 16 }} aria-hidden="true" />
+            {t("asset_archive_button")}
+          </button>
         )}
       </div>
 
