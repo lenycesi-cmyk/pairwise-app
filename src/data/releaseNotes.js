@@ -14,6 +14,17 @@
 
 export const RELEASE_NOTES = [
   {
+    version: "2026.08.14.1",
+    date: "2026-08-14",
+    items: [
+      {
+        icon: "✨",
+        fr: { title: "Cette fenêtre, au bon moment", body: "Les nouveautés s'affichent maintenant à l'ouverture de l'app après une mise à jour, et plus seulement depuis les Réglages." },
+        en: { title: "This sheet, at the right time", body: "What's new now appears when you open the app after an update, not only from Settings." },
+      },
+    ],
+  },
+  {
     version: "2026.08.14",
     date: "2026-08-14",
     items: [
