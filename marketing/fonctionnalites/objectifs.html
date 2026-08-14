@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <title>Objectifs &amp; projets : donne un but à ton argent | PairWise</title>
+  <meta name="description" content="Fixe un objectif d'épargne et sache si tu y arrives : progression déduite de tes comptes réels, rythme mensuel requis et date projetée." />
+
+  <link rel="canonical" href="https://pairwise.finance/fonctionnalites/objectifs" />
+  <link rel="alternate" hreflang="fr" href="https://pairwise.finance/fonctionnalites/objectifs" />
+  <link rel="alternate" hreflang="en" href="https://pairwise.finance/en/features/savings-goals" />
+  <link rel="alternate" hreflang="x-default" href="https://pairwise.finance/fonctionnalites/objectifs" />
+
+  <!-- Open Graph / partage social -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="PairWise" />
+  <meta property="og:locale" content="fr_FR" />
+  <meta property="og:title" content="Objectifs &amp; projets : donne un but à ton argent — PairWise" />
+  <meta property="og:description" content="Un objectif porte un nom, un montant et une date. Sa progression se lit toute seule sur les comptes qui le financent." />
+  <meta property="og:url" content="https://pairwise.finance/fonctionnalites/objectifs" />
+  <meta property="og:image" content="https://pairwise.finance/assets/og-objectifs.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <link rel="icon" type="image/png" href="/icon-192.png" />
+
+  <!-- Mêmes polices et icônes que l'app -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Nunito+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+  <link rel="stylesheet" href="/assets/site.css" />
+
+  <!-- Données structurées : logiciel, fil d'Ariane, FAQ.
+       Les 6 Q/R ci-dessous sont le TEXTE EXACT de la FAQ visible : Google
+       déclasse une FAQ structurée qui ne correspond pas à la page. -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "SoftwareApplication",
+        "name": "PairWise",
+        "applicationCategory": "FinanceApplication",
+        "operatingSystem": "Web, iOS, Android",
+        "description": "Application de gestion de budget, dépenses et patrimoine, seul ou à deux, avec objectifs d'épargne dont la progression se lit automatiquement sur les comptes liés.",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
+        "url": "https://pairwise.finance/"
+      },
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Accueil", "item": "https://pairwise.finance/" },
+          { "@type": "ListItem", "position": 2, "name": "Fonctionnalités", "item": "https://pairwise.finance/fonctionnalites" },
+          { "@type": "ListItem", "position": 3, "name": "Objectifs & projets", "item": "https://pairwise.finance/fonctionnalites/objectifs" }
+        ]
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "Faut-il mettre à jour la progression de son objectif d'épargne à la main ?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Non. Tu choisis les comptes qui financent l'objectif, et sa progression est la somme de leur valeur du moment. Rien à saisir, rien à corriger : le jour où ton livret bouge, l'objectif bouge avec lui." }
+          },
+          {
+            "@type": "Question",
+            "name": "Un objectif peut-il être financé par plusieurs comptes ?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Oui, autant que tu veux. Un apport immobilier alimenté par un livret A, un compte épargne et un PEA compte les trois. Et un même compte peut financer plusieurs objectifs, sans que tu aies à répartir quoi que ce soit." }
+          },
+          {
+            "@type": "Question",
+            "name": "Comment savoir combien épargner par mois pour atteindre mon objectif ?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Donne une échéance à ton objectif : PairWise calcule le montant mensuel qu'il te reste à mettre de côté pour la tenir. Si tu renseignes aussi ce que tu épargnes réellement chaque mois, l'app te dit la date à laquelle tu arriveras à ce rythme — et donc si ton rythme suffit." }
+          },
+          {
+            "@type": "Question",
+            "name": "Que se passe-t-il si un objectif est financé par des placements dont le cours bouge ?",
+            "acceptedAnswer": { "@type": "Answer", "text": "La progression suit la valeur de marché. Un PEA ou un portefeuille crypto est valorisé au cours du jour, donc l'objectif peut avancer sans que tu aies versé quoi que ce soit — et reculer aussi. C'est le prix d'une progression honnête plutôt que d'un compteur qui ne descend jamais." }
+          },
+          {
+            "@type": "Question",
+            "name": "L'échéance et l'épargne mensuelle sont-elles obligatoires ?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Non, les deux sont facultatives. Un nom, un montant cible et au moins un compte suffisent à créer un objectif. L'échéance et le montant mensuel ne servent qu'à répondre à la question « est-ce que j'y arrive ? » : sans eux tu vois ta progression, avec eux tu vois ta trajectoire." }
+          },
+          {
+            "@type": "Question",
+            "name": "Un objectif est-il partagé avec mon ou ma partenaire ?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Oui, les objectifs sont communs au couple : vous voyez le même projet avancer, sans avoir à vous envoyer des captures d'écran. Et si tu utilises PairWise seul, rien ne change — l'app masque simplement tout ce qui suppose une deuxième personne." }
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+</head>
+<body>
+
+<header class="site">
+  <div class="bar">
+    <a href="/" class="logo"><span class="p">P</span> PairWise</a>
+    <nav>
+      <span class="soon" style="color:var(--tang)">Fonctionnalités</span>
+      <span class="soon">Pour qui</span>
+      <span class="soon">Comparatifs</span>
+      <span class="soon">Tarifs</span>
+      <a href="/securite">Sécurité</a>
+    </nav>
+    <a href="https://app.pairwise.finance/" class="login">Connexion</a>
+  </div>
+</header>
+
+<nav class="crumb wrap" aria-label="Fil d'Ariane">
+  <a href="/">Accueil</a><i class="ti ti-chevron-right"></i><span>Fonctionnalités</span><i class="ti ti-chevron-right"></i><b>Objectifs &amp; projets</b>
+</nav>
+
+<!-- ============ HERO ============ -->
+<section class="hero">
+  <div class="wrap grid">
+    <div>
+      <span class="eyebrow">Objectifs &amp; projets</span>
+      <h1 class="display">Donne un but à ton argent.</h1>
+      <p class="sub">L'argent est un outil, pas une fin en soi. Épargner ou investir, ce n'est pas
+        simplement dépenser moins&nbsp;: c'est mettre ton argent au service de ce que tu veux
+        accomplir.</p>
+      <p class="sub">Fixe un <b>objectif d'épargne</b>, un montant et une date. PairWise suit
+        automatiquement ta progression pour te montrer où tu en es, et si tu es sur la bonne voie.</p>
+      <div class="actions">
+        <a href="https://app.pairwise.finance/" class="btn-primary">C'est parti <i class="ti ti-arrow-right"></i></a>
+        <span class="microtrust"><i class="ti ti-refresh"></i> Aucune progression à saisir à la main</span>
+      </div>
+    </div>
+
+    <!-- Maquette : liste d'objectifs. Décorative — le lecteur d'écran lit la
+         prose, pas une capture reconstituée en CSS. -->
+    <div class="phone" aria-hidden="true">
+      <div class="screen">
+        <div class="notch"></div>
+        <div class="app-top">
+          <span class="title">Objectifs</span>
+          <i class="ti ti-plus" style="margin-left:auto; color:var(--lavi); font-size:18px;"></i>
+        </div>
+        <div class="app-body">
+          <div class="goal">
+            <div class="top">
+              <span class="ic"><i class="ti ti-home"></i></span>
+              <span class="nm">Apport appartement</span>
+              <span class="pc">36 %</span>
+            </div>
+            <div class="track"><span style="width:36%"></span></div>
+            <div class="foot"><span>14 200 €</span><span>40 000 €</span></div>
+          </div>
+          <div class="goal">
+            <div class="top">
+              <span class="ic"><i class="ti ti-beach"></i></span>
+              <span class="nm">Vacances en Grèce</span>
+              <span class="pc">63 %</span>
+            </div>
+            <div class="track"><span style="width:63%"></span></div>
+            <div class="foot"><span>1 500 €</span><span>2 400 €</span></div>
+          </div>
+          <div class="goal done">
+            <div class="top">
+              <span class="ic"><i class="ti ti-shield-check"></i></span>
+              <span class="nm">Fonds d'urgence</span>
+              <span class="pc">100 %</span>
+            </div>
+            <div class="track"><span style="width:100%"></span></div>
+            <div class="foot"><span>Objectif atteint 🎉</span><span>6 000 €</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PROGRESSION AUTOMATIQUE ============ -->
+<section class="alt">
+  <div class="wrap steps">
+    <div class="step-copy">
+      <span class="eyebrow">Sans compteur à tenir</span>
+      <h2 class="h2 display">Ta progression reflète ton épargne.</h2>
+      <p>La plupart des applications te demandent de déclarer ce que tu as mis de côté. Un compteur
+        que personne ne tient à jour finit par mentir&nbsp;: au bout de trois mois, il ne dit plus
+        rien de ton épargne réelle.</p>
+      <p>PairWise fait l'inverse. Tu désignes les comptes qui financent le projet, et la progression
+        <b>est</b> leur valeur du moment — prix du marché compris pour les placements cotés. Il n'y a
+        donc rien à mettre à jour, et rien qui puisse dériver.</p>
+      <ul class="pts">
+        <li><i class="ti ti-tag"></i><span>Un objectif <b>qui se met à jour tout seul</b>, à partir des comptes qui le financent.</span></li>
+        <li><i class="ti ti-target"></i><span>Un <b>montant cible</b> et sa devise — utile quand on épargne dans plusieurs monnaies.</span></li>
+        <li><i class="ti ti-link"></i><span><b>Plusieurs comptes, un seul objectif</b>&nbsp;: livret, compte épargne et PEA comptent ensemble.</span></li>
+        <li><i class="ti ti-calendar"></i><span>Une <b>échéance</b> et une épargne mensuelle, toutes deux facultatives.</span></li>
+        <li><i class="ti ti-users"></i><span>Un <b>objectif partagé</b>&nbsp;: les deux partenaires voient le même projet avancer.</span></li>
+      </ul>
+    </div>
+
+    <!-- Maquette : formulaire « Nouvel objectif ». -->
+    <div class="phone" aria-hidden="true">
+      <div class="screen">
+        <div class="notch"></div>
+        <div class="app-top">
+          <span class="back"><i class="ti ti-chevron-left"></i></span>
+          <span class="title">Nouvel objectif</span>
+        </div>
+        <div class="app-body">
+          <div class="gfld">
+            <div class="lbl">Nom</div>
+            <div class="val">Apport appartement</div>
+          </div>
+          <div class="gfld">
+            <div class="lbl">Icône</div>
+            <div class="icons">
+              <span class="on"><i class="ti ti-home"></i></span>
+              <span><i class="ti ti-beach"></i></span>
+              <span><i class="ti ti-car"></i></span>
+              <span><i class="ti ti-school"></i></span>
+              <span><i class="ti ti-tools"></i></span>
+            </div>
+          </div>
+          <div class="row2">
+            <div class="gfld" style="flex:1">
+              <div class="lbl">Montant cible</div>
+              <div class="val">40 000</div>
+            </div>
+            <div class="gfld" style="flex:1">
+              <div class="lbl">Devise</div>
+              <div class="val">EUR <i class="ti ti-chevron-down"></i></div>
+            </div>
+          </div>
+          <div class="gfld">
+            <div class="lbl">Comptes liés</div>
+            <div style="margin-top:8px">
+              <div class="acct"><i class="ti ti-square-check"></i><b>Livret A</b><s>6 400 €</s></div>
+              <div class="acct"><i class="ti ti-square-check"></i><b>Compte épargne</b><s>3 900 €</s></div>
+              <div class="acct"><i class="ti ti-square-check"></i><b>PEA</b><s>3 900 €</s></div>
+              <div class="acct off"><i class="ti ti-square"></i><b>Assurance vie</b><s>9 100 €</s></div>
+            </div>
+          </div>
+          <div class="row2">
+            <div class="gfld" style="flex:1">
+              <div class="lbl">Échéance <em>· optionnel</em></div>
+              <div class="val">juin 2029</div>
+            </div>
+            <div class="gfld" style="flex:1">
+              <div class="lbl">Par mois <em>· optionnel</em></div>
+              <div class="val empty">—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ EST-CE QUE J'Y ARRIVE ? ============ -->
+<section>
+  <div class="wrap steps">
+    <div class="step-copy">
+      <span class="eyebrow">La question qui compte</span>
+      <h2 class="h2 display">Est-ce que j'y arrive&nbsp;?</h2>
+      <p>Savoir où tu en es ne suffit pas&nbsp;: ce que tu veux savoir, c'est si tu vas y arriver.
+        Selon ce que tu renseignes, PairWise répond à trois questions différentes.</p>
+      <ul class="pts">
+        <li><i class="ti ti-calendar-event"></i><span>Tu donnes une <b>échéance</b> → l'app calcule ce qu'il te faut mettre de côté <b>chaque mois</b> pour la tenir.</span></li>
+        <li><i class="ti ti-trending-up"></i><span>Tu renseignes ton <b>épargne mensuelle</b> → l'app projette la <b>date</b> à laquelle tu arriveras à ce rythme.</span></li>
+        <li><i class="ti ti-circle-check" style="color:var(--sage)"></i><span>Tu renseignes <b>les deux</b> → l'app te dit franchement si ton rythme suffit, ou non.</span></li>
+      </ul>
+    </div>
+
+    <div class="gdetail" aria-hidden="true">
+      <div class="hd">
+        <span class="ic"><i class="ti ti-home"></i></span>
+        <span><b>Apport appartement</b><small>Échéance juin 2029</small></span>
+      </div>
+      <div class="track"><span style="width:36%"></span></div>
+      <div class="amts"><span>14 200 € / 40 000 €</span><span class="pc">36 %</span></div>
+      <div class="lines">
+        <div><i class="ti ti-info-circle"></i><span>Reste <b>25 800 €</b></span></div>
+        <div class="lav"><i class="ti ti-calendar-event"></i><span><b>Il te faut 630 €/mois</b> pour tenir l'échéance.</span></div>
+        <div class="sag"><i class="ti ti-trending-up"></i><span><b>Atteint vers juin</b> à ce rythme.</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TROIS PROJETS ============ -->
+<section class="alt">
+  <div class="wrap">
+    <span class="eyebrow">Trois façons de s'y prendre</span>
+    <h2 class="h2 display">Trois projets, trois façons d'y aller.</h2>
+    <p class="lede">Tous les projets ne se pilotent pas pareil. Certains ont une date, d'autres un
+      rythme, d'autres avancent pendant que tu fais autre chose.</p>
+
+    <div class="projs">
+      <div class="proj lav">
+        <div class="hd">
+          <span class="ic"><i class="ti ti-home"></i></span>
+          <span><b>Apport appartement</b><small>L'objectif qui a une date</small></span>
+        </div>
+        <div class="track"><span style="width:36%"></span></div>
+        <div class="amts"><span>14 200 €</span><span>40 000 €</span></div>
+        <p>La date n'est pas négociable — un compromis se signe à un moment précis. C'est donc
+          l'échéance qui commande, et le montant mensuel qui s'y ajuste.</p>
+        <div class="verdict">Il te faut 630 €/mois pour tenir l'échéance.</div>
+        <p class="note">Financé par un livret A, un compte épargne et un PEA.</p>
+      </div>
+
+      <div class="proj sag">
+        <div class="hd">
+          <span class="ic"><i class="ti ti-beach"></i></span>
+          <span><b>Vacances en Grèce</b><small>L'objectif court, à deux</small></span>
+        </div>
+        <div class="track"><span style="width:63%"></span></div>
+        <div class="amts"><span>1 500 €</span><span>2 400 €</span></div>
+        <p>Ici c'est l'inverse&nbsp;: le rythme est connu, la date se déduit. Et comme l'objectif est
+          commun, personne n'a besoin de demander où on en est.</p>
+        <div class="verdict">Atteint vers juin à ce rythme.</div>
+        <p class="note">Objectif partagé&nbsp;: visible par les deux partenaires.</p>
+      </div>
+
+      <div class="proj sky">
+        <div class="hd">
+          <span class="ic"><i class="ti ti-school"></i></span>
+          <span><b>Études des enfants</b><small>L'objectif qui avance sans toi</small></span>
+        </div>
+        <div class="track"><span style="width:21%"></span></div>
+        <div class="amts"><span>8 400 €</span><span>40 000 €</span></div>
+        <p>Adossé à des placements cotés, il bouge tout seul — vers le haut comme vers le bas. Une
+          progression honnête vaut mieux qu'un compteur qui ne descend jamais.</p>
+        <div class="verdict">Progression lue sur tes comptes, prix du marché inclus.</div>
+        <p class="note">Valorisé au cours du jour, converti dans ta devise.</p>
+      </div>
+    </div>
+
+    <p style="font-size:14px; color:var(--ink-3); margin-top:20px;">Autres objectifs
+      typiques&nbsp;: fonds d'urgence, nouvelle voiture, travaux, création d'entreprise.</p>
+  </div>
+</section>
+
+<!-- ============ POUR QUI ============ -->
+<section>
+  <div class="wrap">
+    <span class="eyebrow">Pour qui</span>
+    <h2 class="h2 display">Un projet, ça se nomme à un ou à deux.</h2>
+    <p class="lede">L'app masque d'elle-même tout ce qui suppose une deuxième personne quand tu
+      l'utilises seul.</p>
+    <div class="aud-cards">
+      <div>
+        <i class="ti ti-user ic"></i>
+        <h3>En solo</h3>
+        <p>Tes projets, ton rythme. Rien ne te demande qui a payé quoi&nbsp;: la question ne se pose pas.</p>
+      </div>
+      <div>
+        <i class="ti ti-users ic"></i>
+        <h3>À deux</h3>
+        <p>Le même projet avance sous les yeux des deux. Plus de capture d'écran envoyée le dimanche soir.</p>
+      </div>
+      <div>
+        <i class="ti ti-plane ic"></i>
+        <h3>Voyageurs &amp; nomades</h3>
+        <p>Un objectif porte sa devise. Épargner en euros pour un projet chiffré en dollars reste lisible.</p>
+      </div>
+      <div>
+        <i class="ti ti-world ic"></i>
+        <h3>Expatriés</h3>
+        <p>Des comptes dans plusieurs pays, un seul projet&nbsp;: tout est converti et additionné.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FAQ ============ -->
+<section class="alt">
+  <div class="wrap">
+    <span class="eyebrow">Questions fréquentes</span>
+    <h2 class="h2 display">Ce qu'on nous demande souvent</h2>
+    <div class="faq">
+      <details class="q">
+        <summary>Faut-il mettre à jour la progression de son objectif d'épargne à la main&nbsp;? <span class="plus"><i class="ti ti-plus"></i></span></summary>
+        <p>Non. Tu choisis les comptes qui financent l'objectif, et sa progression est la somme de
+          leur valeur du moment. Rien à saisir, rien à corriger&nbsp;: le jour où ton livret bouge,
+          l'objectif bouge avec lui.</p>
+      </details>
+      <details class="q">
+        <summary>Un objectif peut-il être financé par plusieurs comptes&nbsp;? <span class="plus"><i class="ti ti-plus"></i></span></summary>
+        <p>Oui, autant que tu veux. Un apport immobilier alimenté par un livret A, un compte épargne
+          et un PEA compte les trois. Et un même compte peut financer plusieurs objectifs, sans que
+          tu aies à répartir quoi que ce soit.</p>
+      </details>
+      <details class="q">
+        <summary>Comment savoir combien épargner par mois pour atteindre mon objectif&nbsp;? <span class="plus"><i class="ti ti-plus"></i></span></summary>
+        <p>Donne une échéance à ton objectif&nbsp;: PairWise calcule le montant mensuel qu'il te
+          reste à mettre de côté pour la tenir. Si tu renseignes aussi ce que tu épargnes réellement
+          chaque mois, l'app te dit la date à laquelle tu arriveras à ce rythme — et donc si ton
+          rythme suffit.</p>
+      </details>
+      <details class="q">
+        <summary>Que se passe-t-il si un objectif est financé par des placements dont le cours bouge&nbsp;? <span class="plus"><i class="ti ti-plus"></i></span></summary>
+        <p>La progression suit la valeur de marché. Un PEA ou un portefeuille crypto est valorisé au
+          cours du jour, donc l'objectif peut avancer sans que tu aies versé quoi que ce soit — et
+          reculer aussi. C'est le prix d'une progression honnête plutôt que d'un compteur qui ne
+          descend jamais.</p>
+      </details>
+      <details class="q">
+        <summary>L'échéance et l'épargne mensuelle sont-elles obligatoires&nbsp;? <span class="plus"><i class="ti ti-plus"></i></span></summary>
+        <p>Non, les deux sont facultatives. Un nom, un montant cible et au moins un compte suffisent
+          à créer un objectif. L'échéance et le montant mensuel ne servent qu'à répondre à la
+          question «&nbsp;est-ce que j'y arrive&nbsp;?&nbsp;»&nbsp;: sans eux tu vois ta progression,
+          avec eux tu vois ta trajectoire.</p>
+      </details>
+      <details class="q">
+        <summary>Un objectif est-il partagé avec mon ou ma partenaire&nbsp;? <span class="plus"><i class="ti ti-plus"></i></span></summary>
+        <p>Oui, les objectifs sont communs au couple&nbsp;: vous voyez le même projet avancer, sans
+          avoir à vous envoyer des captures d'écran. Et si tu utilises PairWise seul, rien ne
+          change — l'app masque simplement tout ce qui suppose une deuxième personne.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- ============ BANDE CTA ============ -->
+<div class="cta-band">
+  <i class="ti ti-target-arrow float" style="left:6%; top:20%; font-size:44px;"></i>
+  <i class="ti ti-pig-money float" style="right:8%; bottom:18%; font-size:38px;"></i>
+  <div class="wrap">
+    <span class="eyebrow">Prêt à nommer ton projet&nbsp;?</span>
+    <h2 class="display">Un nom, un montant, une date.</h2>
+    <a href="https://app.pairwise.finance/" class="btn-primary">C'est parti <i class="ti ti-arrow-right"></i></a>
+    <div class="fineprint">
+      <span><i class="ti ti-check" style="color:var(--sage)"></i> Aucune saisie de progression</span>
+      <span><i class="ti ti-check" style="color:var(--sage)"></i> Partagé dans le couple</span>
+      <span><i class="ti ti-check" style="color:var(--sage)"></i> Gratuit</span>
+    </div>
+  </div>
+</div>
+
+<!-- ============ FOOTER ============ -->
+<footer class="site">
+  <div class="wrap cols">
+    <div>
+      <a href="/" class="logo"><span class="p">P</span> PairWise</a>
+      <p class="intro">Une seule app pour tes dépenses, ton budget et ton patrimoine — seul ou à deux.</p>
+    </div>
+    <div>
+      <h4>Fonctionnalités</h4>
+      <a href="/fonctionnalites/transactions-recus">Transactions &amp; reçus</a>
+      <a href="/fonctionnalites/saisie-langage-naturel">Saisie en langage naturel</a>
+      <a href="/fonctionnalites/objectifs">Objectifs &amp; projets</a>
+      <span class="soon">Multi-devises</span>
+      <span class="soon">Dépenses partagées</span>
+      <span class="soon">Patrimoine &amp; investissements</span>
+    </div>
+    <div>
+      <h4>Pour qui</h4>
+      <div>En solo</div>
+      <div>À deux</div>
+      <div>Voyageurs &amp; nomades</div>
+      <div>Expatriés</div>
+    </div>
+    <div>
+      <h4>PairWise</h4>
+      <span class="soon">Tarifs</span>
+      <a href="/securite">Sécurité</a>
+      <span class="soon">FAQ</span>
+      <span class="soon">À propos</span>
+    </div>
+  </div>
+  <div class="wrap copy">© 2026 PairWise · Fait avec soin · Tes données t'appartiennent</div>
+</footer>
+
+</body>
+</html>

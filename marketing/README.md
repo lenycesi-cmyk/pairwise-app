@@ -13,6 +13,7 @@ marketing/
   fonctionnalites/
     saisie-langage-naturel.html       1ʳᵉ page livrée
     transactions-recus.html           2ᵉ page livrée
+    objectifs.html                    3ᵉ page livrée (« Objectifs & projets »)
   README.md
 ```
 
@@ -33,6 +34,12 @@ Nunito Sans, Tabler Icons).
   pages prêt ; on relie au fur et à mesure. Ne pas déployer une page isolée avec des liens morts.
 - Les « captures d'interface » sont pour l'instant des **reproductions fidèles en CSS** (mêmes tokens).
   À remplacer par de vrais screenshots de l'app au moment voulu.
+- **Ce que la page promet doit exister dans l'app**, et se vérifie dans le code avant d'être écrit.
+  Pour « Objectifs & projets », les trois affirmations qui portent la page — progression déduite des
+  comptes liés, montant mensuel requis, date projetée — viennent de `src/hooks/useGoalProgress.js`
+  (`linkedAssetIds`, `monthlyNeeded`, `projectedDate`), et les formules affichées reprennent mot pour
+  mot `goals_monthly_needed` / `goals_projected` de `src/data/translations.js`. Une page marketing qui
+  décrit une fonctionnalité absente ne se corrige pas toute seule&nbsp;: elle se découvre en avis client.
 
 ## Déploiement
 
