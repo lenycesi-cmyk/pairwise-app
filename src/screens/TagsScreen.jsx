@@ -10,7 +10,7 @@ export default function TagsScreen() {
       <h1 style={{ fontSize: 20, marginBottom: 8 }}>{t("categories_tags_title")}</h1>
       <p style={{ fontSize: 12, color: "var(--ink-3)", marginBottom: 16 }}>
         <i className="ti ti-grip-vertical" style={{ fontSize: 13, verticalAlign: -2 }} aria-hidden="true" />
-        {" "}{t("categories_drag_hint")}
+        {" "}{t("tags_drag_hint")}
       </p>
       <div
         style={{
