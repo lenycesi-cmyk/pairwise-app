@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useFinance } from "../context/FinanceContext";
 import { ALL_CURRENCIES } from "../data/categories";
 import { useTranslation } from "../hooks/useTranslation";
+import { AMOUNT_MASK } from "../utils/hideAmounts";
 import { useExchangeRates } from "../hooks/useExchangeRates";
 import { useCategoryName } from "../hooks/useCategoryName";
 import { getMemberKey } from "../utils/members";
@@ -18,7 +19,7 @@ const COLOR_MAP = {
 
 export default function MemberBreakdownScreen({ onClose }) {
   const t = useTranslation();
-  const { categories, members, transactions, defaultCurrency, dashboardDisplayCurrency } = useFinance();
+  const { categories, members, transactions, defaultCurrency, dashboardDisplayCurrency, hideAmounts } = useFinance();
   const displayCurrency = dashboardDisplayCurrency || defaultCurrency;
   const { convert, loading: ratesLoading } = useExchangeRates(displayCurrency);
   const { catName, subName: tSubName } = useCategoryName();
@@ -94,6 +95,8 @@ export default function MemberBreakdownScreen({ onClose }) {
   const maxCat = Math.max(1, ...Object.values(breakdown).map((b) => b.total));
 
   function formatAmount(n) {
+    // Masquage : des points, jamais un zéro — un zéro se lirait comme un montant.
+    if (hideAmounts) return AMOUNT_MASK;
     return Math.round(n).toLocaleString("fr-FR");
   }
 

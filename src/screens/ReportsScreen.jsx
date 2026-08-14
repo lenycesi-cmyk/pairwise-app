@@ -13,6 +13,7 @@ import { buildMemberColorMap } from "../utils/memberColors";
 import { ALL_CURRENCIES } from "../data/categories";
 import CurrencyPicker from "../components/CurrencyPicker";
 import { useTranslation } from "../hooks/useTranslation";
+import { AMOUNT_MASK } from "../utils/hideAmounts";
 import SpotlightHint from "../components/SpotlightHint";
 import GreetingHeader from "../components/GreetingHeader";
 import HeaderMenuButton from "../components/HeaderMenuButton";
@@ -103,7 +104,7 @@ function previousRanges(periodType, anchor, customRange, range, locale, n) {
 
 export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMonthChange, onOpenMenu }) {
   const t = useTranslation();
-  const { transactions, categories, members, defaultCurrency, dashboardDisplayCurrency, updateDashboardDisplayCurrency, netWorthHistory, language, isSolo } = useFinance();
+  const { transactions, categories, members, defaultCurrency, dashboardDisplayCurrency, updateDashboardDisplayCurrency, netWorthHistory, language, isSolo, hideAmounts } = useFinance();
   const locale = language === "en" ? "en-US" : "fr-FR";
   const displayCurrency = dashboardDisplayCurrency || defaultCurrency;
   const { convert, loading: ratesLoading } = useExchangeRates(displayCurrency);
@@ -648,6 +649,8 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
   }, [periodTx, members, displayCurrency, convert]);
 
   function formatAmount(n) {
+    // Masquage : des points, jamais un zéro — un zéro se lirait comme un montant.
+    if (hideAmounts) return AMOUNT_MASK;
     return Math.round(n).toLocaleString(locale);
   }
 
@@ -851,7 +854,7 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
               <ResponsiveContainer>
                 <BarChart data={netWorthChartData} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
                   <XAxis dataKey="label" tick={{ fontSize: 10, fill: "var(--ink-3)" }} axisLine={{ stroke: "var(--rule)" }} tickLine={false} />
-                  <YAxis tick={{ fontSize: 10, fill: "var(--ink-3)" }} axisLine={false} tickLine={false} tickFormatter={formatAxisTick} width={38} domain={["auto", "auto"]} />
+                  <YAxis tick={{ fontSize: 10, fill: "var(--ink-3)" }} axisLine={false} tickLine={false} tickFormatter={hideAmounts ? () => "" : formatAxisTick} width={38} domain={["auto", "auto"]} />
                   <Tooltip content={({ active, payload, label }) => active && payload?.length ? (
                     <div style={{ background: "var(--ink)", color: "var(--bg)", padding: "6px 10px", borderRadius: "var(--radius-sm)", fontSize: 12 }}>
                       {label}: {formatAmount(payload[0].value)} {currencySymbol}
@@ -875,7 +878,7 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
                 <ResponsiveContainer>
                   <LineChart data={evolutionData} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
                     <XAxis dataKey="label" tick={{ fontSize: 10, fill: "var(--ink-3)" }} axisLine={{ stroke: "var(--rule)" }} tickLine={false} />
-                    <YAxis tick={{ fontSize: 10, fill: "var(--ink-3)" }} axisLine={false} tickLine={false} tickFormatter={formatAxisTick} width={38} domain={[0, "auto"]} />
+                    <YAxis tick={{ fontSize: 10, fill: "var(--ink-3)" }} axisLine={false} tickLine={false} tickFormatter={hideAmounts ? () => "" : formatAxisTick} width={38} domain={[0, "auto"]} />
                     <Tooltip content={<CustomTooltip />} {...TOOLTIP_ANIM} />
                     <Line type="monotone" dataKey="value" stroke="var(--tang)" strokeWidth={2} dot={{ r: 2, fill: "var(--tang)" }} activeDot={{ r: 4 }} connectNulls={false} {...CHART_ANIM} />
                   </LineChart>
@@ -896,7 +899,7 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
                 <ResponsiveContainer>
                   <BarChart data={incomeExpenseData} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
                     <XAxis dataKey="label" tick={{ fontSize: 10, fill: "var(--ink-3)" }} axisLine={{ stroke: "var(--rule)" }} tickLine={false} />
-                    <YAxis tick={{ fontSize: 10, fill: "var(--ink-3)" }} axisLine={false} tickLine={false} tickFormatter={formatAxisTick} width={38} />
+                    <YAxis tick={{ fontSize: 10, fill: "var(--ink-3)" }} axisLine={false} tickLine={false} tickFormatter={hideAmounts ? () => "" : formatAxisTick} width={38} />
                     <Tooltip formatter={(value, name) => [`${formatAmount(value)} ${currencySymbol}`, name]} labelStyle={{ color: "var(--ink)" }} {...TOOLTIP_ANIM} />
                     <Legend wrapperStyle={{ fontSize: 11 }} />
                     <Bar dataKey="income" name={t("dashboard_income")} fill="var(--sage)" radius={[3, 3, 0, 0]} {...CHART_ANIM} />
@@ -1115,7 +1118,7 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
                     <ResponsiveContainer>
                       <LineChart data={trendSeries} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
                         <XAxis dataKey="label" tick={{ fontSize: 10, fill: "var(--ink-3)" }} axisLine={{ stroke: "var(--rule)" }} tickLine={false} />
-                        <YAxis tick={{ fontSize: 10, fill: "var(--ink-3)" }} axisLine={false} tickLine={false} tickFormatter={formatAxisTick} width={38} domain={[0, "auto"]} />
+                        <YAxis tick={{ fontSize: 10, fill: "var(--ink-3)" }} axisLine={false} tickLine={false} tickFormatter={hideAmounts ? () => "" : formatAxisTick} width={38} domain={[0, "auto"]} />
                         <Tooltip content={<CustomTooltip />} {...TOOLTIP_ANIM} />
                         <Line type="monotone" dataKey="value" stroke="var(--lavi)" strokeWidth={2} dot={{ r: 2, fill: "var(--lavi)" }} activeDot={{ r: 4 }} connectNulls={false} {...CHART_ANIM} />
                       </LineChart>

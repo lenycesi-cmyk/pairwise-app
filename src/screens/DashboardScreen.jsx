@@ -38,6 +38,7 @@ import { buildMemberColorMap } from "../utils/memberColors";
 import { ALL_CURRENCIES } from "../data/categories";
 import CurrencyPicker from "../components/CurrencyPicker";
 import { useTranslation } from "../hooks/useTranslation";
+import { AMOUNT_MASK } from "../utils/hideAmounts";
 import SpotlightHint from "../components/SpotlightHint";
 import GreetingHeader from "../components/GreetingHeader";
 import { getMemberKey, memberShareFraction } from "../utils/members";
@@ -153,7 +154,8 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
     transactions, categories, members, assets, recurringTx, coupleName, debtSettlements,
     defaultCurrency, dashboardDisplayCurrency, updateDashboardDisplayCurrency, loading, language, financeMode,
     updateBudget, isSolo,
-  } = useFinance();
+    hideAmounts,
+} = useFinance();
   // Noms de mois localisés selon la langue des réglages (l'ancien tableau
   // MONTHS était figé en français).
   const locale = language === "en" ? "en-US" : "fr-FR";
@@ -413,6 +415,8 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
   const { netWorth, netWorthByMember, totalAssets, totalsByTypeFor } = useNetWorth(displayCurrency);
 
   function formatAmount(n) {
+    // Masquage : des points, jamais un zéro — un zéro se lirait comme un montant.
+    if (hideAmounts) return AMOUNT_MASK;
     return Math.round(n).toLocaleString("fr-FR");
   }
   const currencySymbol = ALL_CURRENCIES.find((c) => c.code === displayCurrency)?.symbol || displayCurrency;

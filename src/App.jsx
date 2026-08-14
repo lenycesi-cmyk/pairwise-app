@@ -13,7 +13,6 @@ import { usePushNotifications, useForegroundPush } from "./hooks/usePushNotifica
 import { useBackGuard } from "./hooks/useBackGuard";
 import { useTabSwipe } from "./hooks/useTabSwipe";
 import { useScrollFocus } from "./hooks/useScrollFocus";
-import { applyNavOffset } from "./utils/navOffset";
 import { useTranslation } from "./hooks/useTranslation";
 import BankCallbackHandler from "./components/BankCallbackHandler";
 import OfflineBanner from "./components/OfflineBanner";
@@ -492,12 +491,6 @@ function AppContent() {
 }
 
 export default function App() {
-  // Applique le décalage bas de la barre d'onglets choisi par l'appareil
-  // (localStorage) — voir utils/navOffset. Par défaut 0 (hauteur d'origine).
-  useEffect(() => {
-    applyNavOffset();
-  }, []);
-
   return (
     <AuthProvider>
       <AppContent />

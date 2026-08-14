@@ -58,7 +58,7 @@ export default function AddAssetScreen({ onClose, editingAsset, initialTypeId })
     addAsset, updateAsset, removeAsset, defaultCurrency, members, isSolo,
     contributeToAsset, addAssetContribution, removeAssetContribution, assetContributions,
     recurringTx, addRecurring, removeRecurring, loans,
-    archiveAsset, goals, incomeAccountLinks,
+    archiveAsset, goals,
   } = useFinance();
   const { user } = useAuth();
   const isEditing = !!editingAsset;
@@ -135,7 +135,7 @@ export default function AddAssetScreen({ onClose, editingAsset, initialTypeId })
     if (!(amt > 0) || !editingAsset) return;
     setIncBusy(true);
     try {
-      const label = t(`asset_income_${incKind}`);
+      const label = t(`asset_income_${effectiveIncKind}`);
       const owner = editingAsset.ownership && editingAsset.ownership !== "shared"
         ? editingAsset.ownership
         : user.uid;
@@ -181,6 +181,14 @@ export default function AddAssetScreen({ onClose, editingAsset, initialTypeId })
 
   const selectedType = ASSET_TYPES.find((t) => t.id === typeId);
   const usesApi = selectedType?.hasApiPrice;
+  // Natures de revenu que ce type d'actif peut produire (voir data/assetTypes).
+  // Vide ⇒ la section « Revenus générés » ne s'affiche pas : proposer un
+  // dividende sur une voiture n'a jamais eu de sens.
+  const incomeKinds = selectedType?.incomeKinds || [];
+  // La nature retenue doit toujours faire partie de celles que le type propose :
+  // « loyer » est le défaut historique, mais il n'est pas offert pour un compte
+  // en banque, et une sélection invisible se serait enregistrée en silence.
+  const effectiveIncKind = incomeKinds.includes(incKind) ? incKind : incomeKinds[0];
 
   useEffect(() => {
     if (!usesApi || searchQuery.trim().length < 1) {
@@ -263,23 +271,16 @@ export default function AddAssetScreen({ onClose, editingAsset, initialTypeId })
     }
   }
 
-  // Archivage d'un actif. Deux avertissements AVANT le geste, parce qu'aucun
-  // des deux ne se voit après coup :
-  //   - un objectif adossé à cet actif retomberait silencieusement ;
-  //   - une sous-catégorie de revenu qui le crédite verrait son lien rompu.
+  // Archivage d'un actif. On prévient AVANT le geste quand un objectif s'adosse
+  // à cet actif : sa progression retomberait, et cette chute ne se voit pas une
+  // fois l'archivage fait.
   async function handleArchive() {
     const backing = goals.filter((g) => (g.linkedAssetIds || []).includes(editingAsset.id));
-    const linkedIncome = Object.entries(incomeAccountLinks)
-      .filter(([, assetId]) => assetId === editingAsset.id)
-      .map(([sub]) => sub);
 
     let message = t("asset_archive_confirm");
     if (backing.length > 0) {
       message += "\n\n" + t("asset_archive_warn_goals")
         .replace("{names}", backing.map((g) => g.label || t("nav_goals")).join(", "));
-    }
-    if (linkedIncome.length > 0) {
-      message += "\n\n" + t("asset_archive_warn_income").replace("{names}", linkedIncome.join(", "));
     }
     if (!confirm(message)) return;
 
@@ -719,12 +720,12 @@ export default function AddAssetScreen({ onClose, editingAsset, initialTypeId })
 
         {/* Revenus générés par l'actif (loyer / dividende / intérêts) : règle de
             revenu récurrente rattachée à l'actif, générée automatiquement dans
-            les revenus (et rapports). Disponible pour tous les types. */}
-        {isEditing && (
+            les revenus (et rapports). Seulement pour les types qui en produisent. */}
+        {isEditing && incomeKinds.length > 0 && (
           <SectionCard accent="var(--good)" icon="ti-cash-banknote" title={t("asset_income_title")}>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
-              {[["rent", "asset_income_rent"], ["dividend", "asset_income_dividend"], ["interest", "asset_income_interest"], ["other", "asset_income_other"]].map(([k, tk]) => (
-                <button key={k} onClick={() => setIncKind(k)} style={{ ...segStyle(incKind === k, "var(--good)"), flex: "1 1 40%" }}>
+              {[["rent", "asset_income_rent"], ["dividend", "asset_income_dividend"], ["interest", "asset_income_interest"], ["other", "asset_income_other"]].filter(([k]) => incomeKinds.includes(k)).map(([k, tk]) => (
+                <button key={k} onClick={() => setIncKind(k)} style={{ ...segStyle(effectiveIncKind === k, "var(--good)"), flex: "1 1 40%" }}>
                   {t(tk)}
                 </button>
               ))}

@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { CHART_ANIM, TOOLTIP_ANIM } from "../utils/chartAnim";
 import { useFinance } from "../context/FinanceContext";
+import { AMOUNT_MASK } from "../utils/hideAmounts";
 import { useTranslation } from "../hooks/useTranslation";
 
 const PERIODS = [
@@ -30,7 +31,7 @@ export default function NetWorthChart({ history, currencySymbol, displayCurrency
   // moment de sa création (h.currency). On le reconvertit systématiquement
   // vers la devise d'affichage actuelle, sinon un changement de devise donne
   // l'illusion d'une chute ou d'une hausse brutale du patrimoine.
-  const { language } = useFinance();
+  const { language, hideAmounts } = useFinance();
   const locale = language === "en" ? "en-GB" : "fr-FR";
   const data = filteredHistory.map((h) => ({
     date: new Date(h.date).toLocaleDateString(locale, { day: "2-digit", month: "short" }),
@@ -68,7 +69,7 @@ export default function NetWorthChart({ history, currencySymbol, displayCurrency
           fontSize: 12,
         }}
       >
-        {Math.round(payload[0].value).toLocaleString("fr-FR")} {currencySymbol}
+        {hideAmounts ? AMOUNT_MASK : Math.round(payload[0].value).toLocaleString("fr-FR")} {currencySymbol}
       </div>
     );
   }
@@ -128,7 +129,7 @@ export default function NetWorthChart({ history, currencySymbol, displayCurrency
           }}
         >
           {performance.diff >= 0 ? "+" : ""}
-          {Math.round(performance.diff).toLocaleString("fr-FR")} {currencySymbol}
+          {hideAmounts ? AMOUNT_MASK : Math.round(performance.diff).toLocaleString("fr-FR")} {currencySymbol}
           {" "}({performance.pct >= 0 ? "+" : ""}{performance.pct.toFixed(1)}%)
           <span style={{ color: "var(--ink-3)", fontWeight: 400 }}> {t("wealth_period_over")} {t(selectedPeriod.labelKey).toLowerCase()}</span>
         </p>

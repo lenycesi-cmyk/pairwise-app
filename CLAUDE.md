@@ -412,12 +412,31 @@ plus rien ne saurait dire ensuite ce qu'il valait. L'historique, lui, n'a demand
 instantanés sont figés date par date et jamais recalculés, donc la courbe montre l'actif tant qu'il était
 détenu, puis la marche à la vente.
 
-**Income subcategories can be linked to a Wealth account** via the `incomeAccountLinks` map
-(`{ subcategoryName: assetId }`, set whole via `setIncomeAccountLinks`, edited in
-`CategoriesScreen`). When `addTransaction` creates an `income` transaction whose subcategory has a
-link, it credits the linked asset's `value` directly (converting through `getExchangeRate`) — this
-only affects new transactions, never retroactively, consistent with the frozen-conversion rule
-below.
+**Le lien revenu → compte du Patrimoine a été RETIRÉ** (éditeur dans `CategoriesScreen` + crédit
+automatique dans `addTransaction`). Retirer l'éditeur seul aurait laissé l'automatisme actif sans plus
+rien pour l'éteindre : de l'argent serait apparu sur un compte sans cause visible. Le champ
+`incomeAccountLinks` reste stocké sur le doc couple, **dormant** — rien ne l'applique, et un retour en
+arrière n'aurait donc aucune donnée à reconstituer. Même raisonnement pour le décalage manuel de la
+barre d'onglets : réglage retiré, `applyNavOffset` supprimé, clé localStorage laissée en place.
+
+**Masquage des montants** ([utils/hideAmounts.js](src/utils/hideAmounts.js)) — `hideAmounts` /
+`toggleHideAmounts` sur `FinanceContext`, bascule par l'œil dans l'en-tête du Patrimoine. Trois
+décisions : c'est un réglage **d'appareil** (localStorage), pas du couple — masquer chez soi ne masque
+rien chez le/la partenaire ; le masque est **des points, jamais un zéro**, qui se lirait comme un
+montant ; et il vaut pour **toute l'app**, sinon un aller-retour vers l'Accueil (qui affiche aussi le
+patrimoine net) annulerait l'intérêt. Concrètement il passe par le `formatAmount` de chaque écran
+(Accueil, Patrimoine, Rapports, Répartition, Calculateur) plus les composants de graphique, dont les
+axes perdent leur échelle en gardant leur forme. **Il n'y a pas de garantie d'exhaustivité** : les
+montants sont formatés écran par écran, un nouveau montant affiché ailleurs ne sera pas masqué tout
+seul.
+
+**Ce que la modale d'actif propose découle du TYPE** ([data/assetTypes.js](src/data/assetTypes.js)) :
+`incomeKinds` liste les natures de revenu qu'un type peut produire, tableau vide ⇒ la section « Revenus
+générés » ne s'affiche pas (une voiture ne verse pas de dividende). Les versements suivent
+`hasApiPrice` — un actif coté tire sa valeur du cours, qui écraserait un versement crédité à la main.
+La capacité est une **donnée**, pas une pile de conditions dans l'écran ; ajouter un type demain, c'est
+remplir un champ. `other_assets` garde les quatre natures : y restreindre le choix reviendrait à
+interdire ce qu'on n'a pas su nommer.
 
 **Two contexts, layered:** `AuthProvider` (top-level, owns `user`/`coupleId`/auth methods) wraps
 `FinanceProvider` (mounted only once a couple exists, owns everything else: transactions, categories,
