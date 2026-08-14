@@ -8,6 +8,7 @@ import { purgeReceiptPaths } from "../utils/purgeReceipts";
 import IconPicker from "../components/IconPicker";
 import { AVATAR_COLOR_PALETTE } from "../utils/memberColors";
 import { useTranslation } from "../hooks/useTranslation";
+import { useRevealOnOpen } from "../hooks/useRevealOnOpen";
 import { useCategoryName } from "../hooks/useCategoryName";
 import AdvancedSplitSelector from "../components/AdvancedSplitSelector";
 import { getMemberKey } from "../utils/members";
@@ -171,6 +172,13 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
   const [subcategory, setSubcategory] = useState(editingTx?.subcategory || null);
   const [showCatPicker, setShowCatPicker] = useState(false);
   const [showSubPicker, setShowSubPicker] = useState(false);
+  // Les deux tiroirs s'ouvraient sous le bord de l'écran : on révèle le juste
+  // nécessaire au lieu de laisser l'utilisateur faire défiler pour voir ce
+  // qu'il vient de demander.
+  const catPickerRef = useRef(null);
+  const subPickerRef = useRef(null);
+  useRevealOnOpen(showCatPicker, catPickerRef);
+  useRevealOnOpen(showSubPicker, subPickerRef);
   const [description, setDescription] = useState(editingTx?.description || "");
   const [tags, setTags] = useState(editingTx?.tags || []);
   const [showTagManager, setShowTagManager] = useState(false);
@@ -848,7 +856,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
       </div>
 
       {showCatPicker && (
-        <div style={{ marginTop: 8, border: "0.5px solid var(--rule)", borderRadius: "var(--radius-md)", padding: 6, background: "var(--bg-card)" }}>
+        <div ref={catPickerRef} style={{ marginTop: 8, border: "0.5px solid var(--rule)", borderRadius: "var(--radius-md)", padding: 6, background: "var(--bg-card)" }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2, maxHeight: 320, overflowY: "auto" }}>
             {availableCategories.map((cat) => {
               const sel = cat.id === categoryId;
@@ -977,7 +985,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
           </div>
 
           {showSubPicker && (
-            <div style={{ marginTop: 8, border: "0.5px solid var(--rule)", borderRadius: "var(--radius-md)", padding: 6, background: "var(--bg-card)" }}>
+            <div ref={subPickerRef} style={{ marginTop: 8, border: "0.5px solid var(--rule)", borderRadius: "var(--radius-md)", padding: 6, background: "var(--bg-card)" }}>
               {selectedCategory.subcategories.length > 0 && (
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2, maxHeight: 320, overflowY: "auto" }}>
                   {selectedCategory.subcategories.map((s) => {
