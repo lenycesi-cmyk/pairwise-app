@@ -21,6 +21,7 @@ import { SUGGESTED_TAGS } from "../data/suggestedTags";
 import BudgetCard from "../components/BudgetCard";
 import { budgetLevel } from "../utils/budgetStatus";
 import ArchivedSection from "../components/ArchivedSection";
+import { useRevealOnOpen } from "../hooks/useRevealOnOpen";
 
 const EXPENSE_EXCLUDED = ["income", "investment", "savings"];
 const GROUP_PCT = { essential: 0.5, fun: 0.3, investment: 0.2 };
@@ -125,6 +126,20 @@ export default function BudgetScreen({ openSignal, onOpenMenu }) {
   // Sélecteur de devise du formulaire (inline, calqué sur AddTransaction) —
   // distinct du sélecteur de devise d'affichage de l'en-tête (showCurrencyPicker).
   const [showFormCurrency, setShowFormCurrency] = useState(false);
+
+  // ── Révélation des panneaux du formulaire ──────────────────────────────────
+  // Ces appels DOIVENT rester après les déclarations qu'ils lisent : un `const`
+  // n'existe pas avant sa ligne, et le build ne l'attrape pas.
+  const scopeCatRef = useRef(null);
+  const scopeTagRef = useRef(null);
+  const periodOptsRef = useRef(null);
+  const formCurrencyRef = useRef(null);
+  useRevealOnOpen(scope === "category", scopeCatRef);
+  useRevealOnOpen(scope === "tag", scopeTagRef);
+  // Une seule cible pour les trois périodes à options : elles occupent la même
+  // place et ne s'affichent jamais ensemble.
+  useRevealOnOpen(period === "monthly" || period === "rolling" || period === "event", periodOptsRef);
+  useRevealOnOpen(showFormCurrency, formCurrencyRef);
   const [manageCurrencies, setManageCurrencies] = useState(false);
   const [addingCurrency, setAddingCurrency] = useState(false);
   const [currencySearch, setCurrencySearch] = useState("");
@@ -786,7 +801,7 @@ export default function BudgetScreen({ openSignal, onOpenMenu }) {
 
           {/* Champs spécifiques à la fréquence */}
           {period === "monthly" && (
-            <div style={{ marginBottom: 12 }}>
+            <div ref={periodOptsRef} style={{ marginBottom: 12 }}>
               <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>{t("budget_anchor_day")}</p>
               <input
                 type="number" min="1" max="28" inputMode="numeric"
@@ -798,7 +813,7 @@ export default function BudgetScreen({ openSignal, onOpenMenu }) {
             </div>
           )}
           {period === "rolling" && (
-            <div style={{ marginBottom: 12 }}>
+            <div ref={periodOptsRef} style={{ marginBottom: 12 }}>
               <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>{t("budget_rolling_days")}</p>
               <input
                 type="number" min="1" max="365" inputMode="numeric"
@@ -810,7 +825,7 @@ export default function BudgetScreen({ openSignal, onOpenMenu }) {
             </div>
           )}
           {period === "event" && (
-            <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+            <div ref={periodOptsRef} style={{ display: "flex", gap: 8, marginBottom: 12 }}>
               <div style={{ flex: 1 }}>
                 <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>{t("budget_event_start")}</p>
                 <input
@@ -882,7 +897,7 @@ export default function BudgetScreen({ openSignal, onOpenMenu }) {
           )}
 
           {scope === "category" && (
-            <>
+            <div ref={scopeCatRef}>
               <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>
                 {t("budget_choose_categories")}
               </p>
@@ -984,11 +999,11 @@ export default function BudgetScreen({ openSignal, onOpenMenu }) {
                     })}
                 </div>
               )}
-            </>
+            </div>
           )}
 
           {scope === "tag" && (
-            <>
+            <div ref={scopeTagRef}>
               <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>
                 {t("budget_choose_tags")}
               </p>
@@ -1002,7 +1017,7 @@ export default function BudgetScreen({ openSignal, onOpenMenu }) {
                   <p style={{ fontSize: 12, color: "var(--ink-3)" }}>{t("budget_no_tags")}</p>
                 )}
               </div>
-            </>
+            </div>
           )}
 
           <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 6 }}>{t("budget_amount_label")}</p>
@@ -1043,7 +1058,7 @@ export default function BudgetScreen({ openSignal, onOpenMenu }) {
           </div>
 
           {showFormCurrency && !manageCurrencies && (
-            <div style={{ marginTop: 10, display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
+            <div ref={formCurrencyRef} style={{ marginTop: 10, display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
               {currencyList.map((c) => (
                 <button
                   key={c.code}

@@ -10,6 +10,7 @@ import CurrencyField from "../components/CurrencyField";
 import AssetComments from "../components/AssetComments";
 import { getMemberKey } from "../utils/members";
 import { notifySuccess } from "../utils/successCheck";
+import { useRevealOnOpen } from "../hooks/useRevealOnOpen";
 
 // Carte de section « 1B Chaleureux » : en-tête pastille (icône teintée + titre),
 // identique à AddTransactionScreen. `accent` est une couleur token.
@@ -170,6 +171,9 @@ export default function AddAssetScreen({ onClose, editingAsset, initialTypeId })
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  // Après les déclarations qu'il lit — un `const` n'existe pas avant sa ligne.
+  const searchResultsRef = useRef(null);
+  useRevealOnOpen(showResults && searchResults.length > 0, searchResultsRef);
   const debounceRef = useRef(null);
 
   // Propriété de l'actif (qui possède quoi)
@@ -488,6 +492,7 @@ export default function AddAssetScreen({ onClose, editingAsset, initialTypeId })
 
                 {showResults && searchResults.length > 0 && (
                   <div
+                    ref={searchResultsRef}
                     style={{
                       marginTop: 4,
                       maxHeight: 220,

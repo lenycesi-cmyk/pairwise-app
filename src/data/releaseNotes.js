@@ -14,6 +14,17 @@
 
 export const RELEASE_NOTES = [
   {
+    version: "2026.08.14.2",
+    date: "2026-08-14",
+    items: [
+      {
+        icon: "⚡",
+        fr: { title: "Défilement automatique partout", body: "Budgets, actifs, objectifs et récurrences suivent la saisie de transaction : les panneaux qu'on ouvre remontent d'eux-mêmes à l'écran." },
+        en: { title: "Auto-scroll everywhere", body: "Budgets, assets, goals and recurring rules now behave like transaction entry: panels scroll themselves into view when opened." },
+      },
+    ],
+  },
+  {
     version: "2026.08.14.1",
     date: "2026-08-14",
     items: [
