@@ -145,6 +145,13 @@ export default function TagManager({ showArchived = false }) {
         dropZoneId={showArchived ? ARCHIVE_DROP_ID : null}
         renderDropZone={showArchived ? renderArchiveDropZone : null}
         onDropZone={archiveByDrop}
+        // Ce qui suit le doigt : la pastille seule, sans la poignée ni les
+        // icônes d'action — on déplace un tag, pas une ligne de réglages.
+        renderDragOverlay={(item) => (
+          <span style={{ display: "inline-flex", boxShadow: "0 8px 18px rgba(0,0,0,0.22)", borderRadius: 999 }}>
+            <TagChip tag={item.id} />
+          </span>
+        )}
         renderItem={(item) => (
           <div style={{ padding: "8px 14px 8px 6px", borderBottom: "0.5px solid var(--rule)", display: "flex", alignItems: "center", gap: 8 }}>
             {editingTag === item.id ? (

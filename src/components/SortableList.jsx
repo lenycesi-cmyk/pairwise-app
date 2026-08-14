@@ -1,6 +1,7 @@
 import { useState } from "react";
 import {
   DndContext,
+  DragOverlay,
   closestCenter,
   pointerWithin,
   PointerSensor,
@@ -82,6 +83,11 @@ export default function SortableList({
   dropZoneId = null,
   renderDropZone = null,
   onDropZone = null,
+  // Rendu du calque de glissement (l'élément qui suit le doigt). Sans lui, un
+  // élément traîné hors de la liste — vers une zone de dépôt — n'est plus
+  // positionné par la stratégie de tri et semble DISPARAÎTRE en cours de route :
+  // on ne sait plus si le geste fonctionne. Défaut : `renderItem`.
+  renderDragOverlay = null,
   // Contenu intercalé ENTRE la liste et la zone de dépôt (p. ex. le champ
   // « nouveau tag »), pour que la zone reste en dernier sans reléguer ce qui
   // appartient visuellement à la liste sous elle.
@@ -94,11 +100,19 @@ export default function SortableList({
   // Sert au rendu de la zone : au repos elle reste discrète, elle ne s'allume
   // qu'une fois un élément en main.
   const [dragging, setDragging] = useState(false);
+  // Élément actuellement en main, pour alimenter le calque de glissement.
+  const [activeId, setActiveId] = useState(null);
 
   const hasDropZone = Boolean(dropZoneId && renderDropZone);
+  const activeItem = activeId == null ? null : items.find((i) => getId(i) === activeId) || null;
+
+  function endDrag() {
+    setDragging(false);
+    setActiveId(null);
+  }
 
   function handleDragEnd(event) {
-    setDragging(false);
+    endDrag();
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
@@ -122,8 +136,8 @@ export default function SortableList({
       // est le plus proche — donc jamais la zone, qui est en bout de course.
       // `pointerWithin` suit le doigt, ce qui est le seul comportement juste ici.
       collisionDetection={hasDropZone ? pointerWithin : closestCenter}
-      onDragStart={() => setDragging(true)}
-      onDragCancel={() => setDragging(false)}
+      onDragStart={({ active }) => { setDragging(true); setActiveId(active.id); }}
+      onDragCancel={endDrag}
       onDragEnd={handleDragEnd}
     >
       <SortableContext items={items.map(getId)} strategy={verticalListSortingStrategy}>
@@ -136,6 +150,15 @@ export default function SortableList({
       {children}
       {hasDropZone && (
         <DropZone id={dropZoneId} render={renderDropZone} dragging={dragging} />
+      )}
+      {/* Le calque n'est monté que là où il sert : les listes sans zone de
+          dépôt gardent le comportement d'avant, au pixel près. */}
+      {hasDropZone && (
+        <DragOverlay dropAnimation={null}>
+          {activeItem
+            ? (renderDragOverlay || renderItem)(activeItem)
+            : null}
+        </DragOverlay>
       )}
     </DndContext>
   );
