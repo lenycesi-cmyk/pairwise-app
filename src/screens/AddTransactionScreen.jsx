@@ -457,6 +457,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
       transactions,
       defaultCurrency: currencyMode === "last" ? lastUsedCurrency : defaultCurrency,
       usedTags: usedTags(transactions),
+      members,
     });
     if (!parsed) return;
     setType(parsed.type);
@@ -470,6 +471,16 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
     // ou tags déjà utilisés dans l'historique).
     const nlTags = dedupeTags([...extractTagsFromText(text), ...(parsed.tags || [])]);
     if (nlTags.length) setTags((prev) => dedupeTags([...prev, ...nlTags]));
+    // Attribution : ignorée en solo, où la carte « Payé par / Pour » n'existe
+    // pas — écrire un partage que rien n'affiche le rendrait invérifiable.
+    if (!isSolo) {
+      if (parsed.paidBy) setPaidBy(parsed.paidBy);
+      if (parsed.split) {
+        setSplit(parsed.split);
+        setSplitMode("simple");
+        setSplitDetails(null);
+      }
+    }
     // Valeurs issues d'un apply explicite : on les fige (l'édition de la
     // description ne doit pas les réécraser derrière).
     amountAutoRef.current = false;

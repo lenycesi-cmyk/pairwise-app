@@ -6,6 +6,7 @@
 import { normalizeText, buildSuggestionIndex, getSuggestions } from "./descriptionSuggestions";
 import { MERCHANT_SYNONYMS } from "../data/merchantSynonyms";
 import { SUGGESTED_TAGS } from "../data/suggestedTags";
+import { getMemberKey } from "./members";
 
 // Mots-clés parlés (FR/EN) → tag préréglé. À l'oral personne ne dit « hashtag »,
 // donc on reconnaît les tournures courantes et on retombe sur le tag normalisé.
@@ -23,6 +24,17 @@ const TAG_SPEECH = {
   cadeau: ["cadeau", "cadeaux", "gift", "present"],
   vacances: ["vacances", "vacation", "holiday", "holidays", "voyage", "trip"],
 };
+
+// Tournures qui désignent le PAYEUR. Un verbe de paiement est exigé : « par »
+// tout seul est trop courant en français (« par avion », « par mois ») pour
+// valoir attribution.
+const PAID_BY_MARKERS = ["paye par", "payee par", "payer par", "regle par", "reglee par", "avance par", "avancee par", "paid by", "paid for by"];
+
+// Tournures qui désignent le ou les BÉNÉFICIAIRES.
+const FOR_MARKERS = ["pour", "for"];
+
+// Bénéficiaire « tout le monde » → partage 50/50, sans nommer personne.
+const SHARED_WORDS = ["partage", "partagee", "nous", "nous deux", "les deux", "tous les deux", "couple", "commun", "shared", "both", "us", "the two of us"];
 
 const CURRENCY_HINTS = [
   { code: "EUR", tokens: ["€", "eur", "euro", "euros"] },
@@ -132,12 +144,12 @@ function matchCategory(norm, categories, type) {
   for (const c of pool) {
     for (const sub of c.subcategories || []) {
       const n = normalizeText(sub);
-      if (n.length >= 3 && norm.includes(n)) return { categoryId: c.id, subcategory: sub };
+      if (n.length >= 3 && norm.includes(n)) return { categoryId: c.id, subcategory: sub, matched: n };
     }
   }
   for (const c of pool) {
     const n = normalizeText(c.name);
-    if (n.length >= 3 && norm.includes(n)) return { categoryId: c.id, subcategory: (c.subcategories || [])[0] || null };
+    if (n.length >= 3 && norm.includes(n)) return { categoryId: c.id, subcategory: (c.subcategories || [])[0] || null, matched: n };
   }
   return null;
 }
@@ -217,7 +229,123 @@ function matchKeyword(norm, categories) {
   return null;
 }
 
-export function parseNaturalTransaction(text, { categories = [], transactions = [], defaultCurrency = "EUR", usedTags = [] } = {}) {
+// Retire d'une description les EXPRESSIONS déjà comprises par ailleurs.
+//
+// Le besoin : ce que l'app a su interpréter devient un champ (un tag, un
+// membre, une catégorie) et n'a donc plus rien à faire dans la description —
+// « resto 20€ #impulsif payé par Nicolas » doit laisser « Resto », pas
+// « Resto impulsif payé par Nicolas ».
+//
+// Le retrait se fait MOT À MOT plutôt que par expression régulière sur le
+// texte brut : la description a déjà été nettoyée de ses montants et de ses
+// mots de date, donc les positions du texte d'origine n'y correspondent plus.
+// On compare des suites de mots normalisés, ce qui reste juste quelle que soit
+// la ponctuation ou la casse d'origine.
+function stripPhrases(desc, phrases) {
+  if (!desc) return desc;
+  const words = desc.split(/\s+/).filter(Boolean);
+  const norms = words.map((w) => normalizeText(w.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "")));
+  const dropped = new Array(words.length).fill(false);
+
+  // Les expressions longues d'abord : « nous deux » doit être consommé en
+  // entier, sinon « nous » seul le couperait en deux et laisserait « deux ».
+  const ordered = [...new Set(phrases.filter(Boolean).map((p) => normalizeText(p)))]
+    .sort((a, b) => b.split(/\s+/).length - a.split(/\s+/).length);
+
+  for (const phrase of ordered) {
+    const parts = phrase.split(/\s+/).filter(Boolean);
+    if (!parts.length) continue;
+    for (let i = 0; i + parts.length <= norms.length; i++) {
+      if (dropped[i]) continue;
+      let ok = true;
+      for (let j = 0; j < parts.length; j++) {
+        if (norms[i + j] !== parts[j] || dropped[i + j]) { ok = false; break; }
+      }
+      if (ok) for (let j = 0; j < parts.length; j++) dropped[i + j] = true;
+    }
+  }
+  return words.filter((_, i) => !dropped[i]).join(" ").replace(/\s+/g, " ").trim();
+}
+
+// Détecte « payé par X » et « pour X / pour nous deux » dans le texte.
+//
+// Renvoie aussi les EXPRESSIONS consommées : c'est le seul moyen de les
+// retirer de la description sans deviner après coup ce qui avait été compris.
+// Le marqueur en fait partie — retirer « Nicolas » en laissant « payé par »
+// serait pire que de ne rien retirer.
+function detectMembers(norm, members) {
+  const named = (members || [])
+    .map((m) => ({ key: getMemberKey(m), name: normalizeText(m?.name || "") }))
+    .filter((m) => m.key && m.name.length >= 2)
+    // Nom le plus long d'abord : si un couple compte « Ana » et « Anaïs »,
+    // chercher « ana » en premier attribuerait les deux à la même personne.
+    .sort((a, b) => b.name.length - a.name.length);
+  if (!named.length) return { paidBy: null, split: null, consumed: [] };
+
+  const consumed = [];
+  let paidBy = null;
+  let split = null;
+
+  for (const marker of PAID_BY_MARKERS) {
+    if (paidBy) break;
+    for (const m of named) {
+      const phrase = `${marker} ${m.name}`;
+      if (new RegExp(`\\b${escapeRegExp(phrase)}\\b`).test(norm)) {
+        paidBy = m.key;
+        consumed.push(phrase);
+        break;
+      }
+    }
+  }
+
+  for (const marker of FOR_MARKERS) {
+    if (split) break;
+    // Le partage explicite est testé avant les noms : « pour nous deux » ne
+    // désigne personne en particulier.
+    // Du plus long au plus court : « nous » figure avant « nous deux » dans la
+    // liste, et le tester d'abord laisserait « deux » dans la description.
+    for (const w of [...SHARED_WORDS].sort((a, b) => b.length - a.length)) {
+      const phrase = `${marker} ${w}`;
+      if (new RegExp(`\\b${escapeRegExp(phrase)}\\b`).test(norm)) {
+        split = "50/50";
+        consumed.push(phrase);
+        break;
+      }
+    }
+    if (split) break;
+    for (const m of named) {
+      const phrase = `${marker} ${m.name}`;
+      if (new RegExp(`\\b${escapeRegExp(phrase)}\\b`).test(norm)) {
+        split = m.key;
+        consumed.push(phrase);
+        break;
+      }
+    }
+  }
+
+  return { paidBy, split, consumed };
+}
+
+// Variantes de tags réellement présentes dans le texte, pour pouvoir les en
+// retirer. `detectTags` renvoie la CLÉ du tag (parfois précédée d'un emoji),
+// qui ne ressemble pas forcément au mot prononcé : « coup de tête » donne le
+// tag « impulsif », introuvable tel quel dans la phrase.
+function consumedTagPhrases(norm, usedTags) {
+  const out = [];
+  for (const variants of Object.values(TAG_SPEECH)) {
+    for (const v of variants) {
+      const n = normalizeText(v);
+      if (new RegExp(`\\b${escapeRegExp(n)}\\b`).test(norm)) out.push(n);
+    }
+  }
+  for (const raw of usedTags || []) {
+    const bare = normalizeText(String(raw).replace(/^[^\p{L}\p{N}]+/u, ""));
+    if (bare.length >= 3 && new RegExp(`\\b${escapeRegExp(bare)}\\b`).test(norm)) out.push(bare);
+  }
+  return out;
+}
+
+export function parseNaturalTransaction(text, { categories = [], transactions = [], defaultCurrency = "EUR", usedTags = [], members = [] } = {}) {
   if (!text || !text.trim()) return null;
   const norm = normalizeText(text);
 
@@ -246,6 +374,28 @@ export function parseNaturalTransaction(text, { categories = [], transactions = 
     .replace(/\b(euros?|dollars?|eur|usd|gbp|chf|jpy|vnd|dongs?|thb|bahts?|aud|cad|cny|rmb|renminbi|yuans?|sgd|hkd|inr|roupies?|krw|won|aed|dirhams?|aujourd'?hui|today|avant[\s-]?hier|hier|yesterday|il y a \d+ jours?|\d+ days? ago|le|on|the|lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche|monday|tuesday|wednesday|thursday|friday|saturday|sunday|janvier|f[ée]vrier|mars|avril|mai|juin|juillet|ao[uû]t|septembre|octobre|novembre|d[ée]cembre|january|february|march|april|june|july|august|september|october|november|december)\b/gi, " ")
     .replace(/\s+/g, " ")
     .trim();
+
+  // Retrait de ce qui a été compris ailleurs. Deux passes, parce que les deux
+  // n'ont pas la même valeur :
+  //
+  //   1. Tags et membres : toujours retirés. « payé par Nicolas » n'est jamais
+  //      une description, et un tag a désormais sa propre pastille.
+  //   2. Nom de catégorie : retiré SEULEMENT s'il reste quelque chose. Sur
+  //      « 15€ resto hier », « resto » est à la fois la catégorie ET toute la
+  //      description ; le supprimer laisserait un champ vide, ce qui est pire
+  //      que la redondance qu'on cherche à éviter. Les marchands et mots-clés
+  //      (« McDo », « loyer ») ne sont jamais retirés pour la même raison :
+  //      c'est précisément ce que l'utilisateur voulait écrire.
+  const { paidBy, split, consumed: memberPhrases } = detectMembers(norm, members);
+  desc = stripPhrases(desc, [...consumedTagPhrases(norm, usedTags), ...memberPhrases]);
+  if (cat?.matched) {
+    // Le nom de la catégorie PARENTE aussi : « courses alimentation bio »
+    // n'a été reconnu que par « courses », mais « alimentation » y est tout
+    // autant redondant une fois la catégorie choisie.
+    const parentName = categories.find((c) => c.id === cat.categoryId)?.name;
+    const withoutCat = stripPhrases(desc, [cat.matched, parentName && normalizeText(parentName)]);
+    if (withoutCat) desc = withoutCat;
+  }
 
   if (!cat && desc) {
     const idx = buildSuggestionIndex(transactions, type);
@@ -278,5 +428,7 @@ export function parseNaturalTransaction(text, { categories = [], transactions = 
     subcategory: cat?.subcategory || null,
     description: desc || null,
     tags: detectTags(norm, usedTags),
+    paidBy,
+    split,
   };
 }

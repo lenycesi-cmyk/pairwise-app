@@ -14,6 +14,22 @@
 
 export const RELEASE_NOTES = [
   {
+    version: "2026.08.15",
+    date: "2026-08-15",
+    items: [
+      {
+        icon: "🎙",
+        fr: { title: "Dictée : « payé par » et « pour »", body: "Dis « 20 € resto payé par Nicolas pour nous deux » et l'attribution se remplit toute seule." },
+        en: { title: "Voice: “paid by” and “for”", body: "Say “€20 dinner paid by Nicolas for both of us” and the attribution fills itself in." },
+      },
+      {
+        icon: "🧹",
+        fr: { title: "Description enfin propre", body: "Ce que la dictée a compris — tag, membre, catégorie — ne traîne plus dans la description. Sauf si c'était le seul mot dit : mieux vaut une redondance qu'un champ vide." },
+        en: { title: "A clean description at last", body: "Whatever voice entry understood — tag, member, category — no longer lingers in the description. Unless it was the only word said: better redundant than empty." },
+      },
+    ],
+  },
+  {
     version: "2026.08.14.6",
     date: "2026-08-14",
     items: [
