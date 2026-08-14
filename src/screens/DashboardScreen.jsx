@@ -966,6 +966,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
               setAnchor={setAnchor}
               setAnchorNow={() => setAnchorRaw(new Date())}
               rangeLabel={range.labelShort || range.label}
+              range={range}
               customRange={customRange}
               setCustomRange={setCustomRange}
             />

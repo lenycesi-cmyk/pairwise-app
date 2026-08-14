@@ -782,6 +782,7 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
       setAnchor={setAnchor}
       setAnchorNow={() => setAnchorRaw(new Date())}
       rangeLabel={range.labelShort || range.label}
+              range={range}
       customRange={customRange}
       setCustomRange={setCustomRange}
     />
@@ -1486,7 +1487,16 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
               )}
             </div>
           );
-          const greeting = <GreetingHeader subtitleKey="reports_subtitle" marginLeft={0} />;
+          // Le mois DOIT venir de la période choisie : sans cette prop,
+          // GreetingHeader retombe sur la date du jour, et la phrase annonçait
+          // « Août 2026 » pendant que le sélecteur affichait « Janv. 2027 ».
+          const greeting = (
+            <GreetingHeader
+              subtitleKey="reports_subtitle"
+              marginLeft={0}
+              month={range.label.charAt(0).toUpperCase() + range.label.slice(1)}
+            />
+          );
           const periodNode = !editMode ? periodSelector : null;
           // Desktop : une ligne [accueil | période | actions], comme l'Accueil ;
           // le sélecteur de période s'aligne avec les boutons devise/personnaliser,
@@ -1500,14 +1510,19 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
               </div>
             );
           }
+          // Mobile : le sélecteur monte DANS la ligne d'en-tête, comme sur
+          // l'Accueil et Flux — il occupait jusqu'ici une ligne à lui seul sous
+          // la salutation. Colonnes latérales en `auto`, centre en
+          // `minmax(0, 1fr)` : le sélecteur prend la place qui reste au lieu de
+          // pousser les actions hors de l'écran.
           return (
             <>
-              <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", alignItems: "center", gap: 8, marginBottom: 10 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "auto minmax(0, 1fr) auto", alignItems: "center", gap: 8, marginBottom: 10 }}>
                 <div style={{ justifySelf: "start" }}><HeaderMenuButton onClick={onOpenMenu} /></div>
+                <div ref={periodRowRef} style={{ justifySelf: "center", minWidth: 0 }}>{periodNode}</div>
                 <div style={{ justifySelf: "end" }}>{actions}</div>
               </div>
               {greeting}
-              <div ref={periodRowRef} style={{ marginTop: 12 }}>{periodNode}</div>
             </>
           );
         })()}

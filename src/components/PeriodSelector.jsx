@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { PERIOD_TYPES, shiftAnchor } from "../utils/periodRange";
+import { PERIOD_TYPES, shiftAnchor, toDateInputValue } from "../utils/periodRange";
 import { useTranslation } from "../hooks/useTranslation";
 
 // Sélecteur de période unifié (Rapports + Flux). Un seul bouton affichant la
@@ -15,6 +15,7 @@ export default function PeriodSelector({
   setAnchor,      // pose une ancre précise (nav ‹ ›) + synchro sharedMonth
   setAnchorNow,   // réinitialise l'ancre sur aujourd'hui (semaine / N derniers mois)
   rangeLabel,
+  range,          // plage courante — sert à pré-remplir « personnalisé »
   customRange,
   setCustomRange,
 }) {
@@ -25,6 +26,25 @@ export default function PeriodSelector({
   const choose = (p) => {
     setPeriodType(p);
     if (p === "week" || p === "last3" || p === "last12") setAnchorNow?.();
+    if (p === "custom") {
+      // On POSE vraiment les dates au lieu de les deviner à l'affichage. Sans
+      // ça, `customRange` restait vide, le calcul de plage se rabattait sur
+      // l'année entière et l'affichait comme un choix — pendant que les deux
+      // champs, eux, restaient vides. Le bandeau annonçait donc une période que
+      // les champs ne montraient pas.
+      if (!customRange?.start && !customRange?.end && range) {
+        setCustomRange({
+          start: toDateInputValue(range.start),
+          // `range.end` est EXCLUSIF (début du jour suivant) : le dernier jour
+          // affiché est la milliseconde d'avant.
+          end: toDateInputValue(new Date(range.end.getTime() - 1)),
+        });
+      }
+      // Seul type de période qui demande une saisie ensuite : le menu reste
+      // ouvert pour que les champs apparaissent sous le choix qu'on vient de
+      // faire.
+      return;
+    }
     setOpen(false);
   };
 
@@ -122,16 +142,38 @@ export default function PeriodSelector({
                   </button>
                 );
               })}
+
+              {/* Les champs vivent DANS le menu. Posés sous la pastille, ils
+                  étaient à l'intérieur de la colonne centrale de l'en-tête —
+                  étroite — et débordaient par-dessus le bouton de menu. Le
+                  panneau, lui, est en position absolue : aucune colonne ne le
+                  contraint. */}
+              {periodType === "custom" && (
+                <div style={{ borderTop: "0.5px solid var(--rule)", marginTop: 6, padding: "10px 4px 2px", display: "flex", flexDirection: "column", gap: 8 }}>
+                  <label style={dateRow}>
+                    <span style={dateKey}>{t("period_from")}</span>
+                    <input
+                      type="date"
+                      value={customRange.start}
+                      onChange={(e) => setCustomRange((r) => ({ ...r, start: e.target.value }))}
+                      style={dateInput}
+                    />
+                  </label>
+                  <label style={dateRow}>
+                    <span style={dateKey}>{t("period_to")}</span>
+                    <input
+                      type="date"
+                      value={customRange.end}
+                      onChange={(e) => setCustomRange((r) => ({ ...r, end: e.target.value }))}
+                      style={dateInput}
+                    />
+                  </label>
+                </div>
+              )}
             </div>
           </>
         )}
       </div>
-      {periodType === "custom" && (
-        <div style={{ display: "flex", gap: 8, width: "100%", maxWidth: 360 }}>
-          <input type="date" value={customRange.start} onChange={(e) => setCustomRange((r) => ({ ...r, start: e.target.value }))} style={dateInput} />
-          <input type="date" value={customRange.end} onChange={(e) => setCustomRange((r) => ({ ...r, end: e.target.value }))} style={dateInput} />
-        </div>
-      )}
     </div>
   );
 }
@@ -152,8 +194,13 @@ const sep = {
   width: 1, flexShrink: 0, margin: "7px 0", background: "var(--rule)",
 };
 
+const dateRow = { display: "flex", alignItems: "center", gap: 10 };
+
+const dateKey = { fontSize: 12, color: "var(--ink-3)", width: 26, flexShrink: 0 };
+
 const dateInput = {
-  flex: 1, padding: "8px 10px", borderRadius: "var(--radius-md)",
-  border: "0.5px solid var(--rule)", background: "var(--bg-card)",
+  flex: 1, minWidth: 0, height: 34, padding: "0 10px",
+  borderRadius: "var(--radius-sm)",
+  border: "0.5px solid var(--rule)", background: "var(--bg)",
   fontSize: 13, color: "var(--ink)",
 };
