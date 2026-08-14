@@ -8,7 +8,7 @@ import { purgeReceiptPaths } from "../utils/purgeReceipts";
 import IconPicker from "../components/IconPicker";
 import { AVATAR_COLOR_PALETTE } from "../utils/memberColors";
 import { useTranslation } from "../hooks/useTranslation";
-import { useRevealOnOpen, revealElement } from "../hooks/useRevealOnOpen";
+import { useRevealOnOpen, useRevealOnFocus, revealElement } from "../hooks/useRevealOnOpen";
 import { useCategoryName } from "../hooks/useCategoryName";
 import AdvancedSplitSelector from "../components/AdvancedSplitSelector";
 import { getMemberKey } from "../utils/members";
@@ -182,6 +182,10 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
   const tagPanelRef = useRef(null);
   const currencyPanelRef = useRef(null);
   const attributionRef = useRef(null);
+  // Toucher un champ de texte remonte aussi l'écran — le focus n'ouvre aucun
+  // panneau, aucun des déclencheurs ci-dessus ne le couvrait.
+  const modalRef = useRef(null);
+  useRevealOnFocus(modalRef);
   const [description, setDescription] = useState(editingTx?.description || "");
   const [tags, setTags] = useState(editingTx?.tags || []);
   const [showTagManager, setShowTagManager] = useState(false);
@@ -1265,7 +1269,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
   );
 
   return (
-    <div className="app-modal tx-modal" style={{ display: "flex", flexDirection: "column" }}>
+    <div ref={modalRef} className="app-modal tx-modal" style={{ display: "flex", flexDirection: "column" }}>
       {/* En-tête : pastille fermer · titre centré · supprimer (édition) */}
       <div
         style={{
