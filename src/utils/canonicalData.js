@@ -39,6 +39,7 @@ export const COUPLE_FIELDS = [
   "incomeAccountLinks",
   "netWorthHistory",
   "debtSettlements",
+  "debtTransfers",
 ];
 
 // Volontairement ABSENTS, et pourquoi :

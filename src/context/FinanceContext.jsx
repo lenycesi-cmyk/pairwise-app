@@ -91,6 +91,11 @@ export function FinanceProvider({ children }) {
   const [legacyTheme, setLegacyTheme] = useState(null);
   const [language, setLanguageState] = useState("fr");
   const [debtSettlements, setDebtSettlements] = useState([]);
+  // Virements directs entre les deux membres (ex. un partenaire dépanne
+  // l'autre en liquidités locales) — distincts d'un règlement : un règlement
+  // remet le solde à zéro sans montant, un virement réduit le solde d'un
+  // montant précis sans le solder. Voir addDebtTransfer plus bas.
+  const [debtTransfers, setDebtTransfers] = useState([]);
   const [pushPrefs, setPushPrefs] = useState({});
   // navTabs.{memberKey} = [tabKey, tabKey, tabKey, tabKey] : les 4 onglets de la
   // barre de navigation du bas (mobile), personnalisables par membre.
@@ -249,6 +254,7 @@ export function FinanceProvider({ children }) {
         if (data.theme) setLegacyTheme(data.theme);
         if (data.language) setLanguageState(data.language);
         if (data.debtSettlements) setDebtSettlements(data.debtSettlements);
+        if (data.debtTransfers) setDebtTransfers(data.debtTransfers);
         if (data.pushPrefs) setPushPrefs(data.pushPrefs);
         if (data.navTabs) setNavTabs(data.navTabs);
         if (data.customTags) setCustomTags(data.customTags);
@@ -519,6 +525,30 @@ export function FinanceProvider({ children }) {
         currency: settledInfo?.currency,
       });
     }
+  }
+
+  // Enregistre un virement direct entre les deux membres — un partenaire qui
+  // dépanne l'autre en liquidités (ex. plus de VND sur un compte local), sans
+  // que ce soit une dépense, un revenu ni un investissement. `fromKey` a
+  // envoyé l'argent à `toKey` : useDebtCalculation traite ce mouvement
+  // exactement comme une dépense payée à 100% par `fromKey` pour `toKey`,
+  // donc il RÉDUIT ce que `toKey` doit à `fromKey` sans solder le compte
+  // (contrairement à addDebtSettlement, qui remet tout à zéro sans montant).
+  // `arrayUnion` via addItem : deux virements saisis en même temps par les
+  // deux membres doivent tous les deux survivre.
+  async function addDebtTransfer({ date, amount, currency, fromKey, toKey, note = "" }) {
+    if (!coupleId) return;
+    await couple.addItem("debtTransfers", {
+      id: `xfer_${Date.now()}`,
+      date, amount, currency, fromKey, toKey, note,
+      createdAt: Date.now(),
+      createdBy: user.uid,
+    });
+  }
+
+  async function removeDebtTransfer(id) {
+    if (!coupleId) return;
+    await couple.removeItem("debtTransfers", debtTransfers, id);
   }
 
   async function addRecurring(rule) {
@@ -991,7 +1021,7 @@ export function FinanceProvider({ children }) {
       recurringTx, recurringLastGen,
       budgets, budgetHistory, goals, loans,
       assets: visibleAssets, assetContributions, assetContributionsApplied,
-      targetAllocation, incomeAccountLinks, netWorthHistory, debtSettlements,
+      targetAllocation, incomeAccountLinks, netWorthHistory, debtSettlements, debtTransfers,
     };
     return buildExportDocument({
       couple,
@@ -1144,6 +1174,9 @@ export function FinanceProvider({ children }) {
     updateLanguage,
     debtSettlements,
     addDebtSettlement,
+    debtTransfers,
+    addDebtTransfer,
+    removeDebtTransfer,
     exportAllData,
     importAllData,
   };
