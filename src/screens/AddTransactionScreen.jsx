@@ -145,6 +145,25 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
   const [showTagManager, setShowTagManager] = useState(false);
   const [paidBy, setPaidBy] = useState(() => editingTx?.paidBy || findLastOwnTx()?.paidBy || user?.uid);
   const [split, setSplit] = useState(() => editingTx?.split || findLastOwnTx()?.split || "50/50");
+  // Filet de rattrapage : à l'ouverture juste après le login, `transactions`
+  // peut encore être vide (l'écoute Firestore n'a pas livré) quand les
+  // initialiseurs paresseux ci-dessus s'exécutent — ils ne se rejouent jamais,
+  // donc "payé par"/"pour" restaient bloqués sur les valeurs génériques pour
+  // toute la session de la modale. On rattrape une seule fois dès que la
+  // dernière transaction de l'utilisateur devient disponible, sans écraser un
+  // choix déjà fait à la main entre-temps.
+  const appliedLastOwnTxRef = useRef(false);
+  useEffect(() => {
+    if (isEditing || appliedLastOwnTxRef.current) return;
+    const last = findLastOwnTx();
+    if (!last) return;
+    appliedLastOwnTxRef.current = true;
+    // Rattrapage ponctuel d'un défaut manqué au montage, pas une synchronisation continue.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPaidBy((cur) => (cur === user?.uid ? last.paidBy || cur : cur));
+    setSplit((cur) => (cur === "50/50" ? last.split || cur : cur));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [transactions]);
   const [splitMode, setSplitMode] = useState(editingTx?.splitDetails ? "advanced" : "simple");
   const [splitDetails, setSplitDetails] = useState(editingTx?.splitDetails || null);
   const [dateTime, setDateTime] = useState(toDateTimeLocal(editingTx?.date));
