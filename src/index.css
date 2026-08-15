@@ -594,8 +594,13 @@ button[style*="background: var(--ink)"] {
    par useScrollFocus via IntersectionObserver. Gardé sous (hover: none) pour ne
    jamais interférer avec le survol desktop. */
 @media (hover: none) {
+  /* PAS de translateY ici (contrairement au :hover desktop) : décaler la carte
+     modifie sa position par rapport à la bande centrale que surveille
+     useScrollFocus, ce qui refait basculer .pw-card--focus, ce qui annule le
+     décalage, ce qui la fait rebasculer — boucle de rétroaction qui se voit
+     comme un clignotement, surtout pour une carte proche du bord de la bande
+     (ex. le résumé de dette, juste sous la barre de filtres). */
   .pw-card--focus {
-    transform: translateY(-4px);
     box-shadow: var(--shadow-lg);
   }
   /* Même anneau que le survol desktop : c'est ce qui rend lisible « la carte que
@@ -612,10 +617,6 @@ button[style*="background: var(--ink)"] {
   .pw-card--focus .pw-chip i {
     color: var(--bg) !important;
   }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .pw-card--focus { transform: none; }
 }
 
 /* Chip d'icône : petit carré/rond teinté qui se REMPLIT au survol de sa carte
@@ -661,8 +662,10 @@ button[style*="background: var(--ink)"] {
   }
 }
 @media (hover: none) {
+  /* Même raison que .pw-card--focus plus haut : pas de translateY sous
+     scroll-focus, sous peine de boucle de rétroaction avec l'observateur qui
+     pose la classe. */
   .pw-lift--focus {
-    transform: translateY(-4px);
     box-shadow: var(--shadow-lg);
   }
   .pw-lift--focus[data-ring] {
@@ -678,8 +681,7 @@ button[style*="background: var(--ink)"] {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .pw-lift:hover,
-  .pw-lift--focus { transform: none; }
+  .pw-lift:hover { transform: none; }
 }
 
 /* Montant "chiffre-clé" : typographie unifiée (display + semi-bold) pour tous
