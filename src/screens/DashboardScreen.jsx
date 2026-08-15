@@ -151,7 +151,7 @@ function EmptyStateCta({ text, cta, onClick, disabled }) {
 export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTransactions, onEditTransaction, sharedMonth, onSharedMonthChange, addButtonRef, settingsButtonRef, onOpenMenu, onOpenRecurring, onOpenBudget, onOpenCredits, onAddAsset, onAddBudget }) {
   const t = useTranslation();
   const {
-    transactions, categories, members, assets, recurringTx, coupleName, debtSettlements,
+    transactions, categories, members, assets, recurringTx, coupleName, debtSettlements, debtTransfers,
     defaultCurrency, dashboardDisplayCurrency, updateDashboardDisplayCurrency, loading, language, financeMode,
     updateBudget, isSolo,
     hideAmounts,
@@ -202,7 +202,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
   // moins l'en-tête/pied ≈ 70 px. Sur mobile, on garde 5.
   const DESKTOP_TX_ROWS = Math.max(6, Math.floor((BENTO_MAX_HEIGHT - 70) / 42));
 
-  const debt = useDebtCalculation(transactions, members, displayCurrency, convert, { settlements: debtSettlements });
+  const debt = useDebtCalculation(transactions, members, displayCurrency, convert, { settlements: debtSettlements, transfers: debtTransfers });
   const memberColorMap = useMemo(() => buildMemberColorMap(members), [members]);
 
   // Sélecteur de période partagé avec Rapports/Flux. Le type "month" reste

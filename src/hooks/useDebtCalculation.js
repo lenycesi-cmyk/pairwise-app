@@ -9,7 +9,7 @@ import { getMemberKey } from "../utils/members";
 // everything before that date, so the running balance resets to 0 without
 // rewriting history.
 export function useDebtCalculation(transactions, members, defaultCurrency, convert, options = {}) {
-  const { startDate, endDate, settlements = [] } = options;
+  const { startDate, endDate, settlements = [], transfers = [] } = options;
   function toBase(tx) {
     if (tx.convertedAmount !== undefined && tx.convertedCurrency === defaultCurrency) {
       return tx.convertedAmount;
@@ -84,6 +84,25 @@ export function useDebtCalculation(transactions, members, defaultCurrency, conve
       }
     }
 
+    // Virements directs (voir addDebtTransfer) : un membre envoie de l'argent
+    // à l'autre en dehors de toute dépense catégorisée. Mathématiquement
+    // identique à une dépense payée à 100% par l'expéditeur "pour" le
+    // destinataire — même accumulateur, même fenêtre temporelle (un virement
+    // antérieur au dernier règlement ne compte plus, comme une dépense).
+    const transferActivity = [];
+    for (const xf of transfers) {
+      if (effectiveStart && new Date(xf.date) < new Date(effectiveStart)) continue;
+      if (endDate && new Date(xf.date) > new Date(endDate)) continue;
+      const val = convert(xf.amount, xf.currency, defaultCurrency);
+      if (xf.fromKey === aKey) {
+        aPaidForB += val;
+        transferActivity.push({ ...xf, share: val, paidByName: a.name, forName: b.name, kind: "transfer" });
+      } else if (xf.fromKey === bKey) {
+        bPaidForA += val;
+        transferActivity.push({ ...xf, share: val, paidByName: b.name, forName: a.name, kind: "transfer" });
+      }
+    }
+
     const net = aPaidForB - bPaidForA;
     return {
       a, b,
@@ -95,7 +114,15 @@ export function useDebtCalculation(transactions, members, defaultCurrency, conve
       owesToName: net > 0 ? a.name : b.name,
       owesAmount: Math.abs(net),
       sharedTx: sharedTx.sort((x, y) => new Date(y.date) - new Date(x.date)),
+      // Liste combinée dépenses + virements, pour l'écran de détail : une
+      // dépense et un virement du même jour doivent apparaître dans le bon
+      // ordre l'un par rapport à l'autre, d'où le tri commun plutôt que deux
+      // listes concaténées.
+      activity: [
+        ...sharedTx.map((tx) => ({ ...tx, kind: "expense" })),
+        ...transferActivity,
+      ].sort((x, y) => new Date(y.date) - new Date(x.date)),
       latestSettlement,
     };
-  }, [transactions, members, defaultCurrency, convert, startDate, endDate, settlements]);
+  }, [transactions, members, defaultCurrency, convert, startDate, endDate, settlements, transfers]);
 }
