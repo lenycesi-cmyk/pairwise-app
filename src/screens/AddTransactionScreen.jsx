@@ -1,7 +1,7 @@
 import { useState, useRef, useMemo, useEffect } from "react";
 import { useFinance } from "../context/FinanceContext";
 import { useAuth } from "../context/AuthContext";
-import { CURRENCIES, ALL_CURRENCIES } from "../data/categories";
+import CurrencyPillPicker from "../components/CurrencyPillPicker";
 import { uploadPhoto } from "../utils/photoUpload";
 import { receiptPathOf } from "../utils/receiptPaths";
 import { purgeReceiptPaths } from "../utils/purgeReceipts";
@@ -122,52 +122,6 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
   const [amount, setAmount] = useState(editingTx?.amount?.toString() || "");
   const [currency, setCurrency] = useState(initialCurrency);
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
-  const [manageCurrencies, setManageCurrencies] = useState(false);
-  const [addingCurrency, setAddingCurrency] = useState(false);
-  const [currencySearch, setCurrencySearch] = useState("");
-
-  // Devises proposées dans le sélecteur : liste blanche du couple si définie,
-  // sinon toutes. La devise déjà saisie (ex. édition d'une vieille transaction)
-  // et la devise par défaut restent toujours proposées pour ne pas se bloquer.
-  const currencyList =
-    enabledCurrencies && enabledCurrencies.length > 0
-      ? ALL_CURRENCIES.filter(
-          (c) =>
-            enabledCurrencies.includes(c.code) ||
-            c.code === currency ||
-            c.code === defaultCurrency
-        )
-      : CURRENCIES;
-
-  // Devises actuellement proposées (pour l'écran "Gérer") et celles qu'on peut
-  // encore ajouter depuis le catalogue, filtrées par la recherche.
-  const offeredCurrencies =
-    enabledCurrencies && enabledCurrencies.length > 0
-      ? ALL_CURRENCIES.filter((c) => enabledCurrencies.includes(c.code))
-      : CURRENCIES;
-  const currencyQuery = currencySearch.trim().toLowerCase();
-  const addableCurrencies = ALL_CURRENCIES.filter(
-    (c) =>
-      !offeredCurrencies.some((o) => o.code === c.code) &&
-      (currencyQuery === "" ||
-        c.code.toLowerCase().includes(currencyQuery) ||
-        c.name.toLowerCase().includes(currencyQuery))
-  );
-
-  // Bascule une devise dans/hors de la liste blanche du couple. Partant de
-  // "toutes" (null), le premier décochage matérialise la liste courante moins
-  // la devise retirée. On garde toujours au moins la devise par défaut.
-  function toggleEnabledCurrency(code) {
-    const current =
-      enabledCurrencies && enabledCurrencies.length > 0
-        ? enabledCurrencies
-        : CURRENCIES.map((c) => c.code);
-    let next = current.includes(code)
-      ? current.filter((x) => x !== code)
-      : [...current, code];
-    if (next.length === 0) next = [defaultCurrency];
-    updateEnabledCurrencies(next);
-  }
   const [categoryId, setCategoryId] = useState(editingTx?.categoryId || null);
   const [subcategory, setSubcategory] = useState(editingTx?.subcategory || null);
   const [showCatPicker, setShowCatPicker] = useState(false);
@@ -609,7 +563,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
           }}
         />
         <button
-          onClick={() => { setShowCurrencyPicker(!showCurrencyPicker); setManageCurrencies(false); setAddingCurrency(false); setCurrencySearch(""); }}
+          onClick={() => setShowCurrencyPicker(!showCurrencyPicker)}
           style={{
             flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 4, height: 34, padding: "0 12px", borderRadius: 99,
             background: "color-mix(in srgb, var(--tang) 12%, transparent)", border: "0.5px solid color-mix(in srgb, var(--tang) 30%, transparent)",
@@ -653,164 +607,16 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
         />
       </div>
 
-      {showCurrencyPicker && !manageCurrencies && (
-        <div ref={currencyPanelRef} style={{ marginTop: 12, display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "center", alignItems: "center" }}>
-          {currencyList.map((c) => (
-            <button
-              key={c.code}
-              onClick={() => { setCurrency(c.code); setShowCurrencyPicker(false); }}
-              style={{
-                padding: "6px 10px",
-                borderRadius: "var(--radius-md)",
-                border: currency === c.code ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
-                background: currency === c.code ? "var(--sky-light)" : "var(--bg)",
-                color: currency === c.code ? "var(--sky)" : "var(--ink)",
-                fontSize: 12,
-              }}
-            >
-              {c.code}
-            </button>
-          ))}
-          <button
-            onClick={() => setManageCurrencies(true)}
-            aria-label={t("tx_manage_currencies")}
-            style={{
-              padding: "6px 10px",
-              borderRadius: "var(--radius-md)",
-              border: "0.5px dashed var(--rule)",
-              background: "var(--bg)",
-              color: "var(--ink-3)",
-              fontSize: 12,
-              display: "flex",
-              alignItems: "center",
-              gap: 4,
-            }}
-          >
-            <i className="ti ti-adjustments" style={{ fontSize: 13 }} aria-hidden="true" />
-            {t("tx_manage_currencies")}
-          </button>
-        </div>
-      )}
-
-      {showCurrencyPicker && manageCurrencies && (
-        <div style={{ marginTop: 12 }}>
-          <p style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 8, textAlign: "center" }}>
-            {t("tx_manage_currencies_hint")}
-          </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {offeredCurrencies.map((c) => {
-              const isDefault = c.code === defaultCurrency;
-              return (
-                <div
-                  key={c.code}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: 8,
-                    padding: "10px 12px",
-                    borderRadius: "var(--radius-md)",
-                    border: "0.5px solid var(--rule)",
-                    background: "var(--bg)",
-                  }}
-                >
-                  <span style={{ fontSize: 13, color: "var(--ink)", textAlign: "left" }}>
-                    {c.symbol} {c.code} · {c.name}
-                  </span>
-                  {isDefault ? (
-                    <span style={{ fontSize: 11, color: "var(--ink-3)", flexShrink: 0 }}>{t("tx_currency_default")}</span>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => toggleEnabledCurrency(c.code)}
-                      aria-label={t("common_delete")}
-                      style={{ background: "none", border: "none", color: "var(--ink-3)", display: "flex", alignItems: "center", flexShrink: 0 }}
-                    >
-                      <i className="ti ti-x" style={{ fontSize: 15 }} aria-hidden="true" />
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          {!addingCurrency ? (
-            <button
-              type="button"
-              onClick={() => { setAddingCurrency(true); setCurrencySearch(""); }}
-              style={{
-                marginTop: 8, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                padding: "10px 12px", borderRadius: "var(--radius-md)", border: "0.5px dashed var(--sky)",
-                background: "var(--bg)", color: "var(--sky)", fontSize: 13, fontWeight: 500,
-              }}
-            >
-              <i className="ti ti-plus" style={{ fontSize: 14 }} aria-hidden="true" />
-              {t("tx_add_currency")}
-            </button>
-          ) : (
-            <div style={{ marginTop: 8 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
-                <input
-                  autoFocus
-                  type="text"
-                  value={currencySearch}
-                  onChange={(e) => setCurrencySearch(e.target.value)}
-                  placeholder={t("tx_search_currency")}
-                  style={{
-                    flex: 1, padding: "10px 12px", borderRadius: "var(--radius-md)",
-                    border: "0.5px solid var(--rule)", fontSize: 13, outline: "none",
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={() => { setAddingCurrency(false); setCurrencySearch(""); }}
-                  aria-label={t("common_cancel")}
-                  style={{
-                    flexShrink: 0, width: 34, height: 34, borderRadius: "var(--radius-md)",
-                    border: "0.5px solid var(--rule)", background: "var(--bg)", color: "var(--ink-3)",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                  }}
-                >
-                  <i className="ti ti-x" style={{ fontSize: 15 }} aria-hidden="true" />
-                </button>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 220, overflowY: "auto" }}>
-                {addableCurrencies.map((c) => (
-                  <button
-                    type="button"
-                    key={c.code}
-                    onClick={() => toggleEnabledCurrency(c.code)}
-                    style={{
-                      display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
-                      padding: "10px 12px", borderRadius: "var(--radius-md)", border: "0.5px solid var(--rule)",
-                      background: "var(--bg)", cursor: "pointer",
-                    }}
-                  >
-                    <span style={{ fontSize: 13, color: "var(--ink)", textAlign: "left" }}>
-                      {c.symbol} {c.code} · {c.name}
-                    </span>
-                    <i className="ti ti-plus" style={{ fontSize: 14, color: "var(--sky)" }} aria-hidden="true" />
-                  </button>
-                ))}
-                {addableCurrencies.length === 0 && (
-                  <p style={{ fontSize: 12, color: "var(--ink-3)", textAlign: "center", padding: "8px 0" }}>
-                    {t("tx_no_currency_found")}
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
-          <div style={{ display: "flex", justifyContent: "center", marginTop: 10 }}>
-            <button
-              onClick={() => { setManageCurrencies(false); setAddingCurrency(false); setCurrencySearch(""); }}
-              style={{
-                background: "var(--ink)", color: "var(--bg)", border: "none",
-                borderRadius: "var(--radius-md)", padding: "6px 16px", fontSize: 13, fontWeight: 500,
-              }}
-            >
-              {t("dashboard_done")}
-            </button>
-          </div>
+      {showCurrencyPicker && (
+        <div ref={currencyPanelRef} style={{ marginTop: 12 }}>
+          <CurrencyPillPicker
+            currency={currency}
+            onSelect={(code) => { setCurrency(code); setShowCurrencyPicker(false); }}
+            defaultCurrency={defaultCurrency}
+            enabledCurrencies={enabledCurrencies}
+            updateEnabledCurrencies={updateEnabledCurrencies}
+            t={t}
+          />
         </div>
       )}
     </SectionCard>

@@ -5,6 +5,7 @@ import { useDebtCalculation } from "../hooks/useDebtCalculation";
 import { useTranslation } from "../hooks/useTranslation";
 import { CURRENCIES } from "../data/categories";
 import { getMemberKey } from "../utils/members";
+import CurrencyPillPicker from "../components/CurrencyPillPicker";
 
 function isoDate(d) {
   return d.toISOString().slice(0, 10);
@@ -15,6 +16,7 @@ export default function DebtScreen() {
   const {
     transactions, members, defaultCurrency, dashboardDisplayCurrency,
     debtSettlements, addDebtSettlement, debtTransfers, addDebtTransfer, removeDebtTransfer, language,
+    currencyMode, lastUsedCurrency, enabledCurrencies, updateEnabledCurrencies,
   } = useFinance();
   const locale = language === "en" ? "en-US" : "fr-FR";
 
@@ -292,7 +294,14 @@ export default function DebtScreen() {
         <TransferSheet
           a={debt.a}
           b={debt.b}
-          defaultCurrency={displayCurrency}
+          // Même logique par défaut qu'"Ajouter une transaction" : la devise du
+          // dernier mouvement saisi si le couple a choisi ce mode, sinon la
+          // devise par défaut du couple — pas la devise d'AFFICHAGE de cet
+          // écran (qui ne sert qu'à convertir le solde à la lecture).
+          initialCurrency={currencyMode === "last" ? lastUsedCurrency : defaultCurrency}
+          defaultCurrency={defaultCurrency}
+          enabledCurrencies={enabledCurrencies}
+          updateEnabledCurrencies={updateEnabledCurrencies}
           t={t}
           onClose={() => setShowTransferSheet(false)}
           onSave={async (entry) => {
@@ -377,11 +386,11 @@ function ActivityRow({ item, last, t, locale, onDelete }) {
 
 // Feuille "Ajouter un virement" : montant + devise, direction (qui a envoyé
 // à qui, deux cartes tap plutôt qu'un menu), date, note libre facultative.
-function TransferSheet({ a, b, defaultCurrency, t, onClose, onSave }) {
+function TransferSheet({ a, b, initialCurrency, defaultCurrency, enabledCurrencies, updateEnabledCurrencies, t, onClose, onSave }) {
   const aKey = getMemberKey(a);
   const bKey = getMemberKey(b);
   const [amount, setAmount] = useState("");
-  const [currency, setCurrency] = useState(defaultCurrency);
+  const [currency, setCurrency] = useState(initialCurrency);
   const [showCurPick, setShowCurPick] = useState(false);
   const [fromKey, setFromKey] = useState(aKey);
   const [date, setDate] = useState(isoDate(new Date()));
@@ -469,21 +478,15 @@ function TransferSheet({ a, b, defaultCurrency, t, onClose, onSave }) {
               </button>
             </div>
             {showCurPick && (
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
-                {CURRENCIES.map((c) => (
-                  <button
-                    key={c.code}
-                    onClick={() => { setCurrency(c.code); setShowCurPick(false); }}
-                    style={{
-                      padding: "6px 10px", borderRadius: "var(--radius-md)",
-                      border: currency === c.code ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
-                      background: currency === c.code ? "var(--sky-light)" : "var(--bg)",
-                      color: currency === c.code ? "var(--sky)" : "var(--ink)", fontSize: 12,
-                    }}
-                  >
-                    {c.symbol} {c.code}
-                  </button>
-                ))}
+              <div style={{ marginTop: 8 }}>
+                <CurrencyPillPicker
+                  currency={currency}
+                  onSelect={(code) => { setCurrency(code); setShowCurPick(false); }}
+                  defaultCurrency={defaultCurrency}
+                  enabledCurrencies={enabledCurrencies}
+                  updateEnabledCurrencies={updateEnabledCurrencies}
+                  t={t}
+                />
               </div>
             )}
           </div>
