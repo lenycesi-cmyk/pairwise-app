@@ -143,15 +143,26 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
   const [description, setDescription] = useState(editingTx?.description || "");
   const [tags, setTags] = useState(editingTx?.tags || []);
   const [showTagManager, setShowTagManager] = useState(false);
+  // "Payé par" / "Pour" sont pré-remplis d'après la DERNIÈRE transaction de
+  // l'utilisateur (ses habitudes). Le bloc « pour » se reproduit EN ENTIER —
+  // `split` + `splitMode` + `splitDetails` — et pas seulement `split` : la
+  // sélection d'un bouton « pour » dépend aussi de `splitMode`, donc un dernier
+  // partage avancé (`split: "50/50"` + `splitDetails`) rechargé en mode simple
+  // ne correspondait à aucun bouton et laissait « pour » sans sélection.
+  // `splitMode` se déduit de `splitDetails` comme en édition.
   const [paidBy, setPaidBy] = useState(() => editingTx?.paidBy || findLastOwnTx()?.paidBy || user?.uid);
   const [split, setSplit] = useState(() => editingTx?.split || findLastOwnTx()?.split || "50/50");
+  const [splitMode, setSplitMode] = useState(() => ((editingTx || findLastOwnTx())?.splitDetails ? "advanced" : "simple"));
+  const [splitDetails, setSplitDetails] = useState(() => (editingTx || findLastOwnTx())?.splitDetails || null);
+  const [dateTime, setDateTime] = useState(toDateTimeLocal(editingTx?.date));
   // Filet de rattrapage : à l'ouverture juste après le login, `transactions`
   // peut encore être vide (l'écoute Firestore n'a pas livré) quand les
   // initialiseurs paresseux ci-dessus s'exécutent — ils ne se rejouent jamais,
   // donc "payé par"/"pour" restaient bloqués sur les valeurs génériques pour
   // toute la session de la modale. On rattrape une seule fois dès que la
-  // dernière transaction de l'utilisateur devient disponible, sans écraser un
-  // choix déjà fait à la main entre-temps.
+  // dernière transaction de l'utilisateur devient disponible, chaque état étant
+  // rattrapé seulement s'il est resté à SON défaut générique — jamais un choix
+  // déjà fait à la main.
   const appliedLastOwnTxRef = useRef(false);
   useEffect(() => {
     if (isEditing || appliedLastOwnTxRef.current) return;
@@ -162,11 +173,10 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setPaidBy((cur) => (cur === user?.uid ? last.paidBy || cur : cur));
     setSplit((cur) => (cur === "50/50" ? last.split || cur : cur));
+    setSplitMode((cur) => (cur === "simple" ? (last.splitDetails ? "advanced" : "simple") : cur));
+    setSplitDetails((cur) => cur || last.splitDetails || null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [transactions]);
-  const [splitMode, setSplitMode] = useState(editingTx?.splitDetails ? "advanced" : "simple");
-  const [splitDetails, setSplitDetails] = useState(editingTx?.splitDetails || null);
-  const [dateTime, setDateTime] = useState(toDateTimeLocal(editingTx?.date));
   const [makeRecurring, setMakeRecurring] = useState(false);
 
   // ── Révélation des panneaux ────────────────────────────────────────────────
