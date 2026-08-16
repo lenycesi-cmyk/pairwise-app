@@ -45,6 +45,7 @@ import { getMemberKey, memberShareFraction } from "../utils/members";
 import { nextOccurrence, daysUntil } from "../utils/recurrence";
 import { useSubscriptionSuggestion } from "../hooks/useSubscriptionSuggestion";
 import { useMediaQuery } from "../hooks/useMediaQuery";
+import { useViewportWidth } from "../hooks/useViewportWidth";
 import { slotSpan12, BENTO_MAX_HEIGHT } from "../utils/bentoLayout";
 
 // Grille bento desktop (12 colonnes, taille selon la position) — factorisée dans
@@ -176,6 +177,17 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
   const currencyButtonRef = useRef(null);
   const [trendPeriod, setTrendPeriod] = useState(6);
   const isDesktop = useMediaQuery("(min-width: 1024px)");
+  // Mise à l'échelle de l'en-tête mobile. La barre [menu | période | actions]
+  // est dessinée à une largeur de référence (HEADER_DESIGN_W) puis réduite
+  // proportionnellement — boutons ET police — sur les téléphones plus étroits,
+  // au lieu de déborder (les boutons devise/personnaliser sortaient de l'écran
+  // sur les appareils de moins de ~390 px de large). `headerAvail` retire le
+  // padding horizontal du conteneur collant (1.25rem de chaque côté = 40 px) ;
+  // la largeur est plafonnée à la coque de 480 px.
+  const viewportWidth = useViewportWidth();
+  const HEADER_DESIGN_W = 390;
+  const headerAvail = Math.min(viewportWidth || HEADER_DESIGN_W + 40, 480) - 40;
+  const headerScale = Math.min(1, headerAvail / HEADER_DESIGN_W);
   // Seul, la carte s'appelle simplement « Résumé » : ni « du couple », ni le nom
   // de l'espace suivi de « résumé », qui parlent tous deux d'un partage
   // inexistant.
@@ -958,7 +970,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
           gauche), ligne 2 le bloc « Bonjour … » sur toute la largeur. */}
       {(() => {
         const monthNav = (
-          <div style={{ justifySelf: "center", minWidth: 0, display: "flex", alignItems: "center", gap: 6 }}>
+          <div style={{ justifySelf: "center", minWidth: 0, display: "flex", alignItems: "center", gap: 6 * headerScale }}>
             <PeriodSelector
               periodType={periodType}
               setPeriodType={setPeriodType}
@@ -969,6 +981,7 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
               range={range}
               customRange={customRange}
               setCustomRange={setCustomRange}
+              scale={headerScale}
             />
             {ratesError === "using_fallback_rates" && (
               <i className="ti ti-alert-triangle" title="Taux de change approximatifs" style={{ fontSize: 12, color: "var(--amber)" }} aria-hidden="true" />
@@ -976,13 +989,13 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
           </div>
         );
         const actions = (
-          <div style={{ justifySelf: "end", display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ justifySelf: "end", display: "flex", alignItems: "center", gap: 8 * headerScale }}>
             {editMode ? (
               <button
                 onClick={exitEditMode}
                 style={{
-                  height: 34, padding: "0 16px", background: "var(--ink)", color: "var(--bg)",
-                  border: "none", borderRadius: 99, fontSize: 13, fontWeight: 600,
+                  height: 34 * headerScale, padding: `0 ${16 * headerScale}px`, background: "var(--ink)", color: "var(--bg)",
+                  border: "none", borderRadius: 99, fontSize: 13 * headerScale, fontWeight: 600,
                 }}
               >
                 {t("dashboard_done")}
@@ -993,24 +1006,24 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                   ref={currencyButtonRef}
                   onClick={() => setShowCurrencyPicker(!showCurrencyPicker)}
                   style={{
-                    height: 34, padding: "0 12px", borderRadius: 99, border: "0.5px solid var(--rule)",
-                    background: "var(--bg-card)", fontSize: 13, fontWeight: 600, color: "var(--ink)",
-                    display: "inline-flex", alignItems: "center", gap: 5,
+                    height: 34 * headerScale, padding: `0 ${12 * headerScale}px`, borderRadius: 99, border: "0.5px solid var(--rule)",
+                    background: "var(--bg-card)", fontSize: 13 * headerScale, fontWeight: 600, color: "var(--ink)",
+                    display: "inline-flex", alignItems: "center", gap: 5 * headerScale,
                   }}
                 >
-                  {ALL_CURRENCIES.find((c) => c.code === displayCurrency)?.symbol || displayCurrency} <i className="ti ti-chevron-down" style={{ fontSize: 14, color: "var(--ink-3)" }} aria-hidden="true" />
+                  {ALL_CURRENCIES.find((c) => c.code === displayCurrency)?.symbol || displayCurrency} <i className="ti ti-chevron-down" style={{ fontSize: 14 * headerScale, color: "var(--ink-3)" }} aria-hidden="true" />
                 </button>
                 <button
                   ref={customizeButtonRef}
                   onClick={enterEditMode}
                   aria-label={t("dashboard_customize")}
                   style={{
-                    height: 34, padding: isDesktop ? "0 14px" : "0 11px", borderRadius: 99,
+                    height: 34 * headerScale, padding: isDesktop ? "0 14px" : `0 ${11 * headerScale}px`, borderRadius: 99,
                     background: "var(--bg-card)", border: "0.5px solid var(--rule)", color: "var(--ink)",
-                    fontSize: 13, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6,
+                    fontSize: 13 * headerScale, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6 * headerScale,
                   }}
                 >
-                  <i className="ti ti-pencil" style={{ fontSize: 15 }} aria-hidden="true" />
+                  <i className="ti ti-pencil" style={{ fontSize: 15 * headerScale }} aria-hidden="true" />
                   {isDesktop && t("dashboard_edit_btn")}
                 </button>
               </>
@@ -1043,15 +1056,15 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
                 prendre d'abord et de pousser les actions hors de l'écran. Avec
                 `1fr auto 1fr`, un libellé long élargissait la colonne du milieu
                 sans limite et le bouton « personnaliser » sortait à droite. */}
-            <div style={{ display: "grid", gridTemplateColumns: "auto minmax(0, 1fr) auto", alignItems: "center", gap: 8, marginBottom: 10 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "auto minmax(0, 1fr) auto", alignItems: "center", gap: 8 * headerScale, marginBottom: 10 }}>
               <button
                 ref={settingsButtonRef}
                 onClick={onOpenMenu}
                 aria-label={t("nav_menu")}
                 className="nav-menu-btn"
-                style={{ ...navBtnStyle, background: "var(--tang)", border: "none" }}
+                style={{ ...navBtnStyle, width: 30 * headerScale, height: 30 * headerScale, background: "var(--tang)", border: "none" }}
               >
-                <i className="ti ti-menu-2" style={{ fontSize: 16, color: "#fff" }} aria-hidden="true" />
+                <i className="ti ti-menu-2" style={{ fontSize: 16 * headerScale, color: "#fff" }} aria-hidden="true" />
               </button>
               {monthNav}
               {actions}
