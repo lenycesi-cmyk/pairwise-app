@@ -49,11 +49,11 @@ export default function PeriodSelector({
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, minWidth: 0, maxWidth: "100%" }}>
       {/* Conteneur RELATIF sans `overflow` : le menu déroulant est un frère de
           la pastille, pas un enfant. Placé dedans, il serait rogné par
           l'`overflow: hidden` qui donne à la pastille ses coins arrondis. */}
-      <div style={{ position: "relative", minWidth: 0 }}>
+      <div style={{ position: "relative", minWidth: 0, maxWidth: "100%" }}>
         {/* Pastille UNIQUE à trois zones. La fusion est visuelle seulement :
             ce sont toujours trois <button> distincts, chacun avec son
             aria-label. Un bouton unique qui devinerait l'intention d'après
@@ -61,7 +61,7 @@ export default function PeriodSelector({
             d'écran. */}
         <div
           style={{
-            display: "inline-flex", alignItems: "stretch", height: 34, minWidth: 0,
+            display: "inline-flex", alignItems: "stretch", height: 34, minWidth: 0, maxWidth: "100%",
             borderRadius: 99, border: "0.5px solid var(--rule)",
             background: "var(--bg-card)", overflow: "hidden",
           }}
@@ -83,20 +83,24 @@ export default function PeriodSelector({
             onClick={() => setOpen((v) => !v)}
             aria-expanded={open}
             style={{
-              display: "inline-flex", alignItems: "center", gap: 7, minWidth: 0,
+              display: "inline-flex", alignItems: "center", gap: 7, minWidth: 0, flexShrink: 1,
               padding: "0 10px", border: "none", background: "none",
               font: "inherit", fontSize: 13.5, color: "var(--ink)",
               cursor: "pointer", whiteSpace: "nowrap",
             }}
           >
-            <i className="ti ti-calendar-event" style={{ fontSize: 15, color: "var(--sky)" }} aria-hidden="true" />
-            {/* Largeur plancher : la zone centrale est encadrée par les deux
-                flèches, donc un libellé plus court les ferait glisser sous le
-                doigt d'un mois à l'autre. C'est un MINIMUM, pas une largeur
-                fixe — les libellés plus longs (plages de dates, « 12 derniers
-                mois ») s'étendent normalement plutôt que d'être tronqués. */}
-            <span style={{ fontWeight: 600, textTransform: "capitalize", minWidth: 78, textAlign: "center" }}>{rangeLabel}</span>
-            <i className={`ti ti-chevron-${open ? "up" : "down"}`} style={{ fontSize: 14, color: "var(--ink-3)" }} aria-hidden="true" />
+            <i className="ti ti-calendar-event" style={{ fontSize: 15, color: "var(--sky)", flexShrink: 0 }} aria-hidden="true" />
+            {/* Largeur de CONFORT (`width`, pas `minWidth`) : la zone centrale est
+                encadrée par les deux flèches, donc un libellé plus court les
+                ferait glisser sous le doigt d'un mois à l'autre — à largeur
+                normale le libellé occupe donc ces 78 px. Ce n'est PAS un plancher
+                rigide : sur un écran étroit (beaucoup d'Android font 360 px, voire
+                320) un `minWidth` incompressible poussait devise et crayon hors de
+                l'écran. Avec `width` + `minWidth: 0`, le libellé cède et se tronque
+                (ellipsis) plutôt que d'éjecter les autres boutons ; les libellés
+                plus longs s'étendent toujours quand la place existe. */}
+            <span style={{ fontWeight: 600, textTransform: "capitalize", width: 78, minWidth: 0, flexShrink: 1, textAlign: "center", overflow: "hidden", textOverflow: "ellipsis" }}>{rangeLabel}</span>
+            <i className={`ti ti-chevron-${open ? "up" : "down"}`} style={{ fontSize: 14, color: "var(--ink-3)", flexShrink: 0 }} aria-hidden="true" />
           </button>
 
           {navigable && (
@@ -181,7 +185,7 @@ export default function PeriodSelector({
 // Zone flèche : LARGEUR ÉGALE À LA HAUTEUR de la pastille (34 px), donc une
 // cible carrée — les pastilles rondes d'avant n'en faisaient que 30.
 const arrowZone = {
-  width: 34, flexShrink: 0,
+  width: 34, flexShrink: 0, minWidth: 34,
   display: "grid", placeItems: "center",
   border: "none", background: "none", padding: 0,
   color: "var(--ink-2)", cursor: "pointer",
