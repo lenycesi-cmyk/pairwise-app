@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 // Amène en haut de l'écran le panneau qui vient de s'ouvrir, dans la saisie de
 // transaction — tiroirs Catégorie / Sous-catégorie, options de récurrence,
@@ -57,7 +57,20 @@ export function revealElement(el, offset = TOP_OFFSET) {
 }
 
 export function useRevealOnOpen(open, ref) {
+  // Un panneau DÉJÀ ouvert au montage n'est pas un panneau « qui vient de
+  // s'ouvrir » : rien ne s'est ouvert, l'écran vient d'apparaître. Le révéler
+  // faisait défiler l'écran vers le bas dès son ouverture, avant la moindre
+  // action — visible sur la saisie de transaction dès que le formulaire
+  // s'initialise sur un partage avancé (pré-rempli d'après la dernière
+  // transaction, ou à l'édition d'une transaction qui en porte un), et sur les
+  // écrans dont un panneau est ouvert par défaut (récurrence « mensuelle »,
+  // période « mensuelle » d'un budget). On ignore donc le premier passage.
+  const mounted = useRef(false);
   useEffect(() => {
+    if (!mounted.current) {
+      mounted.current = true;
+      return;
+    }
     if (!open || !ref.current) return;
     const el = ref.current;
 
