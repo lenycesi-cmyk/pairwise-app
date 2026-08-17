@@ -19,15 +19,33 @@ const COLOR_MAP = {
   blush: { text: "var(--blush)", bg: "var(--blush-light)" },
 };
 
-export default function TransactionsScreen({ onEdit }) {
+// `sharedMonth` : mois sélectionné dans l'onglet d'où l'on vient (Accueil,
+// Flux). La liste s'ouvre donc sur CE mois plutôt que sur tout l'historique —
+// arriver par « Tout voir » depuis un Accueil réglé sur juillet et découvrir
+// toutes les transactions donnait une liste sans rapport avec l'écran quitté.
+// Le filtre « Ce mois-ci » vise ce mois-là et non le mois courant, et « Tout »
+// reste à un geste pour retrouver l'historique complet.
+export default function TransactionsScreen({ onEdit, sharedMonth }) {
   const t = useTranslation();
-  const { transactions, categories, members, deleteTransaction, defaultCurrency } = useFinance();
+  const { transactions, categories, members, deleteTransaction, defaultCurrency, language } = useFinance();
+  // La pastille nomme le mois VISÉ dès qu'il n'est pas le mois courant :
+  // « Ce mois » sur une liste réglée sur juillet en août désignerait le mauvais
+  // mois, sans rien qui le laisse voir.
+  const monthChipLabel = useMemo(() => {
+    const now = new Date();
+    if (!sharedMonth || (sharedMonth.month === now.getMonth() && sharedMonth.year === now.getFullYear())) {
+      return t("tx_period_month");
+    }
+    const raw = new Date(sharedMonth.year, sharedMonth.month, 1)
+      .toLocaleDateString(language === "en" ? "en-US" : "fr-FR", { month: "long", year: "numeric" });
+    return raw.charAt(0).toUpperCase() + raw.slice(1);
+  }, [sharedMonth, language, t]);
   const [filter, setFilter] = useState("all");
   const [searchText, setSearchText] = useState("");
   const [categoryFilter, setCategoryFilter] = useState(null);
   const [subcategoryFilter, setSubcategoryFilter] = useState(null);
   const [tagFilter, setTagFilter] = useState(null);
-  const [periodFilter, setPeriodFilter] = useState("all");
+  const [periodFilter, setPeriodFilter] = useState(sharedMonth ? "month" : "all");
   // Tous les filtres sont repliés derrière l'icône entonnoir ; chaque dimension
   // (catégorie / sous-catégorie / tag) ouvre son sélecteur à la demande, sur le
   // modèle du choix de catégorie à la création d'une transaction.
@@ -68,7 +86,12 @@ export default function TransactionsScreen({ onEdit }) {
           return d >= c;
         }
         if (periodFilter === "month") {
-          return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+          // Le mois VISÉ est celui de l'onglet d'où l'on vient, pas le mois
+          // courant : sans ça, changer de mois sur l'Accueil puis ouvrir la
+          // liste ramenait au mois en cours.
+          const month = sharedMonth ? sharedMonth.month : now.getMonth();
+          const year = sharedMonth ? sharedMonth.year : now.getFullYear();
+          return d.getMonth() === month && d.getFullYear() === year;
         }
         if (periodFilter === "3m") {
           const c = new Date(now);
@@ -92,7 +115,7 @@ export default function TransactionsScreen({ onEdit }) {
       );
     }
     return result;
-  }, [transactions, filter, categoryFilter, subcategoryFilter, tagFilter, periodFilter, searchText]);
+  }, [transactions, filter, categoryFilter, subcategoryFilter, tagFilter, periodFilter, searchText, sharedMonth]);
 
   const anyFilterActive =
     filter !== "all" || periodFilter !== "all" || !!categoryFilter || !!subcategoryFilter || !!tagFilter;
@@ -279,7 +302,7 @@ export default function TransactionsScreen({ onEdit }) {
               {[
                 { key: "all", label: t("tx_period_all") },
                 { key: "week", label: t("tx_period_week") },
-                { key: "month", label: t("tx_period_month") },
+                { key: "month", label: monthChipLabel },
                 { key: "3m", label: t("tx_period_3m") },
                 { key: "year", label: t("tx_period_year") },
               ].map((p) => (

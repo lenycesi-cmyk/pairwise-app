@@ -511,6 +511,7 @@ function AppContent() {
         {showTransactions && (
           <ModalWrapper onClose={() => setShowTransactions(false)}>
             <TransactionsScreen
+              sharedMonth={sharedMonth}
               onEdit={(tx) => {
                 // On NE démonte PAS la liste : le formulaire d'édition
                 // (.tx-modal, z-index supérieur) la recouvre le temps de
