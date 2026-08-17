@@ -100,9 +100,14 @@ export function FinanceProvider({ children }) {
   // navTabs.{memberKey} = [tabKey, tabKey, tabKey, tabKey] : les 4 onglets de la
   // barre de navigation du bas (mobile), personnalisables par membre.
   const [navTabs, setNavTabs] = useState({});
-  // Liste de tags personnalisée du couple (ordonnée). Vide tant que non
-  // personnalisée : les suggestions retombent alors sur les presets + historique.
-  const [customTags, setCustomTags] = useState([]);
+  // customTagsByMember.{memberKey} = [tag, tag, …] : la liste de tags en accès
+  // rapide est PROPRE À CHAQUE MEMBRE (même motif que pushPrefs / navTabs).
+  // Les habitudes d'étiquetage ne se partagent pas — voir `customTags` plus bas
+  // pour la résolution et la reprise de l'ancienne liste commune.
+  const [customTagsByMember, setCustomTagsByMember] = useState({});
+  // Ancienne liste COMMUNE au couple. Conservée en lecture seule : elle sert de
+  // point de départ à qui n'a pas encore sa propre liste (voir `customTags`).
+  const [legacyCustomTags, setLegacyCustomTags] = useState([]);
   // Masquage des montants : réglage D'APPAREIL (voir utils/hideAmounts), donc
   // hors du document couple — il ne se synchronise pas avec le/la partenaire.
   const [hideAmounts, setHideAmountsState] = useState(readHideAmounts);
@@ -133,6 +138,24 @@ export function FinanceProvider({ children }) {
   // Clé du membre courant : sert autant à filtrer le privé (voir isVisibleToMe)
   // qu'à retrouver SON thème dans la map.
   const myKey = getMemberKey(members.find((m) => m.uid === user?.uid)) || user?.uid;
+
+  // Tags en accès rapide DU MEMBRE COURANT. Trois états, dans cet ordre :
+  //
+  //   1. le membre a sa propre liste → on la sert ;
+  //   2. il n'en a pas encore → on repart de l'ancienne liste commune, si bien
+  //      que le passage au par-membre ne fait disparaître les tags de personne
+  //      (chacun hérite de l'existant puis s'en écarte à sa première
+  //      modification, sans reprise de données ni écriture de migration) ;
+  //   3. rien nulle part → tableau vide, et les consommateurs retombent sur les
+  //      presets comme avant.
+  //
+  // Un tableau VIDE reste une liste valide (« j'ai tout retiré ») : le test
+  // porte donc sur la présence de la clé, pas sur la longueur — sinon vider sa
+  // liste ferait réapparaître celle du couple.
+  const customTags = useMemo(
+    () => (myKey && customTagsByMember[myKey]) || legacyCustomTags,
+    [customTagsByMember, myKey, legacyCustomTags]
+  );
 
   // Couture de persistance : TOUTE écriture sur le document couple passe par là
   // (cf. context/coupleAdapter.js). Le mode Local n'aura qu'à en fournir une
@@ -257,7 +280,8 @@ export function FinanceProvider({ children }) {
         if (data.debtTransfers) setDebtTransfers(data.debtTransfers);
         if (data.pushPrefs) setPushPrefs(data.pushPrefs);
         if (data.navTabs) setNavTabs(data.navTabs);
-        if (data.customTags) setCustomTags(data.customTags);
+        if (data.customTags) setLegacyCustomTags(data.customTags);
+        if (data.customTagsByMember) setCustomTagsByMember(data.customTagsByMember);
       }
     });
 
@@ -444,11 +468,15 @@ export function FinanceProvider({ children }) {
     );
   }
 
+  // Écrit la liste DU MEMBRE COURANT. L'ancien champ commun `customTags` n'est
+  // jamais réécrit : il reste le point de départ de qui n'a pas encore la
+  // sienne, et l'écraser priverait le/la partenaire de sa propre reprise.
   async function updateCustomTags(tags) {
-    if (!coupleId) return;
-    setCustomTags(tags); // maj optimiste (le champ n'est pas re-fusionné ailleurs)
+    if (!coupleId || !myKey) return;
+    // Maj optimiste (le champ n'est pas re-fusionné ailleurs).
+    setCustomTagsByMember((prev) => ({ ...prev, [myKey]: tags }));
     await couple.setFields(
-      { customTags: tags }
+      { customTagsByMember: { [myKey]: tags } }
     );
   }
 
@@ -1041,6 +1069,15 @@ export function FinanceProvider({ children }) {
       { members, categories, assets, budgets, goals, loans, recurringTx },
       parsed.couple
     );
+    // Le document canonique garde un `customTags` à plat — les deux modes de
+    // stockage produisent le MÊME fichier, et le par-membre est un détail de
+    // rangement d'ICI. On l'aiguille donc vers la liste du membre qui importe,
+    // plutôt que vers l'ancien champ commun où il ne serait servi qu'à qui n'a
+    // pas encore la sienne (et jamais à l'importateur, qui vient de s'en créer une).
+    if (patch.customTags && myKey) {
+      patch.customTagsByMember = { [myKey]: patch.customTags };
+      delete patch.customTags;
+    }
     if (Object.keys(patch).length > 0) {
       await couple.setFields(patch);
     }

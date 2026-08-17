@@ -11,10 +11,15 @@ import TagChip from "./TagChip";
 // Identifiant de la cible de dépôt « archiver » (hors de la liste triable).
 const ARCHIVE_DROP_ID = "__archive_tag__";
 
-// Gestion de la liste de tags du couple : ajouter / réordonner (glisser) /
-// supprimer. Partagé entre l'écran Tags (Réglages) et le panneau inline de
-// l'écran d'ajout de transaction. Lit/écrit customTags via le contexte ; tant
+// Gestion de la liste de tags DU MEMBRE COURANT : ajouter / réordonner
+// (glisser) / supprimer. Partagé entre l'écran Tags (Réglages) et le panneau
+// inline de l'écran d'ajout de transaction. Lit/écrit customTags via le
+// contexte, qui résout la liste du membre (voir `customTagsByMember`) ; tant
 // que rien n'est personnalisé, part des presets par défaut.
+//
+// L'archive, elle, reste calculée sur les transactions DU COUPLE : ce sont des
+// tags réellement portés par l'historique commun, et c'est par là qu'on
+// récupère un tag qu'on n'a pas (encore) dans sa propre liste.
 // `showArchived` n'est vrai que dans l'écran Tags des Réglages. Le même
 // composant sert de panneau replié dans la saisie de transaction, où une
 // archive serait du bruit au pire moment.
