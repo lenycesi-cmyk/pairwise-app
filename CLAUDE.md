@@ -371,6 +371,17 @@ Trois points à ne pas défaire :
   `useGoalProgress` et les widgets, et en oublier un.
 - **Le glisser-déposer doit recoller les archivés** (`mergeReorder`). L'écran ne connaît que les actifs
   et `reorderBudgets` réécrit le tableau entier : sans ça, réordonner deux budgets viderait l'archive.
+- **Les tags en accès rapide sont PAR MEMBRE** (`customTagsByMember.{memberKey}` sur le doc couple,
+  même motif que `pushPrefs`/`navTabs`). Les habitudes d'étiquetage ne se partagent pas. Le contexte
+  expose toujours un `customTags` résolu — la liste du membre s'il en a une, sinon l'ancienne liste
+  COMMUNE `customTags`, laissée en place et jamais réécrite : chacun en hérite comme point de départ
+  puis s'en écarte à sa première modification, donc aucune reprise de données. Un tableau vide reste
+  une liste valide (le test porte sur la présence de la clé, sinon vider sa liste ferait réapparaître
+  celle du couple). Le document canonique d'export garde un `customTags` à plat — le par-membre est un
+  détail de rangement, aiguillé vers le membre qui importe. Corollaire : l'historique des suggestions
+  de `TagInput` est filtré sur l'AUTEUR de la saisie (`createdBy`), sans quoi les tags du/de la
+  partenaire remontaient malgré la liste par membre. L'archive, elle, reste calculée sur les
+  transactions DU COUPLE : c'est par là qu'on récupère un tag absent de sa propre liste.
 - **L'archive des tags ne stocke RIEN** (`archivedTags`). `customTags` n'est qu'une liste ordonnée de
   chaînes, la vérité vit sur les transactions : retirer un tag de la liste ne supprime rien, et le rapport
   par tag continue de l'afficher. L'archive est exactement cette différence — tags encore portés, absents
