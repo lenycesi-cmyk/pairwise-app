@@ -14,6 +14,17 @@
 
 export const RELEASE_NOTES = [
   {
+    version: "2026.08.19.1",
+    date: "2026-08-19",
+    items: [
+      {
+        icon: "🎁",
+        fr: { title: "« Cadeau » ne veut plus dire dollar canadien", body: "Un mot contenant par hasard les lettres d'une devise la sélectionnait : « cadeau » passait en CAD, « France » en franc suisse, « livret » en livre. Pire, cette devise devenait ensuite celle proposée par défaut pour toutes tes saisies suivantes. Corrigé." },
+        en: { title: "“Cadeau” no longer means Canadian dollar", body: "A word that happened to contain a currency's letters would select it: “cadeau” became CAD, “France” Swiss francs, “livret” pounds. Worse, that currency then became the default for every later entry. Fixed." },
+      },
+    ],
+  },
+  {
     version: "2026.08.19",
     date: "2026-08-19",
     items: [

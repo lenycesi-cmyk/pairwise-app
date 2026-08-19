@@ -118,3 +118,49 @@ describe("compatibilité", () => {
     expect(r.paidBy).toBe("u-jess");
   });
 });
+
+// La devise détectée n'est pas seulement affichée : elle est écrite sur la
+// transaction PUIS recopiée dans `users/{uid}.lastUsedCurrency`, donc elle
+// contamine toutes les saisies suivantes. Une fausse détection ne se voit pas
+// et ne se corrige pas toute seule — d'où ces tests.
+describe("détection de la devise", () => {
+  // Chaque cas ci-dessous correspondait bel et bien à une devise avant la
+  // frontière de mot, par simple présence des lettres du code.
+  it.each([
+    "cadeau anniversaire 50", // « cadeau » contient « cad » → CAD
+    "billet France 200",      // « France » contient « franc » → CHF
+    "versement livret 300",   // « livret » contient « livre » → GBP
+    "beurre 3",               // « beurre » contient « eur »   → EUR
+    "transport moyen 12",     // « moyen »  contient « yen »   → JPY
+  ])("ne prend pas un mot courant pour une devise : %s", (text) => {
+    const r = parse(text);
+    expect(r.currencyDetected).toBe(false);
+  });
+
+  it("retombe sur la devise par défaut sans indice explicite", () => {
+    const r = parse("cadeau anniversaire 50", { defaultCurrency: "EUR" });
+    expect(r.currency).toBe("EUR");
+    expect(r.currencyDetected).toBe(false);
+  });
+
+  it("détecte encore un code isolé", () => {
+    const r = parse("50 cad essence");
+    expect(r.currency).toBe("CAD");
+    expect(r.currencyDetected).toBe(true);
+  });
+
+  it("détecte un code collé au montant, dans les deux sens", () => {
+    expect(parse("50eur resto").currency).toBe("EUR");
+    expect(parse("eur50 resto").currency).toBe("EUR");
+  });
+
+  it("détecte encore les symboles, qui n'ont pas de frontière de mot", () => {
+    expect(parse("resto 20€").currency).toBe("EUR");
+    expect(parse("resto 20$").currency).toBe("USD");
+  });
+
+  it("détecte encore les mots entiers", () => {
+    expect(parse("20 euros resto").currency).toBe("EUR");
+    expect(parse("20 dollars resto").currency).toBe("USD");
+  });
+});

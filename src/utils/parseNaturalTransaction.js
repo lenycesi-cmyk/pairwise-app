@@ -83,14 +83,41 @@ function parseAmount(token) {
   return isNaN(n) ? null : n;
 }
 
-// Détecte la devise : symbole/mot le plus proche d'un montant, sinon défaut.
-// `detected` distingue une vraie détection (un indice présent dans le texte)
-// d'un simple repli sur la devise par défaut — utile pour ne pas écraser la
-// devise choisie quand la saisie n'en mentionne aucune.
+// Un jeton de devise correspond-il au texte ?
+//
+// La comparaison EXIGE une frontière de mot pour les jetons alphabétiques. Une
+// simple recherche de sous-chaîne faisait correspondre n'importe quel mot les
+// CONTENANT, et le résultat n'était pas anecdotique : « cadeau » déclenchait le
+// dollar canadien (`cad`), « France » le franc suisse (`franc`), « livraison »
+// la livre (`livre`), « beurre » l'euro (`eur`), « moyen » le yen (`yen`).
+//
+// Le dégât dépassait l'affichage. La devise ainsi détectée était écrite sur la
+// transaction, puis recopiée dans `users/{uid}.lastUsedCurrency`, si bien
+// qu'UNE saisie contenant « cadeau » pré-sélectionnait ensuite le CAD sur
+// toutes les suivantes — y compris une devise absente de la liste du couple.
+//
+// Les SYMBOLES (€, $, £, ¥, ₫, ฿, ₹, ₩) gardent la correspondance brute : ce ne
+// sont pas des caractères de mot, une frontière autour n'aurait pas de sens.
+//
+// La frontière ne rejette que les LETTRES, pas les chiffres : « 50eur » et
+// « eur50 » restent des saisies légitimes, alors que « beurre » n'en est pas une.
+function tokenMatches(norm, tk) {
+  if (!/^[a-z]+$/.test(tk)) return norm.includes(tk);
+  return new RegExp(`(^|[^a-z])${tk}($|[^a-z])`).test(norm);
+}
+
+// Détecte la devise d'après un indice explicite dans le texte, sinon défaut.
+// `detected` distingue une vraie détection d'un simple repli sur la devise par
+// défaut — utile pour ne pas écraser la devise choisie quand la saisie n'en
+// mentionne aucune.
+//
+// La première correspondance dans l'ordre de CURRENCY_HINTS l'emporte ; il n'y
+// a aucune notion de proximité avec le montant, contrairement à ce que
+// prétendait le commentaire d'origine.
 function detectCurrency(norm, fallback) {
   for (const { code, tokens } of CURRENCY_HINTS) {
     for (const tk of tokens) {
-      if (norm.includes(tk)) return { code, detected: true };
+      if (tokenMatches(norm, tk)) return { code, detected: true };
     }
   }
   return { code: fallback, detected: false };
