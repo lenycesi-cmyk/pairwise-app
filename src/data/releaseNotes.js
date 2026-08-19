@@ -14,6 +14,64 @@
 
 export const RELEASE_NOTES = [
   {
+    version: "2026.08.19",
+    date: "2026-08-19",
+    items: [
+      {
+        icon: "🤝",
+        fr: { title: "Le partage ne repart plus de zéro", body: "Sur un téléphone un peu lent, une dépense pouvait être enregistrée à 100 % pour toi au lieu du partage habituel : l'app se croyait un instant en espace solo, le temps de charger. Corrigé." },
+        en: { title: "Sharing no longer resets itself", body: "On a slower phone, an expense could be saved as 100 % yours instead of your usual split: the app briefly thought it was a solo space while loading. Fixed." },
+      },
+      {
+        icon: "💱",
+        fr: { title: "La devise se souvient enfin", body: "L'ajout de transaction s'ouvrait parfois sur la mauvaise devise, sans tenir compte de celle de ta dernière saisie. Elle se met désormais à jour dès que tes données sont là." },
+        en: { title: "The currency finally remembers", body: "Adding a transaction sometimes opened on the wrong currency, ignoring the one from your last entry. It now updates as soon as your data arrives." },
+      },
+      {
+        icon: "↔️",
+        fr: { title: "Ajouter un virement : tout tient à l'écran", body: "La fenêtre est centrée, et le sélecteur de devise ne sort plus du cadre — il était devenu impossible à toucher sur certains téléphones." },
+        en: { title: "Add a transfer: everything fits on screen", body: "The dialog is centred, and the currency selector no longer runs off the edge — it had become impossible to tap on some phones." },
+      },
+    ],
+  },
+  {
+    version: "2026.08.17",
+    date: "2026-08-17",
+    items: [
+      {
+        icon: "🏷",
+        fr: { title: "Tes tags en accès rapide sont à toi", body: "Chacun sa liste : tu ne vois plus les tags favoris de ta/ton partenaire, et inversement. Vous partez tous les deux de la liste actuelle, puis chacun la fait évoluer de son côté." },
+        en: { title: "Your quick tags are yours alone", body: "Everyone gets their own list: you no longer see your partner's favourite tags, nor they yours. You both start from the current list, then each list evolves on its own." },
+      },
+      {
+        icon: "📅",
+        fr: { title: "La liste des transactions suit le mois choisi", body: "Changer de mois sur l'Accueil filtre aussi le widget « toutes les transactions », qui affichait jusqu'ici tout l'historique." },
+        en: { title: "The transaction list follows the selected month", body: "Switching months on Home now also filters the “all transactions” widget, which until now showed the entire history." },
+      },
+      {
+        icon: "🧷",
+        fr: { title: "L'écran ne descend plus tout seul", body: "Ouvrir l'ajout de transaction faisait parfois défiler l'écran vers le bas avant même la première frappe." },
+        en: { title: "The screen no longer scrolls by itself", body: "Opening the add-transaction screen sometimes scrolled down before you had typed a thing." },
+      },
+    ],
+  },
+  {
+    version: "2026.08.16",
+    date: "2026-08-16",
+    items: [
+      {
+        icon: "📱",
+        fr: { title: "Un en-tête à la taille de ton téléphone", body: "Sélecteur de période, devise et personnalisation s'ajustent maintenant à la largeur de l'écran. Sur les téléphones étroits, certains boutons sortaient du cadre." },
+        en: { title: "A header that fits your phone", body: "The period selector, currency and customise buttons now scale to your screen width. On narrow phones, some of them ran off the edge." },
+      },
+      {
+        icon: "👥",
+        fr: { title: "« Pour » est pré-rempli comme « payé par »", body: "L'ajout de transaction reprend ta dernière répartition en entier, partage avancé compris — le champ restait vide auparavant." },
+        en: { title: "“For” is prefilled just like “paid by”", body: "Adding a transaction now carries over your last split in full, advanced splits included — the field used to come up empty." },
+      },
+    ],
+  },
+  {
     version: "2026.08.15.1",
     date: "2026-08-15",
     items: [
