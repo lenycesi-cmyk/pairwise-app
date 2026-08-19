@@ -77,6 +77,22 @@ Still untested: `useBudgetProgress` and the other hooks (they need a React rende
 
 After completing any code task on this repo, always open a pull request to `main` when done — don't ask first. Once opened, merge it automatically (no need to ask) as long as it's a normal code change with no failing checks or unresolved review comments. Always subscribe to the PR's activity afterward so CI failures and review comments get handled automatically.
 
+**Toute PR qui corrige un bug ou apporte une nouveauté notable ajoute AUSSI une entrée dans
+[data/releaseNotes.js](src/data/releaseNotes.js), dans le même lot.** Pas de note pour un refactor, une
+correction de texte ou un changement interne sans effet visible — la feuille « Quoi de neuf » n'a d'intérêt
+que si tout ce qu'elle liste se remarque.
+
+Cette règle vit ICI, à côté de « ouvre une PR », et pas seulement dans la section « Notes de version » plus
+bas, parce que c'est au moment d'ouvrir la PR qu'on décide — et c'est exactement là qu'on l'oubliait. Le
+constat est empirique : sept lots consécutifs ont été livrés sans une seule note, dont plusieurs correctifs
+visibles à l'usage, si bien que la feuille ne s'ouvrait plus du tout au démarrage. Rien n'était cassé, il n'y
+avait rien à montrer. Un fichier écrit à la main ne se remplit pas tout seul, et le rappel doit donc se
+trouver sur le chemin qu'on emprunte à chaque tâche.
+
+Écrire la note côté USAGE, jamais côté mécanisme : l'utilisateur doit lire « le partage ne repart plus de
+zéro », pas « `isSolo` ne conclut plus avant le chargement du document couple ». La version se date en
+`AAAA.MM.JJ` (suffixe `.1`, `.2`… pour plusieurs lots le même jour), le plus récent en premier.
+
 ### Token / context hygiene (agent workflow)
 
 To keep token usage low, future sessions MUST follow these rules:
@@ -545,7 +561,9 @@ s'ouvre au démarrage quand des notes ont paru depuis la dernière visite. Quatr
 
 - **Écrites à la main**, jamais générées depuis les commits : un journal de commits dirait « corrige la
   zone morte temporelle » là où l'utilisateur doit lire « l'ajout de transaction remarche ». Le prix est
-  un ENTRETIEN — sans quelques lignes ajoutées à chaque lot livré, la feuille se tait.
+  un ENTRETIEN — sans quelques lignes ajoutées à chaque lot livré, la feuille se tait. Ce n'est pas
+  théorique : c'est arrivé sur sept lots d'affilée. D'où la règle inscrite dans « Pull requests » plus
+  haut — toute PR corrigeant un bug ou apportant une nouveauté notable ajoute son entrée dans le même lot.
 - **La version vue est gardée sur l'APPAREIL** (localStorage, `utils/releaseSeen.js`), pas sur le compte :
   une mise à jour est propre à une installation. Corollaire assumé, le/la partenaire la verra de son côté.
 - **On montre TOUT ce qui a été manqué**, pas seulement la dernière version : revenir après plusieurs
