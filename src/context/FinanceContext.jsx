@@ -49,6 +49,18 @@ export function FinanceProvider({ children }) {
   const [members, setMembers] = useState([]);
   const [coupleName, setCoupleName] = useState("");
   const [loading, setLoading] = useState(true);
+  // Le document couple est-il ARRIVÉ ? À distinguer de `loading`, qui suit
+  // l'écoute des TRANSACTIONS (sous-collection distincte, latence distincte).
+  //
+  // Sans ce drapeau, `members` vaut `[]` entre le montage et la livraison du
+  // snapshot, ce qui rend `isSolo` VRAI à tort : l'app se croit en espace solo
+  // le temps d'un aller-retour réseau. Ce n'est pas cosmétique — en solo, la
+  // saisie de transaction masque la carte « Payé par / Pour » ET écrit
+  // l'attribution sur le membre unique, donc une transaction enregistrée dans
+  // cette fenêtre part à 100 % pour son auteur·rice au lieu du partage voulu.
+  // Invisible sur un appareil au cache chaud, systématique sur un appareil
+  // lent ou après vidage du cache.
+  const [coupleLoaded, setCoupleLoaded] = useState(false);
   const [defaultCurrency, setDefaultCurrency] = useState("EUR");
   const [currencyMode, setCurrencyMode] = useState("fixed");
   // "shared" (défaut, historique) : chacun ses finances, on suit qui doit quoi
@@ -283,6 +295,10 @@ export function FinanceProvider({ children }) {
         if (data.customTags) setLegacyCustomTags(data.customTags);
         if (data.customTagsByMember) setCustomTagsByMember(data.customTagsByMember);
       }
+      // Marqué APRÈS l'application des champs, et même si le document n'existe
+      // pas : dans les deux cas on sait désormais à quoi s'en tenir, alors que
+      // rester « non chargé » figerait indéfiniment les écrans qui attendent.
+      setCoupleLoaded(true);
     });
 
     return unsub;
@@ -1118,7 +1134,14 @@ export function FinanceProvider({ children }) {
     // il porte `uid: null` mais un `memberId` bien réel, et on l'ajoute
     // précisément pour partager des dépenses avec lui avant qu'il n'installe
     // l'app. L'exclure viderait la fonctionnalité de son sens.
-    isSolo: members.length < 2,
+    // Tant que le document couple n'est pas arrivé, `members` est vide sans que
+    // cela veuille dire quoi que ce soit : on ne conclut PAS au solo. Le doute
+    // penche du côté « couple », car les deux erreurs ne coûtent pas la même
+    // chose — croire à tort qu'on est seul·e écrit une attribution fausse dans
+    // la base, croire à tort qu'on est deux affiche au pire une carte de trop
+    // pendant un aller-retour réseau.
+    isSolo: coupleLoaded && members.length < 2,
+    coupleLoaded,
     coupleName,
     updateCoupleName,
     inviteExpiresAt,

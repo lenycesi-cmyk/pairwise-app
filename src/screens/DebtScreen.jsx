@@ -422,6 +422,7 @@ function TransferSheet({ a, b, initialCurrency, defaultCurrency, enabledCurrenci
     <div
       role="dialog"
       aria-modal="true"
+      className="pw-dialog-backdrop"
       style={{
         // z-index arbitraire mais suffisant : ce voile est un DESCENDANT du
         // .app-modal (z-index 100) posé par ModalWrapper autour de DebtScreen,
@@ -429,14 +430,26 @@ function TransferSheet({ a, b, initialCurrency, defaultCurrency, enabledCurrenci
         // besoin de rivaliser avec les paliers globaux (tabbar 90, tx-modal 110).
         position: "fixed", inset: 0, zIndex: 60,
         background: "rgba(0,0,0,0.4)",
-        display: "flex", alignItems: "flex-end", justifyContent: "center",
+        // Dialogue CENTRÉ, et non plus feuille collée en bas. Le remplissage
+        // est ce qui garantit le centrage réel : sans lui, un contenu plus haut
+        // que l'écran (clavier ouvert, petit téléphone) déborde hors des deux
+        // bords au lieu de pouvoir défiler.
+        display: "flex", alignItems: "center", justifyContent: "center",
+        padding: 16,
       }}
       onClick={onClose}
     >
       <div
+        className="pw-dialog-panel"
         style={{
-          width: "100%", maxWidth: 640,
-          background: "var(--bg-card)", borderRadius: "24px 24px 0 0",
+          // Le 640 précédent dépassait la largeur de la coquille de l'app
+          // (--app-shell-width, 480) : la feuille était plus large que l'app
+          // elle-même dès qu'on avait la place. On s'aligne dessus.
+          width: "100%", maxWidth: "var(--app-shell-width)",
+          // Le dialogue ne dépasse jamais l'écran ; c'est SON contenu qui
+          // défile, pas la page derrière.
+          maxHeight: "100%", overflowY: "auto",
+          background: "var(--bg-card)", borderRadius: "var(--radius-lg)",
           boxShadow: "var(--shadow-lg)",
         }}
         onClick={(e) => e.stopPropagation()}

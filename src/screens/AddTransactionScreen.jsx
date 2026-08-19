@@ -122,6 +122,26 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
   const [amount, setAmount] = useState(editingTx?.amount?.toString() || "");
   const [currency, setCurrency] = useState(initialCurrency);
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
+  // La devise est CHOISIE par l'utilisateur dès qu'il touche au sélecteur (ou
+  // qu'un indice explicite est détecté dans le texte) : à partir de là, plus
+  // rien ne la réécrit.
+  const currencyTouchedRef = useRef(false);
+  // Rattrapage de la devise par défaut. `initialCurrency` se calcule à partir de
+  // `currencyMode`, `lastUsedCurrency` et `defaultCurrency`, qui arrivent de
+  // DEUX écoutes Firestore distinctes (le document couple et `users/{uid}`) et
+  // n'ont donc aucune raison d'être là au montage. L'initialiseur paresseux
+  // ci-dessus ne se rejoue jamais : la modale restait sur la devise déduite de
+  // valeurs de repli — typiquement celle du couple au lieu de la dernière
+  // devise utilisée — pour toute sa durée de vie.
+  //
+  // On resynchronise donc tant que l'utilisateur n'a pas tranché lui-même. Pas
+  // besoin de drapeau « chargé » par champ : `initialCurrency` est une valeur
+  // dérivée, il suffit de suivre ses changements, et l'écriture est idempotente
+  // une fois les vraies valeurs arrivées.
+  useEffect(() => {
+    if (isEditing || currencyTouchedRef.current) return;
+    setCurrency(initialCurrency);
+  }, [initialCurrency, isEditing]);
   const [categoryId, setCategoryId] = useState(editingTx?.categoryId || null);
   const [subcategory, setSubcategory] = useState(editingTx?.subcategory || null);
   const [showCatPicker, setShowCatPicker] = useState(false);
@@ -353,6 +373,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
     // Devise : uniquement si un indice explicite est présent dans le texte
     // ("euros", "$", "usd"…) — sinon on laisse la devise choisie intacte.
     if (parsed.currencyDetected && parsed.currency) {
+      currencyTouchedRef.current = true;
       setCurrency(parsed.currency);
     }
   }
@@ -445,7 +466,14 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
     if (!parsed) return;
     setType(parsed.type);
     if (parsed.amount != null) setAmount(String(parsed.amount));
-    if (parsed.currency) setCurrency(parsed.currency);
+    // Comme dans la saisie assistée : seul un indice EXPLICITE dans le texte
+    // vaut choix de l'utilisateur. Sans détection, `parsed.currency` n'est que
+    // la devise par défaut qu'on vient de passer à l'analyseur — la refléter
+    // ici la figerait, y compris quand elle vient encore d'un repli.
+    if (parsed.currencyDetected && parsed.currency) {
+      currencyTouchedRef.current = true;
+      setCurrency(parsed.currency);
+    }
     if (parsed.date) setDateTime(toDateTimeLocal(parsed.date));
     if (parsed.categoryId) setCategoryId(parsed.categoryId);
     if (parsed.subcategory) setSubcategory(parsed.subcategory);
@@ -640,7 +668,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
         <div ref={currencyPanelRef} style={{ marginTop: 12 }}>
           <CurrencyPillPicker
             currency={currency}
-            onSelect={(code) => { setCurrency(code); setShowCurrencyPicker(false); }}
+            onSelect={(code) => { currencyTouchedRef.current = true; setCurrency(code); setShowCurrencyPicker(false); }}
             defaultCurrency={defaultCurrency}
             enabledCurrencies={enabledCurrencies}
             updateEnabledCurrencies={updateEnabledCurrencies}
