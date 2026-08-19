@@ -475,7 +475,14 @@ function TransferSheet({ a, b, initialCurrency, defaultCurrency, enabledCurrenci
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="0"
                 style={{
-                  flex: 1, fontSize: 22, fontWeight: 600, fontFamily: "var(--font-display)",
+                  // `minWidth: 0` est ce qui rend `flex: 1` effectif ici. Un
+                  // élément flex a `min-width: auto`, et un <input> porte une
+                  // largeur INTRINSÈQUE (sa taille en caractères) bien plus
+                  // grande que la place disponible : sans cette ligne il refuse
+                  // de rétrécir et pousse le sélecteur de devise hors du
+                  // dialogue, où il devient inatteignable.
+                  flex: 1, minWidth: 0,
+                  fontSize: 22, fontWeight: 600, fontFamily: "var(--font-display)",
                   background: "var(--bg)", border: "1.5px solid var(--rule)", borderRadius: "var(--radius-md)",
                   padding: "10px 14px", color: "var(--ink)", outline: "none",
                 }}
@@ -483,7 +490,10 @@ function TransferSheet({ a, b, initialCurrency, defaultCurrency, enabledCurrenci
               <button
                 onClick={() => setShowCurPick(!showCurPick)}
                 style={{
-                  width: 82, background: "var(--bg)", border: "1.5px solid var(--rule)", borderRadius: "var(--radius-md)",
+                  // Symétrique du `minWidth: 0` ci-dessus : c'est le champ qui
+                  // absorbe la contrainte de largeur, jamais ce bouton.
+                  width: 82, flexShrink: 0,
+                  background: "var(--bg)", border: "1.5px solid var(--rule)", borderRadius: "var(--radius-md)",
                   display: "flex", alignItems: "center", justifyContent: "center", gap: 4, fontSize: 14, fontWeight: 600, color: "var(--ink)",
                 }}
               >
@@ -516,7 +526,12 @@ function TransferSheet({ a, b, initialCurrency, defaultCurrency, enabledCurrenci
                     key={key}
                     onClick={() => setFromKey(key)}
                     style={{
-                      flex: 1, display: "flex", alignItems: "center", gap: 8, padding: "10px 12px",
+                      // Même raison que le champ montant : sans `minWidth: 0`,
+                      // ces boutons ne rétrécissent pas sous la largeur de leur
+                      // texte. Sans effet avec des prénoms courts, mais c'est ce
+                      // qui les empêche de déborder avec un prénom long.
+                      flex: 1, minWidth: 0,
+                      display: "flex", alignItems: "center", gap: 8, padding: "10px 12px",
                       borderRadius: "var(--radius-md)",
                       border: sel ? "1.5px solid var(--lavi)" : "1.5px solid var(--rule)",
                       background: sel ? "var(--lavi-light)" : "var(--bg)",
@@ -526,9 +541,9 @@ function TransferSheet({ a, b, initialCurrency, defaultCurrency, enabledCurrenci
                     <span style={{ width: 26, height: 26, borderRadius: "50%", background: "var(--bg-card)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 600, flexShrink: 0 }}>
                       {m.name?.[0]?.toUpperCase() || "?"}
                     </span>
-                    <span style={{ fontSize: 12.5, lineHeight: 1.3 }}>
-                      <b style={{ display: "block", fontSize: 12.5 }}>{m.name}</b>
-                      <small style={{ color: "var(--ink-3)", fontSize: 10.5 }}>
+                    <span style={{ fontSize: 12.5, lineHeight: 1.3, minWidth: 0, overflow: "hidden" }}>
+                      <b style={{ display: "block", fontSize: 12.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.name}</b>
+                      <small style={{ color: "var(--ink-3)", fontSize: 10.5, display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {t("debt_transfer_sends_to_short").replace("{other}", other.name)}
                       </small>
                     </span>
@@ -544,7 +559,10 @@ function TransferSheet({ a, b, initialCurrency, defaultCurrency, enabledCurrenci
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              style={rangeInputStyle}
+              // `rangeInputStyle` porte `flex: 1`, sans effet ici : le parent
+              // est un bloc, pas un conteneur flex. Le champ restait donc à sa
+              // largeur intrinsèque, plus étroit que tous les autres.
+              style={{ ...rangeInputStyle, width: "100%" }}
             />
           </div>
 
