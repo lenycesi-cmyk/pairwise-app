@@ -3,7 +3,6 @@ import { useFinance } from "../context/FinanceContext";
 import { useExchangeRates } from "../hooks/useExchangeRates";
 import { useDebtCalculation } from "../hooks/useDebtCalculation";
 import { useTranslation } from "../hooks/useTranslation";
-import { CURRENCIES } from "../data/categories";
 import { getMemberKey } from "../utils/members";
 import CurrencyPillPicker from "../components/CurrencyPillPicker";
 
@@ -165,22 +164,20 @@ export default function DebtScreen() {
         </button>
       </div>
 
+      {/* Même sélecteur que « Ajouter une transaction » : la liste blanche du
+          couple, et le panneau « Gérer » qui va avec. Ce bloc listait les 7
+          devises par défaut EN DUR, si bien qu'une devise ajoutée par le couple
+          n'apparaissait jamais ici — et qu'une devise retirée y restait. */}
       {showCurrencyPicker && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12, background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "0.75rem 1rem" }}>
-          {CURRENCIES.map((c) => (
-            <button
-              key={c.code}
-              onClick={() => { setDisplayCurrency(c.code); setShowCurrencyPicker(false); }}
-              style={{
-                padding: "6px 10px", borderRadius: "var(--radius-md)",
-                border: displayCurrency === c.code ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
-                background: displayCurrency === c.code ? "var(--sky-light)" : "var(--bg)",
-                color: displayCurrency === c.code ? "var(--sky)" : "var(--ink)", fontSize: 12,
-              }}
-            >
-              {c.symbol} {c.code}
-            </button>
-          ))}
+        <div style={{ marginBottom: 12 }}>
+          <CurrencyPillPicker
+            currency={displayCurrency}
+            onSelect={(code) => { setDisplayCurrency(code); setShowCurrencyPicker(false); }}
+            defaultCurrency={defaultCurrency}
+            enabledCurrencies={enabledCurrencies}
+            updateEnabledCurrencies={updateEnabledCurrencies}
+            t={t}
+          />
         </div>
       )}
 

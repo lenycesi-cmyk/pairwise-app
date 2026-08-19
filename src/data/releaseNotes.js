@@ -27,6 +27,11 @@ export const RELEASE_NOTES = [
         fr: { title: "L'historique des règlements", body: "Une section « Règlements passés » en bas du suivi des dettes garde chaque règlement avec son montant, son sens et sa période. Un règlement de trop se supprime, et la dette redevient due." },
         en: { title: "A history of settlements", body: "A “Past settlements” section at the bottom of the debt tracker keeps every settlement with its amount, direction and period. Delete one by mistake and the debt is owed again." },
       },
+      {
+        icon: "💱",
+        fr: { title: "Vos devises dans le suivi des dettes", body: "Le bouton de devise y propose enfin votre liste, comme à l'ajout d'une transaction — avec le panneau « Gérer ». Il affichait sept devises figées, ignorant celles que vous aviez ajoutées ou retirées." },
+        en: { title: "Your currencies in the debt tracker", body: "Its currency button finally offers your own list, just like adding a transaction — “Manage” panel included. It used to show seven fixed currencies, ignoring the ones you had added or removed." },
+      },
     ],
   },
   {
