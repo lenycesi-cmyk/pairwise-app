@@ -595,6 +595,50 @@ export function FinanceProvider({ children }) {
     await couple.removeItem("debtTransfers", debtTransfers, id);
   }
 
+  // Règlement enregistré comme MOUVEMENT DATÉ, et non plus comme date-butoir.
+  //
+  // L'ancien `addDebtSettlement` n'écrit qu'une date : le calcul cesse de
+  // compter ce qui la précède (`effectiveStart = startDate ?? dernier.date`),
+  // sans jamais stocker de montant. Deux impasses en découlaient :
+  //
+  //   1. En vue Mois/Période, `startDate` est toujours defini, donc le `??`
+  //      retient la borne de la periode et les reglements sont IGNORES. Un
+  //      bouton y aurait laisse le mois inchange tout en remettant le Total a
+  //      zero — donc en effacant aussi les autres mois.
+  //   2. Un montant jamais ecrit ne se reconstitue pas : il depend de
+  //      transactions qui ont pu changer depuis. Aucun historique chiffre
+  //      n'etait donc derivable de l'existant.
+  //
+  // Un reglement est mathematiquement un virement qui solde le compte : meme
+  // accumulateur, meme fenetre de dates, meme liste d'activite. On le range
+  // donc dans `debtTransfers` avec un drapeau, ce qui rend la fonctionnalite
+  // acquise sans toucher au calcul — et annulable comme un virement.
+  //
+  // Les anciens reglements-butoir restent honores tels quels (voir le `??` du
+  // hook) : aucune reprise de donnees, rien de ce qui existe ne change de sens.
+  async function addDebtSettlementEntry({ date, amount, currency, fromKey, toKey, periodLabel = null }) {
+    if (!coupleId) return;
+    await couple.addItem("debtTransfers", {
+      id: `settle_${Date.now()}`,
+      date, amount, currency, fromKey, toKey,
+      note: "",
+      settlement: true,
+      periodLabel,
+      createdAt: Date.now(),
+      createdBy: user.uid,
+    });
+
+    if (members.length > 1) {
+      sendPushNotification({
+        coupleId,
+        kind: "debtSettled",
+        description: periodLabel || "",
+        amount,
+        currency,
+      });
+    }
+  }
+
   async function addRecurring(rule) {
     if (!coupleId) return;
     await couple.addItem("recurringTx", { ...rule, id: `rec_${Date.now()}` });
@@ -1237,6 +1281,7 @@ export function FinanceProvider({ children }) {
     debtTransfers,
     addDebtTransfer,
     removeDebtTransfer,
+    addDebtSettlementEntry,
     exportAllData,
     importAllData,
   };
