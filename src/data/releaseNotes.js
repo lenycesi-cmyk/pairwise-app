@@ -14,6 +14,27 @@
 
 export const RELEASE_NOTES = [
   {
+    version: "2026.08.19.2",
+    date: "2026-08-19",
+    items: [
+      {
+        icon: "🤝",
+        fr: { title: "Régler vos comptes mois par mois", body: "« Marquer comme réglé » fonctionne maintenant sur les vues Mois et Période, et pas seulement sur le Total. Régler juin laisse juillet intact." },
+        en: { title: "Settle up month by month", body: "“Mark as settled” now works on the Month and Period views, not just the Total. Settling June leaves July untouched." },
+      },
+      {
+        icon: "🧾",
+        fr: { title: "L'historique des règlements", body: "Une section « Règlements passés » en bas du suivi des dettes garde chaque règlement avec son montant, son sens et sa période. Un règlement de trop se supprime, et la dette redevient due." },
+        en: { title: "A history of settlements", body: "A “Past settlements” section at the bottom of the debt tracker keeps every settlement with its amount, direction and period. Delete one by mistake and the debt is owed again." },
+      },
+      {
+        icon: "💱",
+        fr: { title: "Vos devises dans le suivi des dettes", body: "Le bouton de devise y propose enfin votre liste, comme à l'ajout d'une transaction — avec le panneau « Gérer ». Il affichait sept devises figées, ignorant celles que vous aviez ajoutées ou retirées." },
+        en: { title: "Your currencies in the debt tracker", body: "Its currency button finally offers your own list, just like adding a transaction — “Manage” panel included. It used to show seven fixed currencies, ignoring the ones you had added or removed." },
+      },
+    ],
+  },
+  {
     version: "2026.08.19.1",
     date: "2026-08-19",
     items: [

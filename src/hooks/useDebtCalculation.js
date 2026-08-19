@@ -94,12 +94,16 @@ export function useDebtCalculation(transactions, members, defaultCurrency, conve
       if (effectiveStart && new Date(xf.date) < new Date(effectiveStart)) continue;
       if (endDate && new Date(xf.date) > new Date(endDate)) continue;
       const val = convert(xf.amount, xf.currency, defaultCurrency);
+      // Un RÈGLEMENT est un virement qui solde le compte : même arithmétique,
+      // donc même accumulateur. Seule la présentation diffère (pastille, libellé
+      // de période), d'où ce `kind` distinct plutôt qu'une branche de calcul.
+      const kind = xf.settlement ? "settlement" : "transfer";
       if (xf.fromKey === aKey) {
         aPaidForB += val;
-        transferActivity.push({ ...xf, share: val, paidByName: a.name, forName: b.name, kind: "transfer" });
+        transferActivity.push({ ...xf, share: val, paidByName: a.name, forName: b.name, kind });
       } else if (xf.fromKey === bKey) {
         bPaidForA += val;
-        transferActivity.push({ ...xf, share: val, paidByName: b.name, forName: a.name, kind: "transfer" });
+        transferActivity.push({ ...xf, share: val, paidByName: b.name, forName: a.name, kind });
       }
     }
 

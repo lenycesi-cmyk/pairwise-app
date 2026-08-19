@@ -1,9 +1,8 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useFinance } from "../context/FinanceContext";
 import { useExchangeRates } from "../hooks/useExchangeRates";
 import { useDebtCalculation } from "../hooks/useDebtCalculation";
 import { useTranslation } from "../hooks/useTranslation";
-import { CURRENCIES } from "../data/categories";
 import { getMemberKey } from "../utils/members";
 import CurrencyPillPicker from "../components/CurrencyPillPicker";
 
@@ -15,7 +14,8 @@ export default function DebtScreen() {
   const t = useTranslation();
   const {
     transactions, members, defaultCurrency, dashboardDisplayCurrency,
-    debtSettlements, addDebtSettlement, debtTransfers, addDebtTransfer, removeDebtTransfer, language,
+    debtSettlements, debtTransfers, addDebtTransfer, removeDebtTransfer,
+    addDebtSettlementEntry, language,
     currencyMode, lastUsedCurrency, enabledCurrencies, updateEnabledCurrencies,
   } = useFinance();
   const locale = language === "en" ? "en-US" : "fr-FR";
@@ -51,6 +51,21 @@ export default function DebtScreen() {
   });
 
   const [showTransferSheet, setShowTransferSheet] = useState(false);
+  const [showSettlements, setShowSettlements] = useState(false);
+
+  // Historique COMPLET des règlements, hors de toute fenêtre temporelle : il
+  // répond à « qu'a-t-on déjà soldé ? », pas à « que s'est-il passé ce mois-ci ».
+  const pastSettlements = useMemo(
+    () => debtTransfers
+      .filter((x) => x.settlement)
+      .sort((x, y) => new Date(y.date) - new Date(x.date)),
+    [debtTransfers]
+  );
+
+  function nameOfKey(key) {
+    const m = members.find((x) => getMemberKey(x) === key);
+    return m?.name || "?";
+  }
 
   function changeMonth(delta) {
     let m = viewMonth + delta;
@@ -65,11 +80,54 @@ export default function DebtScreen() {
   // flèches ‹ ›, et sa largeur variable les faisait glisser d'un mois à l'autre.
   const monthLabel = new Date(viewYear, viewMonth, 1).toLocaleDateString(locale, { month: "short", year: "numeric" });
 
+  // Libellé de la période réglée, recopié DANS l'écriture. La période n'est pas
+  // reconstituable après coup (les bornes vivent dans l'état de l'écran, pas
+  // dans la donnée), et c'est elle qui rend l'historique lisible : « Juin 2026 »
+  // plutôt qu'une date de règlement seule.
+  function periodLabelFor() {
+    if (filterMode === "month") {
+      return new Date(viewYear, viewMonth, 1).toLocaleDateString(locale, { month: "long", year: "numeric" });
+    }
+    if (filterMode === "range") {
+      const fmt = (d) => new Date(d).toLocaleDateString(locale, { day: "numeric", month: "short", year: "numeric" });
+      return `${fmt(rangeStart)} – ${fmt(rangeEnd)}`;
+    }
+    return t("debt_filter_total");
+  }
+
+  // Date de l'écriture. Elle DOIT tomber dans la période affichée, sinon elle
+  // sort de la fenêtre que le calcul applique et le mois réglé continuerait
+  // d'afficher son solde — le bouton paraîtrait sans effet. On prend donc la fin
+  // de la période, sauf si elle est dans le futur (période en cours), auquel cas
+  // aujourd'hui : dater en avant ferait apparaître un règlement pas encore fait.
+  function settlementDateISO() {
+    const today = new Date();
+    if (!endDate) return today.toISOString();
+    const end = new Date(endDate);
+    return end < today ? end.toISOString() : today.toISOString();
+  }
+
   async function handleMarkAsPaid() {
-    if (!confirm(t("debt_mark_paid_confirm"))) return;
-    await addDebtSettlement(new Date().toISOString(), "", {
+    const label = periodLabelFor();
+    const message = filterMode === "total"
+      ? t("debt_mark_paid_confirm")
+      : t("debt_mark_paid_period_confirm").replace("{period}", label);
+    if (!confirm(message)) return;
+
+    // Le débiteur envoie au créancier : `net > 0` signifie que `a` a avancé pour
+    // `b`, donc c'est `b` qui doit (voir owesFromName dans useDebtCalculation).
+    const aKey = getMemberKey(debt.a);
+    const bKey = getMemberKey(debt.b);
+    const fromKey = debt.net > 0 ? bKey : aKey;
+    const toKey = debt.net > 0 ? aKey : bKey;
+
+    await addDebtSettlementEntry({
+      date: settlementDateISO(),
       amount: debt.owesAmount,
       currency: displayCurrency,
+      fromKey,
+      toKey,
+      periodLabel: label,
     });
   }
 
@@ -106,22 +164,20 @@ export default function DebtScreen() {
         </button>
       </div>
 
+      {/* Même sélecteur que « Ajouter une transaction » : la liste blanche du
+          couple, et le panneau « Gérer » qui va avec. Ce bloc listait les 7
+          devises par défaut EN DUR, si bien qu'une devise ajoutée par le couple
+          n'apparaissait jamais ici — et qu'une devise retirée y restait. */}
       {showCurrencyPicker && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12, background: "var(--bg-card)", borderRadius: "var(--radius-lg)", border: "0.5px solid var(--rule)", padding: "0.75rem 1rem" }}>
-          {CURRENCIES.map((c) => (
-            <button
-              key={c.code}
-              onClick={() => { setDisplayCurrency(c.code); setShowCurrencyPicker(false); }}
-              style={{
-                padding: "6px 10px", borderRadius: "var(--radius-md)",
-                border: displayCurrency === c.code ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
-                background: displayCurrency === c.code ? "var(--sky-light)" : "var(--bg)",
-                color: displayCurrency === c.code ? "var(--sky)" : "var(--ink)", fontSize: 12,
-              }}
-            >
-              {c.symbol} {c.code}
-            </button>
-          ))}
+        <div style={{ marginBottom: 12 }}>
+          <CurrencyPillPicker
+            currency={displayCurrency}
+            onSelect={(code) => { setDisplayCurrency(code); setShowCurrencyPicker(false); }}
+            defaultCurrency={defaultCurrency}
+            enabledCurrencies={enabledCurrencies}
+            updateEnabledCurrencies={updateEnabledCurrencies}
+            t={t}
+          />
         </div>
       )}
 
@@ -211,7 +267,10 @@ export default function DebtScreen() {
             {t("debt_since_settlement").replace("{date}", new Date(debt.latestSettlement.date).toLocaleDateString(locale))}
           </p>
         )}
-        {filterMode === "total" && debt.owesAmount > 0 && (
+        {/* Le règlement vaut désormais pour TOUTE vue : une écriture datée dans
+            la période n'affecte que cette période, là où l'ancienne date-butoir
+            ne savait parler que du Total. */}
+        {debt.owesAmount > 0 && (
           <button
             onClick={handleMarkAsPaid}
             style={{
@@ -234,10 +293,11 @@ export default function DebtScreen() {
             {t("debt_mark_paid")}
           </button>
         )}
-        {filterMode === "total" && (
-          <button
-            onClick={() => setShowTransferSheet(true)}
-            style={{
+        {/* Le virement porte sa propre date, saisissable : il a donc sa place
+            dans toutes les vues, au même titre que le règlement. */}
+        <button
+          onClick={() => setShowTransferSheet(true)}
+          style={{
               marginTop: 8,
               width: "100%",
               padding: "10px 0",
@@ -253,10 +313,9 @@ export default function DebtScreen() {
               gap: 6,
             }}
           >
-            <i className="ti ti-arrows-exchange" style={{ fontSize: 14 }} aria-hidden="true" />
-            {t("debt_add_transfer")}
-          </button>
-        )}
+          <i className="ti ti-arrows-exchange" style={{ fontSize: 14 }} aria-hidden="true" />
+          {t("debt_add_transfer")}
+        </button>
       </div>
 
       <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>
@@ -282,13 +341,103 @@ export default function DebtScreen() {
               last={i === debt.activity.length - 1}
               t={t}
               locale={locale}
-              onDelete={item.kind === "transfer" ? () => {
-                if (confirm(t("debt_transfer_delete_confirm"))) removeDebtTransfer(item.id);
+              // Règlement et virement sont tous deux des écritures manuelles,
+              // donc tous deux annulables — une dépense, elle, se corrige dans
+              // la transaction elle-même.
+              onDelete={item.kind === "transfer" || item.kind === "settlement" ? () => {
+                const msg = item.kind === "settlement"
+                  ? t("debt_settlement_delete_confirm")
+                  : t("debt_transfer_delete_confirm");
+                if (confirm(msg)) removeDebtTransfer(item.id);
               } : null}
             />
           ))
         )}
       </div>
+
+      {/* Règlements passés — section repliée EN BAS, comme les budgets et
+          objectifs archivés. Elle lit `debtTransfers` directement et NON
+          `debt.activity`, qui est filtré par la période affichée : un historique
+          qui ne montrerait que les règlements du mois courant ne serait pas un
+          historique. */}
+      {pastSettlements.length > 0 && (
+        <div
+          style={{
+            marginTop: 14,
+            background: "var(--bg-card)",
+            borderRadius: "var(--radius-lg)",
+            border: "0.5px solid var(--rule)",
+            overflow: "hidden",
+          }}
+        >
+          <button
+            onClick={() => setShowSettlements((v) => !v)}
+            aria-expanded={showSettlements}
+            style={{
+              width: "100%", display: "flex", alignItems: "center", gap: 10,
+              padding: "13px 16px", background: "transparent", border: "none",
+              fontSize: 13, fontWeight: 600, color: "var(--ink)", textAlign: "left",
+            }}
+          >
+            <i
+              className={`ti ti-chevron-${showSettlements ? "up" : "down"}`}
+              style={{ fontSize: 14, color: "var(--ink-2)" }}
+              aria-hidden="true"
+            />
+            {t("debt_past_settlements")}
+            <span style={{ marginLeft: "auto", fontSize: 11, fontWeight: 700, color: "var(--ink-3)" }}>
+              {pastSettlements.length}
+            </span>
+          </button>
+          {showSettlements && pastSettlements.map((s) => (
+            <div
+              key={s.id}
+              style={{
+                display: "flex", alignItems: "center", gap: 12,
+                padding: "13px 16px", borderTop: "0.5px solid var(--rule)",
+              }}
+            >
+              <span
+                style={{
+                  width: 30, height: 30, borderRadius: "50%", flexShrink: 0,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  background: "var(--sage-light)", color: "var(--sage)", fontSize: 14,
+                }}
+              >
+                <i className="ti ti-check" aria-hidden="true" />
+              </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontSize: 14, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {s.periodLabel || new Date(s.date).toLocaleDateString(locale)}
+                </p>
+                <p style={{ fontSize: 11.5, color: "var(--ink-3)", margin: "2px 0 0" }}>
+                  {t("debt_transfer_row_meta")
+                    .replace("{from}", nameOfKey(s.fromKey))
+                    .replace("{to}", nameOfKey(s.toKey))}
+                  {" · "}
+                  {new Date(s.date).toLocaleDateString(locale)}
+                </p>
+              </div>
+              {/* Montant affiché DANS SA DEVISE d'origine, jamais reconverti :
+                  un règlement est un fait passé, le retraduire au taux du jour
+                  en ferait un chiffre qui bouge tout seul. */}
+              <span style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 14, color: "var(--sage)", flexShrink: 0 }}>
+                {Math.round(s.amount).toLocaleString(locale)} {s.currency}
+              </span>
+              <button
+                onClick={() => { if (confirm(t("debt_settlement_delete_confirm"))) removeDebtTransfer(s.id); }}
+                aria-label={t("debt_settlement_delete_confirm")}
+                style={{
+                  background: "none", border: "none", color: "var(--ink-3)",
+                  fontSize: 14, flexShrink: 0, padding: 0,
+                }}
+              >
+                <i className="ti ti-trash" aria-hidden="true" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       {showTransferSheet && (
         <TransferSheet
@@ -314,10 +463,23 @@ export default function DebtScreen() {
   );
 }
 
-// Une ligne du détail combiné : dépense partagée (comme avant) ou virement
-// (fond teinté distinct, puce d'icône, "De X à Y" au lieu de "Payé par X").
+// Une ligne du détail combiné : dépense partagée (comme avant), virement, ou
+// règlement (fond teinté distinct, puce d'icône, "De X à Y" au lieu de "Payé par X").
+//
+// Un règlement partage TOUTE la mise en page du virement — c'en est un, qui
+// solde le compte — et n'en diffère que par sa couleur, son icône et son
+// libellé. D'où un seul bloc paramétré : deux blocs jumeaux auraient divergé à
+// la première retouche.
 function ActivityRow({ item, last, t, locale, onDelete }) {
-  if (item.kind === "transfer") {
+  if (item.kind === "transfer" || item.kind === "settlement") {
+    const settled = item.kind === "settlement";
+    const hue = settled ? "var(--sage)" : "var(--lavi)";
+    const hueLight = settled ? "var(--sage-light)" : "var(--lavi-light)";
+    const label = settled
+      ? (item.periodLabel
+          ? t("debt_settlement_row_label").replace("{period}", item.periodLabel)
+          : t("debt_mark_paid"))
+      : (item.note || t("debt_transfer_row_label"));
     return (
       <div
         style={{
@@ -326,21 +488,21 @@ function ActivityRow({ item, last, t, locale, onDelete }) {
           gap: 10,
           padding: "12px 14px",
           borderBottom: last ? "none" : "0.5px solid var(--rule)",
-          background: "color-mix(in srgb, var(--lavi-light) 55%, transparent)",
+          background: `color-mix(in srgb, ${hueLight} 55%, transparent)`,
         }}
       >
         <span
           style={{
             width: 26, height: 26, borderRadius: 8, flexShrink: 0,
-            background: "var(--lavi-light)", color: "var(--lavi)",
+            background: hueLight, color: hue,
             display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13,
           }}
         >
-          <i className="ti ti-arrows-exchange" aria-hidden="true" />
+          <i className={settled ? "ti ti-check" : "ti ti-arrows-exchange"} aria-hidden="true" />
         </span>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ fontSize: 13, fontWeight: 600, color: "var(--lavi)" }}>
-            {item.note || t("debt_transfer_row_label")}
+          <p style={{ fontSize: 13, fontWeight: 600, color: hue }}>
+            {label}
           </p>
           <p style={{ fontSize: 11, color: "var(--ink-3)" }}>
             {t("debt_transfer_row_meta").replace("{from}", item.paidByName).replace("{to}", item.forName)}
