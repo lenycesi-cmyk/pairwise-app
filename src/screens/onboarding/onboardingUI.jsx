@@ -1,27 +1,13 @@
 // Composants d'UI partagés par les écrans d'onboarding (option A).
 // Les constantes de style vivent dans onboardingStyles.js (react-refresh).
 import { screenWrap } from "./onboardingStyles";
+import { LogoMark } from "../../components/Logo";
 
 // Petit en-tête logo réutilisé sur l'accueil.
 export function BrandRow() {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 22 }}>
-      <div
-        style={{
-          width: 28,
-          height: 28,
-          borderRadius: 9,
-          background: "var(--tang)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          color: "#fff",
-          fontWeight: 800,
-          fontSize: 15,
-        }}
-      >
-        P
-      </div>
+      <LogoMark size={28} tile />
       <span style={{ fontWeight: 700, fontSize: 15 }}>Pairwise</span>
     </div>
   );

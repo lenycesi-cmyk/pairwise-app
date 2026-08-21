@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 100 100">
+  <defs>
+    <mask id="pw-bar" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100">
+      <!-- userSpaceOnUse : sans ça la région du masque se cale sur la boîte
+           englobante du cercle, qui ignore l'épaisseur du tracé, et l'anneau
+           se fait rogner aux quatre coins. -->
+      <rect x="0" y="0" width="100" height="100" fill="#fff"/>
+      <rect x="25.4" y="10.4" width="23.2" height="79.2" rx="4.1" fill="#000"/>
+    </mask></defs>
+  <rect x="0" y="0" width="100" height="100" rx="0" fill="#e9673f"/>
+    <g transform="translate(50 50) scale(0.78) translate(-51 -50)">
+    <g mask="url(#pw-bar)">
+      <circle cx="51" cy="36" r="16" fill="none" stroke="#ffffff" stroke-width="14"/>
+    </g>
+    <rect x="28" y="13" width="18" height="74" rx="1.5" fill="#ffffff"/></g>
+</svg>
