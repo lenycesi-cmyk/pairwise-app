@@ -4,10 +4,16 @@
   "description": "Vos finances, à deux",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#fdf4ec",
-  "theme_color": "#fdf4ec",
+  "background_color": "#fbf7f1",
+  "theme_color": "#fbf7f1",
   "orientation": "portrait",
   "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
     {
       "src": "/icon-192.png",
       "sizes": "192x192",

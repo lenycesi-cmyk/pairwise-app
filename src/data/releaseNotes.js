@@ -14,6 +14,27 @@
 
 export const RELEASE_NOTES = [
   {
+    version: "2026.08.21",
+    date: "2026-08-21",
+    items: [
+      {
+        icon: "🪙",
+        fr: { title: "PairWise a un nouveau logo", body: "Une barre et une pièce qui passe derrière elle. Il remplace les deux cygnes en origami, et il est enfin le même partout : l'app en affichait deux différents selon l'écran." },
+        en: { title: "PairWise has a new logo", body: "A bar, and a coin passing behind it. It replaces the two origami swans, and it is finally the same everywhere: the app used to show two different marks depending on the screen." },
+      },
+      {
+        icon: "✨",
+        fr: { title: "Un écran de lancement animé", body: "Au démarrage, la pièce roule et vient se caler derrière la barre. Elle occupe l'instant où l'app se charge, à la place de l'écran blanc." },
+        en: { title: "An animated launch screen", body: "On startup, the coin rolls in and settles behind the bar. It fills the moment the app takes to load, in place of the blank screen." },
+      },
+      {
+        icon: "📱",
+        fr: { title: "L'icône ne se fait plus rogner", body: "Sur Android, l'icône était recadrée en rond et son cadre carré s'y coupait de travers. Le nouveau dessin tient dans la zone garantie, et pèse 1 Ko au lieu de 390." },
+        en: { title: "The app icon no longer gets clipped", body: "On Android the icon is cropped into a circle, and its square frame was being cut off at an angle. The new mark fits inside the guaranteed area — and weighs 1 KB instead of 390." },
+      },
+    ],
+  },
+  {
     version: "2026.08.19.2",
     date: "2026-08-19",
     items: [

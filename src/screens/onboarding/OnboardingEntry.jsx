@@ -18,6 +18,7 @@ import { screenWrap, primaryBtn } from "./onboardingStyles";
 import { StepDots } from "./onboardingUI";
 import OnboardingHeader from "./OnboardingHeader";
 import AmbientBackdrop from "../../components/AmbientBackdrop";
+import { LogoMark } from "../../components/Logo";
 import { CHIPS, PLACEHOLDERS, KIND_COLOR } from "../../data/onboardingChips";
 
 const EXPENSE_CATS = ALL_CATEGORIES.filter(
@@ -130,7 +131,7 @@ export default function OnboardingEntry({ language, onSignIn, onNext }) {
     const sz = large ? 42 : 28;
     return (
       <div style={{ display: "flex", alignItems: "center", gap: large ? 13 : 9, justifyContent: center ? "center" : "flex-start" }}>
-        <div style={{ width: sz, height: sz, borderRadius: sz * 0.28, background: "var(--tang)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: sz * 0.55 }}>P</div>
+        <LogoMark size={sz} tile />
         <span style={{ fontWeight: 700, fontSize: large ? 24 : 15 }}>PairWise</span>
       </div>
     );

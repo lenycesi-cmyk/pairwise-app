@@ -2,12 +2,15 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/icon-192.png" />
+    <!-- Le SVG d'abord : 626 octets, net à toute densité. Le PNG reste en
+         repli pour les navigateurs qui ignorent les favicons vectoriels. -->
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
     />
-    <meta name="theme-color" content="#fdf4ec" />
+    <meta name="theme-color" content="#fbf7f1" />
     <link rel="manifest" href="/manifest.json" />
     <link rel="apple-touch-icon" href="/icon-192.png" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -28,14 +31,75 @@
         if (t) {
           document.documentElement.setAttribute("data-theme", t);
           var meta = document.querySelector('meta[name="theme-color"]');
-          if (meta) meta.setAttribute("content", t === "pairwise-dark" ? "#0a1520" : "#fdf4ec");
+          if (meta) meta.setAttribute("content", t === "pairwise-dark" ? "#0a1520" : "#fbf7f1");
         }
       } catch (e) {
         /* stockage indisponible : on garde le thème clair par défaut */
       }
     </script>
+    <style>
+      /* Écran de démarrage. Il occupe le trou entre l'écran système et le premier
+         rendu de React, donc il est écrit ICI, en dur : aucun script, aucune
+         police, aucune requête réseau ne doit avoir à charger pour qu'il s'affiche.
+         Retiré par src/main.jsx dès que l'app a peint. */
+      #pw-boot {
+        --pw-mk: #e9673f;
+        --pw-bg: #fbf7f1;
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--pw-bg);
+        transition: opacity 260ms cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      html[data-theme="pairwise-dark"] #pw-boot { --pw-mk: #ff7458; --pw-bg: #0a1520; }
+      #pw-boot.pw-gone { opacity: 0; pointer-events: none; }
+
+      /* La pièce ROULE : une pièce qui glisserait sans tourner ne ressemblerait
+         pas à une pièce. Les deux entailles la rendent visible en tournant, puis
+         viennent se loger dans le liseré — à l'arrêt, la marque est un P net. */
+      @keyframes pw-roll {
+        0%   { transform: translateX(52px) rotate(190deg); opacity: 0; }
+        16%  { opacity: 1; }
+        100% { transform: none; opacity: 1; }
+      }
+      @keyframes pw-bar-in {
+        0%, 10%   { opacity: 0; transform: translateY(14px); }
+        46%, 100% { opacity: 1; transform: none; }
+      }
+      #pw-boot .pw-coin {
+        transform-origin: 51px 36px;
+        animation: pw-roll 1150ms cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+      #pw-boot .pw-bar {
+        animation: pw-bar-in 1150ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+      }
+      /* Une seule passe, jamais de boucle : un logo qui rejoue en continu sur un
+         écran de lancement se lit comme un chargement bloqué. */
+      @media (prefers-reduced-motion: reduce) {
+        #pw-boot .pw-coin, #pw-boot .pw-bar { animation: none; }
+      }
+    </style>
   </head>
   <body>
+    <div id="pw-boot" aria-hidden="true">
+      <svg width="104" height="104" viewBox="0 0 100 100">
+        <g class="pw-coin">
+          <circle cx="51" cy="36" r="16" fill="none" stroke="var(--pw-mk)" stroke-width="14" />
+          <!-- Entailles : rectangles à bords parallèles, radiaux, à ±108°.
+               Une coupe le long de l'arc (stroke-dasharray) suivrait deux rayons
+               convergents et donnerait un coin, pas une fente. -->
+          <rect x="59" y="34.4" width="16" height="3.2" fill="var(--pw-bg)" transform="rotate(108 51 36)" />
+          <rect x="59" y="34.4" width="16" height="3.2" fill="var(--pw-bg)" transform="rotate(-108 51 36)" />
+        </g>
+        <g class="pw-bar">
+          <rect x="25.4" y="10.4" width="23.2" height="79.2" rx="4.1" fill="var(--pw-bg)" />
+          <rect x="28" y="13" width="18" height="74" rx="1.5" fill="var(--pw-mk)" />
+        </g>
+      </svg>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

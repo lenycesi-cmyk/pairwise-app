@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { LogoMark } from "../../components/Logo";
 
 // En-tête marketing de la page d'accueil (onboarding). Barre + méga-menu
 // « Fonctionnalités » + menu « Pour qui » + Connexion. Maquette validée.
@@ -144,7 +145,7 @@ export default function OnboardingHeader({ language, onSignIn, isDesktop }) {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 9, fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 17, color: "var(--ink)" }}>
-          <span style={{ width: 28, height: 28, borderRadius: 8, background: "var(--tang)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700 }}>P</span>
+          <LogoMark size={28} tile />
           PairWise
         </div>
 
