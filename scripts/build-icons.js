@@ -27,12 +27,23 @@ import { logoSvg } from "../src/components/logoGeometry.js";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const PUBLIC = join(ROOT, "public");
 
-// Les icônes sont déclarées `purpose: "any maskable"` dans le manifeste : le
-// système applique SON masque, donc la tuile est à fond perdu (rayon 0). Un coin
-// déjà arrondi ici se ferait rogner une seconde fois.
-const TILE = { tile: true, tileRadius: 0, markColor: "#ffffff", tileColor: "#e9673f" };
+// DEUX jeux d'icônes, et c'est nécessaire :
+//
+//   • `maskable` — à fond perdu (rayon 0). Le système applique SON masque au
+//     lanceur ; un coin déjà arrondi s'y ferait rogner une seconde fois.
+//   • `any` — arrondie. C'est celle que Chrome affiche TELLE QUELLE sur l'écran
+//     de démarrage, sans masque : à fond perdu elle y apparaît en carré à angles
+//     vifs, ce qui a l'air d'un défaut plutôt que d'un choix.
+//
+// Un seul fichier déclaré « any maskable » doit servir les deux usages et rate
+// forcément l'un des deux.
+const BASE = { tile: true, markColor: "#ffffff", tileColor: "#e9673f" };
+const VARIANTS = [
+  { suffix: "", tileRadius: 0, label: "maskable" },
+  { suffix: "-any", tileRadius: 22, label: "any" },
+];
 
-const svg = logoSvg({ size: 512, ...TILE });
+const svg = logoSvg({ size: 512, ...BASE, tileRadius: 22 });
 writeFileSync(join(PUBLIC, "icon.svg"), svg + "\n");
 console.log("écrit  public/icon.svg");
 
@@ -53,6 +64,7 @@ const browser = await chromium.launch({
   executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH || undefined,
 });
 try {
+  for (const { suffix, tileRadius, label } of VARIANTS)
   for (const size of [192, 512]) {
     const page = await browser.newPage({
       viewport: { width: size, height: size },
@@ -62,15 +74,15 @@ try {
     // son fond, et une couleur de page se glisserait sous les bords antialiasés.
     await page.setContent(
       `<style>html,body{margin:0;padding:0;background:transparent}svg{display:block}</style>` +
-        logoSvg({ size, ...TILE }),
+        logoSvg({ size, ...BASE, tileRadius }),
       { waitUntil: "load" }
     );
     await page.screenshot({
-      path: join(PUBLIC, `icon-${size}.png`),
+      path: join(PUBLIC, `icon${suffix}-${size}.png`),
       omitBackground: true,
     });
     await page.close();
-    console.log(`écrit  public/icon-${size}.png  (${size} × ${size})`);
+    console.log(`écrit  public/icon${suffix}-${size}.png  (${size} × ${size}, ${label})`);
   }
 } finally {
   await browser.close();

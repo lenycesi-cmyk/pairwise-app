@@ -14,6 +14,22 @@
 
 export const RELEASE_NOTES = [
   {
+    version: "2026.08.21.1",
+    date: "2026-08-21",
+    items: [
+      {
+        icon: "📲",
+        fr: { title: "Le nouveau logo arrive enfin sur votre téléphone", body: "L'icône restait l'ancienne : l'app gardait en mémoire la version précédente et la resservait sans jamais aller chercher la nouvelle. Elle se met à jour au prochain lancement." },
+        en: { title: "The new logo finally reaches your phone", body: "The icon was still the old one: the app kept the previous version in memory and served it back without ever fetching the new one. It updates on your next launch." },
+      },
+      {
+        icon: "🔲",
+        fr: { title: "Une icône aux angles arrondis", body: "Sur l'écran de lancement, elle apparaissait en carré à angles vifs. Elle a maintenant sa propre version arrondie, en plus de celle que le système recadre lui-même." },
+        en: { title: "An icon with rounded corners", body: "On the launch screen it showed up as a hard-cornered square. It now has its own rounded version, alongside the one the system crops itself." },
+      },
+    ],
+  },
+  {
     version: "2026.08.21",
     date: "2026-08-21",
     items: [

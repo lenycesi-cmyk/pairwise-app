@@ -7,7 +7,7 @@
       <rect x="0" y="0" width="100" height="100" fill="#fff"/>
       <rect x="25.4" y="10.4" width="23.2" height="79.2" rx="4.1" fill="#000"/>
     </mask></defs>
-  <rect x="0" y="0" width="100" height="100" rx="0" fill="#e9673f"/>
+  <rect x="0" y="0" width="100" height="100" rx="22" fill="#e9673f"/>
     <g transform="translate(50 50) scale(0.78) translate(-51 -50)">
     <g mask="url(#pw-bar)">
       <circle cx="51" cy="36" r="16" fill="none" stroke="#ffffff" stroke-width="14"/>
