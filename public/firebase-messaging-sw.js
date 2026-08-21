@@ -49,8 +49,9 @@ messaging.onBackgroundMessage((payload) => {
 // Version du cache : à incrémenter pour purger tout l'app-shell précédent lors
 // de l'activation (voir handler "activate"). Utile quand un ancien index/chunk
 // en cache pourrait provoquer un écran blanc après déploiement.
-const CACHE = "pairwise-shell-v3";
-const PRECACHE = ["/", "/index.html", "/manifest.json", "/icon-192.png", "/icon-512.png"];
+const CACHE = "pairwise-shell-v4";
+const PRECACHE = ["/", "/index.html", "/manifest.json", "/icon.svg",
+  "/icon-192.png", "/icon-512.png", "/icon-any-192.png", "/icon-any-512.png"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE).then((c) => c.addAll(PRECACHE)).then(() => self.skipWaiting()));
