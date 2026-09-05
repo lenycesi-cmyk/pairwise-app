@@ -831,11 +831,12 @@ const PUSH_KINDS = {
   newBudget: "newBudget",
   newAsset: "newAsset",
   debtSettled: "debtSettled",
+  debtTransfer: "debtTransfer",
 };
 
 exports.sendPush = onCall(async (request) => {
   if (!request.auth) throw new HttpsError("unauthenticated", "Authentication required");
-  const { coupleId, kind, description = "", amount, currency, text, gifUrl } = request.data || {};
+  const { coupleId, kind, description = "", amount, currency, text, gifUrl, fromKey } = request.data || {};
   const prefType = PUSH_KINDS[kind];
   if (!coupleId || !prefType) throw new HttpsError("invalid-argument", "coupleId and valid kind required");
 
@@ -903,6 +904,19 @@ exports.sendPush = onCall(async (request) => {
     title = lang === "en" ? `${me.name} · new asset` : `${me.name} · nouvel actif`;
     body = withAmount(description || "");
     tag = "asset_new";
+  } else if (kind === "debtTransfer") {
+    // Le sens compte plus que le montant : « t'a envoyé » et « a noté un
+    // virement de ta part » se saisissent depuis le même écran et n'appellent
+    // pas la même réaction.
+    const sentByActor = fromKey === actorKey;
+    title = lang === "en"
+      ? `${me.name} · transfer 💶`
+      : `${me.name} · virement 💶`;
+    const line = sentByActor
+      ? (lang === "en" ? `Sent you ${amountOnly}` : `T'a envoyé ${amountOnly}`)
+      : (lang === "en" ? `Logged ${amountOnly} received from you` : `A noté ${amountOnly} reçus de ta part`);
+    body = description ? `${line} — ${description}` : line;
+    tag = "debt_transfer";
   } else {
     title = lang === "en" ? `${me.name} · settled up 💸` : `${me.name} · comptes soldés 💸`;
     body = amountOnly
