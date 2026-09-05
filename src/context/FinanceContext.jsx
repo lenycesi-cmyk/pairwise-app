@@ -588,6 +588,23 @@ export function FinanceProvider({ children }) {
       createdAt: Date.now(),
       createdBy: user.uid,
     });
+
+    // Un virement change le solde de dette SANS passer par une transaction :
+    // il n'existe donc aucune autre notification qui puisse le signaler, et
+    // le/la partenaire ne le découvrirait qu'en rouvrant l'écran Dettes.
+    // `fromKey` part avec l'envoi : c'est lui qui dit si l'auteur a envoyé
+    // l'argent ou a noté celui qu'il/elle a reçu — les deux se saisissent
+    // depuis le même écran, et le message doit dire lequel.
+    if (members.length > 1) {
+      sendPushNotification({
+        coupleId,
+        kind: "debtTransfer",
+        description: note || "",
+        amount,
+        currency,
+        fromKey,
+      });
+    }
   }
 
   async function removeDebtTransfer(id) {

@@ -14,6 +14,17 @@
 
 export const RELEASE_NOTES = [
   {
+    version: "2026.09.05",
+    date: "2026-09-05",
+    items: [
+      {
+        icon: "\ud83d\udcb6",
+        fr: { title: "Prévenu quand votre partenaire ajoute un virement", body: "Dans le suivi des dettes, un virement changeait le solde sans que rien ne le signale : on ne le découvrait qu'en rouvrant l'écran. Une notification part maintenant, comme pour un règlement. Elle se désactive dans Réglages > Notifications." },
+        en: { title: "Get notified when your partner adds a transfer", body: "In debt tracking, a transfer changed the balance with nothing to announce it: you only found out by reopening the screen. A notification is now sent, as for a settlement. You can turn it off in Settings > Notifications." },
+      },
+    ],
+  },
+  {
     version: "2026.08.21.1",
     date: "2026-08-21",
     items: [

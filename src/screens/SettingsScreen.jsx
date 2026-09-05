@@ -787,6 +787,7 @@ export default function SettingsScreen({ onOpenMenu, onOpenRecurring, onOpenCate
             { key: "newBudget", label: t("settings_push_new_budget") },
             { key: "newAsset", label: t("settings_push_new_asset") },
             { key: "debtSettled", label: t("settings_push_debt_settled") },
+            { key: "debtTransfer", label: t("settings_push_debt_transfer") },
             { key: "monthlySummary", label: t("settings_push_monthly_summary") },
           ];
           return (
