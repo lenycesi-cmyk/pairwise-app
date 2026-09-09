@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <title>PairWise en cinq actes — la visite animée</title>
+  <meta name="description" content="Cinq scènes animées pour voir PairWise à l'œuvre : la saisie en une phrase, le suivi à deux, les devises, les objectifs et le patrimoine." />
+
+  <link rel="canonical" href="https://pairwise.finance/presentation" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="PairWise" />
+  <meta property="og:locale" content="fr_FR" />
+  <meta property="og:title" content="PairWise en cinq actes — la visite animée" />
+  <meta property="og:description" content="Cinq scènes animées pour voir PairWise à l'œuvre." />
+  <meta property="og:url" content="https://pairwise.finance/presentation" />
+
+  <link rel="icon" type="image/png" href="/icon-192.png" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Nunito+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+  <link rel="stylesheet" href="/assets/site.css" />
+
+  <style>
+    /* La bande d'en-tête mesure 64px (voir header.site .bar dans site.css).
+       Chaque acte occupe exactement le reste de la fenêtre : à l'intérieur de
+       l'iframe, les `100vh` dont les actes sont truffés se recalent alors sur
+       cette hauteur, sans qu'aucun acte ait à être retouché. */
+    :root { --bar-h: 64px; }
+
+    .acts { margin: 0; }
+
+    /* La hauteur de la section est posée par le script : hauteur visible + la
+       course de defilement interne de l'acte. C'est ce qui fait qu'un pixel de
+       molette ici vaut un pixel de molette dans l'acte — le rythme d'origine
+       est conserve tel quel. */
+    .act { position: relative; }
+    .act__pin {
+      position: sticky; top: var(--bar-h);
+      height: calc(100vh - var(--bar-h));
+      overflow: hidden;
+    }
+    .act iframe { display: block; width: 100%; height: 100%; border: 0; }
+
+    /* Tant que le script n'a pas mesure l'acte, la section fait une hauteur
+       d'ecran : sans cela la page entiere ferait 5 ecrans de haut au premier
+       rendu, puis sauterait. */
+    .act[data-measured="0"] { height: calc(100vh - var(--bar-h)); }
+
+    .act__fallback {
+      display: grid; place-items: center; height: 100%;
+      color: var(--ink-2); font-size: 14px; text-align: center; padding: 24px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      /* Sans defilement pilote, chaque acte reste sur sa premiere scene. On
+         rend donc la section a hauteur d'ecran et l'acte se lit fixe. */
+      .act { height: calc(100vh - var(--bar-h)) !important; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="site">
+  <div class="bar">
+    <a href="/" class="logo"><span class="p">P</span> PairWise</a>
+    <!-- ⚠ GÉNÉRÉ — ne pas modifier à la main.
+         Source : scripts/build-marketing-header.js · régénérer avec
+         `node scripts/build-marketing-header.js`. -->
+    <nav>
+      <span class="mm" data-mm data-menu="features" data-open="0">
+        <button type="button" aria-expanded="false">Fonctionnalités <i class="ti ti-chevron-down"></i></button>
+        <span class="mm-panel">
+          <span class="mm-cols">
+          <span class="mm-col">
+            <span class="mm-h5">Suivre son argent</span>
+            <a class="mm-it" href="/fonctionnalites/saisie-langage-naturel"><span class="mi" style="background:var(--tang-light);color:var(--tang)"><i class="ti ti-sparkles"></i></span><span><b>Saisie en langage naturel</b><small>« 60€ course hier » et c'est rempli</small></span></a>
+            <a class="mm-it" href="/fonctionnalites/transactions-recus"><span class="mi" style="background:var(--sky-light);color:var(--sky)"><i class="ti ti-list-details"></i></span><span><b>Transactions &amp; reçus</b><small>Historique, photos, recherche</small></span></a>
+            <span class="mm-it dim"><span class="mi" style="background:var(--amber-light);color:var(--amber)"><i class="ti ti-tag"></i></span><span><b>Catégories &amp; tags</b><small>Rangement automatique</small></span></span>
+            <span class="mm-it dim"><span class="mi" style="background:var(--sage-light);color:var(--sage)"><i class="ti ti-world"></i></span><span><b>Multi-devises</b><small>Idéal voyageurs &amp; nomades</small></span></span>
+          </span>
+          <span class="mm-col">
+            <span class="mm-h5">Analyser</span>
+            <span class="mm-it dim"><span class="mi" style="background:var(--amber-light);color:var(--amber)"><i class="ti ti-chart-pie"></i></span><span><b>Budgets</b><small>Par catégorie, avec alertes</small></span></span>
+            <span class="mm-it dim"><span class="mi" style="background:var(--sky-light);color:var(--sky)"><i class="ti ti-chart-line"></i></span><span><b>Rapports &amp; insights</b><small>Ce qui bouge, mois par mois</small></span></span>
+            <span class="mm-it dim"><span class="mi" style="background:var(--lavi-light);color:var(--lavi)"><i class="ti ti-diamond"></i></span><span><b>Patrimoine &amp; investissements</b><small>Actifs, crédits, évolution</small></span></span>
+          </span>
+          <span class="mm-col">
+            <span class="mm-h5">Aller plus loin</span>
+            <span class="mm-it dim"><span class="mi" style="background:var(--tang-light);color:var(--tang)"><i class="ti ti-users"></i></span><span><b>Dépenses partagées</b><small>Qui doit quoi, à deux</small></span></span>
+            <a class="mm-it" href="/fonctionnalites/objectifs"><span class="mi" style="background:var(--lavi-light);color:var(--lavi)"><i class="ti ti-target-arrow"></i></span><span><b>Objectifs &amp; projets</b><small>Seul ou en commun</small></span></a>
+            <a class="mm-it" href="/securite"><span class="mi" style="background:var(--sky-light);color:var(--sky)"><i class="ti ti-shield-lock"></i></span><span><b>Sécurité</b><small>Chiffré, lecture seule</small></span></a>
+          </span>
+          </span>
+        </span>
+      </span>
+      <span class="mm" data-mm data-menu="audiences" data-open="0">
+        <button type="button" aria-expanded="false">Pour qui <i class="ti ti-chevron-down"></i></button>
+        <span class="mm-panel">
+          <span class="mm-cols one">
+          <span class="mm-col">
+            <span class="mm-it dim"><span class="mi" style="background:var(--sky-light);color:var(--sky)"><i class="ti ti-user"></i></span><span><b>En solo</b><small>Gérer ses finances personnelles</small></span></span>
+            <span class="mm-it dim"><span class="mi" style="background:var(--tang-light);color:var(--tang)"><i class="ti ti-users"></i></span><span><b>À deux</b><small>Dépenses partagées, budgets communs</small></span></span>
+            <span class="mm-it dim"><span class="mi" style="background:var(--sage-light);color:var(--sage)"><i class="ti ti-plane-tilt"></i></span><span><b>Voyageurs &amp; nomades</b><small>Le multi-devises comme atout</small></span></span>
+            <span class="mm-it dim"><span class="mi" style="background:var(--lavi-light);color:var(--lavi)"><i class="ti ti-world"></i></span><span><b>Expatriés</b><small>Revenus ici, charges là-bas</small></span></span>
+          </span>
+          </span>
+        </span>
+      </span>
+      <span class="soon">Comparatifs</span>
+      <span class="soon">Tarifs</span>
+      <a href="/securite">Sécurité</a>
+    </nav>
+    <a href="https://app.pairwise.finance/" class="login">Connexion</a>
+    <a href="https://app.pairwise.finance/" class="hcta">C'est parti <i class="ti ti-arrow-right"></i></a>
+  </div>
+</header>
+
+<main class="acts" id="acts">
+  <section class="act" id="acte-1" data-measured="0"
+           data-src="/presentation/acte-1-vue-claire.html" aria-label="Acte 1 — Vue claire">
+    <div class="act__pin"></div>
+  </section>
+  <section class="act" id="acte-2" data-measured="0"
+           data-src="/presentation/acte-2-solo-ou-a-deux.html" aria-label="Acte 2 — Solo ou à deux">
+    <div class="act__pin"></div>
+  </section>
+  <section class="act" id="acte-3" data-measured="0"
+           data-src="/presentation/acte-3-multi-devises.html" aria-label="Acte 3 — Multi-devises">
+    <div class="act__pin"></div>
+  </section>
+  <section class="act" id="acte-4" data-measured="0"
+           data-src="/presentation/acte-4-objectifs.html" aria-label="Acte 4 — Objectifs et projets">
+    <div class="act__pin"></div>
+  </section>
+  <section class="act" id="acte-5" data-measured="0"
+           data-src="/presentation/acte-5-patrimoine.html" aria-label="Acte 5 — Patrimoine">
+    <div class="act__pin"></div>
+  </section>
+</main>
+
+<footer class="site">
+  <div class="wrap cols">
+    <div>
+      <a href="/" class="logo"><span class="p">P</span> PairWise</a>
+      <p class="intro">Une seule app pour tes dépenses, ton budget et ton patrimoine — seul ou à deux.</p>
+    </div>
+    <div>
+      <h4>Fonctionnalités</h4>
+      <a href="/fonctionnalites/transactions-recus">Transactions &amp; reçus</a>
+      <a href="/fonctionnalites/saisie-langage-naturel">Saisie en langage naturel</a>
+      <a href="/fonctionnalites/objectifs">Objectifs &amp; projets</a>
+      <span class="soon">Multi-devises</span>
+      <span class="soon">Dépenses partagées</span>
+      <span class="soon">Patrimoine &amp; investissements</span>
+    </div>
+    <div>
+      <h4>Pour qui</h4>
+      <span class="soon">En solo</span>
+      <span class="soon">À deux</span>
+      <span class="soon">Voyageurs &amp; nomades</span>
+      <span class="soon">Expatriés</span>
+    </div>
+    <div>
+      <h4>PairWise</h4>
+      <a href="https://app.pairwise.finance/">Ouvrir l'app</a>
+      <span class="soon">Tarifs</span>
+      <a href="/securite">Sécurité</a>
+      <span class="soon">FAQ</span>
+    </div>
+  </div>
+  <div class="wrap copy">© 2026 PairWise · Fait avec soin · Tes données t'appartiennent</div>
+</footer>
+
+<script src="/assets/menu.js" defer></script>
+<script src="/presentation/acts.js" defer></script>
+
+</body>
+</html>
