@@ -47,6 +47,27 @@
     }
     .act iframe { display: block; width: 100%; height: 100%; border: 0; }
 
+    /* TRANSITIONS ENTRE ACTES.
+       Deux actes qui se succèdent ne se croisent jamais : le premier se
+       décolle pile quand le second se colle. Une transition exige au
+       contraire qu'ils soient à l'écran ENSEMBLE. On ajoute donc une bande
+       de défilement à la fin de chaque acte, pendant laquelle le sortant
+       reste affiché sur sa dernière scène et l'entrant se superpose en
+       position fixe. Tout est piloté par le défilement de la page — rien
+       n'entre dans les actes, qui restent intacts. */
+    .act__pin.is-entering {
+      position: fixed; top: var(--bar-h); left: 0; right: 0;
+      height: calc(100vh - var(--bar-h));
+      z-index: 5;               /* sous l'en-tête, qui est à 20 */
+      will-change: transform, opacity;
+    }
+    .act__pin.is-leaving { will-change: transform, opacity; }
+
+    .act-veil {
+      position: fixed; inset: 0; z-index: 10;
+      background: #0b0b0c; opacity: 0; pointer-events: none; display: none;
+    }
+
     /* Tant que le script n'a pas mesure l'acte, la section fait une hauteur
        d'ecran : sans cela la page entiere ferait 5 ecrans de haut au premier
        rendu, puis sauterait. */
@@ -121,24 +142,26 @@
   </div>
 </header>
 
+<div class="act-veil" id="actVeil" aria-hidden="true"></div>
+
 <main class="acts" id="acts">
   <section class="act" id="acte-1" data-measured="0"
            data-src="/actes/acte-1-vue-claire" aria-label="Acte 1 — Vue claire">
     <div class="act__pin"></div>
   </section>
-  <section class="act" id="acte-2" data-measured="0"
+  <section class="act" id="acte-2" data-measured="0" data-transition="slide-up"
            data-src="/actes/acte-2-solo-ou-a-deux" aria-label="Acte 2 — Solo ou à deux">
     <div class="act__pin"></div>
   </section>
-  <section class="act" id="acte-3" data-measured="0"
+  <section class="act" id="acte-3" data-measured="0" data-transition="slide-left"
            data-src="/actes/acte-3-multi-devises" aria-label="Acte 3 — Multi-devises">
     <div class="act__pin"></div>
   </section>
-  <section class="act" id="acte-4" data-measured="0"
+  <section class="act" id="acte-4" data-measured="0" data-transition="flip-boat"
            data-src="/actes/acte-4-objectifs" aria-label="Acte 4 — Objectifs et projets">
     <div class="act__pin"></div>
   </section>
-  <section class="act" id="acte-5" data-measured="0"
+  <section class="act" id="acte-5" data-measured="0" data-transition="fade-black"
            data-src="/actes/acte-5-patrimoine" aria-label="Acte 5 — Patrimoine">
     <div class="act__pin"></div>
   </section>
