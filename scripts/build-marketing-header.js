@@ -78,8 +78,8 @@ const AUDIENCES = [
 // elle, n'a pas de corps à elle — cinq actes en occupent toute la hauteur — donc
 // c'est l'en-tête qui doit porter l'appel à l'action.
 const PAGES = [
-  { file: "index.html", active: null },
-  { file: "presentation.html", active: null, cta: true },
+  { file: "index.html", active: null, cta: true },
+  { file: "presentation.html", active: null },
   { file: "securite.html", active: "/securite" },
   { file: "fonctionnalites/objectifs.html", active: "/fonctionnalites/objectifs" },
   { file: "fonctionnalites/saisie-langage-naturel.html", active: "/fonctionnalites/saisie-langage-naturel" },

@@ -4,22 +4,19 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <title>PairWise — Budget, dépenses partagées et patrimoine en une app</title>
-  <meta name="description" content="Note une dépense en une phrase, suis tes budgets, partage les frais et vois ton patrimoine grandir. Seul ou à deux, dans toutes les devises. Gratuit, sans compte pour commencer." />
+  <title>PairWise en cinq actes — la visite animée</title>
+  <meta name="description" content="Cinq scènes animées pour voir PairWise à l'œuvre : la saisie en une phrase, le suivi à deux, les devises, les objectifs et le patrimoine." />
 
   <link rel="canonical" href="https://pairwise.finance/" />
   <link rel="alternate" hreflang="fr" href="https://pairwise.finance/" />
   <link rel="alternate" hreflang="en" href="https://pairwise.finance/en/" />
   <link rel="alternate" hreflang="x-default" href="https://pairwise.finance/" />
-
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="PairWise" />
   <meta property="og:locale" content="fr_FR" />
-  <meta property="og:title" content="PairWise — Budget, dépenses partagées et patrimoine en une app" />
-  <meta property="og:description" content="Note une dépense en une phrase, suis tes budgets, partage les frais et vois ton patrimoine grandir. Seul ou à deux, dans toutes les devises." />
+  <meta property="og:title" content="PairWise en cinq actes — la visite animée" />
+  <meta property="og:description" content="Cinq scènes animées pour voir PairWise à l'œuvre." />
   <meta property="og:url" content="https://pairwise.finance/" />
-  <meta property="og:image" content="https://pairwise.finance/assets/og-home.png" />
-  <meta name="twitter:card" content="summary_large_image" />
 
   <link rel="icon" type="image/png" href="/icon-192.png" />
 
@@ -29,34 +26,43 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
   <link rel="stylesheet" href="/assets/site.css" />
 
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@graph": [
-      {
-        "@type": "Organization",
-        "name": "PairWise",
-        "url": "https://pairwise.finance/",
-        "description": "Application de gestion de budget, de dépenses partagées et de patrimoine, seul ou à deux."
-      },
-      {
-        "@type": "WebSite",
-        "name": "PairWise",
-        "url": "https://pairwise.finance/",
-        "inLanguage": "fr-FR"
-      },
-      {
-        "@type": "SoftwareApplication",
-        "name": "PairWise",
-        "applicationCategory": "FinanceApplication",
-        "operatingSystem": "Web, iOS, Android",
-        "description": "Dépenses, budgets, charges fixes, partage à deux, investissements et patrimoine — au même endroit, dans toutes les devises.",
-        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
-        "url": "https://pairwise.finance/"
-      }
-    ]
-  }
-  </script>
+  <style>
+    /* La bande d'en-tête mesure 64px (voir header.site .bar dans site.css).
+       Chaque acte occupe exactement le reste de la fenêtre : à l'intérieur de
+       l'iframe, les `100vh` dont les actes sont truffés se recalent alors sur
+       cette hauteur, sans qu'aucun acte ait à être retouché. */
+    :root { --bar-h: 64px; }
+
+    .acts { margin: 0; }
+
+    /* La hauteur de la section est posée par le script : hauteur visible + la
+       course de defilement interne de l'acte. C'est ce qui fait qu'un pixel de
+       molette ici vaut un pixel de molette dans l'acte — le rythme d'origine
+       est conserve tel quel. */
+    .act { position: relative; }
+    .act__pin {
+      position: sticky; top: var(--bar-h);
+      height: calc(100vh - var(--bar-h));
+      overflow: hidden;
+    }
+    .act iframe { display: block; width: 100%; height: 100%; border: 0; }
+
+    /* Tant que le script n'a pas mesure l'acte, la section fait une hauteur
+       d'ecran : sans cela la page entiere ferait 5 ecrans de haut au premier
+       rendu, puis sauterait. */
+    .act[data-measured="0"] { height: calc(100vh - var(--bar-h)); }
+
+    .act__fallback {
+      display: grid; place-items: center; height: 100%;
+      color: var(--ink-2); font-size: 14px; text-align: center; padding: 24px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      /* Sans defilement pilote, chaque acte reste sur sa premiere scene. On
+         rend donc la section a hauteur d'ecran et l'acte se lit fixe. */
+      .act { height: calc(100vh - var(--bar-h)) !important; }
+    }
+  </style>
 </head>
 <body>
 
@@ -111,192 +117,33 @@
       <a href="/securite">Sécurité</a>
     </nav>
     <a href="https://app.pairwise.finance/" class="login">Connexion</a>
+    <a href="https://app.pairwise.finance/" class="hcta">C'est parti <i class="ti ti-arrow-right"></i></a>
   </div>
 </header>
 
-<!-- ============ HERO : l'accueil de l'app, en statique ============ -->
-<!-- Reproduit OnboardingEntry.jsx à l'état « aucune entrée ». Valider la
-     saisie emmène sur app.pairwise.finance en passant le texte dans l'URL :
-     localStorage ne traverse pas la frontière d'origine, donc sans ce relais
-     l'utilisateur devrait retaper ce qu'il vient d'écrire. -->
-<section class="app-hero">
-  <span class="badge"><i class="ti ti-lock"></i> Aucune inscription · tes données restent sur cet appareil</span>
-  <h1 class="display">Entre un revenu, une dépense ou un investissement.</h1>
-  <p class="sub">On organise et analyse tout pour toi.</p>
+<main class="acts" id="acts">
+  <section class="act" id="acte-1" data-measured="0"
+           data-src="/actes/acte-1-vue-claire.html" aria-label="Acte 1 — Vue claire">
+    <div class="act__pin"></div>
+  </section>
+  <section class="act" id="acte-2" data-measured="0"
+           data-src="/actes/acte-2-solo-ou-a-deux.html" aria-label="Acte 2 — Solo ou à deux">
+    <div class="act__pin"></div>
+  </section>
+  <section class="act" id="acte-3" data-measured="0"
+           data-src="/actes/acte-3-multi-devises.html" aria-label="Acte 3 — Multi-devises">
+    <div class="act__pin"></div>
+  </section>
+  <section class="act" id="acte-4" data-measured="0"
+           data-src="/actes/acte-4-objectifs.html" aria-label="Acte 4 — Objectifs et projets">
+    <div class="act__pin"></div>
+  </section>
+  <section class="act" id="acte-5" data-measured="0"
+           data-src="/actes/acte-5-patrimoine.html" aria-label="Acte 5 — Patrimoine">
+    <div class="act__pin"></div>
+  </section>
+</main>
 
-  <form class="nl-hero" id="nlform" action="https://app.pairwise.finance/" method="get">
-    <i class="ti ti-sparkles"></i>
-    <!-- `name="e"` : c'est le paramètre que lit `consumeHandoff` côté app.
-         Le formulaire fonctionne SANS JavaScript — la navigation et le passage
-         du texte sont natifs ; le script n'ajoute que les exemples défilants
-         et les pastilles. -->
-    <input type="text" name="e" id="nlinput" autocomplete="off"
-           placeholder="🛒 60€ course hier" aria-label="Entre un revenu, une dépense ou un investissement" />
-    <button type="submit">C'est parti <i class="ti ti-arrow-right"></i></button>
-  </form>
-
-  <p class="ex-label">Essaie :</p>
-  <div class="ex" id="exlist"></div>
-</section>
-
-<!-- ============ APERÇUS ============ -->
-<section>
-  <div class="wrap">
-    <div class="shots" aria-hidden="true">
-      <div class="shot">
-        <div class="cap">Noter une dépense</div>
-        <div class="nlbar">
-          <i class="ti ti-sparkles sp"></i><span class="t">60 € courses hier</span><i class="ti ti-microphone mi"></i>
-        </div>
-        <div style="margin-top:11px">
-          <div class="mini"><span class="l"><span class="dotc" style="background:var(--amber-light);color:var(--amber)"><i class="ti ti-apple"></i></span> Alimentation</span><b>60,00 €</b></div>
-          <div class="mini"><span class="l"><span class="dotc" style="background:var(--sky-light);color:var(--sky)"><i class="ti ti-car"></i></span> Transport</span><b>12,50 €</b></div>
-          <div class="mini"><span class="l"><span class="dotc" style="background:var(--sage-light);color:var(--sage)"><i class="ti ti-coin"></i></span> Salaire</span><b style="color:var(--sage)">+2 000 €</b></div>
-        </div>
-      </div>
-
-      <div class="shot">
-        <div class="cap">Suivre ses budgets</div>
-        <div style="margin-bottom:13px">
-          <div class="pline"><span>Alimentation</span><span>420 / 500 €</span></div>
-          <div class="pbar"><span style="width:84%;background:var(--amber)"></span></div>
-        </div>
-        <div style="margin-bottom:13px">
-          <div class="pline"><span>Sorties</span><span>180 / 200 €</span></div>
-          <div class="pbar"><span style="width:90%;background:var(--tang)"></span></div>
-        </div>
-        <div>
-          <div class="pline"><span>Transport</span><span>60 / 150 €</span></div>
-          <div class="pbar"><span style="width:40%;background:var(--sage)"></span></div>
-        </div>
-      </div>
-
-      <div class="shot">
-        <div class="cap">Voir son patrimoine</div>
-        <div class="big" style="color:var(--sage)">128 450 €</div>
-        <div class="trend"><i class="ti ti-trending-up"></i> + 3,2 % ce mois-ci</div>
-        <div class="mini"><span class="l"><span class="dotc" style="background:var(--sky-light);color:var(--sky)"><i class="ti ti-wallet"></i></span> Comptes</span><b>18 200 €</b></div>
-        <div class="mini"><span class="l"><span class="dotc" style="background:var(--lavi-light);color:var(--lavi)"><i class="ti ti-chart-line"></i></span> Investissements</span><b>44 800 €</b></div>
-        <div class="mini"><span class="l"><span class="dotc" style="background:var(--amber-light);color:var(--amber)"><i class="ti ti-home"></i></span> Immobilier</span><b>95 000 €</b></div>
-        <div class="mini"><span class="l"><span class="dotc" style="background:var(--tang-light);color:var(--tang)"><i class="ti ti-credit-card"></i></span> Crédits</span><b style="color:var(--tang)">− 29 550 €</b></div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ============ POSITIONNEMENT ============ -->
-<section class="alt">
-  <div class="wrap">
-    <span class="eyebrow">Le principe</span>
-    <h2 class="h2 display">Trois applis, trois abonnements, zéro vue d'ensemble.</h2>
-    <p class="lede">La plupart des gens jonglent : une appli pour voir ses comptes, une autre pour
-      partager les frais, un tableur pour le reste. PairWise réunit les trois.</p>
-    <div class="replace">
-      <div class="stack">
-        <div class="old"><i class="ti ti-building-bank"></i> Une appli pour voir ses comptes</div>
-        <div class="old"><i class="ti ti-receipt"></i> Une appli pour partager les frais</div>
-        <div class="old"><i class="ti ti-table"></i> Un tableur pour le patrimoine</div>
-      </div>
-      <div class="arrowbig"><i class="ti ti-arrow-right"></i></div>
-      <div class="one">
-        <h3 class="display">PairWise</h3>
-        <p>Dépenses, budgets, charges fixes, partage à deux, investissements et patrimoine —
-          au même endroit, dans la devise que tu veux.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ============ FONCTIONNALITÉS ============ -->
-<section>
-  <div class="wrap">
-    <span class="eyebrow">Fonctionnalités</span>
-    <h2 class="h2 display">Tout ce qu'il faut, rien de superflu.</h2>
-    <p class="lede">Chaque brique est pensée pour servir tous les jours, pas pour être configurée
-      pendant une heure.</p>
-    <div class="feat">
-      <a class="fcard" href="/fonctionnalites/transactions-recus">
-        <span class="fic" style="background:var(--sky-light);color:var(--sky)"><i class="ti ti-receipt"></i></span>
-        <span><b>Transactions &amp; reçus</b><small>Historique fouillable, photo de ticket</small></span>
-      </a>
-      <a class="fcard" href="/fonctionnalites/saisie-langage-naturel">
-        <span class="fic" style="background:var(--tang-light);color:var(--tang)"><i class="ti ti-sparkles"></i></span>
-        <span><b>Saisie en langage naturel</b><small>« 60 € courses hier » — ou dicte au micro</small></span>
-      </a>
-      <a class="fcard" href="/fonctionnalites/objectifs">
-        <span class="fic" style="background:var(--lavi-light);color:var(--lavi)"><i class="ti ti-target"></i></span>
-        <span><b>Objectifs &amp; projets</b><small>Progression lue sur tes comptes réels</small></span>
-      </a>
-      <div class="fcard">
-        <span class="fic" style="background:var(--sage-light);color:var(--sage)"><i class="ti ti-world"></i></span>
-        <span><b>Multi-devises</b><small>Idéal voyageurs &amp; nomades</small></span>
-      </div>
-      <div class="fcard">
-        <span class="fic" style="background:var(--tang-light);color:var(--tang)"><i class="ti ti-users"></i></span>
-        <span><b>Dépenses partagées</b><small>Qui doit quoi, à deux</small></span>
-      </div>
-      <div class="fcard">
-        <span class="fic" style="background:var(--amber-light);color:var(--amber)"><i class="ti ti-chart-pie"></i></span>
-        <span><b>Budgets</b><small>Par catégorie, avec alertes</small></span>
-      </div>
-      <div class="fcard">
-        <span class="fic" style="background:var(--lavi-light);color:var(--lavi)"><i class="ti ti-diamond"></i></span>
-        <span><b>Patrimoine &amp; investissements</b><small>Actifs, crédits, évolution</small></span>
-      </div>
-      <div class="fcard">
-        <span class="fic" style="background:var(--sky-light);color:var(--sky)"><i class="ti ti-building-bank"></i></span>
-        <span><b>Synchronisation bancaire</b><small>Comptes reliés, en temps réel</small></span>
-      </div>
-      <div class="fcard">
-        <span class="fic" style="background:var(--lavi-light);color:var(--lavi)"><i class="ti ti-repeat"></i></span>
-        <span><b>Charges récurrentes</b><small>Loyer, abonnements, crédits</small></span>
-      </div>
-      <div class="fcard">
-        <span class="fic" style="background:var(--sky-light);color:var(--sky)"><i class="ti ti-chart-line"></i></span>
-        <span><b>Rapports &amp; insights</b><small>Ce qui bouge, mois par mois</small></span>
-      </div>
-      <div class="fcard">
-        <span class="fic" style="background:var(--sage-light);color:var(--sage)"><i class="ti ti-shield-lock"></i></span>
-        <span><b>Sécurité</b><small>Chiffré, tes données t'appartiennent</small></span>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ============ POUR QUI ============ -->
-<section class="alt">
-  <div class="wrap">
-    <span class="eyebrow">Pour qui</span>
-    <h2 class="h2 display">Seul, à deux, ou le sac sur le dos.</h2>
-    <p class="lede">PairWise s'adapte à ta situation — et te suit si elle change.</p>
-    <div class="audg">
-      <div class="acard"><i class="ti ti-user ic"></i><b>En solo</b><small>Tes finances perso, sans friction</small></div>
-      <div class="acard"><i class="ti ti-users ic"></i><b>À deux</b><small>Dépenses partagées, budgets communs</small></div>
-      <div class="acard"><i class="ti ti-plane-tilt ic"></i><b>Voyageurs &amp; nomades</b><small>Le multi-devises comme atout</small></div>
-      <div class="acard"><i class="ti ti-world ic"></i><b>Expatriés</b><small>Revenus ici, charges là-bas</small></div>
-    </div>
-  </div>
-</section>
-
-<!-- ============ BANDE CTA ============ -->
-<div class="cta-band">
-  <i class="ti ti-receipt float" style="left:8%; top:26%;"></i>
-  <i class="ti ti-world float" style="right:10%; top:30%;"></i>
-  <i class="ti ti-sparkles float" style="left:14%; bottom:22%;"></i>
-  <i class="ti ti-coin float" style="right:16%; bottom:24%;"></i>
-  <div class="wrap">
-    <span class="eyebrow">Prêt à y voir clair</span>
-    <h2 class="display">Un outil pensé pour reprendre la main sur ton argent.</h2>
-    <a href="https://app.pairwise.finance/" class="btn-primary">C'est parti <i class="ti ti-arrow-right"></i></a>
-    <div class="fineprint">
-      <span><i class="ti ti-lock"></i> Sans compte pour commencer</span>
-      <span><i class="ti ti-device-mobile"></i> Tes données restent sur ton appareil</span>
-      <span><i class="ti ti-sparkles"></i> Gratuit</span>
-    </div>
-  </div>
-</div>
-
-<!-- ============ FOOTER ============ -->
 <footer class="site">
   <div class="wrap cols">
     <div>
@@ -330,66 +177,8 @@
   <div class="wrap copy">© 2026 PairWise · Fait avec soin · Tes données t'appartiennent</div>
 </footer>
 
-<script>
-// Accueil de l'apex — trois comportements, aucun framework.
-//
-// Tout est PROGRESSIF : le formulaire navigue et transmet son texte sans une
-// ligne de JavaScript (action + method=get + name="e"). Ce script n'ajoute que
-// le confort. Si le navigateur ne l'exécute pas, la page reste utilisable.
-(function () {
-  "use strict";
-
-  // 1. Exemples cliquables. Mêmes libellés que src/data/onboardingChips.js, et
-  //    surtout même code couleur par NATURE — sage ce qui entre, corail ce qui
-  //    sort, lavande ce qui est placé. Un exemple qui changerait de couleur
-  //    entre le site et l'app dirait deux choses différentes du même mot.
-  var CHIPS = [
-    { em: "💰", text: "2400€ salaire Juillet", kind: "income" },
-    { em: "🛒", text: "60€ course hier", kind: "expense" },
-    { em: "🍽️", text: "30€ Déjeuner", kind: "expense" },
-    { em: "🏠", text: "800€ Crédit Immo", kind: "expense" },
-    { em: "🔑", text: "400€ Loyer perçu Studio", kind: "income" },
-    { em: "📱", text: "20€ Abonnement Téléphone", kind: "expense" },
-    { em: "📈", text: "ETF 250 €", kind: "investment" },
-    { em: "🛡️", text: "300 € Assurance Vie", kind: "investment" }
-  ];
-
-  var input = document.getElementById("nlinput");
-  var list = document.getElementById("exlist");
-
-  if (list && input) {
-    CHIPS.forEach(function (c) {
-      var b = document.createElement("button");
-      b.type = "button";
-      b.className = "k-" + c.kind;
-      b.textContent = c.em + " " + c.text;
-      // Un clic REMPLIT le champ, il ne valide pas : l'utilisateur voit ce
-      // qu'il s'apprête à envoyer, et peut le corriger avant de partir.
-      b.addEventListener("click", function () {
-        input.value = c.text;
-        input.focus();
-      });
-      list.appendChild(b);
-    });
-  }
-
-  // 2. Exemples défilants dans le champ vide. S'arrête dès que l'utilisateur
-  //    tape : un texte fantôme qui bouge sous une vraie saisie se lit comme un
-  //    bug. Respecte aussi « animations réduites ».
-  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if (input && !reduce) {
-    var i = 0;
-    var timer = setInterval(function () {
-      if (input.value) { clearInterval(timer); return; }
-      i = (i + 1) % CHIPS.length;
-      input.placeholder = CHIPS[i].em + " " + CHIPS[i].text;
-    }, 2600);
-  }
-
-})();
-</script>
-
 <script src="/assets/menu.js" defer></script>
+<script src="/actes/acts.js" defer></script>
 
 </body>
 </html>
