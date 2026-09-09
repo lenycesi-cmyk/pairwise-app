@@ -31,6 +31,28 @@
 
   var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+  /* Longueur d'une bande de transition, en fraction de la hauteur visible.
+     0,8 écran : assez long pour que le mouvement se lise, assez court pour
+     qu'on ne croie pas la page bloquée. En mouvement réduit il n'y a pas de
+     bande du tout — les actes se succèdent net. */
+  var BAND_RATIO = 0.8;
+
+  var veil = document.getElementById("actVeil");
+
+  // La bande appartient à l'acte SORTANT, mais l'effet est déclaré sur
+  // l'entrant (c'est la transition qui l'amène, comme dans le montage
+  // d'origine). Un acte sans suivant n'a pas de bande.
+  function nextOf(act) {
+    var i = acts.indexOf(act);
+    return i >= 0 && i + 1 < acts.length ? acts[i + 1] : null;
+  }
+  function bandOf(act) {
+    if (reduced) return 0;
+    var nxt = nextOf(act);
+    if (!nxt || !nxt.dataset.transition) return 0;
+    return Math.round(window.innerHeight * BAND_RATIO);
+  }
+
   /* Chargement paresseux : les actes 2 à 4 pèsent plusieurs centaines de Ko
      (marionnettes et images en base64). Les charger tous d'entrée ferait payer
      l'acte 5 à quelqu'un qui ne dépasse pas le premier écran. La marge d'un
@@ -39,7 +61,7 @@
     entries.forEach(function (e) {
       if (e.isIntersecting) { mount(e.target); io.unobserve(e.target); }
     });
-  }, { rootMargin: "100% 0px" });
+  }, { rootMargin: "150% 0px" });
 
   acts.forEach(function (act) { io.observe(act); });
 
@@ -151,7 +173,11 @@
     if (act._range === range) return; // rien n'a bougé : pas de reflow inutile
 
     act._range = range;
-    act.style.height = (frame.clientHeight + range) + "px";
+    // La bande de transition prolonge la section APRÈS la fin de la course
+    // interne : l'acte y reste collé sur sa dernière scène pendant que le
+    // suivant se superpose. Sans elle, les deux ne se croiseraient jamais.
+    act._band = bandOf(act);
+    act.style.height = (frame.clientHeight + range + act._band) + "px";
     act.dataset.measured = "1";
     sync();
   }
@@ -167,6 +193,10 @@
 
   function sync() {
     var y = window.scrollY;
+    var veilOpacity = 0;
+    var active = null;
+    var activeT = 0;
+
     for (var i = 0; i < acts.length; i++) {
       var act = acts[i];
       if (!act._range || !act._frame) continue;
@@ -180,8 +210,89 @@
       if (doc.documentElement.scrollTop !== target) {
         doc.documentElement.scrollTop = target;
       }
+
+      // La bande commence là où la course interne s'achève.
+      var band = act._band || 0;
+      if (!band) continue;
+      var t = (y - (start + act._range)) / band;
+      if (t > 0 && t < 1) { active = act; activeT = t; }
+    }
+
+    /* UNE SEULE jonction est active à la fois, et c'est ce qui doit gouverner
+       la remise à zéro. Le même élément est l'ENTRANT d'une jonction et le
+       SORTANT de la suivante : laisser chaque jonction nettoyer ses deux
+       panneaux faisait effacer, par la jonction d'après, l'état que celle
+       d'avant venait de poser — la transition ne se voyait jamais. On remet
+       donc tout à plat une fois, puis on n'applique que la jonction active. */
+    if (active !== lastActive) {
+      resetAll();
+      lastActive = active;
+    }
+    if (active) veilOpacity = transition(active, nextOf(active), activeT);
+
+    if (veil) {
+      veil.style.opacity = veilOpacity;
+      veil.style.display = veilOpacity > 0 ? "block" : "none";
     }
   }
+
+  var lastActive = null;
+
+  function resetAll() {
+    for (var i = 0; i < acts.length; i++) {
+      var pin = acts[i].querySelector(".act__pin");
+      if (!pin) continue;
+      pin.className = "act__pin";
+      pin.style.transform = "";
+      pin.style.opacity = "";
+      pin.style.transformOrigin = "";
+      acts[i].classList.remove("is-flipping");
+    }
+  }
+
+  /* Applique la transition qui amène `incoming` par-dessus `leaving`.
+     `t` va de 0 (rien) à 1 (l'entrant a pris toute la place). Rend
+     l'opacité que le voile noir doit avoir, 0 si la transition n'en use pas. */
+  function transition(leaving, incoming, t) {
+    if (!incoming) return 0;
+    var kind = incoming.dataset.transition;
+    var out = leaving.querySelector(".act__pin");
+    var into = incoming.querySelector(".act__pin");
+    if (!out || !into) return 0;
+
+    into.className = "act__pin is-entering";
+    out.className = "act__pin is-leaving";
+    var e = ease(t);
+
+    if (kind === "slide-up") {
+      into.style.transform = "translate3d(0," + ((1 - e) * 100) + "%,0)";
+      // Le sortant recule un peu : sans ce décalage les deux plans avancent
+      // du même pas et le mouvement paraît plat.
+      out.style.transform = "translate3d(0," + (-e * 18) + "%,0)";
+    } else if (kind === "slide-left") {
+      into.style.transform = "translate3d(" + ((1 - e) * 100) + "%,0,0)";
+      out.style.transform = "translate3d(" + (-e * 18) + "%,0,0)";
+    } else if (kind === "flip-boat") {
+      leaving.classList.add("is-flipping");
+      out.style.transformOrigin = "50% 100%";
+      // La perspective est DANS la transformation : posée en CSS sur l'élément
+      // lui-même, elle ne vaudrait que pour ses enfants et la bascule
+      // resterait plate — un écrasement vertical au lieu d'un basculement.
+      out.style.transform = "perspective(1400px) rotateX(" + (e * 78) + "deg)";
+      out.style.opacity = String(1 - e);
+      into.style.transformOrigin = "50% 0%";
+      into.style.transform = "perspective(1400px) rotateX(" + (-(1 - e) * 78) + "deg)";
+    } else if (kind === "fade-black") {
+      // On plonge dans le noir puis on en ressort : c'est la porte franchie
+      // à la fin de l'acte 4 qui appelle ce fondu.
+      into.style.opacity = t > 0.5 ? "1" : "0";
+      return 1 - Math.abs(2 * t - 1);
+    }
+    return 0;
+  }
+
+  // Même courbe que les transitions d'origine : départ franc, arrivée douce.
+  function ease(t) { return 1 - Math.pow(1 - t, 3); }
 
   var ticking = false;
   function onScroll() {
