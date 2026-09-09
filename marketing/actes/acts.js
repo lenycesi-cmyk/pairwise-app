@@ -64,13 +64,19 @@
     var tries = 0;
     (function poll() {
       var doc = docOf(frame);
-      // On EXIGE que le document soit celui de l'acte. Une iframe fraîchement
-      // insérée en porte d'abord un autre, vide (`about:blank`), le temps que la
-      // navigation démarre — et celui-là a déjà un corps et une hauteur. S'en
-      // contenter, c'est mesurer un document vide (course nulle) et poser ses
-      // adaptations sur un document jeté à l'instant suivant : le style injecté
-      // disparaissait, l'observateur de taille ne se déclenchait plus jamais.
-      if (doc && doc.body && doc.URL === frame.src && doc.documentElement.scrollHeight > 0) {
+      // On écarte le document INITIAL de l'iframe. Fraîchement insérée, elle en
+      // porte un autre, vide (`about:blank`), le temps que la navigation
+      // démarre — et celui-là a déjà un corps et une hauteur. S'en contenter,
+      // c'est mesurer un document vide (course nulle) et poser ses adaptations
+      // sur un document jeté à l'instant suivant : le style injecté disparaît,
+      // l'observateur de taille ne se déclenche plus jamais.
+      //
+      // Le test porte sur `about:blank` et NON sur l'égalité avec `frame.src` :
+      // l'hébergement sert le site en `cleanUrls`, donc une URL en `.html` est
+      // redirigée vers la même sans extension. L'égalité n'était jamais vraie
+      // en production, et rien ne s'appliquait — c'est ce qui laissait l'acte 1
+      // afficher son propre logo par-dessus celui du site.
+      if (doc && doc.body && doc.URL !== "about:blank" && doc.documentElement.scrollHeight > 0) {
         cb();
         return;
       }
