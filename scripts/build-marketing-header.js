@@ -71,8 +71,15 @@ const AUDIENCES = [
 ];
 
 // Les pages à réécrire, et la rubrique à marquer comme courante.
+//
+// `cta: true` ajoute le bouton « C'est parti » à côté de « Connexion ». Il n'est
+// PAS partout : sur les pages de contenu, le bouton vit dans le corps de la page
+// (bande de clôture), où il conclut un argumentaire. La page de présentation,
+// elle, n'a pas de corps à elle — cinq actes en occupent toute la hauteur — donc
+// c'est l'en-tête qui doit porter l'appel à l'action.
 const PAGES = [
-  { file: "index.html", active: null },
+  { file: "index.html", active: null, cta: true },
+  { file: "presentation.html", active: null },
   { file: "securite.html", active: "/securite" },
   { file: "fonctionnalites/objectifs.html", active: "/fonctionnalites/objectifs" },
   { file: "fonctionnalites/saisie-langage-naturel.html", active: "/fonctionnalites/saisie-langage-naturel" },
@@ -113,7 +120,7 @@ function renderMenu(id, label, cols, active) {
   );
 }
 
-function renderHeader(active) {
+function renderHeader(active, cta) {
   // « Fonctionnalités » se colore quand on est SUR une page de fonctionnalité,
   // sinon rien n'indiquerait où l'on se trouve — c'était le cas avant.
   const inFeatures = active && active.startsWith("/fonctionnalites/");
@@ -134,6 +141,9 @@ function renderHeader(active) {
     `      <a href="/securite"${secCur}>Sécurité</a>\n` +
     `    </nav>\n` +
     `    <a href="https://app.pairwise.finance/" class="login">Connexion</a>\n` +
+    (cta
+      ? `    <a href="https://app.pairwise.finance/" class="hcta">C'est parti <i class="ti ti-arrow-right"></i></a>\n`
+      : "") +
     `  </div>\n` +
     `</header>`
   );
@@ -141,10 +151,10 @@ function renderHeader(active) {
 
 const MENU_SCRIPT = '<script src="/assets/menu.js" defer></script>';
 
-function apply(html, active) {
+function apply(html, active, cta) {
   let out = html.replace(
     /<header class="site">[\s\S]*?<\/header>/,
-    () => renderHeader(active)
+    () => renderHeader(active, cta)
   );
   // Le script partagé doit être présent une fois et une seule.
   if (!out.includes('src="/assets/menu.js"')) {
@@ -165,7 +175,7 @@ for (const page of PAGES) {
     process.exitCode = 1;
     continue;
   }
-  const after = apply(before, page.active);
+  const after = apply(before, page.active, page.cta);
   if (after === before) continue;
   if (check) {
     drift.push(page.file);

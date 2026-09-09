@@ -69,6 +69,19 @@ header.site nav a { text-decoration: none; color: var(--ink-2); font-weight: 600
 header.site nav a:hover { color: var(--ink); }
 header.site nav a.active { color: var(--tang); }
 header.site .login { margin-left: auto; text-decoration: none; color: var(--ink); font-weight: 700; font-size: 14.5px; }
+
+/* Bouton « C'est parti » dans l'en-tête — posé par scripts/build-marketing-header.js
+   sur les seules pages qui n'ont pas de bande de clôture dans leur corps (voir
+   `cta` dans PAGES). `.login` garde le `margin-left:auto` qui pousse le groupe à
+   droite ; le bouton se contente de le suivre. */
+header.site .hcta {
+  margin-left: 18px; text-decoration: none;
+  display: inline-flex; align-items: center; gap: 7px;
+  background: var(--tang); color: #fff; font-weight: 700; font-size: 14.5px;
+  padding: 9px 18px; border-radius: 999px; white-space: nowrap;
+}
+header.site .hcta:hover { background: #d85a34; }
+@media (max-width: 560px) { header.site .hcta { display: none; } }
 @media (max-width: 860px) { header.site nav { display: none; } }
 
 /* ============ Breadcrumb ============ */

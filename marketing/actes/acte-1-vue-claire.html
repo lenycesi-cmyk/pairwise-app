@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PairWise — Acte 1 : Du chaos à la vue claire</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700&display=swap" rel="stylesheet">
+<style>
+
+  :root {
+    --ink: #2b2621;
+    --ink-soft: #6e665d;
+    --paper: #fbf7f1;
+    --paper-warm: #f4ede3;
+    --paper-sage: #f6f0e7;
+    --serene: #7fa98a;
+    --serene-light: #a7c6b1;
+    --amber: #e0952e;
+    --sky: #6aa0cc;
+    --violet: #9c8fc6;
+    --tang: #e9673f; --sage: #7fa98a; --good: #4fa07c; --red: #d9553f;
+    --card: #ffffff;
+    --shadow: rgba(26,26,24,0.06);
+    --shadow-strong: rgba(26,26,24,0.14);
+    --font-display: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-body: 'Nunito Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-mono: 'Nunito Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: var(--font-body); background: var(--paper); color: var(--ink);
+    overflow-x: hidden; -webkit-font-smoothing: antialiased;
+  }
+
+  /* ============ NAV ============ */
+  .nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 40px;
+    background: linear-gradient(to bottom, var(--paper) 60%, transparent);
+    transition: background .4s ease;
+  }
+  .nav__logo {
+    display: flex; align-items: center; gap: 10px;
+    font-family: var(--font-display); font-weight: 600; font-size: 20px; letter-spacing: -0.02em;
+  }
+  .nav__mark {
+    width: 30px; height: 30px; border-radius: 9px; background: var(--serene);
+    display: grid; place-items: center; color: var(--paper); font-size: 16px;
+    box-shadow: 0 3px 10px var(--shadow);
+  }
+  .nav__cta {
+    font-size: 14px; font-weight: 600; color: #fff; background: var(--tang);
+    padding: 10px 20px; border-radius: 999px; text-decoration: none;
+    transition: transform .2s ease, background .2s ease;
+  }
+  .nav__cta:hover { transform: translateY(-1px); background: #d85a34; }
+
+  /* ============ SCÈNE ÉPINGLÉE UNIQUE ============ */
+  /* Toute la narration (hero → transition → multi-devises) se joue ici,
+     dans une seule zone sticky. La hauteur = la "durée" de scroll totale. */
+  .scene { position: relative; height: 760vh; }
+  .scene__pin {
+    position: sticky; top: 0; height: 100vh; overflow: hidden;
+    display: grid; place-items: center;
+  }
+  /* Calque de fond sauge qui balaye depuis la droite */
+  .scene__bg {
+    position: absolute; inset: 0; background: var(--paper-sage);
+    transform: translateX(100%); will-change: transform; z-index: 0;
+  }
+  .stage {
+    position: relative; width: min(1100px, 92vw); height: 100vh;
+    display: grid; place-items: center; z-index: 1;
+  }
+
+  /* ---- Hero : titre ---- */
+  .hero__copy {
+    position: absolute; text-align: center; z-index: 20; max-width: 720px;
+    padding: 0 20px; pointer-events: none; will-change: transform, opacity;
+  }
+  .hero__eyebrow {
+    font-family: var(--font-mono); font-size: 13px; letter-spacing: 0.15em;
+    text-transform: uppercase; color: var(--tang); margin-bottom: 20px;
+  }
+  .hero__title {
+    font-family: var(--font-display); font-weight: 500;
+    font-size: clamp(2.2rem, 5.5vw, 4.2rem); line-height: 1.05;
+    letter-spacing: -0.025em; color: var(--ink); margin-bottom: 22px;
+  }
+  .hero__title em { font-style: italic; color: var(--tang); }
+  .hero__sub {
+    font-size: clamp(1rem, 1.6vw, 1.2rem); color: var(--ink-soft);
+    line-height: 1.5; max-width: 480px; margin: 0 auto;
+  }
+
+  /* ---- Fragments flottants ---- */
+  .fragment {
+    position: absolute; background: var(--card); border-radius: 14px; padding: 12px 16px;
+    box-shadow: 0 8px 24px var(--shadow); display: flex; align-items: center; gap: 10px;
+    white-space: nowrap; font-size: 14px; font-weight: 500; will-change: transform, opacity; z-index: 10;
+  }
+  .fragment__flag {
+    width: 24px; height: 24px; border-radius: 7px; display: grid; place-items: center;
+    font-size: 12px; font-weight: 600; color: #fff; flex-shrink: 0;
+  }
+  .fragment__amount { font-variant-numeric: tabular-nums; color: var(--ink); }
+  .fragment__label { color: var(--ink-soft); font-size: 12px; font-weight: 400; }
+  .flag--eur { background: var(--sky); }
+  .flag--usd { background: var(--serene); }
+  .flag--thb { background: var(--amber); }
+  .flag--gbp { background: var(--violet); }
+
+  /* ---- Panneau ordonné ---- */
+  .ordered-panel {
+    position: absolute; width: min(420px, 88vw); background: var(--card); border-radius: 22px;
+    padding: 10px; box-shadow: 0 30px 70px var(--shadow-strong); opacity: 0; z-index: 15;
+    will-change: transform, opacity;
+  }
+  .ordered-panel__head {
+    display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 12px;
+  }
+  .ordered-panel__title { font-family: var(--font-display); font-weight: 600; font-size: 15px; }
+  .ordered-panel__badge {
+    font-family: var(--font-mono); font-size: 11px; color: var(--serene);
+    background: rgba(46, 93, 90, 0.10); padding: 4px 9px; border-radius: 999px;
+  }
+  .row {
+    display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: 12px;
+    opacity: 0; will-change: transform, opacity;
+  }
+  .row:hover { background: var(--paper); }
+  .row__icon { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; font-size: 15px; flex-shrink: 0; }
+  .row__body { flex: 1; min-width: 0; }
+  .row__name { font-size: 14px; font-weight: 500; color: var(--ink); }
+  .row__cat { font-size: 12px; color: var(--ink-soft); }
+  .row__amt { font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+  .row__amt--pos { color: var(--serene); }
+  .ic--food { background: #fbeede; }
+  .ic--transport { background: #dfeaf3; }
+  .ic--salary { background: #dcece9; }
+  .ic--home { background: #ece7f0; }
+  .ic--dining { background: #f6e2d8; }
+
+  .fly-row {
+    position: absolute; width: min(400px, 84vw); background: var(--card); border-radius: 12px;
+    padding: 11px 14px; display: flex; align-items: center; gap: 12px;
+    box-shadow: 0 20px 50px var(--shadow-strong); opacity: 0; z-index: 30;
+    will-change: transform, opacity; pointer-events: none;
+  }
+  .fly-row .row__amt { color: var(--ink); }
+  .validate-badge {
+    position: absolute; width: 26px; height: 26px; border-radius: 999px;
+    background: var(--serene); color: #fff; display: grid; place-items: center;
+    font-size: 14px; opacity: 0; z-index: 31; will-change: transform, opacity;
+    box-shadow: 0 4px 14px rgba(46,93,90,0.4);
+  }
+
+  .input-bar {
+    position: absolute; bottom: 12%; width: min(460px, 86vw); background: var(--card);
+    border-radius: 999px; padding: 6px 6px 6px 22px; display: flex; align-items: center;
+    gap: 12px; box-shadow: 0 16px 40px var(--shadow-strong); opacity: 0; z-index: 25;
+    will-change: transform, opacity;
+  }
+  .input-bar__text { flex: 1; font-size: 15px; color: var(--ink); font-family: var(--font-mono); white-space: nowrap; overflow: hidden; }
+  .input-bar__cursor {
+    display: inline-block; width: 2px; height: 18px; background: var(--serene);
+    vertical-align: middle; margin-left: 1px; animation: blink 1s steps(1) infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+  .input-bar__btn {
+    width: 42px; height: 42px; border-radius: 999px; background: var(--serene); color: #fff;
+    display: grid; place-items: center; flex-shrink: 0; font-size: 18px;
+  }
+  .input-bar__hint {
+    position: absolute; bottom: calc(12% - 34px); font-size: 12px; color: var(--ink-soft);
+    opacity: 0; z-index: 25; font-family: var(--font-mono); letter-spacing: 0.03em;
+  }
+
+
+
+  .ic--invest { background: #dfeaf3; }
+  .row__amt--inv { color: var(--violet); }
+
+  /* ================= VUE CLAIRE ================= */
+  .insights {
+    position: absolute; width: min(470px, 92vw);
+    background: var(--card); border-radius: 24px; padding: 24px 26px 20px;
+    box-shadow: 0 30px 70px var(--shadow-strong);
+    opacity: 0; z-index: 14; will-change: transform, opacity;
+  }
+  .insights__head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 3px; }
+  .insights__title { font-family: var(--font-display); font-weight: 600; font-size: 17px; }
+  .insights__period { font-family: var(--font-mono); font-size: 11px; color: var(--ink-soft); }
+  .insights__sub { font-size: 12.5px; color: var(--ink-soft); margin-bottom: 20px; }
+
+  .bars { display: flex; align-items: flex-end; justify-content: space-around; gap: 14px;
+          height: 165px; border-bottom: 1.5px solid rgba(26,26,24,0.12); }
+  .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 8px; }
+  .bar { width: 100%; max-width: 62px; border-radius: 9px 9px 0 0; height: 0; position: relative; will-change: height; }
+  .bar__val { position: absolute; top: -21px; left: -14px; right: -14px; text-align: center;
+              font-family: var(--font-mono); font-size: 11.5px; font-weight: 500;
+              font-variant-numeric: tabular-nums; opacity: 0; white-space: nowrap; }
+  .bar-col__lbl { font-size: 12px; font-weight: 500; color: var(--ink-soft); }
+  .bar--in  { background: linear-gradient(to top, var(--serene), var(--serene-light)); }
+  .bar--out { background: linear-gradient(to top, var(--tang), #f0a186); }
+  .bar--inv { background: linear-gradient(to top, var(--violet), #b6acd8); }
+
+  .donut-wrap { display: flex; align-items: center; gap: 16px; margin-top: 22px; }
+  .donut { flex-shrink: 0; }
+  .donut__seg { fill: none; stroke-width: 20; transform-origin: 55px 55px; }
+  .donut__center { font-family: var(--font-display); font-weight: 600; font-size: 13.5px; fill: var(--ink); }
+  .donut__center-lbl { font-family: var(--font-mono); font-size: 7.5px; fill: var(--ink-soft); letter-spacing: 0.08em; }
+  .legend { display: flex; flex-direction: column; gap: 7px; flex: 1; }
+  .legend__item { display: flex; align-items: center; gap: 8px; font-size: 12.5px; opacity: 0; will-change: transform, opacity; }
+  .legend__dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+  .legend__name { color: var(--ink-soft); }
+  .legend__pct { margin-left: auto; font-family: var(--font-mono); font-size: 11px; font-variant-numeric: tabular-nums; }
+
+  .insights__note { margin-top: 18px; text-align: center; font-size: 13px; color: var(--ink-soft); opacity: 0; }
+  .insights__note em { font-style: italic; color: var(--tang); }
+
+  /* Jeton qui glisse d une transaction vers sa barre */
+  .ghost {
+    position: absolute; top: 0; left: 0;
+    display: flex; align-items: center; gap: 7px;
+    background: var(--card); border-radius: 999px; padding: 6px 12px 6px 7px;
+    box-shadow: 0 10px 26px var(--shadow-strong);
+    font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums;
+    white-space: nowrap; opacity: 0; z-index: 26; pointer-events: none;
+    will-change: transform, opacity;
+  }
+  .ghost i { width: 22px; height: 22px; border-radius: 7px; display: grid; place-items: center; font-size: 12px; font-style: normal; }
+
+  .end-note {
+    min-height: 55vh; display: grid; place-items: center; text-align: center;
+    padding: 40px; color: var(--ink-soft); font-size: 14px; font-family: var(--font-mono);
+    background: var(--paper);
+  }
+
+</style>
+</head>
+<body>
+
+<nav class="nav" id="nav">
+  <div class="nav__logo"><span class="nav__mark">P</span>PairWise</div>
+  <a href="#" class="nav__cta">C'est parti</a>
+</nav>
+
+<div class="proto-tag">prototype - acte 1</div>
+
+<section class="scene" id="scene">
+  <div class="scene__pin">
+    <div class="scene__bg" id="sceneBg"></div>
+    <div class="stage" id="stage">
+
+      <div class="hero__copy" id="heroCopy">
+        <div class="hero__eyebrow" style="display:none"></div>
+        <h1 class="hero__title">Toute ta vie financière.<br><em>Enfin réunie.</em></h1>
+        <p class="hero__sub">Dépenses, revenus, budgets, investissements et patrimoine dans toutes tes devises, rassemblés au même endroit pour une vision claire de ton argent.</p>
+      </div>
+
+      <div class="fragment" data-frag data-x="-320" data-y="-180" data-rot="-8"><span class="fragment__flag flag--eur">€</span><span><span class="fragment__amount">90,00 €</span> <span class="fragment__label">courses</span></span></div>
+      <div class="fragment" data-frag data-x="300" data-y="-150" data-rot="6"><span class="fragment__flag flag--usd">$</span><span><span class="fragment__amount">2 600 $</span> <span class="fragment__label">salaire</span></span></div>
+      <div class="fragment" data-frag data-x="-360" data-y="90" data-rot="5"><span class="fragment__flag flag--thb">฿</span><span><span class="fragment__amount">1 500 ฿</span> <span class="fragment__label">resto</span></span></div>
+      <div class="fragment" data-frag data-x="330" data-y="140" data-rot="-7"><span class="fragment__flag flag--gbp">£</span><span><span class="fragment__amount">45,00 £</span> <span class="fragment__label">taxi</span></span></div>
+      <div class="fragment" data-frag data-x="-180" data-y="-260" data-rot="9"><span class="fragment__flag flag--eur">€</span><span><span class="fragment__amount">80,00 €</span> <span class="fragment__label">essence</span></span></div>
+      <div class="fragment" data-frag data-x="200" data-y="250" data-rot="-5"><span class="fragment__flag flag--eur">€</span><span><span class="fragment__amount">300 €</span> <span class="fragment__label">assurance vie</span></span></div>
+
+      <div class="ordered-panel" id="orderedPanel">
+        <div class="ordered-panel__head"><span class="ordered-panel__title">Ce mois-ci</span><span class="ordered-panel__badge">rangé pour toi</span></div>
+        <div class="row" id="newRow" data-newrow data-target="out" data-step="11" data-ico="🍽️" data-cls="ic--dining" data-amt="75,00 €">
+          <span class="row__icon ic--dining">🍽️</span>
+          <span class="row__body"><div class="row__name">Restaurant</div><div class="row__cat">Sorties · hier</div></span>
+          <span class="row__amt">− 75,00 €</span>
+        </div>
+        <div class="row" data-row data-target="out" data-step="13" data-ico="🍎" data-cls="ic--food" data-amt="90,00 €"><span class="row__icon ic--food">🍎</span><span class="row__body"><div class="row__name">Courses</div><div class="row__cat">Alimentation · aujourd'hui</div></span><span class="row__amt">− 90,00 €</span></div>
+        <div class="row" data-row data-target="out" data-step="12" data-ico="⛽" data-cls="ic--transport" data-amt="80,00 €"><span class="row__icon ic--transport">⛽</span><span class="row__body"><div class="row__name">Essence</div><div class="row__cat">Transport · samedi</div></span><span class="row__amt">− 80,00 €</span></div>
+        <div class="row" data-row data-target="in" data-step="90" data-ico="💼" data-cls="ic--salary" data-amt="+2 600 $"><span class="row__icon ic--salary">💼</span><span class="row__body"><div class="row__name">Salaire</div><div class="row__cat">Revenu · le 1er</div></span><span class="row__amt row__amt--pos">+2 600 $</span></div>
+        <div class="row" data-row data-target="inv" data-step="35" data-ico="📈" data-cls="ic--invest" data-amt="300 €"><span class="row__icon ic--invest">📈</span><span class="row__body"><div class="row__name">Assurance vie</div><div class="row__cat">Investissement · mensuel</div></span><span class="row__amt row__amt--inv">− 300 €</span></div>
+        <div class="row" data-row data-target="out" data-step="29" data-ico="🏠" data-cls="ic--home" data-amt="900 €"><span class="row__icon ic--home">🏠</span><span class="row__body"><div class="row__name">Loyer</div><div class="row__cat">Charges · récurrent</div></span><span class="row__amt">− 900 €</span></div>
+      </div>
+
+      <div class="input-bar" id="inputBar"><span class="input-bar__text" id="inputText"></span><span class="input-bar__cursor" id="cursor"></span><span class="input-bar__btn">↵</span></div>
+      <div class="input-bar__hint" id="inputHint">écris comme tu parles — PairWise s'occupe du reste</div>
+      <div class="fly-row" id="flyRow"><span class="row__icon ic--dining">🍽️</span><span class="row__body"><div class="row__name">Restaurant</div><div class="row__cat">Sorties · hier</div></span><span class="row__amt">− 75,00 €</span></div>
+      <div class="validate-badge" id="validateBadge">✓</div>
+
+      <!-- ============ VUE CLAIRE ============ -->
+      <div class="insights" id="insights">
+        <div class="insights__head">
+          <span class="insights__title">Comprends où va ton argent.</span>
+          <span class="insights__period">Ce mois-ci</span>
+        </div>
+        <div class="insights__sub">Chaque transaction alimente ta synthèse.</div>
+
+        <div class="bars">
+          <div class="bar-col">
+            <div class="bar bar--in" id="barIn"><span class="bar__val" id="valIn">2 392 €</span></div>
+            <span class="bar-col__lbl">Revenus</span>
+          </div>
+          <div class="bar-col">
+            <div class="bar bar--out" id="barOut"><span class="bar__val" id="valOut">1 145 €</span></div>
+            <span class="bar-col__lbl">Dépenses</span>
+          </div>
+          <div class="bar-col">
+            <div class="bar bar--inv" id="barInv"><span class="bar__val" id="valInv">300 €</span></div>
+            <span class="bar-col__lbl">Investi</span>
+          </div>
+        </div>
+
+        <div class="donut-wrap">
+          <svg class="donut" width="110" height="110" viewBox="0 0 110 110" aria-hidden="true">
+            <circle cx="55" cy="55" r="45" fill="none" stroke="var(--paper-warm)" stroke-width="20"/>
+            <circle class="donut__seg" data-seg cx="55" cy="55" r="45" stroke="#6aa0cc"/>
+            <circle class="donut__seg" data-seg cx="55" cy="55" r="45" stroke="#e0952e"/>
+            <circle class="donut__seg" data-seg cx="55" cy="55" r="45" stroke="#6d5170"/>
+            <circle class="donut__seg" data-seg cx="55" cy="55" r="45" stroke="#a9743f"/>
+            <text class="donut__center" x="55" y="54" text-anchor="middle" id="donutTotal">0 €</text>
+            <text class="donut__center-lbl" x="55" y="67" text-anchor="middle">DÉPENSES</text>
+          </svg>
+          <div class="legend" id="legend">
+            <div class="legend__item" data-leg><span class="legend__dot" style="background:#6aa0cc"></span><span class="legend__name">Logement</span><span class="legend__pct">79 %</span></div>
+            <div class="legend__item" data-leg><span class="legend__dot" style="background:#e0952e"></span><span class="legend__name">Alimentation</span><span class="legend__pct">8 %</span></div>
+            <div class="legend__item" data-leg><span class="legend__dot" style="background:#6d5170"></span><span class="legend__name">Transport</span><span class="legend__pct">7 %</span></div>
+            <div class="legend__item" data-leg><span class="legend__dot" style="background:#a9743f"></span><span class="legend__name">Sorties</span><span class="legend__pct">6 %</span></div>
+          </div>
+        </div>
+
+        <div class="insights__note" id="insightsNote">Pas juste des chiffres. <em>Une vision.</em></div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<div class="scroll-cue" id="scrollCue"><span>défile</span><div class="scroll-cue__mouse"><div class="scroll-cue__wheel"></div></div></div>
+
+<div class="end-note" style="display:none">— fin —</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script>
+  gsap.registerPlugin(ScrollTrigger);
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const frags = gsap.utils.toArray('[data-frag]');
+  frags.forEach(f => gsap.set(f, { x: parseFloat(f.dataset.x), y: parseFloat(f.dataset.y), rotation: parseFloat(f.dataset.rot) }));
+  const rows = gsap.utils.toArray('[data-row]');
+  const allRows = gsap.utils.toArray('#orderedPanel .row');   // dans l ordre d affichage
+  const segs = gsap.utils.toArray('[data-seg]');
+  const legs = gsap.utils.toArray('[data-leg]');
+
+  const SHARES = [79, 8, 7, 6];              // Logement, Alimentation, Transport, Sorties
+  const C = 2 * Math.PI * 45;
+  const BARS = { in: document.getElementById('barIn'), out: document.getElementById('barOut'), inv: document.getElementById('barInv') };
+  const VALS = { in: document.getElementById('valIn'), out: document.getElementById('valOut'), inv: document.getElementById('valInv') };
+  // Decalages lateraux pendant la phase de remplissage
+  const LIST_X = -268, INS_X = 262;
+
+  segs.forEach((s, i) => {
+    let acc = SHARES.slice(0, i).reduce((a, b) => a + b, 0);
+    s.setAttribute('stroke-dasharray', '0 ' + C);
+    s.style.transform = 'rotate(' + (-90 + acc * 3.6) + 'deg)';
+  });
+
+  if (reduce) {
+    gsap.set(frags, { opacity: 0 });
+    gsap.set('#heroCopy', { opacity: 0 });
+    gsap.set(['#orderedPanel', '#inputBar'], { opacity: 0 });
+    gsap.set('#insights', { opacity: 1, position: 'relative' });
+    BARS.in.style.height = '90%'; BARS.out.style.height = '65%'; BARS.inv.style.height = '35%';
+    Object.values(VALS).forEach(v => v.style.opacity = 1);
+    segs.forEach((s, i) => s.setAttribute('stroke-dasharray', (SHARES[i] / 100 * C) + ' ' + C));
+    gsap.set(legs, { opacity: 1 });
+    document.getElementById('donutTotal').textContent = '1 145 €';
+    gsap.set('#insightsNote', { opacity: 1 });
+    document.getElementById('scrollCue').style.opacity = '0';
+  } else {
+
+    frags.forEach((f, i) => gsap.to(f, { y: '+=' + (12 + (i % 3) * 6), duration: 2.4 + (i % 4) * 0.3, repeat: -1, yoyo: true, ease: 'sine.inOut', delay: i * 0.15 }));
+    if (window.matchMedia('(hover: hover)').matches) {
+      window.addEventListener('mousemove', (e) => {
+        const cx = (e.clientX / window.innerWidth - 0.5), cy = (e.clientY / window.innerHeight - 0.5);
+        frags.forEach((f, i) => { const d = 8 + (i % 3) * 6; gsap.to(f, { xPercent: cx * d * 0.4, yPercent: cy * d * 0.4, duration: 0.8, ease: 'power2.out', overwrite: 'auto' }); });
+      });
+    }
+
+    gsap.set(rows, { x: -30 });
+    gsap.set('#newRow', { opacity: 0, height: 0, paddingTop: 0, paddingBottom: 0, overflow: 'hidden', x: 0 });
+    gsap.set('#insights', { y: 28, scale: 0.97, x: INS_X });
+    gsap.set(legs, { x: 12 });
+
+    const master = gsap.timeline({
+      scrollTrigger: { trigger: '#scene', start: 'top top', end: 'bottom bottom', scrub: 1 }
+    });
+
+    /* ---- 1. Du chaos a l ordre ---- */
+    master.to('#heroCopy', { opacity: 0, y: -40, duration: 0.8, ease: 'power2.in' }, 0.3);
+    master.to(frags, { x: 0, y: 0, rotation: 0, scale: 0.6, opacity: 0, duration: 1.2, ease: 'power3.inOut', stagger: 0.04 }, 0.5);
+    master.fromTo('#orderedPanel', { opacity: 0, scale: 0.92, y: 30 }, { opacity: 1, scale: 1, y: 0, duration: 0.9, ease: 'power2.out' }, 1.2);
+    master.to(rows, { opacity: 1, x: 0, duration: 0.7, ease: 'power2.out', stagger: 0.16 }, 1.5);
+
+    /* ---- 2. Saisie en langage naturel ---- */
+    master.fromTo('#inputBar', { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out' }, 2.4);
+    master.to('#inputHint', { opacity: 1, duration: 0.5 }, 2.7);
+    const phrase = 'sortie resto hier 75€';
+    const textEl = document.getElementById('inputText');
+    master.to({ n: 0 }, { n: phrase.length, duration: 1.2, ease: 'none', onUpdate: function () { textEl.textContent = phrase.slice(0, Math.round(this.targets()[0].n)); } }, 2.9);
+
+    /* ---- 3. Rangement de la nouvelle depense ---- */
+    master.set('#flyRow', { opacity: 0, onComplete: () => positionFlyStart() }, 4.2);
+    master.to('#flyRow', { opacity: 1, duration: 0.25, ease: 'power2.out' }, 4.25);
+    master.fromTo('#flyRow', { scale: 0.9 }, { scale: 1, duration: 0.3, ease: 'back.out(2)' }, 4.25);
+    master.to('#flyRow', { duration: 0.8, ease: 'power3.inOut', onStart: () => moveFlyToSlot() }, 4.6);
+    master.to('#newRow', { height: 'auto', paddingTop: 11, paddingBottom: 11, opacity: 1, duration: 0.5, ease: 'power2.out' }, 5.3);
+    master.to('#flyRow', { opacity: 0, duration: 0.25 }, 5.4);
+    master.to('#newRow', { duration: 0.5, onStart: () => flashNewRow() }, 5.55);
+    master.set('#validateBadge', { onComplete: () => positionBadge() }, 5.6);
+    master.fromTo('#validateBadge', { opacity: 0, scale: 0 }, { opacity: 1, scale: 1, duration: 0.4, ease: 'back.out(2.5)' }, 5.65);
+    master.to('#validateBadge', { opacity: 0, scale: 0.8, duration: 0.35, ease: 'power2.in' }, 6.3);
+
+    /* ---- 4. La liste se decale, les graphiques apparaissent ---- */
+    const VIZ = 6.8;
+    master.to('#orderedPanel', { x: LIST_X, scale: 0.9, duration: 0.85, ease: 'power2.inOut' }, VIZ);
+    master.to(['#inputBar', '#inputHint'], { opacity: 0, y: 30, duration: 0.5, ease: 'power2.in' }, VIZ);
+    master.to('#insights', { opacity: 1, y: 0, scale: 1, duration: 0.8, ease: 'power2.out' }, VIZ + 0.35);
+
+    /* ---- 5. Chaque transaction glisse dans sa barre ---- */
+    const FLY_START = VIZ + 1.25, FLY_GAP = 0.34, FLY_DUR = 0.5;
+    const cum = { in: 0, out: 0, inv: 0 };
+    allRows.forEach((row, i) => {
+      const key = row.dataset.target;
+      const step = parseFloat(row.dataset.step);
+      cum[key] += step;
+      const height = cum[key];
+      const at = FLY_START + i * FLY_GAP;
+
+      // Jeton cree a la volee
+      const g = document.createElement('div');
+      g.className = 'ghost';
+      g.innerHTML = '<i class="' + row.dataset.cls + '">' + row.dataset.ico + '</i>' + row.dataset.amt;
+      document.getElementById('stage').appendChild(g);
+      row._ghost = g;
+
+      master.to(g, { opacity: 1, duration: 0.16, ease: 'power2.out', onStart: () => placeGhost(row, g) }, at);
+      master.to(g, { duration: FLY_DUR, ease: 'power2.inOut', onStart: () => sendGhost(row, g) }, at + 0.1);
+      master.to(g, { opacity: 0, scale: 0.5, duration: 0.2, ease: 'power2.in' }, at + FLY_DUR - 0.05);
+      // la barre grimpe a l arrivee du jeton
+      master.to(BARS[key], { height: height + '%', duration: 0.4, ease: 'back.out(1.3)' }, at + FLY_DUR);
+      // la ligne correspondante s eteint dans la liste
+      master.to(row, { opacity: 0.28, duration: 0.3 }, at + FLY_DUR);
+    });
+
+    const FLY_END = FLY_START + allRows.length * FLY_GAP + FLY_DUR;
+    ['in', 'out', 'inv'].forEach((k, i) => master.to(VALS[k], { opacity: 1, duration: 0.3 }, FLY_END + 0.1 + i * 0.1));
+
+    /* ---- 6. Le camembert se remplit ---- */
+    const PIE = FLY_END + 0.55;
+    segs.forEach((s, i) => {
+      const target = SHARES[i] / 100 * C;
+      master.to({ v: 0 }, {
+        v: target, duration: 0.5, ease: 'power2.out',
+        onUpdate: function () { s.setAttribute('stroke-dasharray', this.targets()[0].v + ' ' + C); }
+      }, PIE + i * 0.16);
+      master.to(legs[i], { opacity: 1, x: 0, duration: 0.32, ease: 'power2.out' }, PIE + 0.04 + i * 0.16);
+    });
+    master.to({ v: 0 }, {
+      v: 1145, duration: 0.7, ease: 'power1.out',
+      onUpdate: function () { document.getElementById('donutTotal').textContent = Math.round(this.targets()[0].v).toLocaleString('fr-FR') + ' €'; }
+    }, PIE + 0.1);
+
+    /* ---- 7. La liste s efface, les graphiques prennent toute la place ---- */
+    const SOLO = PIE + 1.35;
+    master.to('#orderedPanel', { opacity: 0, x: LIST_X - 90, duration: 0.7, ease: 'power2.in' }, SOLO);
+    master.to('#insights', { x: 0, scale: 1.2, duration: 0.9, ease: 'power2.inOut' }, SOLO + 0.1);
+    master.to('#insightsNote', { opacity: 1, duration: 0.6, ease: 'power2.out' }, SOLO + 0.9);
+
+    /* ---- Indicateur de scroll ---- */
+    ScrollTrigger.create({
+      trigger: '#scene', start: 'top top+=40',
+      onEnter: () => gsap.to('#scrollCue', { opacity: 0, duration: 0.3 }),
+      onLeaveBack: () => gsap.to('#scrollCue', { opacity: 1, duration: 0.3 }),
+    });
+
+    /* ---- Helpers ---- */
+    const stageEl = document.getElementById('stage');
+    const flyRow = document.getElementById('flyRow');
+    const inputBar = document.getElementById('inputBar');
+    const newRow = document.getElementById('newRow');
+    const badge = document.getElementById('validateBadge');
+    function centerOffset(el) {
+      const s = stageEl.getBoundingClientRect(), r = el.getBoundingClientRect();
+      return { x: (r.left + r.width / 2) - (s.left + s.width / 2), y: (r.top + r.height / 2) - (s.top + s.height / 2) };
+    }
+    function positionFlyStart() { const o = centerOffset(inputBar); gsap.set(flyRow, { x: o.x, y: o.y }); }
+    function moveFlyToSlot() { const o = centerOffset(newRow); gsap.to(flyRow, { x: o.x, y: o.y, duration: 0.8, ease: 'power3.inOut' }); }
+    function flashNewRow() { gsap.fromTo(newRow, { backgroundColor: 'rgba(46,93,90,0.18)' }, { backgroundColor: 'rgba(46,93,90,0)', duration: 0.9, ease: 'power2.out' }); }
+    function positionBadge() { const s = stageEl.getBoundingClientRect(), r = newRow.getBoundingClientRect(); gsap.set(badge, { x: (r.right - 14) - (s.left + s.width / 2), y: (r.top + r.height / 2) - (s.top + s.height / 2) }); }
+
+    // Place le jeton sur sa ligne, puis l envoie vers le pied de sa barre
+    function placeGhost(row, g) {
+      const s = stageEl.getBoundingClientRect(), r = row.getBoundingClientRect(), gr = g.getBoundingClientRect();
+      gsap.set(g, {
+        x: (r.left - s.left) + r.width * 0.32 - gr.width / 2,
+        y: (r.top - s.top) + r.height / 2 - gr.height / 2,
+        scale: 1
+      });
+    }
+    function sendGhost(row, g) {
+      const s = stageEl.getBoundingClientRect(), gr = g.getBoundingClientRect();
+      const b = BARS[row.dataset.target].getBoundingClientRect();
+      gsap.to(g, {
+        x: (b.left - s.left) + b.width / 2 - gr.width / 2,
+        y: (b.bottom - s.top) - gr.height / 2 - 10,
+        duration: 0.5, ease: 'power2.inOut'
+      });
+    }
+  }
+
+  ScrollTrigger.create({
+    start: 'top -80',
+    onUpdate: self => {
+      const nav = document.getElementById('nav');
+      if (self.scroll() > 80) { nav.style.background = 'rgba(243,240,233,0.9)'; nav.style.backdropFilter = 'blur(8px)'; }
+      else { nav.style.background = ''; nav.style.backdropFilter = ''; }
+    }
+  });
+</script>
+</body>
+</html>
