@@ -28,7 +28,7 @@
   // Reperer d'un coup d'oeil, dans la console, si le navigateur execute bien
   // la derniere version : un pilote perime et une page a jour donnent des
   // symptomes trompeurs (deux actes empiles, barres de defilement en trop).
-  var VERSION = "actes-6";
+  var VERSION = "actes-7";
   if (window.console) console.info("PairWise " + VERSION);
 
   /* Hauteur de l'en-tête. Elle ÉTAIT écrite en dur à 64, la valeur de
@@ -224,6 +224,11 @@
       var st = doc.createElement("style");
       st.textContent =
         "#widgets{transform-origin:50% 0}" +
+        /* Les marionnettes reculent d'un cran. `zoom` et non `transform` :
+           GSAP anime la transformation de chaque os pour faire marcher les
+           personnages, et une transformation posee sur le groupe serait
+           ecrasee des la premiere image. */
+        ".puppet{zoom:.9}" +
         "#widgets .sum{width:min(360px,88vw);padding:22px 24px}" +
         "#widgets .sum__patri{font-size:24px}" +
         "#widgets .sum__v{font-size:21px}";
@@ -271,23 +276,28 @@
     var bar = doc.getElementById("couplebar");
     if (!w || !bar) return;
 
-    /* Reference du bas : le haut des marionnettes. On mesure `.walker` et non
-       `.puppet` — le dessin deborde de sa boite, si bien que les tetes
-       passaient derriere les cartes alors que la mesure disait le contraire.
-       Et on retient la PLUS BASSE des deux : GSAP en fait monter une au cours
-       de l'acte, et se caler sur celle-la ferait retrecir le bloc a chaque
-       pas de la marche. Celle qui monte passe derriere les cartes, ce qui est
-       le propos du montage. */
-    var walkers = doc.querySelectorAll(".walker");
+    /* Reference du bas : le haut REEL du dessin des marionnettes.
+       `.puppet` et `.walker` font 0 x 0 — ce ne sont que des points d'ancrage,
+       le personnage etant compose d'elements `.bone` positionnes autour. Mesurer
+       ces boites ne mesurait donc rien de visible, et les cartes retombaient sur
+       les tetes alors que les nombres disaient le contraire.
+       Pour chaque marionnette on prend le haut de son dessin, puis on retient
+       la PLUS BASSE des deux : GSAP en fait monter une au cours de l'acte, et
+       se caler sur celle-la ferait retrecir le bloc a chaque pas de la marche.
+       Celle qui monte passe derriere les cartes, ce qui est le propos du
+       montage. */
+    var puppets = doc.querySelectorAll(".puppet");
     var floor = 0;
-    for (var i = 0; i < walkers.length; i++) {
-      floor = Math.max(floor, walkers[i].getBoundingClientRect().top);
+    for (var i = 0; i < puppets.length; i++) {
+      var bones = puppets[i].querySelectorAll(".bone");
+      var topOf = Infinity;
+      for (var j = 0; j < bones.length; j++) {
+        var bt = bones[j].getBoundingClientRect().top;
+        if (bt < topOf) topOf = bt;
+      }
+      if (topOf !== Infinity && topOf > floor) floor = topOf;
     }
-    if (!floor) {
-      var pup = doc.querySelector(".puppet");
-      if (!pup) return;
-      floor = pup.getBoundingClientRect().top;
-    }
+    if (!floor) return;
 
     // On mesure la hauteur NON reduite, sinon chaque passage retrecirait le
     // bloc a partir du resultat du precedent.
@@ -296,7 +306,7 @@
     if (!natural) return;
 
     var top = bar.getBoundingClientRect().bottom + 18;
-    var avail = floor - top - 12;
+    var avail = floor - top - 26;   // un peu d'air, pas un contact
     var scale = avail > 0 ? Math.min(1, avail / natural) : 1;
     if (scale < FIT_MIN) scale = FIT_MIN;
 
