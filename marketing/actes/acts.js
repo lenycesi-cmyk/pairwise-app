@@ -28,7 +28,7 @@
   // Reperer d'un coup d'oeil, dans la console, si le navigateur execute bien
   // la derniere version : un pilote perime et une page a jour donnent des
   // symptomes trompeurs (deux actes empiles, barres de defilement en trop).
-  var VERSION = "actes-5";
+  var VERSION = "actes-6";
   if (window.console) console.info("PairWise " + VERSION);
 
   /* Hauteur de l'en-tête. Elle ÉTAIT écrite en dur à 64, la valeur de
@@ -243,9 +243,16 @@
      celles des actes visibles. On masque la barre sans toucher au défilement. */
   function hideScrollbar(doc) {
     var st = doc.createElement("style");
+    /* Viser `html` seul ne suffit pas. Les actes posent `overflow-x: hidden`
+       sur le CORPS ; quand `html` reste en `visible`, c'est l'overflow du corps
+       qui gouverne la fenetre — et la barre se style alors depuis `body`, pas
+       depuis `html`. La regle ne s'appliquait donc pas, et la barre de l'acte
+       restait visible a cote de celle de la page. On vise les deux, plus les
+       eventuels conteneurs defilants a l'interieur. */
     st.textContent =
-      "html{scrollbar-width:none;-ms-overflow-style:none}" +
-      "html::-webkit-scrollbar{width:0;height:0;display:none}";
+      "html,body,*{scrollbar-width:none;-ms-overflow-style:none}" +
+      "html::-webkit-scrollbar,body::-webkit-scrollbar," +
+      "*::-webkit-scrollbar{width:0;height:0;display:none}";
     doc.head.appendChild(st);
   }
 
