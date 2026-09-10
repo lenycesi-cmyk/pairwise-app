@@ -28,7 +28,7 @@
   // Reperer d'un coup d'oeil, dans la console, si le navigateur execute bien
   // la derniere version : un pilote perime et une page a jour donnent des
   // symptomes trompeurs (deux actes empiles, barres de defilement en trop).
-  var VERSION = "actes-4";
+  var VERSION = "actes-5";
   if (window.console) console.info("PairWise " + VERSION);
 
   /* Hauteur de l'en-tête. Elle ÉTAIT écrite en dur à 64, la valeur de
@@ -155,6 +155,7 @@
       hideScrollbar(doc);
       hide(doc, COMMON_HIDE);
       if (ADAPT[act.id]) ADAPT[act.id](doc);
+      if (act.id === "acte-2") fitWidgets(doc);
     } catch (err) { /* décor : jamais bloquant */ }
     measure(act, frame);
     /* On surveille le CORPS, pas `documentElement`. La boîte de l'element racine
@@ -222,7 +223,7 @@
     "acte-2": function (doc) {
       var st = doc.createElement("style");
       st.textContent =
-        "#widgets{transform:translate(-50%,-40px)}" +
+        "#widgets{transform-origin:50% 0}" +
         "#widgets .sum{width:min(360px,88vw);padding:22px 24px}" +
         "#widgets .sum__patri{font-size:24px}" +
         "#widgets .sum__v{font-size:21px}";
@@ -246,6 +247,54 @@
       "html{scrollbar-width:none;-ms-overflow-style:none}" +
       "html::-webkit-scrollbar{width:0;height:0;display:none}";
     doc.head.appendChild(st);
+  }
+
+  /* Trois choses se disputent la hauteur de l'acte 2 : le selecteur en haut,
+     les widgets au milieu, les marionnettes en bas. Des tailles ecrites en dur
+     ne tiennent pas d'un ecran a l'autre — elles se chevauchaient des que la
+     fenetre etait un peu courte, ou le navigateur un peu zoome. On mesure donc
+     les deux voisins et on cale le bloc entre eux, quitte a le reduire.
+     Le facteur est borne : en dessous de 0,62 les chiffres deviennent
+     illisibles, et mieux vaut alors un leger chevauchement qu'une carte
+     qu'on ne peut plus lire. */
+  var FIT_MIN = 0.62;
+
+  function fitWidgets(doc) {
+    var w = doc.getElementById("widgets");
+    var bar = doc.getElementById("couplebar");
+    if (!w || !bar) return;
+
+    /* Reference du bas : le haut des marionnettes. On mesure `.walker` et non
+       `.puppet` — le dessin deborde de sa boite, si bien que les tetes
+       passaient derriere les cartes alors que la mesure disait le contraire.
+       Et on retient la PLUS BASSE des deux : GSAP en fait monter une au cours
+       de l'acte, et se caler sur celle-la ferait retrecir le bloc a chaque
+       pas de la marche. Celle qui monte passe derriere les cartes, ce qui est
+       le propos du montage. */
+    var walkers = doc.querySelectorAll(".walker");
+    var floor = 0;
+    for (var i = 0; i < walkers.length; i++) {
+      floor = Math.max(floor, walkers[i].getBoundingClientRect().top);
+    }
+    if (!floor) {
+      var pup = doc.querySelector(".puppet");
+      if (!pup) return;
+      floor = pup.getBoundingClientRect().top;
+    }
+
+    // On mesure la hauteur NON reduite, sinon chaque passage retrecirait le
+    // bloc a partir du resultat du precedent.
+    w.style.transform = "translate(-50%,0) scale(1)";
+    var natural = w.offsetHeight;
+    if (!natural) return;
+
+    var top = bar.getBoundingClientRect().bottom + 18;
+    var avail = floor - top - 12;
+    var scale = avail > 0 ? Math.min(1, avail / natural) : 1;
+    if (scale < FIT_MIN) scale = FIT_MIN;
+
+    w.style.top = Math.round(top) + "px";
+    w.style.transform = "translate(-50%,0) scale(" + scale.toFixed(3) + ")";
   }
 
   function hide(doc, selector) {
@@ -368,6 +417,15 @@
       veilOpacity = transition(active, incoming, activeT);
     }
 
+    /* Le second widget se deplie en cours d'acte : la hauteur du bloc change,
+       donc le calage doit se refaire. On s'en tient a quatre fois par seconde,
+       une mesure de mise en page dans un autre document n'etant pas gratuite. */
+    if (current && current.id === "acte-2" && Date.now() - lastFit > 250) {
+      lastFit = Date.now();
+      var fd = docOf(current._frame);
+      if (fd) fitWidgets(fd);
+    }
+
     syncCtaHit();
 
     if (veil) {
@@ -378,6 +436,7 @@
 
   var lastActive = null;
   var lastCurrent = null;
+  var lastFit = 0;
 
   /* Calque de clic pour le bouton de l'acte 5. Sa position est relue a chaque
      rafraichissement : le bouton bouge avec la scene, et un lien fixe au
