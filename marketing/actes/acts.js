@@ -25,6 +25,12 @@
 (function () {
   "use strict";
 
+  // Reperer d'un coup d'oeil, dans la console, si le navigateur execute bien
+  // la derniere version : un pilote perime et une page a jour donnent des
+  // symptomes trompeurs (deux actes empiles, barres de defilement en trop).
+  var VERSION = "actes-2";
+  if (window.console) console.info("PairWise " + VERSION);
+
   /* Hauteur de l'en-tête. Elle ÉTAIT écrite en dur à 64, la valeur de
      `header.site .bar` dans site.css. Mais elle grandit dès que la police de
      l'interface change, au zoom, ou si un lien passe à la ligne — et tout en
