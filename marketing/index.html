@@ -45,11 +45,27 @@
        molette ici vaut un pixel de molette dans l'acte — le rythme d'origine
        est conserve tel quel. */
     .act { position: relative; }
+
+    /* Le panneau d'un acte est FIXE, jamais `sticky`.
+       Avec `sticky`, un acte se décolle quand sa section se termine et remonte
+       pendant que le suivant arrive par le bas : il reste un écran entier où
+       les deux se partagent la vue, sans que rien ne le commande. C'est ce qui
+       faisait réapparaître des morceaux de l'acte précédent et donnait
+       l'impression que le suivant ne démarrait pas.
+       Ici la section ne sert plus qu'à FOURNIR LA LONGUEUR de défilement ; le
+       script décide seul quel panneau est visible, et deux ne le sont ensemble
+       que pendant une transition. */
     .act__pin {
-      position: sticky; top: var(--bar-h);
+      position: fixed; top: var(--bar-h); left: 0; right: 0;
       height: calc(100vh - var(--bar-h));
       overflow: hidden;
+      visibility: hidden;   /* le script révèle l'acte courant */
+      z-index: 1;
     }
+    /* `visibility` et non `display:none` : un panneau retiré de la mise en page
+       perdrait ses dimensions, et GSAP recalculerait ses scènes à partir de
+       zéro à chaque aller-retour. */
+    .act__pin.is-on { visibility: visible; }
     .act iframe { display: block; width: 100%; height: 100%; border: 0; }
 
     /* TRANSITIONS ENTRE ACTES.
@@ -61,8 +77,6 @@
        position fixe. Tout est piloté par le défilement de la page — rien
        n'entre dans les actes, qui restent intacts. */
     .act__pin.is-entering {
-      position: fixed; top: var(--bar-h); left: 0; right: 0;
-      height: calc(100vh - var(--bar-h));
       z-index: 5;               /* sous l'en-tête, qui est à 20 */
       will-change: transform, opacity;
     }
