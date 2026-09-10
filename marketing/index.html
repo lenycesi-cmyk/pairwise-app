@@ -82,24 +82,14 @@
     }
     .act__pin.is-leaving { will-change: transform, opacity; }
 
-    /* Bande de clôture, dans le DOM de la PAGE et non dans un acte : c'est le
-       seul endroit où le lien est cliquable (les actes ne reçoivent pas les
-       clics) et où un moteur de recherche le voit. */
-    .closing-band {
-      min-height: 60vh; display: grid; place-items: center; text-align: center;
-      padding: 80px 24px; background: var(--paper);
+    .act-cta-hit {
+      position: fixed; z-index: 12;
+      /* Transparent mais bien present : c'est un vrai lien, pas un decor. Le
+         texte reste lisible par un lecteur d'ecran. */
+      color: transparent; font-size: 0; text-indent: -9999px;
+      overflow: hidden; border-radius: 999px;
     }
-    .closing-band h2 {
-      font-family: var(--font-display); font-weight: 700;
-      font-size: clamp(1.8rem, 4vw, 2.8rem); line-height: 1.1; margin: 0 0 14px;
-    }
-    .closing-band p { color: var(--ink-2); margin: 0 0 28px; font-size: 1.05rem; }
-    .closing-band .cta {
-      display: inline-flex; align-items: center; gap: 10px;
-      background: var(--tang); color: #fff; text-decoration: none;
-      font-weight: 700; font-size: 1.05rem;
-      padding: 15px 30px; border-radius: 999px;
-    }
+    .act-cta-hit:focus-visible { outline: 3px solid var(--tang); outline-offset: 3px; }
 
     .act-veil {
       position: fixed; inset: 0; z-index: 10;
@@ -182,12 +172,21 @@
 
 <div class="act-veil" id="actVeil" aria-hidden="true"></div>
 
+<!-- Zone cliquable calquee sur le bouton « C'est parti » de l'acte 5. Les actes
+     ne recoivent pas les clics (c'est ce qui laisse la molette traverser), donc
+     le lien vit ici, dans la page, ou il est aussi visible des moteurs de
+     recherche. Le script le place a chaque rafraichissement. -->
+<a class="act-cta-hit" id="actCta" href="https://app.pairwise.finance/" hidden>C'est parti</a>
+
 <main class="acts" id="acts">
   <section class="act" id="acte-1" data-measured="0"
            data-src="/actes/acte-1-vue-claire" aria-label="Acte 1 — Vue claire">
     <div class="act__pin"></div>
   </section>
-  <section class="act" id="acte-2" data-measured="0" data-transition="slide-up"
+  <!-- data-hold : l'introduction de l'acte 2 defilait a la meme vitesse que la
+       suite et on lui passait dessus sans la lire. La scene tient sa premiere
+       image pendant 0,7 ecran de defilement avant de demarrer. -->
+  <section class="act" id="acte-2" data-measured="0" data-transition="slide-up" data-hold="0.7"
            data-src="/actes/acte-2-solo-ou-a-deux" aria-label="Acte 2 — Solo ou à deux">
     <div class="act__pin"></div>
   </section>
@@ -204,12 +203,6 @@
     <div class="act__pin"></div>
   </section>
 </main>
-
-<section class="closing-band">
-  <h2>Trois minutes pour tout mettre à plat.</h2>
-  <p>Sans compte pour commencer. Tes données restent sur ton appareil.</p>
-  <a class="cta" href="https://app.pairwise.finance/">C'est parti <i class="ti ti-arrow-right"></i></a>
-</section>
 
 <footer class="site">
   <div class="wrap cols">
@@ -252,7 +245,7 @@
      arrivait a jour. Le visiteur se retrouvait avec la nouvelle page et
      l'ancien pilote. `scripts/deploy.js` sert desormais tous les .js en
      `no-cache`, donc il n'y aura plus a toucher a ce numero. -->
-<script src="/actes/acts.js?v=2" defer></script>
+<script src="/actes/acts.js?v=3" defer></script>
 
 </body>
 </html>

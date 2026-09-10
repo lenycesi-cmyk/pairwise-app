@@ -28,7 +28,7 @@
   // Reperer d'un coup d'oeil, dans la console, si le navigateur execute bien
   // la derniere version : un pilote perime et une page a jour donnent des
   // symptomes trompeurs (deux actes empiles, barres de defilement en trop).
-  var VERSION = "actes-2";
+  var VERSION = "actes-3";
   if (window.console) console.info("PairWise " + VERSION);
 
   /* Hauteur de l'en-tête. Elle ÉTAIT écrite en dur à 64, la valeur de
@@ -72,7 +72,16 @@
   function bandOf(act) {
     if (reduced) return 0;
     var nxt = nextOf(act);
-    if (!nxt || !nxt.dataset.transition) return 0;
+    /* DERNIER ACTE : une sortie d'un ecran, sans transition.
+       Sans elle, la fin de la page tombait avant la fin de l'acte. Le
+       defilement maximal vaut la hauteur du document moins une fenetre ; le
+       pied de page ne suffisant pas a fournir cette fenetre, les derniers
+       pixels de l'acte etaient INATTEIGNABLES — 531 px ici, soit tout juste sa
+       scene de cloture et son bouton, qui n'apparaissaient donc jamais.
+       Pendant cette sortie l'acte reste affiche, acheve : on ne voit pas un
+       blanc, on lit la derniere image le temps d'atteindre le pied de page. */
+    if (!nxt) return Math.round(window.innerHeight);
+    if (!nxt.dataset.transition) return 0;
     return Math.round(window.innerHeight * BAND_RATIO);
   }
 
@@ -148,13 +157,35 @@
       if (ADAPT[act.id]) ADAPT[act.id](doc);
     } catch (err) { /* décor : jamais bloquant */ }
     measure(act, frame);
-    if (typeof frame.contentWindow.ResizeObserver !== "function") return;
-    var timer;
-    var ro = new frame.contentWindow.ResizeObserver(function () {
-      clearTimeout(timer);
-      timer = setTimeout(function () { measure(act, frame); }, 120);
-    });
-    ro.observe(doc.documentElement);
+    /* On surveille le CORPS, pas `documentElement`. La boîte de l'element racine
+       ne grandit pas forcement avec son contenu — un acte qui pose une hauteur
+       sur `html`, ou dont GSAP fabrique ses cales de pin dans le corps, la
+       laisse a la hauteur de la fenetre. L'observateur ne se declenchait alors
+       jamais et la course restait celle de la toute premiere mesure, prise
+       avant que les polices et les pins n'aient fini de s'installer.
+       Consequence : la fin de l'acte devenait inatteignable — l'acte 3 semblait
+       se bloquer, et la scene de cloture de l'acte 5 n'apparaissait jamais. */
+    if (typeof frame.contentWindow.ResizeObserver === "function") {
+      var timer;
+      var ro = new frame.contentWindow.ResizeObserver(function () {
+        clearTimeout(timer);
+        timer = setTimeout(function () { measure(act, frame); }, 120);
+      });
+      ro.observe(doc.body);
+    }
+
+    /* Filet de securite : la hauteur peut encore bouger sans que la boite du
+       corps change (une image qui arrive dans un bloc de hauteur fixe, une
+       animation qui allonge une scene). On relit la hauteur quelques secondes,
+       puis on arrete — ce n'est pas une boucle permanente. */
+    var tries = 0;
+    var poll = setInterval(function () {
+      var d = docOf(frame);
+      if (!d || ++tries > 20) { clearInterval(poll); return; }
+      if (d.documentElement.scrollHeight - frame.clientHeight !== act._range) {
+        measure(act, frame);
+      }
+    }, 400);
   }
 
   function docOf(frame) {
@@ -177,11 +208,21 @@
 
   var ADAPT = {
     "acte-1": function (doc) { hide(doc, ".nav"); },
-    // Le bouton de clôture de l'acte 5 devient inerte (l'iframe ne reçoit plus
-    // les clics) : on le masque plutôt que de laisser un bouton mort à
-    // l'écran. C'est la bande de clôture de la page qui prend le relais,
-    // juste en dessous.
-    "acte-5": function (doc) { hide(doc, "#startCta"); }
+    /* Le bloc « Résumé ce mois-ci » retombait sur les marionnettes et leur
+       coupait la tête. On remonte son CONTENEUR : GSAP anime la transformation
+       du bloc lui-même (`y`, `scale`), donc une transformation posée sur lui
+       serait écrasée à la première image de l'animation. */
+    "acte-2": function (doc) {
+      var st = doc.createElement("style");
+      st.textContent = "#widgets{transform:translateY(-96px)}";
+      doc.head.appendChild(st);
+    },
+    /* L'acte 5 garde son « C'est parti », qui conclut l'histoire juste sous la
+       phrase de fin. L'iframe ne recoit pas les clics — c'est ce qui laisse la
+       molette traverser — donc on ne peut pas le rendre cliquable la ou il est.
+       On calque par-dessus, DANS la page, un lien transparent aux memes
+       coordonnees : il est cliquable, et un moteur de recherche le voit. */
+    "acte-5": function () {}
   };
 
   /* Chaque acte reste scrollable — c'est indispensable, `overflow: hidden`
@@ -226,12 +267,17 @@
     // interne : l'acte y reste collé sur sa dernière scène pendant que le
     // suivant se superpose. Sans elle, les deux ne se croiseraient jamais.
     act._band = bandOf(act);
+    /* Temps d'arret optionnel au DEBUT d'un acte : la scene reste sur sa
+       premiere image pendant `data-hold` ecrans. Sans lui, un texte
+       d'introduction defile a la vitesse du reste et on lui passe dessus sans
+       le lire. C'est du temps ajoute par la page, pas une retouche de l'acte. */
+    act._hold = reduced ? 0 : Math.round(window.innerHeight * (parseFloat(act.dataset.hold) || 0));
     /* La section ne fournit QUE la course : la course interne de l'acte, plus
        sa bande de transition. Elle n'a plus à réserver la hauteur d'un écran
        comme au temps de `sticky` — c'était précisément cet écran en trop qui
        laissait un vide entre deux actes, l'un ayant fini avant que l'autre
        n'arrive. Ainsi la fin d'un acte est le début exact du suivant. */
-    act.style.height = (range + act._band) + "px";
+    act.style.height = (act._hold + range + act._band) + "px";
     act.dataset.measured = "1";
     sync();
   }
@@ -258,7 +304,8 @@
       var doc = docOf(act._frame);
       if (!doc) continue;
       var start = act.offsetTop - BAR_H;
-      var p = (y - start) / act._range;
+      var hold = act._hold || 0;
+      var p = (y - start - hold) / act._range;
       p = p < 0 ? 0 : p > 1 ? 1 : p;
       var target = Math.round(p * act._range);
       if (doc.documentElement.scrollTop !== target) {
@@ -267,12 +314,17 @@
 
       // L'acte occupe l'écran de son début jusqu'à la fin de sa bande.
       var band = act._band || 0;
-      var end = start + act._range + band;
-      if (y >= start && y < end) current = act;
+      var end = start + hold + act._range + band;
+      /* Borne INCLUSIVE, et le dernier acte trouvé l'emporte. `y < end` cachait
+         l'acte a l'instant precis ou son animation atteignait sa fin : la scene
+         de cloture de l'acte 5, et son bouton, n'apparaissaient donc jamais.
+         Les sections se touchent, donc a la frontiere les deux repondent — et
+         c'est le suivant qui doit gagner, d'ou l'ecrasement dans la boucle. */
+      if (y >= start && y <= end) current = act;
 
       // La bande commence là où la course interne s'achève.
       if (!band) continue;
-      var t = (y - (start + act._range)) / band;
+      var t = (y - (start + hold + act._range)) / band;
       if (t > 0 && t < 1) { active = act; activeT = t; }
     }
 
@@ -305,6 +357,8 @@
       veilOpacity = transition(active, incoming, activeT);
     }
 
+    syncCtaHit();
+
     if (veil) {
       veil.style.opacity = veilOpacity;
       veil.style.display = veilOpacity > 0 ? "block" : "none";
@@ -313,6 +367,54 @@
 
   var lastActive = null;
   var lastCurrent = null;
+
+  /* Calque de clic pour le bouton de l'acte 5. Sa position est relue a chaque
+     rafraichissement : le bouton bouge avec la scene, et un lien fixe au
+     mauvais endroit serait pire qu'aucun lien. */
+  var ctaLink = document.getElementById("actCta");
+
+  /* `elementFromPoint` touche un element TRANSPARENT : la scene de cloture de
+     l'acte 5 existe des le depart avec une opacite nulle, et le calque de clic
+     s'y posait donc bien avant qu'elle n'entre en scene. On remonte la chaine
+     des parents pour verifier qu'il y a vraiment quelque chose a voir. */
+  function isPainted(el, doc) {
+    for (var n = el; n && n !== doc.documentElement; n = n.parentElement) {
+      var cs = doc.defaultView.getComputedStyle(n);
+      if (cs.visibility === "hidden" || parseFloat(cs.opacity) < 0.05) return false;
+    }
+    return true;
+  }
+
+  function syncCtaHit() {
+    if (!ctaLink) return;
+    var act = document.getElementById("acte-5");
+    var frame = act && act._frame;
+    var pin = act && act.querySelector(".act__pin");
+    var doc = frame && docOf(frame);
+    var btn = doc && doc.getElementById("startCta");
+    if (!btn || !pin || !pin.classList.contains("is-on")) { ctaLink.hidden = true; return; }
+    var r = btn.getBoundingClientRect();
+    var f = frame.getBoundingClientRect();
+    /* Le bouton est-il VRAIMENT visible a cet endroit ? Ses coordonnees seules
+       ne le disent pas : la scene de cloture existe dans le document bien avant
+       d'entrer en scene, et se fier a elles laissait un rectangle cliquable
+       invisible au milieu de la page, qui avalait les clics. On demande donc au
+       document ce qu'il peint sous ce point. */
+    var cx = r.left + r.width / 2;
+    var cy = r.top + r.height / 2;
+    var hit = r.width > 0 && cx >= 0 && cy >= 0 &&
+      cx <= frame.clientWidth && cy <= frame.clientHeight &&
+      doc.elementFromPoint(cx, cy);
+    if (!hit || (hit !== btn && !btn.contains(hit)) || !isPainted(btn, doc)) {
+      ctaLink.hidden = true;
+      return;
+    }
+    ctaLink.hidden = false;
+    ctaLink.style.left = Math.round(f.left + r.left) + "px";
+    ctaLink.style.top = Math.round(f.top + r.top) + "px";
+    ctaLink.style.width = Math.round(r.width) + "px";
+    ctaLink.style.height = Math.round(r.height) + "px";
+  }
 
   function resetAll() {
     for (var i = 0; i < acts.length; i++) {
@@ -341,13 +443,16 @@
     var e = ease(t);
 
     if (kind === "slide-up") {
+      /* Le sortant quitte l'ecran ENTIEREMENT, a la meme vitesse que l'entrant
+         arrive : les deux glissent comme une pellicule. Il ne reculait que de
+         18 % auparavant, si bien qu'une bande de l'acte precedent restait
+         visible a cote du nouveau pendant toute la transition — on croyait a un
+         reste d'affichage, pas a un mouvement. */
       into.style.transform = "translate3d(0," + ((1 - e) * 100) + "%,0)";
-      // Le sortant recule un peu : sans ce décalage les deux plans avancent
-      // du même pas et le mouvement paraît plat.
-      out.style.transform = "translate3d(0," + (-e * 18) + "%,0)";
+      out.style.transform = "translate3d(0," + (-e * 100) + "%,0)";
     } else if (kind === "slide-left") {
       into.style.transform = "translate3d(" + ((1 - e) * 100) + "%,0,0)";
-      out.style.transform = "translate3d(" + (-e * 18) + "%,0,0)";
+      out.style.transform = "translate3d(" + (-e * 100) + "%,0,0)";
     } else if (kind === "flip-boat") {
       leaving.classList.add("is-flipping");
       out.style.transformOrigin = "50% 100%";
