@@ -1,5 +1,10 @@
 <!doctype html>
-<html lang="fr">
+<!-- data-theme="light" : les cinq actes sont dessines en clair, et rien dans
+     leur document ne suit le theme du systeme. Sans ce verrou, un visiteur en
+     mode sombre avait un en-tete nuit pose sur des scenes creme. site.css
+     garde deja cette echappatoire (`:root:not([data-theme="light"])`), donc
+     aucune regle n'a eu a bouger. -->
+<html lang="fr" data-theme="light" style="color-scheme: light">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -62,6 +67,25 @@
       will-change: transform, opacity;
     }
     .act__pin.is-leaving { will-change: transform, opacity; }
+
+    /* Bande de clôture, dans le DOM de la PAGE et non dans un acte : c'est le
+       seul endroit où le lien est cliquable (les actes ne reçoivent pas les
+       clics) et où un moteur de recherche le voit. */
+    .closing-band {
+      min-height: 60vh; display: grid; place-items: center; text-align: center;
+      padding: 80px 24px; background: var(--paper);
+    }
+    .closing-band h2 {
+      font-family: var(--font-display); font-weight: 700;
+      font-size: clamp(1.8rem, 4vw, 2.8rem); line-height: 1.1; margin: 0 0 14px;
+    }
+    .closing-band p { color: var(--ink-2); margin: 0 0 28px; font-size: 1.05rem; }
+    .closing-band .cta {
+      display: inline-flex; align-items: center; gap: 10px;
+      background: var(--tang); color: #fff; text-decoration: none;
+      font-weight: 700; font-size: 1.05rem;
+      padding: 15px 30px; border-radius: 999px;
+    }
 
     .act-veil {
       position: fixed; inset: 0; z-index: 10;
@@ -166,6 +190,12 @@
     <div class="act__pin"></div>
   </section>
 </main>
+
+<section class="closing-band">
+  <h2>Trois minutes pour tout mettre à plat.</h2>
+  <p>Sans compte pour commencer. Tes données restent sur ton appareil.</p>
+  <a class="cta" href="https://app.pairwise.finance/">C'est parti <i class="ti ti-arrow-right"></i></a>
+</section>
 
 <footer class="site">
   <div class="wrap cols">

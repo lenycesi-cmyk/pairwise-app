@@ -71,6 +71,11 @@
     frame.src = act.dataset.src;
     frame.title = act.getAttribute("aria-label") || "";
     frame.setAttribute("loading", "eager");
+    // L'acte est un décor : la molette et le doigt doivent traverser jusqu'à
+    // la page, qui seule commande le défilement. Le lien qui compte
+    // (« C'est parti ») vit dans la page, où il est cliquable et indexable.
+    frame.setAttribute("tabindex", "-1");
+    frame.style.pointerEvents = "none";
     pin.appendChild(frame);
     act._frame = frame;
     whenReady(frame, function () { watch(act, frame); });
@@ -114,7 +119,10 @@
   function watch(act, frame) {
     var doc = docOf(frame);
     if (!doc) { degrade(act); return; }
-    if (ADAPT[act.id]) { try { ADAPT[act.id](doc); } catch (err) { /* décor : jamais bloquant */ } }
+    try {
+      hide(doc, COMMON_HIDE);
+      if (ADAPT[act.id]) ADAPT[act.id](doc);
+    } catch (err) { /* décor : jamais bloquant */ }
     measure(act, frame);
     if (typeof frame.contentWindow.ResizeObserver !== "function") return;
     var timer;
@@ -139,12 +147,17 @@
      • Le « C'est parti » de l'acte 5 est un `href="#"` de démonstration. On le
        branche sur l'app, avec `target="_top"` sans quoi le clic chargerait
        l'app DANS l'iframe, à l'intérieur de la page. */
+  // Les cinq actes portent une étiquette « prototype · acte N » héritée de
+  // leur mise au point. Elle vaut pour toutes.
+  var COMMON_HIDE = ".proto-tag, .tag";
+
   var ADAPT = {
     "acte-1": function (doc) { hide(doc, ".nav"); },
-    "acte-5": function (doc) {
-      var cta = doc.getElementById("startCta");
-      if (cta) { cta.href = "https://app.pairwise.finance/"; cta.target = "_top"; }
-    }
+    // Le bouton de clôture de l'acte 5 devient inerte (l'iframe ne reçoit plus
+    // les clics) : on le masque plutôt que de laisser un bouton mort à
+    // l'écran. C'est la bande de clôture de la page qui prend le relais,
+    // juste en dessous.
+    "acte-5": function (doc) { hide(doc, "#startCta"); }
   };
 
   function hide(doc, selector) {
@@ -157,13 +170,13 @@
     var doc = docOf(frame);
     if (!doc) { degrade(act); return; }
 
-    /* On coupe le défilement PROPRE de l'acte. Sans cela la molette passée
-       au-dessus de l'iframe ferait défiler l'acte seul, et la page resterait
-       immobile : les deux défilements se disputeraient le geste. `overflow:
-       hidden` retire l'acte de la chaîne de défilement — le geste remonte donc
-       à la page — sans empêcher qu'on lui pose sa position par le script. */
-    doc.documentElement.style.overflow = "hidden";
-    doc.body.style.overflow = "hidden";
+    /* NE PAS poser `overflow: hidden` ici pour empêcher l'acte de défiler
+       tout seul. Ça marche — et ça casse `position: sticky` à l'intérieur du
+       document : les pins des actes cessent de se coller, les scènes
+       remontent avec le défilement et les animations se déroulent hors de
+       l'écran. C'est le geste de l'utilisateur qu'il faut neutraliser, pas la
+       capacité de l'acte à défiler ; d'où `pointer-events: none` sur l'iframe,
+       posé à la création. */
 
     // La hauteur imposée à la section fausserait la mesure suivante si elle
     // entrait dans le calcul : on mesure la hauteur PROPRE de l'acte, qui n'en
