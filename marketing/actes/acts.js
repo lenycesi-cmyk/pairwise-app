@@ -28,7 +28,7 @@
   // Reperer d'un coup d'oeil, dans la console, si le navigateur execute bien
   // la derniere version : un pilote perime et une page a jour donnent des
   // symptomes trompeurs (deux actes empiles, barres de defilement en trop).
-  var VERSION = "actes-3";
+  var VERSION = "actes-4";
   if (window.console) console.info("PairWise " + VERSION);
 
   /* Hauteur de l'en-tête. Elle ÉTAIT écrite en dur à 64, la valeur de
@@ -209,12 +209,23 @@
   var ADAPT = {
     "acte-1": function (doc) { hide(doc, ".nav"); },
     /* Le bloc « Résumé ce mois-ci » retombait sur les marionnettes et leur
-       coupait la tête. On remonte son CONTENEUR : GSAP anime la transformation
+       coupait la tête. On agit sur son CONTENEUR : GSAP anime la transformation
        du bloc lui-même (`y`, `scale`), donc une transformation posée sur lui
-       serait écrasée à la première image de l'animation. */
+       serait écrasée à la première image de l'animation.
+       Le conteneur, lui, porte DEJA `translateX(-50%)` — c'est ce qui le
+       centre. Ecrire `translateY(...)` seul remplacait cette valeur : le bloc
+       perdait son centrage, derivait d'une demi-largeur vers la droite et
+       recouvrait le selecteur « compte commun / dépenses partagées ». Les deux
+       composantes vont donc ensemble.
+       La carte est aussi resserree : a 432 px elle mangeait la scene, et le
+       couple de widgets deborde d'autant en mode partage. */
     "acte-2": function (doc) {
       var st = doc.createElement("style");
-      st.textContent = "#widgets{transform:translateY(-96px)}";
+      st.textContent =
+        "#widgets{transform:translate(-50%,-40px)}" +
+        "#widgets .sum{width:min(360px,88vw);padding:22px 24px}" +
+        "#widgets .sum__patri{font-size:24px}" +
+        "#widgets .sum__v{font-size:21px}";
       doc.head.appendChild(st);
     },
     /* L'acte 5 garde son « C'est parti », qui conclut l'histoire juste sous la
