@@ -25,7 +25,24 @@
 (function () {
   "use strict";
 
-  var BAR_H = 64; // header.site .bar — voir assets/site.css
+  /* Hauteur de l'en-tête. Elle ÉTAIT écrite en dur à 64, la valeur de
+     `header.site .bar` dans site.css. Mais elle grandit dès que la police de
+     l'interface change, au zoom, ou si un lien passe à la ligne — et tout en
+     dépend : le point où le pin se colle, et le calcul qui passe la main d'un
+     acte au suivant. Une constante fausse décalait la scène sous l'en-tête et
+     désalignait les transitions. On la mesure. */
+  var BAR_H = 64;
+  var bar = document.querySelector("header.site");
+
+  function readBarHeight() {
+    if (!bar) return;
+    var h = Math.round(bar.getBoundingClientRect().height);
+    if (h > 0 && h !== BAR_H) {
+      BAR_H = h;
+      document.documentElement.style.setProperty("--bar-h", h + "px");
+    }
+  }
+  readBarHeight();
   var acts = [].slice.call(document.querySelectorAll(".act"));
   if (!acts.length) return;
 
@@ -120,6 +137,7 @@
     var doc = docOf(frame);
     if (!doc) { degrade(act); return; }
     try {
+      hideScrollbar(doc);
       hide(doc, COMMON_HIDE);
       if (ADAPT[act.id]) ADAPT[act.id](doc);
     } catch (err) { /* décor : jamais bloquant */ }
@@ -160,6 +178,18 @@
     "acte-5": function (doc) { hide(doc, "#startCta"); }
   };
 
+  /* Chaque acte reste scrollable — c'est indispensable, `overflow: hidden`
+     casserait ses pins `sticky` — mais sa barre de défilement n'a aucun sens
+     ici : on en voyait jusqu'à trois empilées à droite, celle de la page et
+     celles des actes visibles. On masque la barre sans toucher au défilement. */
+  function hideScrollbar(doc) {
+    var st = doc.createElement("style");
+    st.textContent =
+      "html{scrollbar-width:none;-ms-overflow-style:none}" +
+      "html::-webkit-scrollbar{width:0;height:0;display:none}";
+    doc.head.appendChild(st);
+  }
+
   function hide(doc, selector) {
     var st = doc.createElement("style");
     st.textContent = selector + "{display:none !important}";
@@ -190,7 +220,12 @@
     // interne : l'acte y reste collé sur sa dernière scène pendant que le
     // suivant se superpose. Sans elle, les deux ne se croiseraient jamais.
     act._band = bandOf(act);
-    act.style.height = (frame.clientHeight + range + act._band) + "px";
+    /* La section ne fournit QUE la course : la course interne de l'acte, plus
+       sa bande de transition. Elle n'a plus à réserver la hauteur d'un écran
+       comme au temps de `sticky` — c'était précisément cet écran en trop qui
+       laissait un vide entre deux actes, l'un ayant fini avant que l'autre
+       n'arrive. Ainsi la fin d'un acte est le début exact du suivant. */
+    act.style.height = (range + act._band) + "px";
     act.dataset.measured = "1";
     sync();
   }
@@ -207,15 +242,15 @@
   function sync() {
     var y = window.scrollY;
     var veilOpacity = 0;
-    var active = null;
+    var active = null;   // acte dont la bande de transition est en cours
     var activeT = 0;
+    var current = null;  // acte que l'on est en train de regarder
 
     for (var i = 0; i < acts.length; i++) {
       var act = acts[i];
       if (!act._range || !act._frame) continue;
       var doc = docOf(act._frame);
       if (!doc) continue;
-      // La section « colle » dès que son haut atteint le bas de l'en-tête.
       var start = act.offsetTop - BAR_H;
       var p = (y - start) / act._range;
       p = p < 0 ? 0 : p > 1 ? 1 : p;
@@ -224,11 +259,26 @@
         doc.documentElement.scrollTop = target;
       }
 
-      // La bande commence là où la course interne s'achève.
+      // L'acte occupe l'écran de son début jusqu'à la fin de sa bande.
       var band = act._band || 0;
+      var end = start + act._range + band;
+      if (y >= start && y < end) current = act;
+
+      // La bande commence là où la course interne s'achève.
       if (!band) continue;
       var t = (y - (start + act._range)) / band;
       if (t > 0 && t < 1) { active = act; activeT = t; }
+    }
+
+    /* Un seul acte visible à la fois — deux pendant une transition. Avant le
+       premier et après le dernier, aucun : c'est ce qui laisse la bande de
+       clôture et le pied de page s'afficher normalement. */
+    if (current !== lastCurrent) {
+      for (var j = 0; j < acts.length; j++) {
+        var pin = acts[j].querySelector(".act__pin");
+        if (pin) pin.classList.toggle("is-on", acts[j] === current);
+      }
+      lastCurrent = current;
     }
 
     /* UNE SEULE jonction est active à la fois, et c'est ce qui doit gouverner
@@ -241,7 +291,13 @@
       resetAll();
       lastActive = active;
     }
-    if (active) veilOpacity = transition(active, nextOf(active), activeT);
+    if (active) {
+      var incoming = nextOf(active);
+      // L'entrant doit être visible EN PLUS du courant, le temps du passage.
+      var ip = incoming && incoming.querySelector(".act__pin");
+      if (ip) ip.classList.add("is-on");
+      veilOpacity = transition(active, incoming, activeT);
+    }
 
     if (veil) {
       veil.style.opacity = veilOpacity;
@@ -250,12 +306,13 @@
   }
 
   var lastActive = null;
+  var lastCurrent = null;
 
   function resetAll() {
     for (var i = 0; i < acts.length; i++) {
       var pin = acts[i].querySelector(".act__pin");
       if (!pin) continue;
-      pin.className = "act__pin";
+      pin.className = "act__pin" + (pin.classList.contains("is-on") ? " is-on" : "");
       pin.style.transform = "";
       pin.style.opacity = "";
       pin.style.transformOrigin = "";
@@ -273,8 +330,8 @@
     var into = incoming.querySelector(".act__pin");
     if (!out || !into) return 0;
 
-    into.className = "act__pin is-entering";
-    out.className = "act__pin is-leaving";
+    into.className = "act__pin is-on is-entering";
+    out.className = "act__pin is-on is-leaving";
     var e = ease(t);
 
     if (kind === "slide-up") {
@@ -322,6 +379,7 @@
   window.addEventListener("resize", function () {
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(function () {
+      readBarHeight();
       acts.forEach(function (act) {
         if (act._frame && docOf(act._frame)) {
           act._range = 0;

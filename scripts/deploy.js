@@ -54,6 +54,11 @@ function hostingConfig() {
         // de suite. Les assets (site.css…) ne sont pas hashés → cache court.
         { glob: "**/*.html", headers: { "Cache-Control": "no-cache" } },
         { glob: "/assets/**", headers: { "Cache-Control": "public, max-age=3600" } },
+        // Le pilote des actes n'est pas dans /assets et n'est pas hashé : sans
+        // cette ligne il tombait dans le cache par défaut d'une heure, et un
+        // correctif restait invisible alors que la page, elle, arrivait à jour.
+        // Un lot se retrouvait donc à moitié déployé chez le visiteur.
+        { glob: "**/*.js", headers: { "Cache-Control": "no-cache" } },
       ],
     };
   }
