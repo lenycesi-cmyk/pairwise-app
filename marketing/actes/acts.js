@@ -28,7 +28,7 @@
   // Reperer d'un coup d'oeil, dans la console, si le navigateur execute bien
   // la derniere version : un pilote perime et une page a jour donnent des
   // symptomes trompeurs (deux actes empiles, barres de defilement en trop).
-  var VERSION = "actes-7";
+  var VERSION = "actes-8";
   if (window.console) console.info("PairWise " + VERSION);
 
   /* Hauteur de l'en-tête. Elle ÉTAIT écrite en dur à 64, la valeur de
@@ -406,14 +406,24 @@
     }
 
     /* Un seul acte visible à la fois — deux pendant une transition. Avant le
-       premier et après le dernier, aucun : c'est ce qui laisse la bande de
-       clôture et le pied de page s'afficher normalement. */
-    if (current !== lastCurrent) {
+       premier et après le dernier, aucun : c'est ce qui laisse le pied de page
+       s'afficher normalement.
+       La visibilité se RECALCULE à chaque image, à partir de l'acte courant et,
+       s'il y a transition en cours, de l'entrant. Elle etait auparavant posee
+       une seule fois, au CHANGEMENT d'acte courant, et l'entrant recevait la
+       sienne depuis la transition : en remontant, on sortait de la bande sans
+       que l'acte courant change, donc l'entrant gardait sa visibilite et
+       restait affiche par-dessus, revenu a son debut. C'est exactement ce qu'on
+       voyait — la fin de l'acte precedent une seconde, puis le debut du
+       suivant. */
+    var incoming = active ? nextOf(active) : null;
+    var signature = (current ? current.id : "-") + "|" + (incoming ? incoming.id : "-");
+    if (signature !== lastVisible) {
       for (var j = 0; j < acts.length; j++) {
         var pin = acts[j].querySelector(".act__pin");
-        if (pin) pin.classList.toggle("is-on", acts[j] === current);
+        if (pin) pin.classList.toggle("is-on", acts[j] === current || acts[j] === incoming);
       }
-      lastCurrent = current;
+      lastVisible = signature;
     }
 
     /* UNE SEULE jonction est active à la fois, et c'est ce qui doit gouverner
@@ -426,13 +436,7 @@
       resetAll();
       lastActive = active;
     }
-    if (active) {
-      var incoming = nextOf(active);
-      // L'entrant doit être visible EN PLUS du courant, le temps du passage.
-      var ip = incoming && incoming.querySelector(".act__pin");
-      if (ip) ip.classList.add("is-on");
-      veilOpacity = transition(active, incoming, activeT);
-    }
+    if (active) veilOpacity = transition(active, incoming, activeT);
 
     /* Le second widget se deplie en cours d'acte : la hauteur du bloc change,
        donc le calage doit se refaire. On s'en tient a quatre fois par seconde,
@@ -452,7 +456,7 @@
   }
 
   var lastActive = null;
-  var lastCurrent = null;
+  var lastVisible = "";
   var lastFit = 0;
 
   /* Calque de clic pour le bouton de l'acte 5. Sa position est relue a chaque
@@ -507,6 +511,8 @@
     for (var i = 0; i < acts.length; i++) {
       var pin = acts[i].querySelector(".act__pin");
       if (!pin) continue;
+      // `is-on` est repose a chaque image par le bloc de visibilite ci-dessus :
+      // le preserver ici laissait survivre l'etat d'une transition terminee.
       pin.className = "act__pin" + (pin.classList.contains("is-on") ? " is-on" : "");
       pin.style.transform = "";
       pin.style.opacity = "";
