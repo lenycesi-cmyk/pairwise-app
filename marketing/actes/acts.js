@@ -28,7 +28,7 @@
   // Reperer d'un coup d'oeil, dans la console, si le navigateur execute bien
   // la derniere version : un pilote perime et une page a jour donnent des
   // symptomes trompeurs (deux actes empiles, barres de defilement en trop).
-  var VERSION = "actes-13";
+  var VERSION = "actes-14";
   if (window.console) console.info("PairWise " + VERSION);
 
   /* Hauteur de l'en-tête. Elle ÉTAIT écrite en dur à 64, la valeur de
@@ -154,6 +154,7 @@
     try {
       hideScrollbar(doc);
       hide(doc, COMMON_HIDE);
+      inject(doc, INTRO_SIZE);
       if (ADAPT[act.id]) ADAPT[act.id](doc);
       if (act.id === "acte-2") fitWidgets(doc);
     } catch (err) { /* décor : jamais bloquant */ }
@@ -207,6 +208,16 @@
   // leur mise au point. Elle vaut pour toutes.
   var COMMON_HIDE = ".proto-tag, .tag";
 
+  /* Taille commune du paragraphe d'ouverture. Les cinq actes le nomment
+     differemment et le laissaient a des tailles differentes — de 16 a 17,9 px
+     selon l'acte, l'un d'eux n'ayant meme aucune regle. Une seule valeur pour
+     tous : c'est le meme role dans les cinq scenes.
+     `!important` parce que chaque acte declare deja la sienne, parfois en
+     `clamp`, et que ce style est injecte dans leur propre document. */
+  var INTRO_SIZE =
+    ".intro p,.intro__in p,.intro__inner p,.hero__sub" +
+    "{font-size:20px !important;line-height:1.55 !important}";
+
   var ADAPT = {
     "acte-1": function (doc) { hide(doc, ".nav"); },
     /* Le bloc « Résumé ce mois-ci » retombait sur les marionnettes et leur
@@ -239,12 +250,10 @@
        sous le titre. On reprend le format de l'acte 3. */
     "acte-4": function (doc) {
       var st = doc.createElement("style");
-      /* Taille et couleur alignees sur les autres actes : celui-ci laissait le
-         paragraphe a 16 px en encre pleine, la ou les quatre autres sont a
-         ~17,9 px en encre adoucie. La difference se voyait a l'oeil. */
+      /* La taille est posee pour tous par INTRO_SIZE ; il reste ici la marge,
+         la largeur et la couleur, que cet acte ne declarait pas du tout. */
       st.textContent =
-        ".intro p{margin:20px auto 0;max-width:520px;line-height:1.55;" +
-        "font-size:clamp(1rem,1.5vw,1.12rem);color:var(--ink-soft)}";
+        ".intro p{margin:20px auto 0;max-width:520px;color:var(--ink-soft)}";
       doc.head.appendChild(st);
     },
 
@@ -326,6 +335,12 @@
 
     w.style.top = Math.round(top) + "px";
     w.style.transform = "translate(-50%,0) scale(" + scale.toFixed(3) + ")";
+  }
+
+  function inject(doc, css) {
+    var st = doc.createElement("style");
+    st.textContent = css;
+    doc.head.appendChild(st);
   }
 
   function hide(doc, selector) {
