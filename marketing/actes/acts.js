@@ -28,7 +28,7 @@
   // Reperer d'un coup d'oeil, dans la console, si le navigateur execute bien
   // la derniere version : un pilote perime et une page a jour donnent des
   // symptomes trompeurs (deux actes empiles, barres de defilement en trop).
-  var VERSION = "actes-12";
+  var VERSION = "actes-13";
   if (window.console) console.info("PairWise " + VERSION);
 
   /* Hauteur de l'en-tête. Elle ÉTAIT écrite en dur à 64, la valeur de
@@ -239,8 +239,12 @@
        sous le titre. On reprend le format de l'acte 3. */
     "acte-4": function (doc) {
       var st = doc.createElement("style");
+      /* Taille et couleur alignees sur les autres actes : celui-ci laissait le
+         paragraphe a 16 px en encre pleine, la ou les quatre autres sont a
+         ~17,9 px en encre adoucie. La difference se voyait a l'oeil. */
       st.textContent =
-        ".intro p{margin:20px auto 0;max-width:520px;line-height:1.55}";
+        ".intro p{margin:20px auto 0;max-width:520px;line-height:1.55;" +
+        "font-size:clamp(1rem,1.5vw,1.12rem);color:var(--ink-soft)}";
       doc.head.appendChild(st);
     },
 
