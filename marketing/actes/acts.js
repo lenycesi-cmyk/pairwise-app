@@ -28,7 +28,7 @@
   // Reperer d'un coup d'oeil, dans la console, si le navigateur execute bien
   // la derniere version : un pilote perime et une page a jour donnent des
   // symptomes trompeurs (deux actes empiles, barres de defilement en trop).
-  var VERSION = "actes-11";
+  var VERSION = "actes-12";
   if (window.console) console.info("PairWise " + VERSION);
 
   /* Hauteur de l'en-tête. Elle ÉTAIT écrite en dur à 64, la valeur de
@@ -234,6 +234,16 @@
         "#widgets .sum__v{font-size:21px}";
       doc.head.appendChild(st);
     },
+    /* L'acte 4 ne declare aucune regle pour le paragraphe de son introduction :
+       il retombait sur la marge par defaut du navigateur et venait se coller
+       sous le titre. On reprend le format de l'acte 3. */
+    "acte-4": function (doc) {
+      var st = doc.createElement("style");
+      st.textContent =
+        ".intro p{margin:20px auto 0;max-width:520px;line-height:1.55}";
+      doc.head.appendChild(st);
+    },
+
     /* L'acte 5 garde son « C'est parti », qui conclut l'histoire juste sous la
        phrase de fin. L'iframe ne recoit pas les clics — c'est ce qui laisse la
        molette traverser — donc on ne peut pas le rendre cliquable la ou il est.
