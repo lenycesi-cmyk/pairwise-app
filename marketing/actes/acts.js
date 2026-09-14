@@ -28,7 +28,7 @@
   // Reperer d'un coup d'oeil, dans la console, si le navigateur execute bien
   // la derniere version : un pilote perime et une page a jour donnent des
   // symptomes trompeurs (deux actes empiles, barres de defilement en trop).
-  var VERSION = "actes-9";
+  var VERSION = "actes-10";
   if (window.console) console.info("PairWise " + VERSION);
 
   /* Hauteur de l'en-tête. Elle ÉTAIT écrite en dur à 64, la valeur de
@@ -349,12 +349,18 @@
        d'introduction defile a la vitesse du reste et on lui passe dessus sans
        le lire. C'est du temps ajoute par la page, pas une retouche de l'acte. */
     act._hold = reduced ? 0 : Math.round(window.innerHeight * (parseFloat(act.dataset.hold) || 0));
+    /* Pause de SORTIE, symetrique de celle d'introduction : l'acte reste sur sa
+       derniere image avant que la transition ne l'emporte. Un acte dont la
+       scene finale n'arrive qu'au tout dernier instant de sa chronologie n'a
+       sinon aucun temps d'existence — on la voit apparaitre et glisser
+       aussitot hors de l'ecran. */
+    act._tail = reduced ? 0 : Math.round(window.innerHeight * (parseFloat(act.dataset.holdEnd) || 0));
     /* La section ne fournit QUE la course : la course interne de l'acte, plus
        sa bande de transition. Elle n'a plus à réserver la hauteur d'un écran
        comme au temps de `sticky` — c'était précisément cet écran en trop qui
        laissait un vide entre deux actes, l'un ayant fini avant que l'autre
        n'arrive. Ainsi la fin d'un acte est le début exact du suivant. */
-    act.style.height = (act._hold + range + act._band) + "px";
+    act.style.height = (act._hold + range + act._tail + act._band) + "px";
     act.dataset.measured = "1";
     sync();
   }
@@ -391,7 +397,8 @@
 
       // L'acte occupe l'écran de son début jusqu'à la fin de sa bande.
       var band = act._band || 0;
-      var end = start + hold + act._range + band;
+      var tail = act._tail || 0;
+      var end = start + hold + act._range + tail + band;
       /* Borne INCLUSIVE, et le dernier acte trouvé l'emporte. `y < end` cachait
          l'acte a l'instant precis ou son animation atteignait sa fin : la scene
          de cloture de l'acte 5, et son bouton, n'apparaissaient donc jamais.
@@ -401,7 +408,7 @@
 
       // La bande commence là où la course interne s'achève.
       if (!band) continue;
-      var t = (y - (start + hold + act._range)) / band;
+      var t = (y - (start + hold + act._range + tail)) / band;
       if (t > 0 && t < 1) { active = act; activeT = t; }
     }
 
