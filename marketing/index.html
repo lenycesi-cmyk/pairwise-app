@@ -194,7 +194,9 @@
            data-src="/actes/acte-2-solo-ou-a-deux" aria-label="Acte 2 — Solo ou à deux">
     <div class="act__pin"></div>
   </section>
-  <section class="act" id="acte-3" data-measured="0" data-hold="0.7" data-transition="slide-left"
+  <!-- Meme raison que l'acte 2 : le texte de cloture n'arrive qu'en toute fin
+       de chronologie et la transition l'emportait aussitot. -->
+  <section class="act" id="acte-3" data-measured="0" data-hold="0.7" data-hold-end="0.8" data-transition="slide-left"
            data-src="/actes/acte-3-multi-devises" aria-label="Acte 3 — Multi-devises">
     <div class="act__pin"></div>
   </section>
@@ -249,7 +251,7 @@
      arrivait a jour. Le visiteur se retrouvait avec la nouvelle page et
      l'ancien pilote. `scripts/deploy.js` sert desormais tous les .js en
      `no-cache`, donc il n'y aura plus a toucher a ce numero. -->
-<script src="/actes/acts.js?v=10" defer></script>
+<script src="/actes/acts.js?v=11" defer></script>
 
 </body>
 </html>
