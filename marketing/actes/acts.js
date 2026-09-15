@@ -28,7 +28,7 @@
   // Reperer d'un coup d'oeil, dans la console, si le navigateur execute bien
   // la derniere version : un pilote perime et une page a jour donnent des
   // symptomes trompeurs (deux actes empiles, barres de defilement en trop).
-  var VERSION = "actes-15";
+  var VERSION = "actes-16";
   if (window.console) console.info("PairWise " + VERSION);
 
   /* Hauteur de l'en-tête. Elle ÉTAIT écrite en dur à 64, la valeur de
@@ -228,13 +228,19 @@
          On anime `opacity` et `scale`, et `translate` sur le seul titre :
          `transform` est a GSAP, et `translate` sur les fragments est reserve au
          parallaxe. Chaque propriete a un seul proprietaire, sinon l'un efface
-         l'autre. */
+         l'autre.
+         Le remplissage est `backwards` et SURTOUT PAS `both` : une animation en
+         fill `forwards` continue d'imposer sa valeur finale APRES la fin, et
+         prime meme sur le style en ligne — l'`opacity:0` que GSAP ecrit ensuite
+         sur les fragments n'avait donc plus aucun effet et ils ne
+         disparaissaient jamais. `backwards` ne tient que l'etat de depart
+         pendant le delai, puis rend la main. */
       inject(doc,
         "@keyframes pwIn{from{opacity:0;translate:0 14px}to{opacity:1;translate:0 0}}" +
         "@keyframes pwPop{from{opacity:0;scale:.86}to{opacity:1;scale:1}}" +
-        ".hero__title{animation:pwIn .8s cubic-bezier(.22,1,.36,1) both}" +
-        ".hero__sub{animation:pwIn .8s cubic-bezier(.22,1,.36,1) .18s both}" +
-        ".fragment{animation:pwPop .7s cubic-bezier(.34,1.3,.64,1) both}" +
+        ".hero__title{animation:pwIn .8s cubic-bezier(.22,1,.36,1) backwards}" +
+        ".hero__sub{animation:pwIn .8s cubic-bezier(.22,1,.36,1) .18s backwards}" +
+        ".fragment{animation:pwPop .7s cubic-bezier(.34,1.3,.64,1) backwards}" +
         // Le decalage se fait par rang : les fragments arrivent en eventail au
         // lieu de surgir d'un bloc.
         ".fragment:nth-of-type(1){animation-delay:.30s}" +
@@ -591,7 +597,10 @@
         e.preventDefault();
         // On vise le DEBUT de l'acte, pause d'introduction comprise : arriver
         // au milieu d'une scene donnerait l'impression d'avoir rate le debut.
-        window.scrollTo({ top: act.offsetTop - BAR_H, behavior: "smooth" });
+        // Saut SEC, jamais « smooth » : un defilement anime traverse tous les
+        // actes intermediaires, donc joue leurs scenes et leurs transitions en
+        // accelere avant d'arriver. Un repere sert a sauter, pas a rejouer.
+        window.scrollTo(0, act.offsetTop - BAR_H);
       });
     }
   }
