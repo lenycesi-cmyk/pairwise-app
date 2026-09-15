@@ -28,7 +28,7 @@
   // Reperer d'un coup d'oeil, dans la console, si le navigateur execute bien
   // la derniere version : un pilote perime et une page a jour donnent des
   // symptomes trompeurs (deux actes empiles, barres de defilement en trop).
-  var VERSION = "actes-14";
+  var VERSION = "actes-15";
   if (window.console) console.info("PairWise " + VERSION);
 
   /* Hauteur de l'en-tête. Elle ÉTAIT écrite en dur à 64, la valeur de
@@ -219,7 +219,34 @@
     "{font-size:20px !important;line-height:1.55 !important}";
 
   var ADAPT = {
-    "acte-1": function (doc) { hide(doc, ".nav"); },
+    "acte-1": function (doc) {
+      hide(doc, ".nav");
+      /* ENTREE. Le premier ecran etait fige pendant toute la pause
+         d'introduction — or c'est la, dans les deux premieres secondes, qu'on
+         decide de rester. Le titre se pose, puis les fragments arrivent l'un
+         apres l'autre.
+         On anime `opacity` et `scale`, et `translate` sur le seul titre :
+         `transform` est a GSAP, et `translate` sur les fragments est reserve au
+         parallaxe. Chaque propriete a un seul proprietaire, sinon l'un efface
+         l'autre. */
+      inject(doc,
+        "@keyframes pwIn{from{opacity:0;translate:0 14px}to{opacity:1;translate:0 0}}" +
+        "@keyframes pwPop{from{opacity:0;scale:.86}to{opacity:1;scale:1}}" +
+        ".hero__title{animation:pwIn .8s cubic-bezier(.22,1,.36,1) both}" +
+        ".hero__sub{animation:pwIn .8s cubic-bezier(.22,1,.36,1) .18s both}" +
+        ".fragment{animation:pwPop .7s cubic-bezier(.34,1.3,.64,1) both}" +
+        // Le decalage se fait par rang : les fragments arrivent en eventail au
+        // lieu de surgir d'un bloc.
+        ".fragment:nth-of-type(1){animation-delay:.30s}" +
+        ".fragment:nth-of-type(2){animation-delay:.40s}" +
+        ".fragment:nth-of-type(3){animation-delay:.50s}" +
+        ".fragment:nth-of-type(4){animation-delay:.60s}" +
+        ".fragment:nth-of-type(5){animation-delay:.70s}" +
+        ".fragment:nth-of-type(6){animation-delay:.80s}" +
+        ".fragment:nth-of-type(7){animation-delay:.90s}" +
+        "@media (prefers-reduced-motion:reduce){" +
+        ".hero__title,.hero__sub,.fragment{animation:none}}");
+    },
     /* Le bloc « Résumé ce mois-ci » retombait sur les marionnettes et leur
        coupait la tête. On agit sur son CONTENEUR : GSAP anime la transformation
        du bloc lui-même (`y`, `scale`), donc une transformation posée sur lui
@@ -337,6 +364,54 @@
     w.style.transform = "translate(-50%,0) scale(" + scale.toFixed(3) + ")";
   }
 
+  /* ---- Parallaxe au curseur ---------------------------------------------
+     Les scenes etaient des films : belles, mais qui se deroulent qu'on soit la
+     ou non. Quelques pixels de reaction a la souris suffisent a les rendre
+     vivantes.
+
+     On ecrit la propriete CSS `translate`, JAMAIS `transform` : GSAP anime
+     `transform` sur presque tout ici, et les deux proprietes se composent au
+     lieu de s'ecraser. C'est ce qui permet de bouger un element que la
+     chronologie de l'acte anime deja.
+
+     Les couches sont declarees par acte, avec une amplitude en pixels : plus
+     l'element est cense etre proche, plus il bouge. */
+  var PARALLAX = {
+    "acte-1": [[".fragment", 16], [".hero__copy", 5]],
+    "acte-2": [[".puppet", 10], [".who", 5]],
+    "acte-3": [[".globe", 14], [".tx", 7]],
+    "acte-4": [[".goal-card", 8]],
+    "acte-5": [[".balloon", 16], [".asset", 6]]
+  };
+
+  var coarse = window.matchMedia("(pointer: coarse)").matches;
+  var mx = 0, my = 0, cx = 0, cy = 0, parallaxOn = false;
+
+  if (!reduced && !coarse) {
+    window.addEventListener("mousemove", function (e) {
+      // -1 a 1 depuis le centre de la fenetre.
+      mx = (e.clientX / window.innerWidth) * 2 - 1;
+      my = (e.clientY / window.innerHeight) * 2 - 1;
+      parallaxOn = true;
+    }, { passive: true });
+  }
+
+  function applyParallax(act) {
+    if (!parallaxOn || !act) return;
+    var layers = PARALLAX[act.id];
+    var doc = act._frame && docOf(act._frame);
+    if (!layers || !doc) return;
+    // Lissage : sans lui le decor colle au curseur et le mouvement devient sec.
+    cx += (mx - cx) * 0.08;
+    cy += (my - cy) * 0.08;
+    for (var i = 0; i < layers.length; i++) {
+      var nodes = doc.querySelectorAll(layers[i][0]);
+      var amp = layers[i][1];
+      var t = (cx * amp).toFixed(2) + "px " + (cy * amp * 0.6).toFixed(2) + "px";
+      for (var j = 0; j < nodes.length; j++) nodes[j].style.translate = t;
+    }
+  }
+
   function inject(doc, css) {
     var st = doc.createElement("style");
     st.textContent = css;
@@ -384,12 +459,17 @@
        sinon aucun temps d'existence — on la voit apparaitre et glisser
        aussitot hors de l'ecran. */
     act._tail = reduced ? 0 : Math.round(window.innerHeight * (parseFloat(act.dataset.holdEnd) || 0));
+    /* Vitesse : `data-speed="1.35"` joue la meme scene sur un tiers de
+       defilement en moins. C'est la SEULE facon de changer le rythme d'un acte
+       sans toucher a sa chronologie, qui vit dans son propre fichier. */
+    act._speed = parseFloat(act.dataset.speed) || 1;
+    act._course = Math.round(range / act._speed);   // defilement de page consacre a l'acte
     /* La section ne fournit QUE la course : la course interne de l'acte, plus
        sa bande de transition. Elle n'a plus à réserver la hauteur d'un écran
        comme au temps de `sticky` — c'était précisément cet écran en trop qui
        laissait un vide entre deux actes, l'un ayant fini avant que l'autre
        n'arrive. Ainsi la fin d'un acte est le début exact du suivant. */
-    act.style.height = (act._hold + range + act._tail + act._band) + "px";
+    act.style.height = (act._hold + act._course + act._tail + act._band) + "px";
     act.dataset.measured = "1";
     sync();
   }
@@ -417,7 +497,7 @@
       if (!doc) continue;
       var start = act.offsetTop - BAR_H;
       var hold = act._hold || 0;
-      var p = (y - start - hold) / act._range;
+      var p = (y - start - hold) / act._course;
       p = p < 0 ? 0 : p > 1 ? 1 : p;
       var target = Math.round(p * act._range);
       if (doc.documentElement.scrollTop !== target) {
@@ -427,7 +507,7 @@
       // L'acte occupe l'écran de son début jusqu'à la fin de sa bande.
       var band = act._band || 0;
       var tail = act._tail || 0;
-      var end = start + hold + act._range + tail + band;
+      var end = start + hold + act._course + tail + band;
       /* Borne INCLUSIVE, et le dernier acte trouvé l'emporte. `y < end` cachait
          l'acte a l'instant precis ou son animation atteignait sa fin : la scene
          de cloture de l'acte 5, et son bouton, n'apparaissaient donc jamais.
@@ -437,7 +517,7 @@
 
       // La bande commence là où la course interne s'achève.
       if (!band) continue;
-      var t = (y - (start + hold + act._range + tail)) / band;
+      var t = (y - (start + hold + act._course + tail)) / band;
       if (t > 0 && t < 1) { active = act; activeT = t; }
     }
 
@@ -452,6 +532,7 @@
        restait affiche par-dessus, revenu a son debut. C'est exactement ce qu'on
        voyait — la fin de l'acte precedent une seconde, puis le debut du
        suivant. */
+    currentAct = current;
     var incoming = active ? nextOf(active) : null;
     var signature = (current ? current.id : "-") + "|" + (incoming ? incoming.id : "-");
     if (signature !== lastVisible) {
@@ -483,6 +564,8 @@
       if (fd) fitWidgets(fd);
     }
 
+    applyParallax(current);
+    syncRail(current);
     syncCtaHit();
 
     if (veil) {
@@ -493,6 +576,45 @@
 
   var lastActive = null;
   var lastVisible = "";
+
+  /* ---- Rail de progression ---------------------------------------------- */
+  var rail = document.getElementById("actRail");
+  var railFill = document.getElementById("actRailFill");
+  var railLinks = rail ? rail.querySelectorAll("a[data-rail]") : [];
+  var lastRailOn = "";
+
+  if (rail) {
+    for (var ri = 0; ri < railLinks.length; ri++) {
+      railLinks[ri].addEventListener("click", function (e) {
+        var act = document.getElementById(this.getAttribute("data-rail"));
+        if (!act) return;
+        e.preventDefault();
+        // On vise le DEBUT de l'acte, pause d'introduction comprise : arriver
+        // au milieu d'une scene donnerait l'impression d'avoir rate le debut.
+        window.scrollTo({ top: act.offsetTop - BAR_H, behavior: "smooth" });
+      });
+    }
+  }
+
+  function syncRail(current) {
+    if (!rail) return;
+    // Le rail ne s'affiche que pendant les actes : il n'a rien a dire sur le
+    // pied de page.
+    rail.classList.toggle("is-on", !!current);
+    var id = current ? current.id : "";
+    if (id !== lastRailOn) {
+      for (var i = 0; i < railLinks.length; i++) {
+        railLinks[i].classList.toggle("on", railLinks[i].getAttribute("data-rail") === id);
+      }
+      lastRailOn = id;
+    }
+    if (railFill && acts.length) {
+      var last = acts[acts.length - 1];
+      var total = last.offsetTop + last.offsetHeight - BAR_H;
+      var pct = total > 0 ? (window.scrollY / total) * 100 : 0;
+      railFill.style.height = (pct < 0 ? 0 : pct > 100 ? 100 : pct) + "%";
+    }
+  }
   var lastFit = 0;
 
   /* Calque de clic pour le bouton de l'acte 5. Sa position est relue a chaque
@@ -604,6 +726,15 @@
   // Même courbe que les transitions d'origine : départ franc, arrivée douce.
   function ease(t) { return 1 - Math.pow(1 - t, 3); }
 
+  /* Le parallaxe doit vivre meme quand la page ne defile pas : `sync` n'est
+     appele qu'au defilement. Une boucle courte prend le relais, et ne tourne
+     que lorsque la souris a bouge et qu'un acte est a l'ecran. */
+  (function loop() {
+    if (parallaxOn && lastVisible) applyParallax(currentAct);
+    requestAnimationFrame(loop);
+  })();
+
+  var currentAct = null;
   var ticking = false;
   function onScroll() {
     if (ticking) return;

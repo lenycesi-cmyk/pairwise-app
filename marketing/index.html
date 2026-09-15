@@ -91,6 +91,45 @@
     }
     .act-cta-hit:focus-visible { outline: 3px solid var(--tang); outline-offset: 3px; }
 
+    /* Le rail vit a GAUCHE : a droite il tomberait sous la barre de defilement,
+       et sur une fenetre etroite il se retire plutot que de manger la scene. */
+    .act-rail {
+      position: fixed; left: 26px; top: 50%; transform: translateY(-50%);
+      z-index: 14; display: flex; flex-direction: column; gap: 18px;
+      padding-left: 14px; opacity: 0; visibility: hidden;
+      transition: opacity .35s ease, visibility .35s ease;
+    }
+    .act-rail.is-on { opacity: 1; visibility: visible; }
+    .act-rail__line {
+      position: absolute; left: 3px; top: 4px; bottom: 4px; width: 2px;
+      background: color-mix(in srgb, var(--ink) 14%, transparent); border-radius: 2px;
+    }
+    .act-rail__fill {
+      position: absolute; left: 0; top: 0; width: 100%; height: 0;
+      background: var(--tang); border-radius: 2px;
+    }
+    .act-rail a {
+      position: relative; display: flex; align-items: center; gap: 12px;
+      text-decoration: none; color: var(--ink-3); font-size: 12.5px; font-weight: 600;
+      line-height: 1; transition: color .25s ease;
+    }
+    .act-rail a i {
+      width: 8px; height: 8px; border-radius: 50%; flex: none;
+      background: color-mix(in srgb, var(--ink) 22%, transparent);
+      transition: background .25s ease, transform .25s ease;
+      margin-left: -2px;
+    }
+    /* Le libelle n'apparait qu'au survol ou sur l'acte courant : cinq mots
+       posés en permanence a cote de la scene deviendraient du decor. */
+    .act-rail a span { opacity: 0; transform: translateX(-4px);
+      transition: opacity .25s ease, transform .25s ease; white-space: nowrap; }
+    .act-rail:hover a span, .act-rail a.on span { opacity: 1; transform: none; }
+    .act-rail a:hover { color: var(--ink); }
+    .act-rail a.on { color: var(--tang); }
+    .act-rail a.on i { background: var(--tang); transform: scale(1.5); }
+    .act-rail a:focus-visible { outline: 2px solid var(--tang); outline-offset: 4px; border-radius: 4px; }
+    @media (max-width: 900px) { .act-rail { display: none; } }
+
     .act-veil {
       position: fixed; inset: 0; z-index: 10;
       background: #0b0b0c; opacity: 0; pointer-events: none; display: none;
@@ -170,6 +209,19 @@
   </div>
 </header>
 
+<!-- Rail de progression. Rien n'indiquait que la page fait cinq actes ni ou
+     l'on se trouve : on defilait sans savoir s'il restait dix secondes ou trois
+     minutes. Ce sont de vrais liens, donc utilisables au clavier et visibles
+     d'un moteur de recherche. -->
+<nav class="act-rail" id="actRail" aria-label="Progression de la présentation">
+  <span class="act-rail__line"><span class="act-rail__fill" id="actRailFill"></span></span>
+  <a href="#acte-1" data-rail="acte-1"><i></i><span>Vue claire</span></a>
+  <a href="#acte-2" data-rail="acte-2"><i></i><span>Solo ou à deux</span></a>
+  <a href="#acte-3" data-rail="acte-3"><i></i><span>Multi-devises</span></a>
+  <a href="#acte-4" data-rail="acte-4"><i></i><span>Objectifs</span></a>
+  <a href="#acte-5" data-rail="acte-5"><i></i><span>Patrimoine</span></a>
+</nav>
+
 <div class="act-veil" id="actVeil" aria-hidden="true"></div>
 
 <!-- Zone cliquable calquee sur le bouton « C'est parti » de l'acte 5. Les actes
@@ -200,7 +252,10 @@
            data-src="/actes/acte-3-multi-devises" aria-label="Acte 3 — Multi-devises">
     <div class="act__pin"></div>
   </section>
-  <section class="act" id="acte-4" data-measured="0" data-hold="0.7" data-transition="flip-boat"
+  <!-- data-speed : les cinq actes se suivaient au meme rythme, texte puis
+       animation puis texte. Celui-ci joue la meme scene sur un tiers de
+       defilement en moins — une respiration plus seche au milieu du parcours. -->
+  <section class="act" id="acte-4" data-measured="0" data-hold="0.7" data-speed="1.35" data-transition="flip-boat"
            data-src="/actes/acte-4-objectifs" aria-label="Acte 4 — Objectifs et projets">
     <div class="act__pin"></div>
   </section>
@@ -251,7 +306,7 @@
      arrivait a jour. Le visiteur se retrouvait avec la nouvelle page et
      l'ancien pilote. `scripts/deploy.js` sert desormais tous les .js en
      `no-cache`, donc il n'y aura plus a toucher a ce numero. -->
-<script src="/actes/acts.js?v=14" defer></script>
+<script src="/actes/acts.js?v=15" defer></script>
 
 </body>
 </html>
