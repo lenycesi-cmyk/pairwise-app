@@ -11,13 +11,14 @@ import { useTranslation } from "../hooks/useTranslation";
 import { useRevealOnOpen, useRevealOnFocus, revealElement } from "../hooks/useRevealOnOpen";
 import { useCategoryName } from "../hooks/useCategoryName";
 import AdvancedSplitSelector from "../components/AdvancedSplitSelector";
-import { getMemberKey } from "../utils/members";
+import { getMemberKey, memberShareFraction } from "../utils/members";
 import { buildSuggestionIndex, getSuggestions, findExactMatch } from "../utils/descriptionSuggestions";
 import TransactionComments from "../components/TransactionComments";
 import TagInput from "../components/TagInput";
 import TagManager from "../components/TagManager";
 import { dedupeTags, extractTagsFromText, usedTags } from "../utils/tags";
 import { parseNaturalTransaction } from "../utils/parseNaturalTransaction";
+import { formatMoney } from "../utils/onboardingDraft";
 import QuickAddBar from "../components/QuickAddBar";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 import { haptic } from "../utils/haptics";
@@ -174,6 +175,15 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
   const [split, setSplit] = useState(() => editingTx?.split || findLastOwnTx()?.split || "50/50");
   const [splitMode, setSplitMode] = useState(() => ((editingTx || findLastOwnTx())?.splitDetails ? "advanced" : "simple"));
   const [splitDetails, setSplitDetails] = useState(() => (editingTx || findLastOwnTx())?.splitDetails || null);
+  // « Ce revenu rembourse une dépense partagée » : le seul champ qui fasse
+  // entrer un REVENU dans le suivi des dettes. Il n'est pas déduit du partage,
+  // et c'est délibéré — sur un revenu, le bénéficiaire sert déjà à répartir le
+  // montant dans les rapports et les budgets. S'en servir aussi pour les
+  // dettes ferait entrer d'un coup tous les revenus déjà enregistrés en commun,
+  // salaires compris, et changerait les soldes sans que personne l'ait demandé.
+  // Jamais repris de la dernière saisie (contrairement au partage) : un
+  // remboursement est un événement, pas une habitude.
+  const [refundsShared, setRefundsShared] = useState(() => editingTx?.refundsShared === true);
   const [dateTime, setDateTime] = useState(toDateTimeLocal(editingTx?.date));
   // Filet de rattrapage : à l'ouverture juste après le login, `transactions`
   // peut encore être vide (l'écoute Firestore n'a pas livré) quand les
@@ -389,6 +399,26 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
   // et éventuellement POUR QUI (split) si la dépense d'investissement est partagée
   const needsMemberAttribution = type === "income" || type === "investment";
 
+  // La case « rembourse une dépense partagée » ne s'affiche que là où elle a un
+  // sens : un REVENU, à deux, dont le bénéficiaire n'est pas le seul membre qui
+  // l'a reçu. Un revenu qu'on garde pour soi n'a personne à rembourser, et une
+  // dépense entre déjà dans le calcul par elle-même.
+  const otherMember = members.find((m) => getMemberKey(m) !== paidBy);
+  const receiverMember = members.find((m) => getMemberKey(m) === paidBy);
+  const showRefundToggle =
+    type === "income" &&
+    !isSolo &&
+    !isPrivate &&
+    members.length === 2 &&
+    !!otherMember &&
+    (splitMode === "advanced" || split !== paidBy);
+  // Montant qui reviendra à l'autre membre : exactement la part que le partage
+  // lui attribue, donc la même fonction que partout ailleurs dans l'app.
+  const refundOwed = showRefundToggle
+    ? (parseFloat(amount) || 0) *
+      memberShareFraction({ split, splitDetails: splitMode === "advanced" ? splitDetails : null }, getMemberKey(otherMember), members)
+    : 0;
+
   function handleTypeChange(newType) {
     catAutoRef.current = false;
     setType(newType);
@@ -529,6 +559,10 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
             ? paidBy
             : type === "expense" || needsMemberAttribution ? split : "100",
         splitDetails: soloKey || isPrivate || splitMode !== "advanced" ? null : splitDetails,
+        // Écrit MÊME À FAUX (et non laissé absent) : décocher la case en
+        // édition doit retirer la transaction du suivi des dettes, ce qu'un
+        // champ omis ne ferait pas — la fusion garderait l'ancienne valeur.
+        refundsShared: showRefundToggle ? refundsShared : false,
         date: isoDate,
         privateTo: isPrivate ? myMemberKey : null,
       };
@@ -1097,6 +1131,47 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
             onChange={setSplitDetails}
           />
         </div>
+      )}
+
+      {showRefundToggle && (
+        <button
+          type="button"
+          role="switch"
+          aria-checked={refundsShared}
+          onClick={() => setRefundsShared((v) => !v)}
+          style={{
+            marginTop: 12, width: "100%", textAlign: "left", cursor: "pointer",
+            display: "grid", gridTemplateColumns: "auto 1fr", gap: 10, alignItems: "start",
+            padding: "11px 12px", borderRadius: "var(--radius-md)",
+            border: `0.5px solid ${refundsShared ? "var(--mint)" : "var(--rule)"}`,
+            background: `color-mix(in srgb, var(--mint) ${refundsShared ? 13 : 6}%, transparent)`,
+            transition: "background-color .18s ease, border-color .18s ease",
+          }}
+        >
+          <span
+            aria-hidden="true"
+            style={{
+              width: 20, height: 20, borderRadius: 6, marginTop: 1, display: "grid", placeItems: "center",
+              border: `1.5px solid ${refundsShared ? "var(--mint)" : "var(--ink-3)"}`,
+              background: refundsShared ? "var(--mint)" : "transparent", color: "#fff", flexShrink: 0,
+            }}
+          >
+            {refundsShared && <i className="ti ti-check" style={{ fontSize: 13 }} />}
+          </span>
+          <span>
+            <span style={{ display: "block", fontSize: 13, fontWeight: 600, color: "var(--ink)", lineHeight: 1.35 }}>
+              {t("tx_refund_shared")}
+            </span>
+            <span style={{ display: "block", fontSize: 11.5, color: "var(--ink-2)", lineHeight: 1.4, marginTop: 2 }}>
+              {refundsShared && refundOwed > 0
+                ? t("tx_refund_shared_on")
+                    .replace("{from}", receiverMember?.name || "")
+                    .replace("{amount}", formatMoney(refundOwed, currency, language))
+                    .replace("{to}", otherMember?.name || "")
+                : t("tx_refund_shared_off")}
+            </span>
+          </span>
+        </button>
       )}
     </SectionCard>
     </div>

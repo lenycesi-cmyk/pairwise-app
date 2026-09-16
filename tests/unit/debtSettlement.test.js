@@ -120,3 +120,83 @@ describe("cohabitation avec les anciens règlements-butoir", () => {
     expect(calc({ ...JUNE, settlements }).owesAmount).toBe(50);
   });
 });
+
+describe("remboursement d'une dépense partagée", () => {
+  // Le cas concret : Jessica avance la facture de 300, partagée, puis encaisse
+  // le remboursement de l'assurance en revenu commun.
+  //
+  // La règle qui gouverne tout ce bloc : le remboursement se compte comme
+  // l'argent qu'il est, du côté de qui l'encaisse. Il n'annule PAS la dépense
+  // qu'il rembourse — il ne la connaît même pas. Quand la même personne avance
+  // et encaisse, les deux se compensent exactement ; quand ce n'est pas la même,
+  // la dette double au lieu de s'annuler, et c'est juste : l'un a sorti
+  // l'argent, l'autre l'a reçu.
+  const BILL = {
+    id: "t-facture", type: "expense", date: "2026-06-05T12:00:00.000Z",
+    amount: 300, currency: "EUR", paidBy: "u-jess", split: "50/50", description: "Facture",
+  };
+  const refund = (extra = {}) => ({
+    id: "t-remb", type: "income", date: "2026-06-20T12:00:00.000Z",
+    amount: 300, currency: "EUR", paidBy: "u-jess", split: "50/50",
+    description: "Remboursement", refundsShared: true, ...extra,
+  });
+  const run = (txs, opts = {}) => useDebtCalculation(txs, MEMBERS, "EUR", convert, opts);
+
+  it("un revenu NON coché ne touche à rien", () => {
+    // La garantie qui protège l'historique : tous les revenus déjà enregistrés
+    // en commun — salaires compris — restent hors du calcul.
+    const r = run([BILL, refund({ refundsShared: false })]);
+    expect(r.owesAmount).toBe(150);
+    expect(r.owesFromName).toBe("Nicolas");
+  });
+
+  it("coché, il défait exactement la part qu'il rembourse", () => {
+    const r = run([BILL, refund()]);
+    expect(r.owesAmount).toBe(0);
+  });
+
+  it("dépasser la dépense inverse le sens, sans cas particulier", () => {
+    // Nicolas devait 150 ; Jessica encaisse 400 en commun, donc lui en rend
+    // 200. Le solde bascule : c'est elle qui doit 50.
+    const r = run([BILL, refund({ amount: 400 })]);
+    expect(r.owesAmount).toBe(50);
+    expect(r.owesFromName).toBe("Jessica");
+  });
+
+  it("un remboursement entièrement « pour » l'autre lui revient en entier", () => {
+    const r = run([refund({ split: "u-nico" })]);
+    expect(r.owesAmount).toBe(300);
+    expect(r.owesFromName).toBe("Jessica");
+  });
+
+  it("suit le partage avancé comme une dépense", () => {
+    const r = run([refund({ splitDetails: { unit: "percent", a: 70, b: 30 } })]);
+    // Reçu par Jessica (b), 70 % revient à Nicolas (a).
+    expect(r.owesAmount).toBe(210);
+    expect(r.owesFromName).toBe("Jessica");
+  });
+
+  it("payé et encaissé par deux personnes différentes, il CREUSE la dette", () => {
+    // Nicolas sort 300 de sa poche, Jessica encaisse les 300 : la dépense n'a
+    // rien coûté au couple, donc Jessica lui rend tout. Le remboursement ne
+    // s'annule avec la facture que si la même personne fait les deux.
+    const paidByNico = { ...BILL, paidBy: "u-nico" };
+    const r = run([paidByNico, refund()]);
+    expect(r.owesAmount).toBe(300);
+    expect(r.owesFromName).toBe("Jessica");
+  });
+
+  it("porte son propre type dans l'activité, avec un montant positif", () => {
+    const row = run([BILL, refund()]).activity.find((x) => x.kind === "refund");
+    expect(row.share).toBe(150);
+    expect(row.paidByName).toBe("Jessica");
+    expect(row.forName).toBe("Nicolas");
+  });
+
+  it("antérieur au dernier règlement, il ne compte plus", () => {
+    // Même fenêtre que les dépenses : un règlement efface ce qui le précède.
+    const settlements = [{ id: "s1", date: "2026-07-01T00:00:00.000Z" }];
+    expect(run([BILL, refund()], { settlements }).owesAmount).toBe(0);
+    expect(run([BILL], { settlements }).owesAmount).toBe(0);
+  });
+});
