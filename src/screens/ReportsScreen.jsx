@@ -18,6 +18,7 @@ import SpotlightHint from "../components/SpotlightHint";
 import GreetingHeader from "../components/GreetingHeader";
 import HeaderMenuButton from "../components/HeaderMenuButton";
 import { getMemberKey, memberShareFraction } from "../utils/members";
+import { useHeaderScale } from "../hooks/useHeaderScale";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 import { tagColor } from "../utils/tags";
 import TagChip from "../components/TagChip";
@@ -110,6 +111,9 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
   const { convert, loading: ratesLoading } = useExchangeRates(displayCurrency);
   const memberColorMap = useMemo(() => buildMemberColorMap(members), [members]);
   const isDesktop = useMediaQuery("(min-width: 1024px)");
+  // Meme mise a l'echelle que l'Accueil : la barre est dessinee a 390 px de
+  // large puis reduite sur les telephones plus etroits.
+  const headerScale = useHeaderScale();
   const periodRowRef = useRef(null);
   const customizeButtonRef = useRef(null);
 
@@ -416,12 +420,23 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
   // Dépenses par tag sur la période — une transaction peut porter plusieurs
   // tags, son montant est compté pour chacun (les totaux par tag peuvent donc
   // dépasser le total des dépenses, c'est attendu).
+  //
+  // Un REMBOURSEMENT se soustrait. Une facture de 300 € remboursée à 250 € a
+  // coûté 50 €, et c'est ce chiffre-là qui intéresse : tant que les revenus
+  // étaient ignorés, le tag annonçait 300 € dépensés pour toujours, sans que
+  // rien à l'écran ne dise où était passé le remboursement. Le signe vient du
+  // type de la transaction, donc n'importe quel revenu étiqueté corrige son
+  // tag — sans réglage ni reprise de données.
+  //
+  // Un tag peut alors afficher un total NÉGATIF (remboursé au-delà de la
+  // dépense), ce qui est une information juste et non un cas limite à masquer.
   const tagTotals = useMemo(() => {
     const totals = new Map();
     for (const tx of periodTx) {
-      if (tx.type !== "expense") continue;
+      if (tx.type !== "expense" && tx.type !== "income") continue;
+      const signed = tx.type === "income" ? -toBase(tx) : toBase(tx);
       for (const tag of tx.tags || []) {
-        totals.set(tag, (totals.get(tag) || 0) + toBase(tx));
+        totals.set(tag, (totals.get(tag) || 0) + signed);
       }
     }
     return [...totals.entries()]
@@ -429,7 +444,9 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
       .sort((a, b) => b.total - a.total);
   }, [periodTx, displayCurrency, convert]);
 
-  const maxTagTotal = Math.max(1, ...tagTotals.map((t) => t.total));
+  // Échelle des barres : la VALEUR ABSOLUE, sinon un tag entièrement remboursé
+  // (total négatif) écraserait la barre de tous les autres.
+  const maxTagTotal = Math.max(1, ...tagTotals.map((t) => Math.abs(t.total)));
 
   // ── Tendance par poste ─────────────────────────────────────────────────
   // Options disponibles pour la dimension courante, triées par dépense décroissante
@@ -1353,12 +1370,20 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
             {tagTotals.map(({ tag, total }) => {
               const color = tagColor(tag);
               const expanded = expandedTags.has(tag);
-              const barPct = Math.round((total / maxTagTotal) * 100);
+              const barPct = Math.round((Math.abs(total) / maxTagTotal) * 100);
               const sharePct = totalExpense > 0 ? (total / totalExpense) * 100 : 0;
+              // Historique du tag : dépenses ET remboursements, triés par date
+              // décroissante et non plus par montant. Un remboursement ne se
+              // lit que par rapport à la dépense qu'il rembourse, donc l'ordre
+              // chronologique est le seul qui les montre l'un après l'autre.
               const tagTx = expanded
                 ? periodTx
-                    .filter((tx) => tx.type === "expense" && (tx.tags || []).includes(tag))
-                    .sort((a, b) => toBase(b) - toBase(a))
+                    .filter(
+                      (tx) =>
+                        (tx.type === "expense" || tx.type === "income") &&
+                        (tx.tags || []).includes(tag)
+                    )
+                    .sort((a, b) => new Date(b.date) - new Date(a.date))
                 : [];
               return (
                 <div key={tag} style={{ borderBottom: "0.5px solid var(--rule)" }}>
@@ -1372,7 +1397,9 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
                       <div style={{ width: `${barPct}%`, height: 5, background: `var(--${color})`, transition: "width 0.3s ease" }} />
                     </div>
                     <div style={{ textAlign: "right", flexShrink: 0, minWidth: 78 }}>
-                      <p style={{ fontSize: 13, fontWeight: 500 }}>{formatAmount(total)} {currencySymbol}</p>
+                      <p style={{ fontSize: 13, fontWeight: 500, color: total < 0 ? "var(--good)" : "var(--ink)" }}>
+                        {total < 0 ? "+" : ""}{formatAmount(Math.abs(total))} {currencySymbol}
+                      </p>
                       <p style={{ fontSize: 10, color: "var(--ink-3)" }}>{sharePct.toFixed(1)}%</p>
                     </div>
                     <i
@@ -1392,7 +1419,15 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
                               {tx.description || cat?.name}
                             </span>
                             <span style={{ fontSize: 10.5, color: "var(--ink-3)", flexShrink: 0 }}>{new Date(tx.date).toLocaleDateString(locale)}</span>
-                            <span className="pw-num" style={{ fontSize: 12, fontWeight: 500, flexShrink: 0 }}>{formatAmount(toBase(tx))} {currencySymbol}</span>
+                            <span
+                              className="pw-num"
+                              style={{
+                                fontSize: 12, fontWeight: 500, flexShrink: 0,
+                                color: tx.type === "income" ? "var(--good)" : "var(--ink)",
+                              }}
+                            >
+                              {tx.type === "income" ? "+" : "−"}{formatAmount(toBase(tx))} {currencySymbol}
+                            </span>
                           </div>
                         );
                       })}
@@ -1449,7 +1484,7 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
       <div className="pw-sticky-header" style={{ position: "sticky", top: 0, zIndex: 30, background: "var(--bg)", marginLeft: "-1.25rem", marginRight: "-1.25rem", padding: "1rem 1.25rem 0.5rem" }}>
         {(() => {
           const actions = (
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 * headerScale }}>
               {editMode ? (
                 <button
                   onClick={() => setEditMode(false)}
@@ -1465,23 +1500,23 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
                   <button
                     onClick={() => setShowCurrencyPicker(!showCurrencyPicker)}
                     style={{
-                      height: 34, padding: "0 12px", borderRadius: 99, border: "0.5px solid var(--rule)",
-                      background: "var(--bg-card)", fontSize: 13, fontWeight: 600, color: "var(--ink)",
-                      display: "inline-flex", alignItems: "center", gap: 5,
+                      height: 34 * headerScale, padding: `0 ${12 * headerScale}px`, borderRadius: 99, border: "0.5px solid var(--rule)",
+                      background: "var(--bg-card)", fontSize: 13 * headerScale, fontWeight: 600, color: "var(--ink)",
+                      display: "inline-flex", alignItems: "center", gap: 5 * headerScale,
                     }}
                   >
-                    {currencySymbol} <i className="ti ti-chevron-down" style={{ fontSize: 14, color: "var(--ink-3)" }} aria-hidden="true" />
+                    {currencySymbol} <i className="ti ti-chevron-down" style={{ fontSize: 14 * headerScale, color: "var(--ink-3)" }} aria-hidden="true" />
                   </button>
                   <button
                     ref={customizeButtonRef}
                     onClick={() => { setEditMode(true); setShowCurrencyPicker(false); }}
                     aria-label={t("dashboard_customize")}
                     style={{
-                      width: 34, height: 34, borderRadius: "50%", background: "var(--bg-card)",
+                      width: 34 * headerScale, height: 34 * headerScale, borderRadius: "50%", background: "var(--bg-card)",
                       border: "0.5px solid var(--rule)", display: "flex", alignItems: "center", justifyContent: "center",
                     }}
                   >
-                    <i className="ti ti-pencil" style={{ fontSize: 15 }} aria-hidden="true" />
+                    <i className="ti ti-pencil" style={{ fontSize: 15 * headerScale }} aria-hidden="true" />
                   </button>
                 </>
               )}
@@ -1517,8 +1552,8 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
           // pousser les actions hors de l'écran.
           return (
             <>
-              <div style={{ display: "grid", gridTemplateColumns: "auto minmax(0, 1fr) auto", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                <div style={{ justifySelf: "start" }}><HeaderMenuButton onClick={onOpenMenu} /></div>
+              <div style={{ display: "grid", gridTemplateColumns: "auto minmax(0, 1fr) auto", alignItems: "center", gap: 8 * headerScale, marginBottom: 10 }}>
+                <div style={{ justifySelf: "start" }}><HeaderMenuButton onClick={onOpenMenu} scale={headerScale} /></div>
                 <div ref={periodRowRef} style={{ justifySelf: "center", minWidth: 0 }}>{periodNode}</div>
                 <div style={{ justifySelf: "end" }}>{actions}</div>
               </div>

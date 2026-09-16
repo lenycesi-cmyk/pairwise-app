@@ -14,6 +14,22 @@
 
 export const RELEASE_NOTES = [
   {
+    version: "2026.09.16",
+    date: "2026-09-16",
+    items: [
+      {
+        icon: "\ud83c\udff7\ufe0f",
+        fr: { title: "Les remboursements se déduisent des dépenses par tag", body: "Une facture de 300 € remboursée à 250 € restait affichée à 300 € : le widget « Dépenses par tag » ne comptait que les dépenses, et le remboursement n'apparaissait nulle part. Les revenus étiquetés se soustraient maintenant du total, et l'historique du tag les montre en vert, par date." },
+        en: { title: "Refunds now count against your spending by tag", body: "A €300 bill refunded €250 still showed as €300: the “Spending by tag” widget only counted expenses, and the refund appeared nowhere. Tagged income is now subtracted from the total, and the tag's history shows it in green, by date." },
+      },
+      {
+        icon: "\ud83d\udcf1",
+        fr: { title: "En-tête lisible sur les téléphones étroits", body: "Dans Rapports et Flux, le bouton menu, le sélecteur de mois et les boutons devise se chevauchaient ou sortaient de l'écran sur les appareils de moins de 390 px de large. Ils se réduisent maintenant ensemble, comme sur l'Accueil." },
+        en: { title: "A readable header on narrow phones", body: "In Reports and Flow, the menu button, the month selector and the currency buttons overlapped or ran off the screen on devices under 390 px wide. They now scale down together, as on Home." },
+      },
+    ],
+  },
+  {
     version: "2026.09.05",
     date: "2026-09-05",
     items: [
