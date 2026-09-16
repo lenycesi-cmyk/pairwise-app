@@ -28,7 +28,7 @@
   // Reperer d'un coup d'oeil, dans la console, si le navigateur execute bien
   // la derniere version : un pilote perime et une page a jour donnent des
   // symptomes trompeurs (deux actes empiles, barres de defilement en trop).
-  var VERSION = "actes-16";
+  var VERSION = "actes-17";
   if (window.console) console.info("PairWise " + VERSION);
 
   /* Hauteur de l'en-tête. Elle ÉTAIT écrite en dur à 64, la valeur de
@@ -252,6 +252,49 @@
         ".fragment:nth-of-type(7){animation-delay:.90s}" +
         "@media (prefers-reduced-motion:reduce){" +
         ".hero__title,.hero__sub,.fragment{animation:none}}");
+
+      /* CADRAGE. La scene etait dessinee pour une fenetre de portable : sur un
+         grand ecran elle n'occupait que 430 px de haut sur 885, et le groupe
+         « panneau + barre de saisie » pesait vers le bas — le panneau est
+         centre pour lui-meme, mais la barre est ancree en bas, si bien que
+         l'ensemble paraissait decentre alors que chaque piece l'etait.
+         On agrandit d'environ un quart et on remonte la barre ; le panneau
+         descend d'un cran pour que le GROUPE soit centre, et non chaque
+         element pris isolement.
+         Le decalage passe par les MARGES, et surtout pas par `translate` :
+         GSAP ecrit `translate: none` en ligne sur tout element dont il anime
+         le transform, donc la propriete lui appartient ici — contrairement aux
+         cibles du parallaxe, auxquelles il ne touche jamais. Sur une boite
+         centree par la grille, c'est la boite AVEC ses marges qui est centree :
+         une marge basse de 70 px la remonte de 35. */
+      inject(doc,
+        ".ordered-panel{width:min(520px,88vw);padding:12px;margin-bottom:86px}" +
+        ".ordered-panel__head{padding:16px 18px 13px}" +
+        ".ordered-panel__title{font-size:18px}" +
+        ".ordered-panel__badge{font-size:12px;padding:5px 11px}" +
+        ".row{padding:15px 18px;gap:14px}" +
+        ".row__icon{width:38px;height:38px;font-size:17px;border-radius:12px}" +
+        ".row__name{font-size:16px}" +
+        ".row__cat{font-size:13px}" +
+        ".row__amt{font-size:16px}" +
+        ".fly-row{width:min(500px,84vw);padding:13px 16px;gap:14px}" +
+        ".input-bar{width:min(560px,86vw);bottom:calc(15% + 22px);padding:7px 7px 7px 26px}" +
+        ".input-bar__text{font-size:17px}" +
+        ".input-bar__cursor{height:21px}" +
+        ".input-bar__btn{width:48px;height:48px;font-size:20px}" +
+        ".input-bar__hint{bottom:calc(15% - 16px);font-size:13.5px}" +
+        ".insights{width:min(480px,92vw);padding:26px 26px 22px;margin:0 0 86px}" +
+        ".insights__title{font-size:20px}" +
+        ".insights__period{font-size:12px}" +
+        ".insights__sub{font-size:14px}" +
+        ".bars{height:230px}" +
+        ".bar{max-width:74px}" +
+        ".bar__val{font-size:13px;top:-23px}" +
+        ".bar-col__lbl{font-size:13px}" +
+        ".donut-wrap{gap:20px;margin-top:26px}" +
+        ".legend__item{font-size:14px}" +
+        ".legend__pct{font-size:12.5px}" +
+        ".insights__note{font-size:14.5px;margin-top:20px}");
     },
     /* Le bloc « Résumé ce mois-ci » retombait sur les marionnettes et leur
        coupait la tête. On agit sur son CONTENEUR : GSAP anime la transformation
