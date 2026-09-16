@@ -11,6 +11,7 @@ import { currencySymbol } from "../utils/onboardingDraft";
 import WidgetCard from "../components/WidgetCard";
 import WidgetCanvas from "../components/WidgetCanvas";
 import HeaderMenuButton from "../components/HeaderMenuButton";
+import { useHeaderScale } from "../hooks/useHeaderScale";
 import GreetingHeader from "../components/GreetingHeader";
 import CurrencyPicker from "../components/CurrencyPicker";
 import CategoryRow from "../components/CategoryRow";
@@ -48,6 +49,8 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
   const { items: fixedItems } = useFixedExpenses(displayCurrency);
   const { suggestion, accept, dismiss } = useSubscriptionSuggestion();
   const isDesktop = useMediaQuery("(min-width: 1024px)");
+  // Meme mise a l'echelle que l'Accueil et Rapports (voir useHeaderScale).
+  const headerScale = useHeaderScale();
   const { widgets, saveWidgets } = useFluxPrefs();
 
   // Détail des charges fixes déroulé par défaut (l'utilisateur veut voir la
@@ -567,7 +570,7 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
       >
         {(() => {
           const actions = (
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 * headerScale }}>
               {editMode ? (
                 <button
                   onClick={() => setEditMode(false)}
@@ -583,22 +586,22 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
                   <button
                     onClick={() => setShowCurrencyPicker(!showCurrencyPicker)}
                     style={{
-                      height: 30, padding: "0 10px", borderRadius: "var(--radius-md)",
+                      height: 30 * headerScale, padding: `0 ${10 * headerScale}px`, borderRadius: "var(--radius-md)",
                       border: "0.5px solid var(--rule)", background: "var(--bg-card)",
-                      fontSize: 12, fontWeight: 500, display: "flex", alignItems: "center", gap: 4,
+                      fontSize: 12 * headerScale, fontWeight: 500, display: "flex", alignItems: "center", gap: 4 * headerScale,
                     }}
                   >
-                    {symbol} <i className="ti ti-chevron-down" style={{ fontSize: 11 }} aria-hidden="true" />
+                    {symbol} <i className="ti ti-chevron-down" style={{ fontSize: 11 * headerScale }} aria-hidden="true" />
                   </button>
                   <button
                     onClick={() => { setEditMode(true); setShowCurrencyPicker(false); }}
                     aria-label={t("dashboard_customize")}
                     style={{
-                      width: 30, height: 30, borderRadius: "50%", background: "var(--bg-card)",
+                      width: 30 * headerScale, height: 30 * headerScale, borderRadius: "50%", background: "var(--bg-card)",
                       border: "0.5px solid var(--rule)", display: "flex", alignItems: "center", justifyContent: "center",
                     }}
                   >
-                    <i className="ti ti-pencil" style={{ fontSize: 14 }} aria-hidden="true" />
+                    <i className="ti ti-pencil" style={{ fontSize: 14 * headerScale }} aria-hidden="true" />
                   </button>
                 </>
               )}
@@ -615,6 +618,7 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
               range={range}
               customRange={customRange}
               setCustomRange={setCustomRange}
+              scale={headerScale}
             />
           ) : null;
           // Message d'accueil « Bonjour {prénom} · résumé de tes flux pour {mois} »,
@@ -642,8 +646,8 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
               {/* `minmax(0, 1fr)` et non `1fr` : sans plancher à zéro, la colonne
                   du milieu ne peut pas descendre sous la largeur de son contenu
                   et pousse les actions hors de l'écran. */}
-              <div style={{ display: "grid", gridTemplateColumns: "auto minmax(0, 1fr) auto", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                <div style={{ justifySelf: "start" }}><HeaderMenuButton onClick={onOpenMenu} /></div>
+              <div style={{ display: "grid", gridTemplateColumns: "auto minmax(0, 1fr) auto", alignItems: "center", gap: 8 * headerScale, marginBottom: 10 }}>
+                <div style={{ justifySelf: "start" }}><HeaderMenuButton onClick={onOpenMenu} scale={headerScale} /></div>
                 <div style={{ justifySelf: "center", minWidth: 0 }}>{periodSel}</div>
                 <div style={{ justifySelf: "end" }}>{actions}</div>
               </div>

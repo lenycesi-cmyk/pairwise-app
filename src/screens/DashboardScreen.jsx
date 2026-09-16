@@ -45,7 +45,7 @@ import { getMemberKey, memberShareFraction } from "../utils/members";
 import { nextOccurrence, daysUntil } from "../utils/recurrence";
 import { useSubscriptionSuggestion } from "../hooks/useSubscriptionSuggestion";
 import { useMediaQuery } from "../hooks/useMediaQuery";
-import { useViewportWidth } from "../hooks/useViewportWidth";
+import { useHeaderScale } from "../hooks/useHeaderScale";
 import { slotSpan12, BENTO_MAX_HEIGHT } from "../utils/bentoLayout";
 
 // Grille bento desktop (12 colonnes, taille selon la position) — factorisée dans
@@ -177,17 +177,9 @@ export default function DashboardScreen({ onOpenDebt, onOpenBreakdown, onOpenTra
   const currencyButtonRef = useRef(null);
   const [trendPeriod, setTrendPeriod] = useState(6);
   const isDesktop = useMediaQuery("(min-width: 1024px)");
-  // Mise à l'échelle de l'en-tête mobile. La barre [menu | période | actions]
-  // est dessinée à une largeur de référence (HEADER_DESIGN_W) puis réduite
-  // proportionnellement — boutons ET police — sur les téléphones plus étroits,
-  // au lieu de déborder (les boutons devise/personnaliser sortaient de l'écran
-  // sur les appareils de moins de ~390 px de large). `headerAvail` retire le
-  // padding horizontal du conteneur collant (1.25rem de chaque côté = 40 px) ;
-  // la largeur est plafonnée à la coque de 480 px.
-  const viewportWidth = useViewportWidth();
-  const HEADER_DESIGN_W = 390;
-  const headerAvail = Math.min(viewportWidth || HEADER_DESIGN_W + 40, 480) - 40;
-  const headerScale = Math.min(1, headerAvail / HEADER_DESIGN_W);
+  // Mise à l'échelle de l'en-tête mobile — voir useHeaderScale, partagé avec
+  // Rapports et Flux, qui dessinent la même barre.
+  const headerScale = useHeaderScale();
   // Seul, la carte s'appelle simplement « Résumé » : ni « du couple », ni le nom
   // de l'espace suivi de « résumé », qui parlent tous deux d'un partage
   // inexistant.
