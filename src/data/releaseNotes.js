@@ -14,6 +14,17 @@
 
 export const RELEASE_NOTES = [
   {
+    version: "2026.09.16.1",
+    date: "2026-09-16",
+    items: [
+      {
+        icon: "\ud83e\uddfe",
+        fr: { title: "Un remboursement peut enfin ajuster vos dettes", body: "Quand l'un de vous encaisse le remboursement d'une dépense partagée — une assurance, un employeur, un ami — le suivi des dettes ne bougeait pas : il ne regardait que les dépenses. En saisissant le revenu, une case « Rembourse une dépense partagée » apparaît désormais si le revenu ne vous revient pas à vous seul. Cochée, elle annonce le montant que vous rendrez, et le remboursement apparaît dans l'historique des dettes. Rien ne change pour ce qui est déjà enregistré : les revenus communs, salaires compris, restent hors du calcul tant que la case n'est pas cochée." },
+        en: { title: "A refund can finally adjust your debts", body: "When one of you receives a refund for a shared expense — insurance, an employer, a friend — debt tracking did not move: it only looked at expenses. When entering the income, a “Refunds a shared expense” checkbox now appears if the income is not yours alone. Ticked, it states the amount you will give back, and the refund shows up in the debt history. Nothing changes for what is already recorded: shared income, salaries included, stays out of the calculation unless the box is ticked." },
+      },
+    ],
+  },
+  {
     version: "2026.09.16",
     date: "2026-09-16",
     items: [

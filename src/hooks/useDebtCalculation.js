@@ -48,10 +48,26 @@ export function useDebtCalculation(transactions, members, defaultCurrency, conve
     const sharedTx = [];
 
     for (const tx of transactions) {
-      if (tx.type !== "expense") continue;
+      // Un REVENU coché « rembourse une dépense partagée » (refundsShared)
+      // compte à l'envers d'une dépense : celui qui l'a reçu doit à l'autre la
+      // part que le partage lui attribue. Sans lui, un remboursement
+      // d'assurance encaissé par un seul membre laissait la facture due en
+      // entier, et rien à l'écran ne disait pourquoi.
+      //
+      // Le tri se fait sur ce champ explicite et JAMAIS sur le seul partage du
+      // revenu : celui-ci sert déjà à répartir les montants dans les rapports
+      // et les budgets, si bien que tous les revenus communs déjà enregistrés —
+      // salaires compris — entreraient d'un coup dans les soldes.
+      const isRefund = tx.type === "income" && tx.refundsShared === true;
+      if (tx.type !== "expense" && !isRefund) continue;
       if (effectiveStart && new Date(tx.date) < new Date(effectiveStart)) continue;
       if (endDate && new Date(tx.date) > new Date(endDate)) continue;
-      const val = toBase(tx);
+      // Une seule arithmétique pour les deux sens : le remboursement DÉFAIT ce
+      // qu'une dépense de même partage aurait fait. Deux branches jumelles
+      // auraient divergé à la première retouche.
+      const sign = isRefund ? -1 : 1;
+      const kind = isRefund ? "refund" : "expense";
+      const val = toBase(tx) * sign;
 
       if (tx.splitDetails) {
         // Partage avancé : chaque membre doit sa propre part, peu importe
@@ -60,27 +76,27 @@ export function useDebtCalculation(transactions, members, defaultCurrency, conve
         const { shareA, shareB } = getCustomShares(tx, val);
         if (tx.paidBy === aKey) {
           aPaidForB += shareB;
-          sharedTx.push({ ...tx, share: shareB, paidByName: a.name, label: `${shareA.toFixed(0)}/${shareB.toFixed(0)}` });
+          sharedTx.push({ ...tx, kind, share: Math.abs(shareB), paidByName: a.name, forName: b.name, label: `${Math.abs(shareA).toFixed(0)}/${Math.abs(shareB).toFixed(0)}` });
         } else if (tx.paidBy === bKey) {
           bPaidForA += shareA;
-          sharedTx.push({ ...tx, share: shareA, paidByName: b.name, label: `${shareA.toFixed(0)}/${shareB.toFixed(0)}` });
+          sharedTx.push({ ...tx, kind, share: Math.abs(shareA), paidByName: b.name, forName: a.name, label: `${Math.abs(shareA).toFixed(0)}/${Math.abs(shareB).toFixed(0)}` });
         }
       } else if (tx.split === "50/50") {
         const half = val / 2;
         if (tx.paidBy === aKey) {
           aPaidForB += half;
-          sharedTx.push({ ...tx, share: half, paidByName: a.name, label: "50/50" });
+          sharedTx.push({ ...tx, kind, share: Math.abs(half), paidByName: a.name, forName: b.name, label: "50/50" });
         } else if (tx.paidBy === bKey) {
           bPaidForA += half;
-          sharedTx.push({ ...tx, share: half, paidByName: b.name, label: "50/50" });
+          sharedTx.push({ ...tx, kind, share: Math.abs(half), paidByName: b.name, forName: a.name, label: "50/50" });
         }
       } else if (tx.split === aKey && tx.paidBy === bKey) {
         bPaidForA += val;
         // label null + forName : l'écran traduit "pour {name}" lui-même.
-        sharedTx.push({ ...tx, share: val, paidByName: b.name, label: null, forName: a.name });
+        sharedTx.push({ ...tx, kind, share: Math.abs(val), paidByName: b.name, label: null, forName: a.name });
       } else if (tx.split === bKey && tx.paidBy === aKey) {
         aPaidForB += val;
-        sharedTx.push({ ...tx, share: val, paidByName: a.name, label: null, forName: b.name });
+        sharedTx.push({ ...tx, kind, share: Math.abs(val), paidByName: a.name, label: null, forName: b.name });
       }
     }
 
@@ -123,7 +139,7 @@ export function useDebtCalculation(transactions, members, defaultCurrency, conve
       // ordre l'un par rapport à l'autre, d'où le tri commun plutôt que deux
       // listes concaténées.
       activity: [
-        ...sharedTx.map((tx) => ({ ...tx, kind: "expense" })),
+        ...sharedTx,
         ...transferActivity,
       ].sort((x, y) => new Date(y.date) - new Date(x.date)),
       latestSettlement,

@@ -471,15 +471,22 @@ export default function DebtScreen() {
 // libellé. D'où un seul bloc paramétré : deux blocs jumeaux auraient divergé à
 // la première retouche.
 function ActivityRow({ item, last, t, locale, onDelete }) {
-  if (item.kind === "transfer" || item.kind === "settlement") {
+  // Un REMBOURSEMENT partage la mise en page du virement : c'est un mouvement
+  // d'argent entre les deux membres, pas une dépense partagée. Il en diffère
+  // par son signe — il DÉFAIT une part au lieu de l'ajouter — d'où le « − »
+  // devant le montant, seul endroit de l'écran où il apparaît.
+  if (item.kind === "transfer" || item.kind === "settlement" || item.kind === "refund") {
     const settled = item.kind === "settlement";
-    const hue = settled ? "var(--sage)" : "var(--lavi)";
-    const hueLight = settled ? "var(--sage-light)" : "var(--lavi-light)";
+    const refund = item.kind === "refund";
+    const hue = settled ? "var(--sage)" : refund ? "var(--good)" : "var(--lavi)";
+    const hueLight = settled ? "var(--sage-light)" : refund ? "var(--mint-light)" : "var(--lavi-light)";
     const label = settled
       ? (item.periodLabel
           ? t("debt_settlement_row_label").replace("{period}", item.periodLabel)
           : t("debt_mark_paid"))
-      : (item.note || t("debt_transfer_row_label"));
+      : refund
+        ? (item.description || t("debt_refund_row_label"))
+        : (item.note || t("debt_transfer_row_label"));
     return (
       <div
         style={{
@@ -498,18 +505,20 @@ function ActivityRow({ item, last, t, locale, onDelete }) {
             display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13,
           }}
         >
-          <i className={settled ? "ti ti-check" : "ti ti-arrows-exchange"} aria-hidden="true" />
+          <i className={settled ? "ti ti-check" : refund ? "ti ti-receipt-refund" : "ti ti-arrows-exchange"} aria-hidden="true" />
         </span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={{ fontSize: 13, fontWeight: 600, color: hue }}>
             {label}
           </p>
           <p style={{ fontSize: 11, color: "var(--ink-3)" }}>
-            {t("debt_transfer_row_meta").replace("{from}", item.paidByName).replace("{to}", item.forName)}
+            {t(refund ? "debt_refund_row_meta" : "debt_transfer_row_meta")
+              .replace("{from}", item.paidByName)
+              .replace("{to}", item.forName)}
           </p>
         </div>
-        <p style={{ fontSize: 13, fontWeight: 500, color: "var(--sky)" }}>
-          +{Math.round(item.share).toLocaleString(locale)}
+        <p style={{ fontSize: 13, fontWeight: 500, color: refund ? "var(--good)" : "var(--sky)" }}>
+          {refund ? "−" : "+"}{Math.round(item.share).toLocaleString(locale)}
         </p>
         {onDelete && (
           <button
