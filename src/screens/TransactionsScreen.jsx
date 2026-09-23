@@ -3,7 +3,7 @@ import { useFinance } from "../context/FinanceContext";
 import { buildMemberColorMap } from "../utils/memberColors";
 import Avatar from "../components/Avatar";
 import { useTranslation } from "../hooks/useTranslation";
-import { getMemberKey } from "../utils/members";
+import { getMemberKey, memberShareFraction } from "../utils/members";
 import { usedTags } from "../utils/tags";
 import TagChip from "../components/TagChip";
 import TransactionComments from "../components/TransactionComments";
@@ -65,7 +65,17 @@ export default function TransactionsScreen({ onEdit, sharedMonth }) {
   const filtered = useMemo(() => {
     let result = transactions;
     if (filter !== "all") {
-      result = result.filter((tx) => tx.paidBy === filter);
+      // CONCERNÉ, et non « payeur ». Le filtre ne gardait que les transactions
+      // qu'un membre avait payées, si bien qu'une dépense avancée par l'autre
+      // et partagée à deux — la moitié de la vie d'un couple — n'apparaissait
+      // dans l'historique de personne d'autre que celui qui avait sorti la
+      // carte. Un membre est concerné s'il a payé OU si le partage lui
+      // attribue une part, ce que `memberShareFraction` sait déjà dire : la
+      // même fonction que les budgets personnels et la ventilation par membre,
+      // donc les trois répondent toujours la même chose.
+      result = result.filter(
+        (tx) => tx.paidBy === filter || memberShareFraction(tx, filter, members) > 0
+      );
     }
     if (categoryFilter) {
       result = result.filter((tx) => tx.categoryId === categoryFilter);
@@ -115,7 +125,7 @@ export default function TransactionsScreen({ onEdit, sharedMonth }) {
       );
     }
     return result;
-  }, [transactions, filter, categoryFilter, subcategoryFilter, tagFilter, periodFilter, searchText, sharedMonth]);
+  }, [transactions, filter, members, categoryFilter, subcategoryFilter, tagFilter, periodFilter, searchText, sharedMonth]);
 
   const anyFilterActive =
     filter !== "all" || periodFilter !== "all" || !!categoryFilter || !!subcategoryFilter || !!tagFilter;
