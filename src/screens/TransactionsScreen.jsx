@@ -41,6 +41,11 @@ export default function TransactionsScreen({ onEdit, sharedMonth }) {
     return raw.charAt(0).toUpperCase() + raw.slice(1);
   }, [sharedMonth, language, t]);
   const [filter, setFilter] = useState("all");
+  // Ordre de la liste : "date" (le plus récent d'abord, l'ordre naturel d'un
+  // historique), "amount_desc" ou "amount_asc". DÉLIBÉRÉMENT non mémorisé d'une
+  // visite à l'autre : on rouvre un historique pour voir ce qui vient de se
+  // passer, pas pour retrouver un classement.
+  const [sortBy, setSortBy] = useState("date");
   const [searchText, setSearchText] = useState("");
   const [categoryFilter, setCategoryFilter] = useState(null);
   const [subcategoryFilter, setSubcategoryFilter] = useState(null);
@@ -124,11 +129,38 @@ export default function TransactionsScreen({ onEdit, sharedMonth }) {
         (tx.tags || []).some((tag) => tag.includes(q))
       );
     }
+    if (sortBy !== "date") {
+      // Tri sur la VALEUR ABSOLUE : « du plus important au plus faible » désigne
+      // le plus gros mouvement d'argent, qu'il entre ou qu'il sorte. Trier sur
+      // le montant signé mettrait tous les revenus d'un côté et toutes les
+      // dépenses de l'autre — un regroupement, pas un tri.
+      //
+      // Et sur une SEULE devise, sinon 100 $ passerait devant 90 € sans raison.
+      // On reprend la conversion figée à la saisie, celle que la ligne affiche
+      // déjà ; à défaut (même devise, ou aucun taux au moment de la saisie), le
+      // montant brut fait l'affaire.
+      const weight = (tx) => {
+        const v =
+          tx.convertedAmount !== undefined &&
+          (tx.convertedCurrency === undefined || tx.convertedCurrency === defaultCurrency)
+            ? tx.convertedAmount
+            : tx.amount;
+        return Math.abs(Number(v) || 0);
+      };
+      // Copie avant tri : `result` peut encore être le tableau du contexte, que
+      // `sort` réordonnerait en place.
+      result = [...result].sort((x, y) =>
+        sortBy === "amount_desc" ? weight(y) - weight(x) : weight(x) - weight(y)
+      );
+    }
     return result;
-  }, [transactions, filter, members, categoryFilter, subcategoryFilter, tagFilter, periodFilter, searchText, sharedMonth]);
+  }, [transactions, filter, members, categoryFilter, subcategoryFilter, tagFilter, periodFilter, searchText, sharedMonth, sortBy, defaultCurrency]);
 
+  // Le tri compte dans la pastille de l'entonnoir : un ordre inhabituel change
+  // la liste autant qu'un filtre, et rien d'autre à l'écran ne le signale.
   const anyFilterActive =
-    filter !== "all" || periodFilter !== "all" || !!categoryFilter || !!subcategoryFilter || !!tagFilter;
+    filter !== "all" || periodFilter !== "all" || !!categoryFilter || !!subcategoryFilter ||
+    !!tagFilter || sortBy !== "date";
 
   const grouped = useMemo(() => {
     const groups = {};
@@ -150,6 +182,229 @@ export default function TransactionsScreen({ onEdit, sharedMonth }) {
 
   function getMemberName(uid) {
     return members.find((m) => getMemberKey(m) === uid)?.name || "?";
+  }
+
+
+  // Une seule fonction de rendu pour les deux affichages : la liste groupée par
+  // jour, et la suite continue du tri par montant. Deux copies de cette ligne
+  // auraient divergé à la première retouche.
+  function renderTxRow(tx, last, showDate) {
+    const cat = getCategory(tx.categoryId);
+    const colors = COLOR_MAP[cat.color] || COLOR_MAP.tang;
+    const isLast = last;
+    const isIncome = tx.type === "income";
+
+    return (
+      <div
+        key={tx.id}
+        className="pw-chip-host"
+        onClick={() => onEdit(tx)}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          padding: "12px 14px",
+          borderBottom: isLast ? "none" : "0.5px solid var(--rule)",
+          cursor: "pointer",
+        }}
+      >
+        <div
+          className="pw-chip"
+          onClick={(e) => {
+            if (tx.receiptURL) {
+              e.stopPropagation();
+              setViewingReceipt(tx.receiptURL);
+            }
+          }}
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: "var(--radius-md)",
+            background: colors.bg,
+            // Couleur pleine du chip au survol (voir .pw-chip-host)
+            "--pw-chip": colors.text,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+            overflow: "hidden",
+            position: "relative",
+          }}
+        >
+          {tx.receiptURL ? (
+            <>
+              <img
+                src={tx.receiptURL}
+                alt="Reçu"
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              />
+              <div
+                style={{
+                  position: "absolute", bottom: 0, right: 0,
+                  width: 14, height: 14, borderRadius: "50%",
+                  background: "var(--ink)", display: "flex",
+                  alignItems: "center", justifyContent: "center",
+                }}
+              >
+                <i className="ti ti-receipt" style={{ fontSize: 8, color: "var(--bg)" }} aria-hidden="true" />
+              </div>
+            </>
+          ) : (
+            <i
+              className={`ti ${cat.icon}`}
+              style={{ fontSize: 16, color: colors.text }}
+              aria-hidden="true"
+            />
+          )}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p
+            style={{
+              fontSize: 14,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            {tx.description}
+          </p>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2, flexWrap: "wrap" }}>
+            {showDate && (
+              <>
+                <span style={{ fontSize: 12, color: "var(--ink-2)", fontWeight: 600 }}>
+                  {new Date(tx.date).toLocaleDateString(language === "en" ? "en-US" : "fr-FR", { day: "numeric", month: "short" })}
+                </span>
+                <span style={{ fontSize: 12, color: "var(--ink-3)" }}>·</span>
+              </>
+            )}
+            <span style={{ fontSize: 12, color: "var(--ink-3)" }}>{tx.subcategory}</span>
+            <span style={{ fontSize: 12, color: "var(--ink-3)" }}>·</span>
+            <span style={{ fontSize: 11, color: "var(--ink-3)" }}>{t("tx_paid_by")}</span>
+            <Avatar member={members.find(m => getMemberKey(m) === tx.paidBy)} colorMap={memberColorMap} />
+            {tx.split && (
+              <>
+                <span style={{ fontSize: 11, color: "var(--ink-3)" }}>· {t("tx_for")}</span>
+                {tx.splitDetails ? (
+                  <span style={{ display: "flex", gap: 3, alignItems: "center" }}>
+                    {members.map((m, i) => (
+                      <span key={getMemberKey(m)} style={{ display: "flex", alignItems: "center", gap: 2 }}>
+                        <Avatar member={m} colorMap={memberColorMap} />
+                        <span style={{ fontSize: 10, color: "var(--ink-3)" }}>
+                          {tx.splitDetails.unit === "percent"
+                            ? `${i === 0 ? tx.splitDetails.a : tx.splitDetails.b}%`
+                            : Math.round(i === 0 ? tx.splitDetails.a : tx.splitDetails.b).toLocaleString("fr-FR")}
+                        </span>
+                        {i < members.length - 1 && (
+                          <span style={{ fontSize: 11, color: "var(--ink-3)", margin: "0 1px" }}>&</span>
+                        )}
+                      </span>
+                    ))}
+                  </span>
+                ) : tx.split === "50/50" ? (
+                  <span style={{ display: "flex", gap: 2 }}>
+                    {members.map((m, i) => (
+                      <span key={getMemberKey(m)} style={{ display: "flex", alignItems: "center" }}>
+                        <Avatar member={m} colorMap={memberColorMap} />
+                        {i < members.length - 1 && (
+                          <span style={{ fontSize: 11, color: "var(--ink-3)", margin: "0 2px" }}>&</span>
+                        )}
+                      </span>
+                    ))}
+                  </span>
+                ) : (
+                  <Avatar member={members.find(m => getMemberKey(m) === tx.split)} colorMap={memberColorMap} />
+                )}
+              </>
+            )}
+          </div>
+          {tx.tags?.length > 0 && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 4 }}>
+              {tx.tags.map((tag) => (
+                <TagChip
+                  key={tag}
+                  tag={tag}
+                  size="sm"
+                  active={tagFilter === tag}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setTagFilter(tagFilter === tag ? null : tag);
+                  }}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+        <div style={{ textAlign: "right", flexShrink: 0 }}>
+          <p
+            style={{
+              fontSize: 14,
+              fontWeight: 500,
+              color: isIncome ? "var(--sage)" : "var(--ink)",
+            }}
+          >
+            {isIncome ? "+" : "−"}
+            {Math.round(tx.amount).toLocaleString("fr-FR")}
+          </p>
+          <p style={{ fontSize: 11, color: "var(--ink-3)" }}>
+            {tx.currency}
+          </p>
+          {tx.currency !== defaultCurrency && tx.convertedAmount !== undefined && (
+            <p style={{ fontSize: 10, color: "var(--ink-3)", marginTop: 1 }}>
+              ≈ {Math.round(tx.convertedAmount).toLocaleString("fr-FR")} {defaultCurrency}
+              {tx.exchangeRateIsFallback && (
+                <i
+                  className="ti ti-alert-triangle"
+                  title="Taux approximatif"
+                  style={{ fontSize: 9, color: "var(--amber)", marginLeft: 3 }}
+                  aria-label="Taux approximatif"
+                />
+              )}
+            </p>
+          )}
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, flexShrink: 0 }}>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (confirm("Supprimer cette transaction ?")) {
+                deleteTransaction(tx.id);
+              }
+            }}
+            aria-label="Supprimer"
+            style={{
+              background: "none",
+              border: "none",
+              color: "var(--ink-3)",
+              padding: 4,
+            }}
+          >
+            <i className="ti ti-trash" style={{ fontSize: 14 }} aria-hidden="true" />
+          </button>
+          {/* Bulle de discussion : toujours visible sur chaque ligne pour
+              rendre la fonctionnalité facile à trouver (ouvre la
+              transaction, où le fil de discussion est en bas). */}
+          <button
+            onClick={(e) => { e.stopPropagation(); setDiscussTxId(tx.id); }}
+            aria-label={t("tx_comments")}
+            style={{
+              background: tx.comments?.length > 0 ? "var(--sky-light)" : "var(--bg)",
+              border: tx.comments?.length > 0 ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
+              color: tx.comments?.length > 0 ? "var(--sky)" : "var(--ink-3)",
+              borderRadius: 99,
+              padding: "3px 8px",
+              display: "flex",
+              alignItems: "center",
+              gap: 3,
+            }}
+          >
+            <i className="ti ti-message-circle" style={{ fontSize: 14 }} aria-hidden="true" />
+            {tx.comments?.length > 0 && (
+              <span style={{ fontSize: 11, fontWeight: 500 }}>{tx.comments.length}</span>
+            )}
+          </button>
+        </div>
+      </div>
+    );
   }
 
   function exportCSV() {
@@ -286,6 +541,23 @@ export default function TransactionsScreen({ onEdit, sharedMonth }) {
             gap: 14,
           }}
         >
+          {/* Tri — en première section : c'est la dimension qui change le plus
+              visiblement la liste. */}
+          <div>
+            <div style={FILTER_LABEL}>{t("tx_sort_by")}</div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {[
+                { key: "date", label: t("tx_sort_date") },
+                { key: "amount_desc", label: t("tx_sort_amount_desc") },
+                { key: "amount_asc", label: t("tx_sort_amount_asc") },
+              ].map((o) => (
+                <FilterChip key={o.key} active={sortBy === o.key} onClick={() => setSortBy(o.key)}>
+                  {o.label}
+                </FilterChip>
+              ))}
+            </div>
+          </div>
+
           {/* Membre */}
           <div>
             <div style={FILTER_LABEL}>{t("tx_filter_member")}</div>
@@ -421,13 +693,32 @@ export default function TransactionsScreen({ onEdit, sharedMonth }) {
         </div>
       )}
 
-      {Object.keys(grouped).length === 0 && (
+      {filtered.length === 0 && (
         <p style={{ fontSize: 14, color: "var(--ink-3)", textAlign: "center", padding: "3rem 0" }}>
           {t("tx_no_transactions")}
         </p>
       )}
 
-      {Object.entries(grouped).map(([dateLabel, txs]) => (
+      {/* Trié par montant, la liste devient une SEULE suite : les deux plus
+          grosses dépenses du mois ne tombent presque jamais le même jour, donc
+          les en-têtes de date n'auraient plus rien à regrouper. La date passe
+          alors sur chaque ligne, sans quoi plus rien ne la situe. */}
+      {sortBy !== "date" && filtered.length > 0 && (
+        <div style={{ marginBottom: 16 }}>
+          <div
+            style={{
+              background: "var(--bg-card)",
+              borderRadius: "var(--radius-lg)",
+              border: "0.5px solid var(--rule)",
+              overflow: "hidden",
+            }}
+          >
+            {filtered.map((tx, i) => renderTxRow(tx, i === filtered.length - 1, true))}
+          </div>
+        </div>
+      )}
+
+      {sortBy === "date" && Object.entries(grouped).map(([dateLabel, txs]) => (
         <div key={dateLabel} style={{ marginBottom: 16 }}>
           <p
             style={{
@@ -448,216 +739,7 @@ export default function TransactionsScreen({ onEdit, sharedMonth }) {
               overflow: "hidden",
             }}
           >
-            {txs.map((tx, i) => {
-              const cat = getCategory(tx.categoryId);
-              const colors = COLOR_MAP[cat.color] || COLOR_MAP.tang;
-              const isLast = i === txs.length - 1;
-              const isIncome = tx.type === "income";
-
-              return (
-                <div
-                  key={tx.id}
-                  className="pw-chip-host"
-                  onClick={() => onEdit(tx)}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    padding: "12px 14px",
-                    borderBottom: isLast ? "none" : "0.5px solid var(--rule)",
-                    cursor: "pointer",
-                  }}
-                >
-                  <div
-                    className="pw-chip"
-                    onClick={(e) => {
-                      if (tx.receiptURL) {
-                        e.stopPropagation();
-                        setViewingReceipt(tx.receiptURL);
-                      }
-                    }}
-                    style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: "var(--radius-md)",
-                      background: colors.bg,
-                      // Couleur pleine du chip au survol (voir .pw-chip-host)
-                      "--pw-chip": colors.text,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      flexShrink: 0,
-                      overflow: "hidden",
-                      position: "relative",
-                    }}
-                  >
-                    {tx.receiptURL ? (
-                      <>
-                        <img
-                          src={tx.receiptURL}
-                          alt="Reçu"
-                          style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                        />
-                        <div
-                          style={{
-                            position: "absolute", bottom: 0, right: 0,
-                            width: 14, height: 14, borderRadius: "50%",
-                            background: "var(--ink)", display: "flex",
-                            alignItems: "center", justifyContent: "center",
-                          }}
-                        >
-                          <i className="ti ti-receipt" style={{ fontSize: 8, color: "var(--bg)" }} aria-hidden="true" />
-                        </div>
-                      </>
-                    ) : (
-                      <i
-                        className={`ti ${cat.icon}`}
-                        style={{ fontSize: 16, color: colors.text }}
-                        aria-hidden="true"
-                      />
-                    )}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p
-                      style={{
-                        fontSize: 14,
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                      }}
-                    >
-                      {tx.description}
-                    </p>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2, flexWrap: "wrap" }}>
-                      <span style={{ fontSize: 12, color: "var(--ink-3)" }}>{tx.subcategory}</span>
-                      <span style={{ fontSize: 12, color: "var(--ink-3)" }}>·</span>
-                      <span style={{ fontSize: 11, color: "var(--ink-3)" }}>{t("tx_paid_by")}</span>
-                      <Avatar member={members.find(m => getMemberKey(m) === tx.paidBy)} colorMap={memberColorMap} />
-                      {tx.split && (
-                        <>
-                          <span style={{ fontSize: 11, color: "var(--ink-3)" }}>· {t("tx_for")}</span>
-                          {tx.splitDetails ? (
-                            <span style={{ display: "flex", gap: 3, alignItems: "center" }}>
-                              {members.map((m, i) => (
-                                <span key={getMemberKey(m)} style={{ display: "flex", alignItems: "center", gap: 2 }}>
-                                  <Avatar member={m} colorMap={memberColorMap} />
-                                  <span style={{ fontSize: 10, color: "var(--ink-3)" }}>
-                                    {tx.splitDetails.unit === "percent"
-                                      ? `${i === 0 ? tx.splitDetails.a : tx.splitDetails.b}%`
-                                      : Math.round(i === 0 ? tx.splitDetails.a : tx.splitDetails.b).toLocaleString("fr-FR")}
-                                  </span>
-                                  {i < members.length - 1 && (
-                                    <span style={{ fontSize: 11, color: "var(--ink-3)", margin: "0 1px" }}>&</span>
-                                  )}
-                                </span>
-                              ))}
-                            </span>
-                          ) : tx.split === "50/50" ? (
-                            <span style={{ display: "flex", gap: 2 }}>
-                              {members.map((m, i) => (
-                                <span key={getMemberKey(m)} style={{ display: "flex", alignItems: "center" }}>
-                                  <Avatar member={m} colorMap={memberColorMap} />
-                                  {i < members.length - 1 && (
-                                    <span style={{ fontSize: 11, color: "var(--ink-3)", margin: "0 2px" }}>&</span>
-                                  )}
-                                </span>
-                              ))}
-                            </span>
-                          ) : (
-                            <Avatar member={members.find(m => getMemberKey(m) === tx.split)} colorMap={memberColorMap} />
-                          )}
-                        </>
-                      )}
-                    </div>
-                    {tx.tags?.length > 0 && (
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 4 }}>
-                        {tx.tags.map((tag) => (
-                          <TagChip
-                            key={tag}
-                            tag={tag}
-                            size="sm"
-                            active={tagFilter === tag}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setTagFilter(tagFilter === tag ? null : tag);
-                            }}
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <div style={{ textAlign: "right", flexShrink: 0 }}>
-                    <p
-                      style={{
-                        fontSize: 14,
-                        fontWeight: 500,
-                        color: isIncome ? "var(--sage)" : "var(--ink)",
-                      }}
-                    >
-                      {isIncome ? "+" : "−"}
-                      {Math.round(tx.amount).toLocaleString("fr-FR")}
-                    </p>
-                    <p style={{ fontSize: 11, color: "var(--ink-3)" }}>
-                      {tx.currency}
-                    </p>
-                    {tx.currency !== defaultCurrency && tx.convertedAmount !== undefined && (
-                      <p style={{ fontSize: 10, color: "var(--ink-3)", marginTop: 1 }}>
-                        ≈ {Math.round(tx.convertedAmount).toLocaleString("fr-FR")} {defaultCurrency}
-                        {tx.exchangeRateIsFallback && (
-                          <i
-                            className="ti ti-alert-triangle"
-                            title="Taux approximatif"
-                            style={{ fontSize: 9, color: "var(--amber)", marginLeft: 3 }}
-                            aria-label="Taux approximatif"
-                          />
-                        )}
-                      </p>
-                    )}
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, flexShrink: 0 }}>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (confirm("Supprimer cette transaction ?")) {
-                          deleteTransaction(tx.id);
-                        }
-                      }}
-                      aria-label="Supprimer"
-                      style={{
-                        background: "none",
-                        border: "none",
-                        color: "var(--ink-3)",
-                        padding: 4,
-                      }}
-                    >
-                      <i className="ti ti-trash" style={{ fontSize: 14 }} aria-hidden="true" />
-                    </button>
-                    {/* Bulle de discussion : toujours visible sur chaque ligne pour
-                        rendre la fonctionnalité facile à trouver (ouvre la
-                        transaction, où le fil de discussion est en bas). */}
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setDiscussTxId(tx.id); }}
-                      aria-label={t("tx_comments")}
-                      style={{
-                        background: tx.comments?.length > 0 ? "var(--sky-light)" : "var(--bg)",
-                        border: tx.comments?.length > 0 ? "0.5px solid var(--sky)" : "0.5px solid var(--rule)",
-                        color: tx.comments?.length > 0 ? "var(--sky)" : "var(--ink-3)",
-                        borderRadius: 99,
-                        padding: "3px 8px",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 3,
-                      }}
-                    >
-                      <i className="ti ti-message-circle" style={{ fontSize: 14 }} aria-hidden="true" />
-                      {tx.comments?.length > 0 && (
-                        <span style={{ fontSize: 11, fontWeight: 500 }}>{tx.comments.length}</span>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
+            {txs.map((tx, i) => renderTxRow(tx, i === txs.length - 1, false))}
           </div>
         </div>
       ))}
