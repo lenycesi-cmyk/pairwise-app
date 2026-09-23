@@ -14,6 +14,17 @@
 
 export const RELEASE_NOTES = [
   {
+    version: "2026.09.23",
+    date: "2026-09-23",
+    items: [
+      {
+        icon: "\ud83d\udc65",
+        fr: { title: "Le filtre par membre montre enfin tout ce qui vous concerne", body: "Dans l'historique, filtrer sur votre nom ne gardait que les transactions que vous aviez payées. Une dépense avancée par votre partenaire et partagée à deux — la moitié de la vie d'un couple — n'apparaissait donc pas. Le filtre garde maintenant tout ce qui vous concerne : ce que vous avez payé, et ce dont le partage vous attribue une part." },
+        en: { title: "The member filter finally shows everything that involves you", body: "In the history, filtering on your name only kept transactions you had paid for. An expense fronted by your partner and split between you — half of a couple's life — therefore did not show up. The filter now keeps everything that involves you: what you paid for, and whatever the split gives you a share of." },
+      },
+    ],
+  },
+  {
     version: "2026.09.16.1",
     date: "2026-09-16",
     items: [
