@@ -14,6 +14,17 @@
 
 export const RELEASE_NOTES = [
   {
+    version: "2026.09.23.1",
+    date: "2026-09-23",
+    items: [
+      {
+        icon: "\u2195\ufe0f",
+        fr: { title: "Trier l'historique par montant", body: "Dans le panneau des filtres, une section « Trier par » range la liste du plus gros mouvement au plus petit, ou l'inverse. Un revenu et une dépense se comparent par leur taille, et les montants en devises étrangères sont convertis avant d'être comparés. La liste devient alors une seule suite, chaque ligne portant sa date. L'ordre revient à la date à la réouverture de l'écran." },
+        en: { title: "Sort your history by amount", body: "In the filter panel, a “Sort by” section orders the list from the largest movement to the smallest, or the other way round. Income and expenses are compared by size, and amounts in foreign currencies are converted before being compared. The list then becomes a single run, each row carrying its date. The order goes back to date when you reopen the screen." },
+      },
+    ],
+  },
+  {
     version: "2026.09.23",
     date: "2026-09-23",
     items: [
