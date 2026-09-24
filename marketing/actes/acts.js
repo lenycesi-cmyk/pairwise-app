@@ -28,7 +28,7 @@
   // Reperer d'un coup d'oeil, dans la console, si le navigateur execute bien
   // la derniere version : un pilote perime et une page a jour donnent des
   // symptomes trompeurs (deux actes empiles, barres de defilement en trop).
-  var VERSION = "actes-17";
+  var VERSION = "actes-18";
   if (window.console) console.info("PairWise " + VERSION);
 
   /* Hauteur de l'en-tête. Elle ÉTAIT écrite en dur à 64, la valeur de
@@ -251,7 +251,19 @@
         ".fragment:nth-of-type(6){animation-delay:.80s}" +
         ".fragment:nth-of-type(7){animation-delay:.90s}" +
         "@media (prefers-reduced-motion:reduce){" +
-        ".hero__title,.hero__sub,.fragment{animation:none}}");
+        ".hero__title,.hero__sub,.fragment{animation:none}}" +
+        /* COUPE-CIRCUIT. `backwards` tient l'element a `opacity: 0` pendant
+           son delai, et GSAP releve la valeur de DEPART de chacun de ses
+           tweens a son premier rendu : si ce rendu tombe dans cette fenetre,
+           il enregistre « de 0 vers 0 » et le fragment concerne ne
+           reapparait plus jamais. La fenetre etait hors d'atteinte tant qu'il
+           fallait 0,7 ecran de pause avant le moindre mouvement ; elle ne
+           l'est plus. Des que le defilement commence, l'entree a joue son
+           role — on la coupe, ce qui rend aux elements leur opacite de base
+           AVANT que GSAP ne vienne la lire. */
+        "html.pw-entered .hero__title," +
+        "html.pw-entered .hero__sub," +
+        "html.pw-entered .fragment{animation:none}");
 
       /* CADRAGE. La scene etait dessinee pour une fenetre de portable : sur un
          grand ecran elle n'occupait que 430 px de haut sur 885, et le groupe
@@ -380,6 +392,15 @@
        le personnage etant compose d'elements `.bone` positionnes autour. Mesurer
        ces boites ne mesurait donc rien de visible, et les cartes retombaient sur
        les tetes alors que les nombres disaient le contraire.
+       `.bone` tombe dans LE MEME PIEGE un cran plus bas : un os n'est lui aussi
+       qu'une ancre, ses images etant positionnees en absolu autour de lui, si
+       bien que sa boite est vide elle aussi. Sur la marionnette de droite, la
+       tete est dessinee 271 px AU-DESSUS de son os le plus haut : le calcul se
+       croyait environ 80 px plus au large qu'il ne l'etait. A 900 px de haut il
+       restait juste assez de mou pour que rien ne se voie ; a 760 la carte
+       mordait de 50 px sur les tetes — d'ou un affichage correct dans une
+       fenetre et faux dans une autre, a un navigateur ou une barre de favoris
+       pres. On mesure donc les IMAGES, seules choses reellement peintes.
        Pour chaque marionnette on prend le haut de son dessin, puis on retient
        la PLUS BASSE des deux : GSAP en fait monter une au cours de l'acte, et
        se caler sur celle-la ferait retrecir le bloc a chaque pas de la marche.
@@ -388,11 +409,14 @@
     var puppets = doc.querySelectorAll(".puppet");
     var floor = 0;
     for (var i = 0; i < puppets.length; i++) {
-      var bones = puppets[i].querySelectorAll(".bone");
+      var draws = puppets[i].querySelectorAll("img");
       var topOf = Infinity;
-      for (var j = 0; j < bones.length; j++) {
-        var bt = bones[j].getBoundingClientRect().top;
-        if (bt < topOf) topOf = bt;
+      for (var j = 0; j < draws.length; j++) {
+        var r = draws[j].getBoundingClientRect();
+        // Une image pas encore decodee n'a aucune boite : la compter donnerait
+        // un haut a 0 et ecraserait le bloc a sa taille minimale.
+        if (!r.width || !r.height) continue;
+        if (r.top < topOf) topOf = r.top;
       }
       if (topOf !== Infinity && topOf > floor) floor = topOf;
     }
@@ -512,6 +536,19 @@
        defilement en moins. C'est la SEULE facon de changer le rythme d'un acte
        sans toucher a sa chronologie, qui vit dans son propre fichier. */
     act._speed = parseFloat(act.dataset.speed) || 1;
+    /* AMORCE SAUTEE, en fraction de la course interne de l'acte. C'est
+       l'inverse de `data-hold` : au lieu d'ajouter du defilement mort avant que
+       la scene ne demarre, on en retire.
+       Une chronologie ne commence pas forcement a zero. Celle de l'acte 1 pose
+       sa premiere animation a 0,3 s sur les 9,8 s qu'elle dure, soit 3 % de sa
+       course : autant de molette ou rien ne bouge, AVANT meme de compter la
+       pause d'introduction. Les deux cumules, il fallait environ huit crans de
+       molette pour voir le premier pixel changer sur le tout premier ecran du
+       site — un visiteur qui decouvre la page croit qu'elle est figee.
+       La fraction se lit dans la chronologie de l'acte, pas dans une mesure :
+       les positions y sont en secondes et la course entiere y est ramenee, donc
+       le rapport ne depend ni de la taille de la fenetre ni du zoom. */
+    act._skip = Math.round(range * (parseFloat(act.dataset.skip) || 0));
     act._course = Math.round(range / act._speed);   // defilement de page consacre a l'acte
     /* La section ne fournit QUE la course : la course interne de l'acte, plus
        sa bande de transition. Elle n'a plus à réserver la hauteur d'un écran
@@ -548,7 +585,16 @@
       var hold = act._hold || 0;
       var p = (y - start - hold) / act._course;
       p = p < 0 ? 0 : p > 1 ? 1 : p;
-      var target = Math.round(p * act._range);
+      // Le saut d'amorce mange le debut de la course interne, jamais la fin :
+      // a p = 1 l'acte est toujours a son dernier pixel.
+      var skip = act._skip || 0;
+      var target = Math.round(skip + p * (act._range - skip));
+      // Le defilement a commence : l'animation d'entree a fait son office (voir
+      // le coupe-circuit dans les adaptations de l'acte 1).
+      if (p > 0 && !act._entered) {
+        act._entered = true;
+        doc.documentElement.classList.add("pw-entered");
+      }
       if (doc.documentElement.scrollTop !== target) {
         doc.documentElement.scrollTop = target;
       }
