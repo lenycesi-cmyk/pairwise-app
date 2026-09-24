@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <title>Application budget multi-devises : 161 devises | PairWise</title>
+  <meta name="description" content="Gère plusieurs devises sans tableur : comptes, dépenses de voyage et charges se convertissent automatiquement, taux figé dans l'historique." />
+
+  <!-- Pas de `hreflang="en"` : la page anglaise n'existe pas encore, et
+       declarer une alternative qui repond 404 est pire que ne rien declarer. -->
+  <link rel="canonical" href="https://pairwise.finance/fonctionnalites/multi-devises" />
+  <link rel="alternate" hreflang="fr" href="https://pairwise.finance/fonctionnalites/multi-devises" />
+  <link rel="alternate" hreflang="x-default" href="https://pairwise.finance/fonctionnalites/multi-devises" />
+
+  <!-- Open Graph / partage social -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="PairWise" />
+  <meta property="og:locale" content="fr_FR" />
+  <meta property="og:title" content="Application budget multi-devises : 161 devises | PairWise" />
+  <meta property="og:description" content="Gère plusieurs devises sans tableur : comptes, dépenses de voyage et charges se convertissent automatiquement, taux figé dans l'historique." />
+  <meta property="og:url" content="https://pairwise.finance/fonctionnalites/multi-devises" />
+  <meta property="og:image" content="https://pairwise.finance/assets/og/multi-devises.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <link rel="icon" type="image/png" href="/icon-192.png" />
+
+  <!-- Mêmes polices et icônes que l'app -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Nunito+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+  <link rel="stylesheet" href="/assets/site.css" />
+
+  <!-- Données structurées : logiciel, fil d'Ariane, FAQ -->
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "SoftwareApplication",
+      "name": "PairWise",
+      "applicationCategory": "FinanceApplication",
+      "operatingSystem": "iOS, Android, Web",
+      "url": "https://pairwise.finance/",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" }
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Accueil", "item": "https://pairwise.finance/" },
+        { "@type": "ListItem", "position": 2, "name": "Fonctionnalités", "item": "https://pairwise.finance/fonctionnalites/" },
+        { "@type": "ListItem", "position": 3, "name": "Multi-devises", "item": "https://pairwise.finance/fonctionnalites/multi-devises" }
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        { "@type": "Question", "name": "Combien de devises sont gérées par PairWise ?", "acceptedAnswer": { "@type": "Answer", "text": "PairWise gère 161 devises. Ton catalogue personnel n'affiche que celles que tu utilises réellement — tu en ajoutes ou retires à tout moment." } },
+        { "@type": "Question", "name": "D'où viennent les taux de change ?", "acceptedAnswer": { "@type": "Answer", "text": "Les taux viennent d'un service public de taux de change. Quand un taux n'est qu'approximatif, c'est signalé ; et si aucun taux fiable n'est disponible, PairWise préfère ne pas convertir plutôt qu'afficher un chiffre faux." } },
+        { "@type": "Question", "name": "Les anciennes transactions sont-elles recalculées quand le taux change ?", "acceptedAnswer": { "@type": "Answer", "text": "Non. Le montant converti et le taux appliqué sont enregistrés sur la transaction elle-même, au moment de la saisie. Quand la monnaie bouge ensuite, ton historique ne se réécrit pas." } },
+        { "@type": "Question", "name": "Peut-on n'afficher que les devises qu'on utilise ?", "acceptedAnswer": { "@type": "Answer", "text": "Oui. Tu pars de quelques devises courantes, puis tu ajoutes celles dont tu as besoin (recherche par nom ou par code) et retires celles qui ne servent plus." } },
+        { "@type": "Question", "name": "Peut-on changer la devise d'affichage sans modifier ses données ?", "acceptedAnswer": { "@type": "Answer", "text": "Oui. La devise d'affichage du tableau de bord et du patrimoine est indépendante des données : tu peux la changer à tout moment sans modifier une seule transaction." } },
+        { "@type": "Question", "name": "Que se passe-t-il hors connexion ?", "acceptedAnswer": { "@type": "Answer", "text": "Si aucun taux fiable n'est disponible, par exemple hors connexion, PairWise préfère ne pas convertir plutôt qu'afficher un chiffre faux : le montant reste dans sa devise d'origine jusqu'au prochain taux fiable." } }
+      ]
+    }
+  ]
+}
+  </script>
+</head>
+<body>
+
+<header class="site">
+  <div class="bar">
+    <a href="/" class="logo"><span class="p">P</span> PairWise</a>
+    <!-- ⚠ GÉNÉRÉ — ne pas modifier à la main.
+         Source : scripts/build-marketing-header.js · régénérer avec
+         `node scripts/build-marketing-header.js`. -->
+    <nav data-in-features="1">
+      <span class="mm" data-mm data-menu="features" data-open="0">
+        <button type="button" aria-expanded="false">Fonctionnalités <i class="ti ti-chevron-down"></i></button>
+        <span class="mm-panel">
+          <span class="mm-cols">
+          <span class="mm-col">
+            <span class="mm-h5">Suivre son argent</span>
+            <a class="mm-it" href="/fonctionnalites/saisie-langage-naturel"><span class="mi" style="background:var(--tang-light);color:var(--tang)"><i class="ti ti-sparkles"></i></span><span><b>Saisie en langage naturel</b><small>« 60€ course hier » et c'est rempli</small></span></a>
+            <a class="mm-it" href="/fonctionnalites/transactions-recus"><span class="mi" style="background:var(--sky-light);color:var(--sky)"><i class="ti ti-list-details"></i></span><span><b>Transactions &amp; reçus</b><small>Historique, photos, recherche</small></span></a>
+            <a class="mm-it" href="/fonctionnalites/categories-tags"><span class="mi" style="background:var(--amber-light);color:var(--amber)"><i class="ti ti-tag"></i></span><span><b>Catégories &amp; tags</b><small>Rangement automatique</small></span></a>
+            <a class="mm-it" href="/fonctionnalites/multi-devises" aria-current="page"><span class="mi" style="background:var(--sage-light);color:var(--sage)"><i class="ti ti-world"></i></span><span><b>Multi-devises</b><small>Idéal voyageurs &amp; nomades</small></span></a>
+            <a class="mm-it" href="/fonctionnalites/charges-recurrentes"><span class="mi" style="background:var(--lavi-light);color:var(--lavi)"><i class="ti ti-repeat"></i></span><span><b>Charges fixes &amp; récurrentes</b><small>Ce qui tombe chaque mois</small></span></a>
+          </span>
+          <span class="mm-col">
+            <span class="mm-h5">Analyser</span>
+            <a class="mm-it" href="/fonctionnalites/budgets"><span class="mi" style="background:var(--amber-light);color:var(--amber)"><i class="ti ti-chart-pie"></i></span><span><b>Budgets</b><small>Par catégorie, avec alertes</small></span></a>
+            <a class="mm-it" href="/fonctionnalites/rapports"><span class="mi" style="background:var(--sky-light);color:var(--sky)"><i class="ti ti-chart-line"></i></span><span><b>Rapports &amp; insights</b><small>Ce qui bouge, mois par mois</small></span></a>
+            <a class="mm-it" href="/fonctionnalites/patrimoine"><span class="mi" style="background:var(--lavi-light);color:var(--lavi)"><i class="ti ti-diamond"></i></span><span><b>Patrimoine &amp; investissements</b><small>Actifs, crédits, évolution</small></span></a>
+          </span>
+          <span class="mm-col">
+            <span class="mm-h5">Aller plus loin</span>
+            <a class="mm-it" href="/fonctionnalites/depenses-partagees"><span class="mi" style="background:var(--tang-light);color:var(--tang)"><i class="ti ti-users"></i></span><span><b>Dépenses partagées</b><small>Qui doit quoi, à deux</small></span></a>
+            <a class="mm-it" href="/fonctionnalites/objectifs"><span class="mi" style="background:var(--lavi-light);color:var(--lavi)"><i class="ti ti-target-arrow"></i></span><span><b>Objectifs &amp; projets</b><small>Seul ou en commun</small></span></a>
+            <a class="mm-it" href="/securite"><span class="mi" style="background:var(--sky-light);color:var(--sky)"><i class="ti ti-shield-lock"></i></span><span><b>Sécurité</b><small>Chiffré, lecture seule</small></span></a>
+          </span>
+          </span>
+        </span>
+      </span>
+      <span class="mm" data-mm data-menu="audiences" data-open="0">
+        <button type="button" aria-expanded="false">Pour qui <i class="ti ti-chevron-down"></i></button>
+        <span class="mm-panel">
+          <span class="mm-cols one">
+          <span class="mm-col">
+            <span class="mm-it dim"><span class="mi" style="background:var(--sky-light);color:var(--sky)"><i class="ti ti-user"></i></span><span><b>En solo</b><small>Gérer ses finances personnelles</small></span></span>
+            <span class="mm-it dim"><span class="mi" style="background:var(--tang-light);color:var(--tang)"><i class="ti ti-users"></i></span><span><b>À deux</b><small>Dépenses partagées, budgets communs</small></span></span>
+            <span class="mm-it dim"><span class="mi" style="background:var(--sage-light);color:var(--sage)"><i class="ti ti-plane-tilt"></i></span><span><b>Voyageurs &amp; nomades</b><small>Le multi-devises comme atout</small></span></span>
+            <span class="mm-it dim"><span class="mi" style="background:var(--lavi-light);color:var(--lavi)"><i class="ti ti-world"></i></span><span><b>Expatriés</b><small>Revenus ici, charges là-bas</small></span></span>
+          </span>
+          </span>
+        </span>
+      </span>
+      <span class="soon">Comparatifs</span>
+      <span class="soon">Tarifs</span>
+      <a href="/securite">Sécurité</a>
+    </nav>
+    <a href="https://app.pairwise.finance/" class="login">Connexion</a>
+  </div>
+</header>
+
+<nav class="crumb wrap" aria-label="Fil d'Ariane">
+  <a href="/">Accueil</a><i class="ti ti-chevron-right"></i><span>Fonctionnalités</span><i class="ti ti-chevron-right"></i><b>Multi-devises</b>
+</nav>
+
+<!-- ============================================================
+     Sections issues du handoff de conception, styles en ligne
+     compris : leurs valeurs SONT la maquette. Seuls les tokens de
+     couleur ont ete retires du prototype, pour que `var(--tang)`
+     et consorts viennent de /assets/site.css — une retouche de la
+     palette se propage alors ici sans toucher une ligne.
+     ============================================================ -->
+<main class="pw">
+<section style="max-width:1060px;margin:0 auto;padding:48px 24px 64px;display:flex;gap:56px;align-items:center;flex-wrap:wrap">
+    <div style="flex:1 1 420px;min-width:320px">
+      <div style="color:var(--tang);text-transform:uppercase;letter-spacing:.08em;font-weight:800;font-size:13px;margin-bottom:14px">Multi-devises</div>
+      <h1 style="font-family:Poppins,sans-serif;letter-spacing:-0.02em;font-weight:800;font-size:44px;line-height:1.1;margin:0 0 20px;color:var(--ink)">L'application budget multi-devises qui ne t'oblige jamais à convertir à la main</h1>
+      <p style="color:var(--ink-2);font-size:18px;margin:0 0 28px;max-width:480px">Un compte à l'étranger, un voyage, un salaire dans une devise et un loyer dans une autre : PairWise traite la devise comme une propriété de chaque montant, pas comme un réglage global. 161 devises, aucun tableur.</p>
+      <a href="https://app.pairwise.finance/" style="display:inline-flex;align-items:center;gap:8px;background:var(--tang);color:#fff;padding:14px 28px;border-radius:12px;font-family:Poppins,sans-serif;font-weight:700;font-size:16px;text-decoration:none;box-shadow:var(--shadow)" style-hover="background:var(--tang-deep)">C'est parti <i class="ti ti-arrow-right"></i></a>
+      <div style="margin-top:14px;color:var(--ink-3);font-size:14px">Gratuit pour commencer, sans carte bancaire.</div>
+    </div>
+
+    <div style="flex:0 1 340px;min-width:300px;background:var(--bg-card);border-radius:18px;padding:24px;box-shadow:var(--shadow-lg)" aria-hidden="true">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <span style="color:var(--ink-3);text-transform:uppercase;letter-spacing:.06em;font-weight:700;font-size:12px">Patrimoine net</span>
+        <span style="display:flex;align-items:center;gap:4px;font-size:12px;font-weight:700;color:var(--ink-2);background:var(--panel);border-radius:20px;padding:4px 10px">EUR <i class="ti ti-chevron-down" style="font-size:12px"></i></span>
+      </div>
+      <div style="font-family:Poppins,sans-serif;font-weight:800;font-size:32px;margin-bottom:20px">17 376 €</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="width:32px;height:32px;border-radius:9px;background:var(--sky-light);color:var(--sky);display:flex;align-items:center;justify-content:center;flex:none"><i class="ti ti-building-bank"></i></span>
+          <span style="flex:1;font-size:14px;font-weight:600">Compte courant</span>
+          <span style="font-weight:700;font-size:14px">4 200,00 €</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="width:32px;height:32px;border-radius:9px;background:var(--amber-light);color:var(--amber);display:flex;align-items:center;justify-content:center;flex:none"><i class="ti ti-building-bank"></i></span>
+          <span style="flex:1;font-size:14px;font-weight:600">Compte Bangkok</span>
+          <span style="font-weight:700;font-size:14px">68 000,00 ฿</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="width:32px;height:32px;border-radius:9px;background:var(--sage-light);color:var(--sage);display:flex;align-items:center;justify-content:center;flex:none"><i class="ti ti-chart-line"></i></span>
+          <span style="flex:1;font-size:14px;font-weight:600">Portefeuille titres</span>
+          <span style="font-weight:700;font-size:14px">12 400,00 $</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="background:var(--panel);padding:64px 0">
+    <div style="max-width:1060px;margin:0 auto;padding:0 24px;display:flex;gap:48px;align-items:center;flex-wrap:wrap">
+      <div style="flex:1 1 380px;min-width:300px">
+        <h2 style="font-family:Poppins,sans-serif;letter-spacing:-0.02em;font-size:28px;margin:0 0 14px">Tes comptes, chacun dans sa monnaie</h2>
+        <p style="color:var(--ink-2);margin:0;max-width:460px">Un compte courant en euros, un compte à l'étranger en bahts, un portefeuille titres en dollars : chaque compte ou crédit porte sa propre devise. PairWise les consolide en un seul patrimoine net, affiché dans la devise de ton choix — personne ne convertit à la main.</p>
+      </div>
+      <div style="flex:0 1 460px;min-width:320px" aria-hidden="true">
+        <div style="background:var(--panel);border:1px solid var(--rule);border-radius:14px 14px 0 0;padding:10px 14px;display:flex;align-items:center;gap:8px">
+          <span style="width:10px;height:10px;border-radius:50%;background:var(--tang)"></span>
+          <span style="width:10px;height:10px;border-radius:50%;background:var(--amber)"></span>
+          <span style="width:10px;height:10px;border-radius:50%;background:var(--sage)"></span>
+          <span style="flex:1;background:var(--bg-card);border-radius:6px;padding:4px 10px;font-size:12px;color:var(--ink-3);margin-left:8px">app.pairwise.finance</span>
+        </div>
+        <div style="background:var(--bg-card);border-radius:0 0 14px 14px;box-shadow:var(--shadow);padding:22px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+            <span style="color:var(--ink-3);text-transform:uppercase;letter-spacing:.06em;font-weight:700;font-size:12px">Patrimoine — affiché en</span>
+            <span style="display:flex;align-items:center;gap:4px;font-size:12px;font-weight:700;color:var(--ink-2);background:var(--panel);border-radius:20px;padding:4px 10px">EUR <i class="ti ti-chevron-down" style="font-size:12px"></i></span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div style="display:flex;align-items:center;gap:12px">
+              <span style="width:34px;height:34px;border-radius:9px;background:var(--sky-light);color:var(--sky);display:flex;align-items:center;justify-content:center;flex:none"><i class="ti ti-building-bank"></i></span>
+              <span style="flex:1;font-size:14px;font-weight:600">Compte courant · EUR</span>
+              <span style="font-weight:700;font-size:14px">4 200 €</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px">
+              <span style="width:34px;height:34px;border-radius:9px;background:var(--amber-light);color:var(--amber);display:flex;align-items:center;justify-content:center;flex:none"><i class="ti ti-building-bank"></i></span>
+              <span style="flex:1;font-size:14px;font-weight:600">Compte Bangkok · THB</span>
+              <span style="font-weight:700;font-size:14px">1 768 €<span style="color:var(--ink-3);font-weight:400"> (68 000 ฿)</span></span>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px">
+              <span style="width:34px;height:34px;border-radius:9px;background:var(--sage-light);color:var(--sage);display:flex;align-items:center;justify-content:center;flex:none"><i class="ti ti-chart-line"></i></span>
+              <span style="flex:1;font-size:14px;font-weight:600">Portefeuille titres · USD</span>
+              <span style="font-weight:700;font-size:14px">11 408 €<span style="color:var(--ink-3);font-weight:400"> (12 400 $)</span></span>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;border-top:1px solid var(--rule);padding-top:12px;margin-top:2px">
+              <span style="flex:1;font-family:Poppins,sans-serif;font-weight:700;font-size:14px">Total</span>
+              <span style="font-weight:800;font-size:16px;color:var(--tang)">17 376 €</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="max-width:1060px;margin:0 auto;padding:72px 24px;display:flex;gap:48px;align-items:center;flex-wrap:wrap-reverse">
+    <div style="flex:0 1 300px" aria-hidden="true">
+      <div style="width:300px;background:linear-gradient(155deg,#4a545f 0%,#20262d 38%,#12161b 100%);border-radius:44px;padding:12px;box-shadow:0 0 0 1px rgba(255,255,255,.18), 0 26px 60px rgba(0,0,0,.45);margin:0 auto">
+        <div style="position:relative;background:var(--bg);border-radius:31px;overflow:hidden;min-height:420px;padding:22px 16px 16px">
+          <div style="position:absolute;top:10px;left:50%;transform:translateX(-50%);width:84px;height:20px;background:#12161b;border-radius:12px;z-index:2"></div>
+          <div style="margin-top:24px;display:flex;align-items:center;gap:8px;background:var(--bg-card);border-radius:12px;padding:10px 12px;box-shadow:var(--shadow);margin-bottom:14px">
+            <i class="ti ti-pencil" style="color:var(--ink-3)"></i>
+            <span style="font-size:14px;font-weight:600">150k₫ pho</span>
+          </div>
+          <div style="background:var(--bg-card);border-radius:14px;padding:14px;box-shadow:var(--shadow)">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+              <i class="ti ti-check" style="color:var(--sage)"></i>
+              <span style="font-size:13px;font-weight:700;color:var(--sage)">Compris</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px"><span style="color:var(--ink-3)">Montant</span><span style="font-weight:700">150 000 ₫</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px"><span style="color:var(--ink-3)">Devise</span><span style="font-weight:700">VND</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:12px"><span style="color:var(--ink-3)">Catégorie</span><span style="font-weight:700">Alimentation</span></div>
+            <div style="border-top:1px solid var(--rule);padding-top:10px;display:flex;justify-content:space-between">
+              <span style="font-size:13px;color:var(--ink-3)">Dans ton historique</span>
+              <span style="font-weight:700;font-size:13px;color:var(--tang)">≈ 5,45 €</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="flex:1 1 380px;min-width:300px">
+      <h2 style="font-family:Poppins,sans-serif;letter-spacing:-0.02em;font-size:28px;margin:0 0 14px">À l'étranger, tu saisis comme tu paies</h2>
+      <p style="color:var(--ink-2);margin:0;max-width:440px">Tu écris « 150k₫ pho », « 320 ฿ scooter » — PairWise détecte la devise dans ta phrase. Le montant est converti au taux du jour et rangé dans tes catégories habituelles, sans changer de réglage. Tes dépenses de voyage s'additionnent avec le reste de ton budget, dans la devise où tu raisonnes.</p>
+    </div>
+  </section>
+
+  <section style="background:var(--panel);padding:64px 0">
+    <div style="max-width:1060px;margin:0 auto;padding:0 24px;display:flex;gap:48px;align-items:center;flex-wrap:wrap">
+      <div style="flex:1 1 380px;min-width:300px">
+        <h2 style="font-family:Poppins,sans-serif;letter-spacing:-0.02em;font-size:28px;margin:0 0 14px">Seulement les devises que tu utilises</h2>
+        <p style="color:var(--ink-2);margin:0 0 14px;max-width:440px">Le catalogue compte 161 devises, mais ton application n'en propose que celles que tu utilises. Pas de menu déroulant interminable : tu ajoutes ce dont tu as besoin, tu retires ce qui ne sert plus, à tout moment.</p>
+        <p style="color:var(--ink-2);margin:0;max-width:440px">La liste est partagée par le couple, et se retrouve partout : transactions, charges récurrentes, actifs, budgets. On part en Thaïlande, on ajoute le baht ; on en revient, on le retire.</p>
+      </div>
+      <div style="flex:0 1 300px" aria-hidden="true">
+        <div style="width:300px;background:linear-gradient(155deg,#4a545f 0%,#20262d 38%,#12161b 100%);border-radius:44px;padding:12px;box-shadow:0 0 0 1px rgba(255,255,255,.18), 0 26px 60px rgba(0,0,0,.45);margin:0 auto">
+          <div style="position:relative;background:var(--bg);border-radius:31px;overflow:hidden;min-height:420px;padding:22px 16px 16px">
+            <div style="position:absolute;top:10px;left:50%;transform:translateX(-50%);width:84px;height:20px;background:#12161b;border-radius:12px;z-index:2"></div>
+            <div style="margin-top:24px;display:flex;align-items:center;gap:8px;background:var(--bg-card);border-radius:12px;padding:10px 12px;box-shadow:var(--shadow);margin-bottom:14px">
+              <i class="ti ti-search" style="color:var(--ink-3)"></i>
+              <span style="font-size:14px;font-weight:600">bah</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;background:var(--tang-light);border-radius:12px;padding:10px 12px;margin-bottom:10px">
+              <span style="font-size:13px;font-weight:700;flex:1">฿ Baht thaïlandais</span>
+              <i class="ti ti-plus" style="color:var(--tang)"></i>
+            </div>
+            <div style="color:var(--ink-3);text-transform:uppercase;letter-spacing:.06em;font-weight:700;font-size:11px;margin-bottom:8px">Actives</div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg-card);border-radius:12px;padding:10px 12px;box-shadow:var(--shadow)">
+                <span style="font-size:13px;font-weight:700">€ Euro</span>
+                <i class="ti ti-check" style="color:var(--sage)"></i>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg-card);border-radius:12px;padding:10px 12px;box-shadow:var(--shadow)">
+                <span style="font-size:13px;font-weight:700">$ Dollar américain</span>
+                <i class="ti ti-check" style="color:var(--sage)"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="max-width:1060px;margin:0 auto;padding:72px 24px">
+    <h2 style="font-family:Poppins,sans-serif;letter-spacing:-0.02em;font-size:28px;text-align:center;margin:0 0 12px">Ton historique ne bouge pas</h2>
+    <p style="color:var(--ink-2);max-width:640px;margin:0 auto 28px;text-align:center">Le montant converti et le taux appliqué sont enregistrés <strong>sur la transaction elle-même</strong>, au moment de la saisie. Ton voyage au Vietnam garde le taux qu'il avait à l'époque : quand la monnaie bouge, ton passé ne se réécrit pas — contrairement à beaucoup d'applis, qui recalculent et changent le budget de l'an dernier tout seul.</p>
+    <div style="display:flex;flex-wrap:wrap;gap:16px;max-width:820px;margin:0 auto">
+      <div style="flex:1 1 340px;min-width:260px;background:var(--bg-card);border-radius:14px;padding:18px;box-shadow:var(--shadow)">
+        <i class="ti ti-adjustments-horizontal" style="color:var(--tang);font-size:20px"></i>
+        <p style="margin:10px 0 0;font-size:14px;color:var(--ink-2)">La devise d'affichage du tableau de bord est indépendante des données — change-la sans rien modifier.</p>
+      </div>
+      <div style="flex:1 1 340px;min-width:260px;background:var(--bg-card);border-radius:14px;padding:18px;box-shadow:var(--shadow)">
+        <i class="ti ti-repeat" style="color:var(--tang);font-size:20px"></i>
+        <p style="margin:10px 0 0;font-size:14px;color:var(--ink-2)">Chaque membre garde sa « dernière devise utilisée » en voyage, sans la resélectionner.</p>
+      </div>
+      <div style="flex:1 1 340px;min-width:260px;background:var(--bg-card);border-radius:14px;padding:18px;box-shadow:var(--shadow)">
+        <i class="ti ti-calendar-repeat" style="color:var(--tang);font-size:20px"></i>
+        <p style="margin:10px 0 0;font-size:14px;color:var(--ink-2)">Des charges récurrentes en devises mixtes donnent un seul total mensuel converti.</p>
+      </div>
+      <div style="flex:1 1 340px;min-width:260px;background:var(--bg-card);border-radius:14px;padding:18px;box-shadow:var(--shadow)">
+        <i class="ti ti-shield-check" style="color:var(--tang);font-size:20px"></i>
+        <p style="margin:10px 0 0;font-size:14px;color:var(--ink-2)">Les taux de change sont recalculés chaque jour, pour rester au plus près de la réalité.</p>
+      </div>
+    </div>
+  </section>
+
+  <section style="background:var(--panel);padding:64px 0">
+    <div style="max-width:1060px;margin:0 auto;padding:0 24px">
+      <h2 style="font-family:Poppins,sans-serif;letter-spacing:-0.02em;font-size:28px;text-align:center;margin:0 0 36px">Pour qui</h2>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px">
+        <div style="background:var(--bg-card);border-radius:16px;padding:24px;box-shadow:var(--shadow)">
+          <i class="ti ti-plane" style="color:var(--tang);font-size:24px"></i>
+          <h3 style="font-family:Poppins,sans-serif;font-size:18px;margin:14px 0 8px">Voyageurs &amp; nomades</h3>
+          <p style="color:var(--ink-2);font-size:15px;margin:0">Saisis dans la monnaie locale, PairWise détecte la devise et convertit au taux du jour.</p>
+        </div>
+        <div style="background:var(--bg-card);border-radius:16px;padding:24px;box-shadow:var(--shadow)">
+          <i class="ti ti-world" style="color:var(--tang);font-size:24px"></i>
+          <h3 style="font-family:Poppins,sans-serif;font-size:18px;margin:14px 0 8px">Expatriés</h3>
+          <p style="color:var(--ink-2);font-size:15px;margin:0">Un revenu ici, des charges là-bas : tout se consolide dans un seul patrimoine et un seul total mensuel.</p>
+        </div>
+        <div style="background:var(--bg-card);border-radius:16px;padding:24px;box-shadow:var(--shadow)">
+          <i class="ti ti-users" style="color:var(--tang);font-size:24px"></i>
+          <h3 style="font-family:Poppins,sans-serif;font-size:18px;margin:14px 0 8px">À deux</h3>
+          <p style="color:var(--ink-2);font-size:15px;margin:0">Deux pays, un budget commun : la liste de devises est partagée par le couple, partout dans l'app.</p>
+        </div>
+        <div style="background:var(--bg-card);border-radius:16px;padding:24px;box-shadow:var(--shadow)">
+          <i class="ti ti-user" style="color:var(--tang);font-size:24px"></i>
+          <h3 style="font-family:Poppins,sans-serif;font-size:18px;margin:14px 0 8px">En solo</h3>
+          <p style="color:var(--ink-2);font-size:15px;margin:0">Un compte à l'étranger, un portefeuille en dollars : ton patrimoine reste un seul chiffre net.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="max-width:760px;margin:0 auto;padding:64px 24px">
+    <h2 style="font-family:Poppins,sans-serif;letter-spacing:-0.02em;font-size:30px;text-align:center;margin:0 0 32px">Questions fréquentes</h2>
+    <div style="display:flex;flex-direction:column;gap:12px">
+
+      <details style="background:var(--bg-card);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow)">
+        <summary style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;list-style:none;font-weight:700;font-size:16px;gap:12px">
+          Combien de devises sont gérées par PairWise ?
+          <span class="faq-plus" style="flex:none;color:var(--tang);font-size:20px;transition:transform .15s ease">+</span>
+        </summary>
+        <p style="color:var(--ink-2);margin:14px 0 0">PairWise gère 161 devises. Ton catalogue personnel n'affiche que celles que tu utilises réellement — tu en ajoutes ou retires à tout moment.</p>
+      </details>
+
+      <details style="background:var(--bg-card);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow)">
+        <summary style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;list-style:none;font-weight:700;font-size:16px;gap:12px">
+          D'où viennent les taux de change ?
+          <span class="faq-plus" style="flex:none;color:var(--tang);font-size:20px;transition:transform .15s ease">+</span>
+        </summary>
+        <p style="color:var(--ink-2);margin:14px 0 0">Les taux viennent d'un service public de taux de change. Quand un taux n'est qu'approximatif, c'est signalé ; et si aucun taux fiable n'est disponible, PairWise préfère ne pas convertir plutôt qu'afficher un chiffre faux.</p>
+      </details>
+
+      <details style="background:var(--bg-card);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow)">
+        <summary style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;list-style:none;font-weight:700;font-size:16px;gap:12px">
+          Les anciennes transactions sont-elles recalculées quand le taux change ?
+          <span class="faq-plus" style="flex:none;color:var(--tang);font-size:20px;transition:transform .15s ease">+</span>
+        </summary>
+        <p style="color:var(--ink-2);margin:14px 0 0">Non. Le montant converti et le taux appliqué sont enregistrés sur la transaction elle-même, au moment de la saisie. Quand la monnaie bouge ensuite, ton historique ne se réécrit pas.</p>
+      </details>
+
+      <details style="background:var(--bg-card);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow)">
+        <summary style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;list-style:none;font-weight:700;font-size:16px;gap:12px">
+          Peut-on n'afficher que les devises qu'on utilise ?
+          <span class="faq-plus" style="flex:none;color:var(--tang);font-size:20px;transition:transform .15s ease">+</span>
+        </summary>
+        <p style="color:var(--ink-2);margin:14px 0 0">Oui. Tu pars de quelques devises courantes, puis tu ajoutes celles dont tu as besoin (recherche par nom ou par code) et retires celles qui ne servent plus.</p>
+      </details>
+
+      <details style="background:var(--bg-card);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow)">
+        <summary style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;list-style:none;font-weight:700;font-size:16px;gap:12px">
+          Peut-on changer la devise d'affichage sans modifier ses données ?
+          <span class="faq-plus" style="flex:none;color:var(--tang);font-size:20px;transition:transform .15s ease">+</span>
+        </summary>
+        <p style="color:var(--ink-2);margin:14px 0 0">Oui. La devise d'affichage du tableau de bord et du patrimoine est indépendante des données : tu peux la changer à tout moment sans modifier une seule transaction.</p>
+      </details>
+
+      <details style="background:var(--bg-card);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow)">
+        <summary style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;list-style:none;font-weight:700;font-size:16px;gap:12px">
+          Que se passe-t-il hors connexion ?
+          <span class="faq-plus" style="flex:none;color:var(--tang);font-size:20px;transition:transform .15s ease">+</span>
+        </summary>
+        <p style="color:var(--ink-2);margin:14px 0 0">Si aucun taux fiable n'est disponible, par exemple hors connexion, PairWise préfère ne pas convertir plutôt qu'afficher un chiffre faux : le montant reste dans sa devise d'origine jusqu'au prochain taux fiable.</p>
+      </details>
+
+    </div>
+  </section>
+
+  <section style="background:var(--band);padding:72px 0;position:relative;overflow:hidden">
+    <i class="ti ti-currency-dollar" style="position:absolute;top:20px;left:6%;font-size:120px;color:var(--ink);opacity:.15" aria-hidden="true"></i>
+    <i class="ti ti-world" style="position:absolute;bottom:10px;right:8%;font-size:100px;color:var(--ink);opacity:.15" aria-hidden="true"></i>
+    <div style="max-width:760px;margin:0 auto;padding:0 24px;text-align:center;position:relative;z-index:1">
+      <div style="color:var(--tang);text-transform:uppercase;letter-spacing:.08em;font-weight:800;font-size:13px;margin-bottom:14px">Prêt à y voir clair ?</div>
+      <h2 style="font-family:Poppins,sans-serif;letter-spacing:-0.02em;font-weight:800;font-size:34px;margin:0 0 28px">Toutes tes devises, un seul budget.</h2>
+      <a href="https://app.pairwise.finance/" style="display:inline-flex;align-items:center;gap:8px;background:var(--tang);color:#fff;padding:14px 28px;border-radius:12px;font-family:Poppins,sans-serif;font-weight:700;font-size:16px;text-decoration:none;box-shadow:var(--shadow)" style-hover="background:var(--tang-deep)">C'est parti <i class="ti ti-arrow-right"></i></a>
+      <div style="display:flex;justify-content:center;gap:28px;margin-top:28px;flex-wrap:wrap;color:var(--ink-2);font-size:14px">
+        <span style="display:flex;align-items:center;gap:6px"><i class="ti ti-check" style="color:var(--sage)"></i>Sans compte pour commencer</span>
+        <span style="display:flex;align-items:center;gap:6px"><i class="ti ti-check" style="color:var(--sage)"></i>Données sur l'appareil</span>
+        <span style="display:flex;align-items:center;gap:6px"><i class="ti ti-check" style="color:var(--sage)"></i>Gratuit</span>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site">
+  <!-- ⚠ GÉNÉRÉ — ne pas modifier à la main.
+       Source : scripts/build-marketing-header.js · régénérer avec
+       `node scripts/build-marketing-header.js`. -->
+  <div class="wrap cols">
+    <div>
+      <a href="/" class="logo"><span class="p">P</span> PairWise</a>
+      <p class="intro">Une seule app pour tes dépenses, ton budget et ton patrimoine — seul ou à deux.</p>
+    </div>
+    <div>
+      <h4>Fonctionnalités</h4>
+      <a href="/fonctionnalites/saisie-langage-naturel">Saisie en langage naturel</a>
+      <a href="/fonctionnalites/transactions-recus">Transactions &amp; reçus</a>
+      <a href="/fonctionnalites/categories-tags">Catégories &amp; tags</a>
+      <a href="/fonctionnalites/multi-devises">Multi-devises</a>
+      <a href="/fonctionnalites/charges-recurrentes">Charges fixes &amp; récurrentes</a>
+      <a href="/fonctionnalites/budgets">Budgets</a>
+      <a href="/fonctionnalites/rapports">Rapports &amp; insights</a>
+      <a href="/fonctionnalites/patrimoine">Patrimoine &amp; investissements</a>
+      <a href="/fonctionnalites/depenses-partagees">Dépenses partagées</a>
+      <a href="/fonctionnalites/objectifs">Objectifs &amp; projets</a>
+    </div>
+    <div>
+      <h4>Pour qui</h4>
+      <span class="soon">En solo</span>
+      <span class="soon">À deux</span>
+      <span class="soon">Voyageurs &amp; nomades</span>
+      <span class="soon">Expatriés</span>
+    </div>
+    <div>
+      <h4>PairWise</h4>
+      <a href="https://app.pairwise.finance/">Ouvrir l'app</a>
+      <a href="/presentation">Tout ce que fait PairWise</a>
+      <span class="soon">Tarifs</span>
+      <a href="/securite">Sécurité</a>
+      <span class="soon">FAQ</span>
+    </div>
+  </div>
+  <div class="wrap copy">© 2026 PairWise · Fait avec soin · Tes données t'appartiennent</div>
+</footer>
+
+<script src="/assets/menu.js" defer></script>
+
+</body>
+</html>

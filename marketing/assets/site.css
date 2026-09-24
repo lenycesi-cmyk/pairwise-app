@@ -539,3 +539,17 @@ a.mm-it:hover { background: var(--panel); }
    Seul l'affichage change. */
 .steps.rev .step-copy { order: 2; }
 .steps.rev .phone { order: 1; }
+
+/* ============ Pages de fonctionnalités issues du handoff de conception ============
+   Ces pages portent leur mise en forme en styles EN LIGNE : ce sont les valeurs
+   de la maquette, transportees telles quelles. Seules leurs couleurs remontent
+   ici, par les tokens — `var(--tang)` dans un style en ligne lit le `:root`
+   ci-dessus, donc une retouche de la palette les traverse sans les rouvrir.
+   Ne restent ici que les trois regles qu'un style en ligne ne peut pas porter :
+   un etat (`:hover`), un selecteur structurel (`[open]`) et une requete media. */
+.pw a { color: var(--tang); }
+.pw a:hover { color: var(--tang-deep); }
+.pw details[open] .faq-plus { transform: rotate(45deg); }
+@media (prefers-reduced-motion: reduce) {
+  .pw * { transition: none !important; animation: none !important; }
+}

@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <title>Partage de dépenses : gérer son budget à deux, à ta façon | PairWise</title>
+  <meta name="description" content="Compte commun ou finances séparées : PairWise ne choisit pas à ta place. Vois qui dépense quoi, répartis une dépense 60/40, et sache qui doit combien — si tu le veux." />
+
+  <!-- Pas de `hreflang="en"` : la page anglaise n'existe pas encore, et
+       declarer une alternative qui repond 404 est pire que ne rien declarer. -->
+  <link rel="canonical" href="https://pairwise.finance/fonctionnalites/depenses-partagees" />
+  <link rel="alternate" hreflang="fr" href="https://pairwise.finance/fonctionnalites/depenses-partagees" />
+  <link rel="alternate" hreflang="x-default" href="https://pairwise.finance/fonctionnalites/depenses-partagees" />
+
+  <!-- Open Graph / partage social -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="PairWise" />
+  <meta property="og:locale" content="fr_FR" />
+  <meta property="og:title" content="Partage de dépenses : gérer son budget à deux, à ta façon | PairWise" />
+  <meta property="og:description" content="Compte commun ou finances séparées : PairWise ne choisit pas à ta place. Vois qui dépense quoi, répartis une dépense 60/40, et sache qui doit combien — si tu le veux." />
+  <meta property="og:url" content="https://pairwise.finance/fonctionnalites/depenses-partagees" />
+  <meta property="og:image" content="https://pairwise.finance/assets/og/depenses-partagees.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <link rel="icon" type="image/png" href="/icon-192.png" />
+
+  <!-- Mêmes polices et icônes que l'app -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Nunito+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+  <link rel="stylesheet" href="/assets/site.css" />
+
+  <!-- Données structurées : logiciel, fil d'Ariane, FAQ -->
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "SoftwareApplication",
+      "name": "PairWise",
+      "applicationCategory": "FinanceApplication",
+      "operatingSystem": "iOS, Android, Web",
+      "url": "https://pairwise.finance/",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" }
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Accueil", "item": "https://pairwise.finance/" },
+        { "@type": "ListItem", "position": 2, "name": "Fonctionnalités", "item": "https://pairwise.finance/fonctionnalites/" },
+        { "@type": "ListItem", "position": 3, "name": "Dépenses partagées", "item": "https://pairwise.finance/fonctionnalites/depenses-partagees" }
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        { "@type": "Question", "name": "Peut-on utiliser PairWise sans partager les dépenses ?", "acceptedAnswer": { "@type": "Answer", "text": "Oui. Le mode « Compte commun » ne compte aucune dette entre partenaires : tout est au pot, et PairWise garde simplement le suivi de qui dépense quoi et de ce qui est commun ou personnel." } },
+        { "@type": "Question", "name": "Comment répartir une dépense autrement qu'en 50/50 ?", "acceptedAnswer": { "@type": "Answer", "text": "Une dépense peut être 50/50, pour l'un, pour l'autre, ou suivre une répartition personnalisée en pourcentage ou en montant — par exemple un loyer 60/40 quand les revenus ne sont pas les mêmes." } },
+        { "@type": "Question", "name": "Comment savoir qui doit combien ?", "acceptedAnswer": { "@type": "Answer", "text": "En mode Partagé, PairWise suit qui a payé et pour qui, et met à jour tout seul le solde entre vous : « Karim doit 214 € à Chloé ». Ce suivi est masqué en mode Compte commun, où il n'aurait pas de sens." } },
+        { "@type": "Question", "name": "Peut-on voir les dépenses d'une seule personne ?", "acceptedAnswer": { "@type": "Answer", "text": "Oui. Un filtre par membre existe sur presque tous les écrans — accueil, historique, charges récurrentes, budgets, rapports, patrimoine — et recalcule tous les chiffres en tenant compte de la part de chacun sur les dépenses partagées." } },
+        { "@type": "Question", "name": "Le patrimoine peut-il être commun ?", "acceptedAnswer": { "@type": "Answer", "text": "Oui. En mode Compte commun, le patrimoine est celui du foyer. Le filtre permet aussi d'afficher « Total du foyer » ou « Total de {prénom} », avec une répartition par membre." } },
+        { "@type": "Question", "name": "Peut-on changer de mode plus tard ?", "acceptedAnswer": { "@type": "Answer", "text": "Oui, à tout moment. Le mode de finances est choisi à l'inscription et se modifie ensuite dans les réglages." } }
+      ]
+    }
+  ]
+}
+  </script>
+</head>
+<body>
+
+<header class="site">
+  <div class="bar">
+    <a href="/" class="logo"><span class="p">P</span> PairWise</a>
+    <!-- ⚠ GÉNÉRÉ — ne pas modifier à la main.
+         Source : scripts/build-marketing-header.js · régénérer avec
+         `node scripts/build-marketing-header.js`. -->
+    <nav data-in-features="1">
+      <span class="mm" data-mm data-menu="features" data-open="0">
+        <button type="button" aria-expanded="false">Fonctionnalités <i class="ti ti-chevron-down"></i></button>
+        <span class="mm-panel">
+          <span class="mm-cols">
+          <span class="mm-col">
+            <span class="mm-h5">Suivre son argent</span>
+            <a class="mm-it" href="/fonctionnalites/saisie-langage-naturel"><span class="mi" style="background:var(--tang-light);color:var(--tang)"><i class="ti ti-sparkles"></i></span><span><b>Saisie en langage naturel</b><small>« 60€ course hier » et c'est rempli</small></span></a>
+            <a class="mm-it" href="/fonctionnalites/transactions-recus"><span class="mi" style="background:var(--sky-light);color:var(--sky)"><i class="ti ti-list-details"></i></span><span><b>Transactions &amp; reçus</b><small>Historique, photos, recherche</small></span></a>
+            <a class="mm-it" href="/fonctionnalites/categories-tags"><span class="mi" style="background:var(--amber-light);color:var(--amber)"><i class="ti ti-tag"></i></span><span><b>Catégories &amp; tags</b><small>Rangement automatique</small></span></a>
+            <a class="mm-it" href="/fonctionnalites/multi-devises"><span class="mi" style="background:var(--sage-light);color:var(--sage)"><i class="ti ti-world"></i></span><span><b>Multi-devises</b><small>Idéal voyageurs &amp; nomades</small></span></a>
+            <a class="mm-it" href="/fonctionnalites/charges-recurrentes"><span class="mi" style="background:var(--lavi-light);color:var(--lavi)"><i class="ti ti-repeat"></i></span><span><b>Charges fixes &amp; récurrentes</b><small>Ce qui tombe chaque mois</small></span></a>
+          </span>
+          <span class="mm-col">
+            <span class="mm-h5">Analyser</span>
+            <a class="mm-it" href="/fonctionnalites/budgets"><span class="mi" style="background:var(--amber-light);color:var(--amber)"><i class="ti ti-chart-pie"></i></span><span><b>Budgets</b><small>Par catégorie, avec alertes</small></span></a>
+            <a class="mm-it" href="/fonctionnalites/rapports"><span class="mi" style="background:var(--sky-light);color:var(--sky)"><i class="ti ti-chart-line"></i></span><span><b>Rapports &amp; insights</b><small>Ce qui bouge, mois par mois</small></span></a>
+            <a class="mm-it" href="/fonctionnalites/patrimoine"><span class="mi" style="background:var(--lavi-light);color:var(--lavi)"><i class="ti ti-diamond"></i></span><span><b>Patrimoine &amp; investissements</b><small>Actifs, crédits, évolution</small></span></a>
+          </span>
+          <span class="mm-col">
+            <span class="mm-h5">Aller plus loin</span>
+            <a class="mm-it" href="/fonctionnalites/depenses-partagees" aria-current="page"><span class="mi" style="background:var(--tang-light);color:var(--tang)"><i class="ti ti-users"></i></span><span><b>Dépenses partagées</b><small>Qui doit quoi, à deux</small></span></a>
+            <a class="mm-it" href="/fonctionnalites/objectifs"><span class="mi" style="background:var(--lavi-light);color:var(--lavi)"><i class="ti ti-target-arrow"></i></span><span><b>Objectifs &amp; projets</b><small>Seul ou en commun</small></span></a>
+            <a class="mm-it" href="/securite"><span class="mi" style="background:var(--sky-light);color:var(--sky)"><i class="ti ti-shield-lock"></i></span><span><b>Sécurité</b><small>Chiffré, lecture seule</small></span></a>
+          </span>
+          </span>
+        </span>
+      </span>
+      <span class="mm" data-mm data-menu="audiences" data-open="0">
+        <button type="button" aria-expanded="false">Pour qui <i class="ti ti-chevron-down"></i></button>
+        <span class="mm-panel">
+          <span class="mm-cols one">
+          <span class="mm-col">
+            <span class="mm-it dim"><span class="mi" style="background:var(--sky-light);color:var(--sky)"><i class="ti ti-user"></i></span><span><b>En solo</b><small>Gérer ses finances personnelles</small></span></span>
+            <span class="mm-it dim"><span class="mi" style="background:var(--tang-light);color:var(--tang)"><i class="ti ti-users"></i></span><span><b>À deux</b><small>Dépenses partagées, budgets communs</small></span></span>
+            <span class="mm-it dim"><span class="mi" style="background:var(--sage-light);color:var(--sage)"><i class="ti ti-plane-tilt"></i></span><span><b>Voyageurs &amp; nomades</b><small>Le multi-devises comme atout</small></span></span>
+            <span class="mm-it dim"><span class="mi" style="background:var(--lavi-light);color:var(--lavi)"><i class="ti ti-world"></i></span><span><b>Expatriés</b><small>Revenus ici, charges là-bas</small></span></span>
+          </span>
+          </span>
+        </span>
+      </span>
+      <span class="soon">Comparatifs</span>
+      <span class="soon">Tarifs</span>
+      <a href="/securite">Sécurité</a>
+    </nav>
+    <a href="https://app.pairwise.finance/" class="login">Connexion</a>
+  </div>
+</header>
+
+<nav class="crumb wrap" aria-label="Fil d'Ariane">
+  <a href="/">Accueil</a><i class="ti ti-chevron-right"></i><span>Fonctionnalités</span><i class="ti ti-chevron-right"></i><b>Dépenses partagées</b>
+</nav>
+
+<!-- ============================================================
+     Sections issues du handoff de conception, styles en ligne
+     compris : leurs valeurs SONT la maquette. Seuls les tokens de
+     couleur ont ete retires du prototype, pour que `var(--tang)`
+     et consorts viennent de /assets/site.css — une retouche de la
+     palette se propage alors ici sans toucher une ligne.
+     ============================================================ -->
+<main class="pw">
+<section style="max-width:1060px;margin:0 auto;padding:48px 24px 64px;display:flex;gap:56px;align-items:center;flex-wrap:wrap">
+    <div style="flex:1 1 420px;min-width:320px">
+      <div style="color:var(--tang);text-transform:uppercase;letter-spacing:.08em;font-weight:800;font-size:13px;margin-bottom:14px">Dépenses partagées</div>
+      <h1 style="font-family:Poppins,sans-serif;letter-spacing:-0.02em;font-weight:800;font-size:44px;line-height:1.1;margin:0 0 20px;color:var(--ink)">Le partage de dépenses, à votre façon — ou pas du tout</h1>
+      <p style="color:var(--ink-2);font-size:18px;margin:0 0 18px;max-width:480px">Il n'y a pas une bonne façon de gérer l'argent à deux. Certains mettent tout en commun, d'autres séparent scrupuleusement, beaucoup font un mélange. PairWise ne choisit pas à votre place.</p>
+      <p style="color:var(--ink-2);font-size:18px;margin:0 0 28px;max-width:480px"><strong>Le partage est optionnel</strong> : quelle que soit votre organisation, vous voyez toujours qui dépense quoi.</p>
+      <a href="https://app.pairwise.finance/" style="display:inline-flex;align-items:center;gap:8px;background:var(--tang);color:#fff;padding:14px 28px;border-radius:12px;font-family:Poppins,sans-serif;font-weight:700;font-size:16px;text-decoration:none;box-shadow:var(--shadow)" style-hover="background:var(--tang-deep)">C'est parti <i class="ti ti-arrow-right"></i></a>
+      <div style="margin-top:14px;color:var(--ink-3);font-size:14px">Modifiable à tout moment dans les réglages.</div>
+    </div>
+
+    <div style="flex:0 1 330px;min-width:300px" aria-hidden="true">
+      <div style="background:var(--bg-card);border-radius:24px;padding:20px;box-shadow:var(--shadow-lg);border:1px solid var(--rule)">
+        <div style="color:var(--ink-3);text-transform:uppercase;letter-spacing:.06em;font-weight:700;font-size:11px;margin-bottom:12px">Mode de finances</div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div style="border:2px solid var(--sage);background:var(--sage-light);border-radius:16px;padding:16px">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+              <span style="width:32px;height:32px;border-radius:10px;background:var(--bg-card);color:var(--sage);display:flex;align-items:center;justify-content:center"><i class="ti ti-wallet" style="font-size:17px"></i></span>
+              <span style="font-family:Poppins,sans-serif;font-weight:700;font-size:16px;flex:1">Compte commun</span>
+              <i class="ti ti-circle-check" style="color:var(--sage);font-size:20px"></i>
+            </div>
+            <p style="color:var(--ink-2);font-size:13px;margin:0">Pas de dette entre partenaires. On garde le suivi de qui dépense quoi et pour qui.</p>
+          </div>
+          <div style="border:2px solid var(--rule);border-radius:16px;padding:16px">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+              <span style="width:32px;height:32px;border-radius:10px;background:var(--panel);color:var(--ink-3);display:flex;align-items:center;justify-content:center"><i class="ti ti-arrows-split" style="font-size:17px"></i></span>
+              <span style="font-family:Poppins,sans-serif;font-weight:700;font-size:16px;flex:1">Partagé</span>
+              <i class="ti ti-circle" style="color:var(--ink-4);font-size:20px"></i>
+            </div>
+            <p style="color:var(--ink-2);font-size:13px;margin:0">Chacun ses finances : PairWise suit qui a payé, pour qui, et qui doit combien à qui.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="background:var(--panel);padding:64px 0">
+    <div style="max-width:1060px;margin:0 auto;padding:0 24px">
+      <h2 style="font-family:Poppins,sans-serif;letter-spacing:-0.02em;font-size:30px;margin:0 0 10px">Deux façons de gérer à deux</h2>
+      <p style="color:var(--ink-2);max-width:620px;margin:0 0 30px">Le mode de finances se choisit à l'inscription et se change ensuite dans les réglages, à tout moment. Aucun des deux n'est le mode « normal » : ce sont deux organisations aussi légitimes l'une que l'autre.</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px">
+
+        <div style="background:var(--bg-card);border-radius:18px;padding:26px;box-shadow:var(--shadow)">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+            <span style="width:42px;height:42px;border-radius:13px;background:var(--sage-light);color:var(--sage);display:flex;align-items:center;justify-content:center"><i class="ti ti-wallet" style="font-size:21px"></i></span>
+            <h3 style="font-family:Poppins,sans-serif;font-size:20px;margin:0">Compte commun</h3>
+          </div>
+          <p style="color:var(--ink-2);font-size:15px;margin:0 0 16px">Tout est au pot. Aucune dette entre partenaires, aucun solde à régler — PairWise garde simplement le suivi de qui dépense quoi, et de ce qui est commun ou personnel.</p>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;gap:9px;align-items:flex-start"><i class="ti ti-check" style="color:var(--sage);font-size:17px;margin-top:3px"></i><span style="font-size:14px;color:var(--ink-2)">Un seul patrimoine, celui du foyer.</span></div>
+            <div style="display:flex;gap:9px;align-items:flex-start"><i class="ti ti-check" style="color:var(--sage);font-size:17px;margin-top:3px"></i><span style="font-size:14px;color:var(--ink-2)">Le filtre par membre reste disponible partout.</span></div>
+            <div style="display:flex;gap:9px;align-items:flex-start"><i class="ti ti-check" style="color:var(--sage);font-size:17px;margin-top:3px"></i><span style="font-size:14px;color:var(--ink-2)">Le suivi de solde est masqué : il n'aurait pas de sens.</span></div>
+          </div>
+        </div>
+
+        <div style="background:var(--bg-card);border-radius:18px;padding:26px;box-shadow:var(--shadow)">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+            <span style="width:42px;height:42px;border-radius:13px;background:var(--lavi-light);color:var(--lavi);display:flex;align-items:center;justify-content:center"><i class="ti ti-arrows-split" style="font-size:21px"></i></span>
+            <h3 style="font-family:Poppins,sans-serif;font-size:20px;margin:0">Partagé</h3>
+          </div>
+          <p style="color:var(--ink-2);font-size:15px;margin:0 0 16px">Chacun ses finances. PairWise suit qui a payé, pour qui, et qui doit combien à qui — sans que vous ayez à tenir quoi que ce soit.</p>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;gap:9px;align-items:flex-start"><i class="ti ti-check" style="color:var(--lavi);font-size:17px;margin-top:3px"></i><span style="font-size:14px;color:var(--ink-2)">Répartition 50/50, pour l'un, pour l'autre, ou personnalisée.</span></div>
+            <div style="display:flex;gap:9px;align-items:flex-start"><i class="ti ti-check" style="color:var(--lavi);font-size:17px;margin-top:3px"></i><span style="font-size:14px;color:var(--ink-2)">Le solde entre vous se met à jour tout seul.</span></div>
+            <div style="display:flex;gap:9px;align-items:flex-start"><i class="ti ti-check" style="color:var(--lavi);font-size:17px;margin-top:3px"></i><span style="font-size:14px;color:var(--ink-2)">Les dépenses perso restent perso.</span></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <section style="max-width:1060px;margin:0 auto;padding:56px 24px;display:flex;gap:48px;align-items:center;flex-wrap:wrap">
+    <div style="flex:1 1 380px;min-width:300px">
+      <div style="display:inline-block;background:var(--lavi-light);color:var(--lavi);border-radius:20px;padding:4px 12px;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">Mode Partagé</div>
+      <h2 style="font-family:Poppins,sans-serif;letter-spacing:-0.02em;font-size:28px;margin:0 0 12px">Qui a payé, pour qui</h2>
+      <p style="color:var(--ink-2);margin:0 0 12px;max-width:460px">Une dépense se répartit en <strong>50/50</strong>, <strong>pour l'un</strong>, <strong>pour l'autre</strong>, ou selon une <strong>répartition personnalisée</strong> — en pourcentage ou en montant. Un loyer 60/40 quand les revenus ne sont pas les mêmes, par exemple.</p>
+      <p style="color:var(--ink-2);margin:0 0 12px;max-width:460px">La ligne de transaction montre la part de chacun, et le solde entre vous se met à jour tout seul. Plus de tableur, plus de « je crois que c'est moi qui ai payé la dernière fois ».</p>
+      <p style="color:var(--ink-3);font-size:14px;margin:0;max-width:460px">Ce suivi de solde n'existe qu'en mode Partagé.</p>
+    </div>
+
+    <div style="flex:0 1 340px;min-width:290px;display:flex;flex-direction:column;gap:14px" aria-hidden="true">
+      <div style="background:var(--bg-card);border-radius:16px;padding:18px;box-shadow:var(--shadow)">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+          <span style="width:36px;height:36px;border-radius:11px;background:var(--sky-light);color:var(--sky);display:flex;align-items:center;justify-content:center"><i class="ti ti-home" style="font-size:18px"></i></span>
+          <div style="flex:1">
+            <div style="font-weight:700;font-size:15px">Loyer</div>
+            <div style="color:var(--ink-3);font-size:12px">Logement · payé par Chloé</div>
+          </div>
+          <span style="font-family:Poppins,sans-serif;font-weight:800;font-size:16px">1 200 €</span>
+        </div>
+        <div style="display:flex;height:8px;border-radius:6px;overflow:hidden;margin-bottom:10px">
+          <div style="width:60%;background:var(--lavi)"></div>
+          <div style="width:40%;background:var(--sky)"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:13px">
+          <span><span style="display:inline-block;width:8px;height:8px;border-radius:3px;background:var(--lavi);margin-right:6px"></span>Chloé <strong>720 €</strong> <span style="color:var(--ink-3)">(60 %)</span></span>
+          <span><span style="display:inline-block;width:8px;height:8px;border-radius:3px;background:var(--sky);margin-right:6px"></span>Karim <strong>480 €</strong> <span style="color:var(--ink-3)">(40 %)</span></span>
+        </div>
+      </div>
+      <div style="background:var(--lavi-light);border-radius:16px;padding:18px;display:flex;align-items:center;gap:12px">
+        <span style="width:38px;height:38px;border-radius:12px;background:var(--bg-card);color:var(--lavi);display:flex;align-items:center;justify-content:center"><i class="ti ti-arrows-exchange" style="font-size:19px"></i></span>
+        <div>
+          <div style="color:var(--ink-3);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em">Solde entre vous</div>
+          <div style="font-family:Poppins,sans-serif;font-weight:700;font-size:16px;color:var(--ink)">Karim doit <span style="color:var(--lavi)">214 €</span> à Chloé</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="background:var(--panel);padding:64px 0">
+    <div style="max-width:1060px;margin:0 auto;padding:0 24px">
+      <h2 style="font-family:Poppins,sans-serif;letter-spacing:-0.02em;font-size:30px;margin:0 0 12px">Qui dépense quoi — sans se devoir quoi que ce soit</h2>
+      <p style="color:var(--ink-2);max-width:640px;margin:0 0 8px">Savoir qui dépense quoi ne suppose pas de se devoir de l'argent. Même dans un couple qui met tout en commun, la question « où part notre argent, et lequel de nous deux fait quoi » reste utile — et sans reproche.</p>
+      <p style="color:var(--ink-2);max-width:640px;margin:0 0 30px">Le même filtre existe sur presque tous les écrans : d'un geste, tu passes du <strong>foyer</strong> à <strong>une personne</strong>, et tous les chiffres se recalculent — en tenant compte de la <strong>part</strong> de chacun sur les dépenses partagées, pas seulement de qui a sorti la carte.</p>
+
+      <div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:32px">
+        <div style="flex:1 1 300px;min-width:280px;background:var(--bg-card);border-radius:18px;padding:20px;box-shadow:var(--shadow)" aria-hidden="true">
+          <div style="display:flex;gap:6px;background:var(--panel);border-radius:12px;padding:4px;margin-bottom:18px">
+            <span style="flex:1;text-align:center;background:var(--bg-card);border-radius:9px;padding:7px;font-weight:700;font-size:13px;box-shadow:var(--shadow)">Foyer</span>
+            <span style="flex:1;text-align:center;padding:7px;font-weight:600;font-size:13px;color:var(--ink-3)">Léa</span>
+            <span style="flex:1;text-align:center;padding:7px;font-weight:600;font-size:13px;color:var(--ink-3)">Sam</span>
+          </div>
+          <div style="color:var(--ink-3);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Dépenses du mois</div>
+          <div style="font-family:Poppins,sans-serif;font-weight:800;font-size:32px;margin-bottom:16px">2 120 €</div>
+          <div style="display:flex;flex-direction:column;gap:8px;font-size:13px">
+            <div style="display:flex;justify-content:space-between"><span style="color:var(--ink-2)">Revenus</span><span style="font-weight:700;color:var(--sage)">4 400 €</span></div>
+            <div style="display:flex;justify-content:space-between"><span style="color:var(--ink-2)">Charges fixes</span><span style="font-weight:700">1 240 €/mois</span></div>
+            <div style="display:flex;justify-content:space-between"><span style="color:var(--ink-2)">Patrimoine</span><span style="font-weight:700">104 500 €</span></div>
+          </div>
+        </div>
+
+        <div style="flex:1 1 300px;min-width:280px;background:var(--bg-card);border-radius:18px;padding:20px;box-shadow:var(--shadow)" aria-hidden="true">
+          <div style="display:flex;gap:6px;background:var(--panel);border-radius:12px;padding:4px;margin-bottom:18px">
+            <span style="flex:1;text-align:center;padding:7px;font-weight:600;font-size:13px;color:var(--ink-3)">Foyer</span>
+            <span style="flex:1;text-align:center;background:var(--bg-card);border-radius:9px;padding:7px;font-weight:700;font-size:13px;box-shadow:var(--shadow)">Léa</span>
+            <span style="flex:1;text-align:center;padding:7px;font-weight:600;font-size:13px;color:var(--ink-3)">Sam</span>
+          </div>
+          <div style="color:var(--ink-3);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Dépenses du mois <span style="text-transform:none;letter-spacing:0;color:var(--ink-4)">· part incluse</span></div>
+          <div style="font-family:Poppins,sans-serif;font-weight:800;font-size:32px;margin-bottom:16px;color:var(--lavi)">1 180 €</div>
+          <div style="display:flex;flex-direction:column;gap:8px;font-size:13px">
+            <div style="display:flex;justify-content:space-between"><span style="color:var(--ink-2)">Revenus</span><span style="font-weight:700;color:var(--sage)">2 300 €</span></div>
+            <div style="display:flex;justify-content:space-between"><span style="color:var(--ink-2)">Charges fixes</span><span style="font-weight:700">640 €/mois</span></div>
+            <div style="display:flex;justify-content:space-between"><span style="color:var(--ink-2)">Patrimoine</span><span style="font-weight:700">51 200 €</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px">
+        <div style="background:var(--bg-card);border-radius:14px;padding:18px;box-shadow:var(--shadow)">
+          <i class="ti ti-home-2" style="color:var(--tang);font-size:20px"></i>
+          <div style="font-weight:700;font-size:15px;margin:8px 0 4px">Sur l'accueil</div>
+          <p style="color:var(--ink-2);font-size:14px;margin:0">Les totaux du mois, les revenus et les dépenses, vus foyer ou par personne.</p>
+        </div>
+        <div style="background:var(--bg-card);border-radius:14px;padding:18px;box-shadow:var(--shadow)">
+          <i class="ti ti-repeat" style="color:var(--tang);font-size:20px"></i>
+          <div style="font-weight:700;font-size:15px;margin:8px 0 4px">Sur les charges fixes</div>
+          <p style="color:var(--ink-2);font-size:14px;margin:0">Combien il faut par mois au foyer, et combien pour chacun.</p>
+        </div>
+        <div style="background:var(--bg-card);border-radius:14px;padding:18px;box-shadow:var(--shadow)">
+          <i class="ti ti-chart-bar" style="color:var(--tang);font-size:20px"></i>
+          <div style="font-weight:700;font-size:15px;margin:8px 0 4px">Dans les rapports</div>
+          <p style="color:var(--ink-2);font-size:14px;margin:0">Un widget « Comparaison entre membres », et les anomalies filtrables par personne.</p>
+        </div>
+        <div style="background:var(--bg-card);border-radius:14px;padding:18px;box-shadow:var(--shadow)">
+          <i class="ti ti-building-bank" style="color:var(--tang);font-size:20px"></i>
+          <div style="font-weight:700;font-size:15px;margin:8px 0 4px">Sur le patrimoine</div>
+          <p style="color:var(--ink-2);font-size:14px;margin:0">« Total du foyer » ou « Total de {prénom} », avec une répartition par membre.</p>
+        </div>
+        <div style="background:var(--bg-card);border-radius:14px;padding:18px;box-shadow:var(--shadow)">
+          <i class="ti ti-target" style="color:var(--tang);font-size:20px"></i>
+          <div style="font-weight:700;font-size:15px;margin:8px 0 4px">Sur les budgets</div>
+          <p style="color:var(--ink-2);font-size:14px;margin:0">Un budget commun ou personnel — le personnel ne compte que ta part et ne notifie que toi.</p>
+        </div>
+        <div style="background:var(--bg-card);border-radius:14px;padding:18px;box-shadow:var(--shadow)">
+          <i class="ti ti-list-details" style="color:var(--tang);font-size:20px"></i>
+          <div style="font-weight:700;font-size:15px;margin:8px 0 4px">Sur l'historique</div>
+          <p style="color:var(--ink-2);font-size:14px;margin:0">L'historique et les charges récurrentes se filtrent aussi par membre.</p>
+        </div>
+      </div>
+
+      <p style="color:var(--ink-2);margin:22px 0 0;max-width:640px">Il existe en plus un écran <strong>« Habitudes de dépense »</strong> par personne : le total dépensé sur le mois, part incluse, et sa ventilation par catégorie.</p>
+    </div>
+  </section>
+
+  <section style="max-width:1060px;margin:0 auto;padding:64px 24px">
+    <h2 style="font-family:Poppins,sans-serif;letter-spacing:-0.02em;font-size:28px;margin:0 0 30px">Deux couples, deux organisations</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px">
+      <div style="background:var(--bg-card);border-radius:18px;padding:26px;box-shadow:var(--shadow)">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+          <span style="background:var(--sage-light);color:var(--sage);border-radius:20px;padding:4px 12px;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.06em">Compte commun</span>
+        </div>
+        <h3 style="font-family:Poppins,sans-serif;font-size:19px;margin:0 0 10px">Léa &amp; Sam — tout en commun</h3>
+        <p style="color:var(--ink-2);font-size:15px;margin:0 0 14px">Un seul pot, un seul patrimoine, aucune dette entre eux. Ils saisissent leurs dépenses sans jamais penser au partage.</p>
+        <div style="background:var(--panel);border-radius:12px;padding:14px;display:flex;justify-content:space-between;font-size:14px;margin-bottom:12px">
+          <span><strong>Léa</strong> 1 180 €</span>
+          <span><strong>Sam</strong> 940 €</span>
+        </div>
+        <p style="color:var(--ink-3);font-size:14px;margin:0">À la fin du mois, ils regardent le filtre par personne par simple curiosité. Personne ne doit rien à personne — ils savent juste où va l'argent du foyer.</p>
+      </div>
+
+      <div style="background:var(--bg-card);border-radius:18px;padding:26px;box-shadow:var(--shadow)">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+          <span style="background:var(--lavi-light);color:var(--lavi);border-radius:20px;padding:4px 12px;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.06em">Partagé</span>
+        </div>
+        <h3 style="font-family:Poppins,sans-serif;font-size:19px;margin:0 0 10px">Chloé &amp; Karim — chacun son compte</h3>
+        <p style="color:var(--ink-2);font-size:15px;margin:0 0 14px">Les courses à 50/50, le loyer à 60/40 parce que les revenus ne sont pas les mêmes, et les dépenses perso restent perso.</p>
+        <div style="background:var(--lavi-light);border-radius:12px;padding:14px;font-size:14px;font-weight:700;color:var(--ink);margin-bottom:12px">Karim doit <span style="color:var(--lavi)">214 €</span> à Chloé</div>
+        <p style="color:var(--ink-3);font-size:14px;margin:0">PairWise tient le solde. Aucun tableur, aucune discussion pénible.</p>
+      </div>
+    </div>
+  </section>
+
+  <section style="max-width:1060px;margin:0 auto;padding:0 24px 64px">
+    <h2 style="font-family:Poppins,sans-serif;letter-spacing:-0.02em;font-size:28px;text-align:center;margin:0 0 36px">Pour qui</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px">
+      <div style="background:var(--bg-card);border-radius:16px;padding:24px;box-shadow:var(--shadow)">
+        <i class="ti ti-users" style="color:var(--tang);font-size:24px"></i>
+        <h3 style="font-family:Poppins,sans-serif;font-size:18px;margin:14px 0 8px">À deux</h3>
+        <p style="color:var(--ink-2);font-size:15px;margin:0">Pot commun ou finances séparées : votre organisation, pas celle de l'app.</p>
+      </div>
+      <div style="background:var(--bg-card);border-radius:16px;padding:24px;box-shadow:var(--shadow)">
+        <i class="ti ti-user" style="color:var(--tang);font-size:24px"></i>
+        <h3 style="font-family:Poppins,sans-serif;font-size:18px;margin:14px 0 8px">En solo</h3>
+        <p style="color:var(--ink-2);font-size:15px;margin:0">Le filtre n'a alors rien à filtrer : tout est à toi, et l'app reste simple.</p>
+      </div>
+      <div style="background:var(--bg-card);border-radius:16px;padding:24px;box-shadow:var(--shadow)">
+        <i class="ti ti-plane" style="color:var(--tang);font-size:24px"></i>
+        <h3 style="font-family:Poppins,sans-serif;font-size:18px;margin:14px 0 8px">Voyageurs &amp; nomades</h3>
+        <p style="color:var(--ink-2);font-size:15px;margin:0">Partager un voyage sans tenir de comptes toute la journée.</p>
+      </div>
+      <div style="background:var(--bg-card);border-radius:16px;padding:24px;box-shadow:var(--shadow)">
+        <i class="ti ti-world" style="color:var(--tang);font-size:24px"></i>
+        <h3 style="font-family:Poppins,sans-serif;font-size:18px;margin:14px 0 8px">Expatriés</h3>
+        <p style="color:var(--ink-2);font-size:15px;margin:0">Des revenus différents, une répartition qui suit — 60/40 plutôt que moitié-moitié.</p>
+      </div>
+    </div>
+  </section>
+
+  <section style="background:var(--panel);padding:64px 0">
+    <div style="max-width:760px;margin:0 auto;padding:0 24px">
+      <h2 style="font-family:Poppins,sans-serif;letter-spacing:-0.02em;font-size:30px;text-align:center;margin:0 0 32px">Questions fréquentes</h2>
+      <div style="display:flex;flex-direction:column;gap:12px">
+
+        <details style="background:var(--bg-card);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow)">
+          <summary style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;list-style:none;font-weight:700;font-size:16px;gap:12px">
+            Peut-on utiliser PairWise sans partager les dépenses ?
+            <span class="faq-plus" style="flex:none;color:var(--tang);font-size:20px;transition:transform .15s ease">+</span>
+          </summary>
+          <p style="color:var(--ink-2);margin:14px 0 0">Oui. Le mode « Compte commun » ne compte aucune dette entre partenaires : tout est au pot, et PairWise garde simplement le suivi de qui dépense quoi et de ce qui est commun ou personnel.</p>
+        </details>
+
+        <details style="background:var(--bg-card);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow)">
+          <summary style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;list-style:none;font-weight:700;font-size:16px;gap:12px">
+            Comment répartir une dépense autrement qu'en 50/50 ?
+            <span class="faq-plus" style="flex:none;color:var(--tang);font-size:20px;transition:transform .15s ease">+</span>
+          </summary>
+          <p style="color:var(--ink-2);margin:14px 0 0">Une dépense peut être 50/50, pour l'un, pour l'autre, ou suivre une répartition personnalisée en pourcentage ou en montant — par exemple un loyer 60/40 quand les revenus ne sont pas les mêmes.</p>
+        </details>
+
+        <details style="background:var(--bg-card);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow)">
+          <summary style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;list-style:none;font-weight:700;font-size:16px;gap:12px">
+            Comment savoir qui doit combien ?
+            <span class="faq-plus" style="flex:none;color:var(--tang);font-size:20px;transition:transform .15s ease">+</span>
+          </summary>
+          <p style="color:var(--ink-2);margin:14px 0 0">En mode Partagé, PairWise suit qui a payé et pour qui, et met à jour tout seul le solde entre vous : « Karim doit 214 € à Chloé ». Ce suivi est masqué en mode Compte commun, où il n'aurait pas de sens.</p>
+        </details>
+
+        <details style="background:var(--bg-card);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow)">
+          <summary style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;list-style:none;font-weight:700;font-size:16px;gap:12px">
+            Peut-on voir les dépenses d'une seule personne ?
+            <span class="faq-plus" style="flex:none;color:var(--tang);font-size:20px;transition:transform .15s ease">+</span>
+          </summary>
+          <p style="color:var(--ink-2);margin:14px 0 0">Oui. Un filtre par membre existe sur presque tous les écrans — accueil, historique, charges récurrentes, budgets, rapports, patrimoine — et recalcule tous les chiffres en tenant compte de la part de chacun sur les dépenses partagées.</p>
+        </details>
+
+        <details style="background:var(--bg-card);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow)">
+          <summary style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;list-style:none;font-weight:700;font-size:16px;gap:12px">
+            Le patrimoine peut-il être commun ?
+            <span class="faq-plus" style="flex:none;color:var(--tang);font-size:20px;transition:transform .15s ease">+</span>
+          </summary>
+          <p style="color:var(--ink-2);margin:14px 0 0">Oui. En mode Compte commun, le patrimoine est celui du foyer. Le filtre permet aussi d'afficher « Total du foyer » ou « Total de {prénom} », avec une répartition par membre.</p>
+        </details>
+
+        <details style="background:var(--bg-card);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow)">
+          <summary style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;list-style:none;font-weight:700;font-size:16px;gap:12px">
+            Peut-on changer de mode plus tard ?
+            <span class="faq-plus" style="flex:none;color:var(--tang);font-size:20px;transition:transform .15s ease">+</span>
+          </summary>
+          <p style="color:var(--ink-2);margin:14px 0 0">Oui, à tout moment. Le mode de finances est choisi à l'inscription et se modifie ensuite dans les réglages.</p>
+        </details>
+
+      </div>
+    </div>
+  </section>
+
+  <section style="background:var(--band);padding:72px 0;position:relative;overflow:hidden">
+    <i class="ti ti-users" style="position:absolute;top:20px;left:6%;font-size:120px;color:var(--ink);opacity:.15" aria-hidden="true"></i>
+    <i class="ti ti-arrows-split" style="position:absolute;bottom:10px;right:8%;font-size:100px;color:var(--ink);opacity:.15" aria-hidden="true"></i>
+    <div style="max-width:760px;margin:0 auto;padding:0 24px;text-align:center;position:relative;z-index:1">
+      <div style="color:var(--tang);text-transform:uppercase;letter-spacing:.08em;font-weight:800;font-size:13px;margin-bottom:14px">Prêts à y voir clair à deux ?</div>
+      <h2 style="font-family:Poppins,sans-serif;letter-spacing:-0.02em;font-weight:800;font-size:34px;margin:0 0 28px">Votre organisation, pas celle de l'app.</h2>
+      <a href="https://app.pairwise.finance/" style="display:inline-flex;align-items:center;gap:8px;background:var(--tang);color:#fff;padding:14px 28px;border-radius:12px;font-family:Poppins,sans-serif;font-weight:700;font-size:16px;text-decoration:none;box-shadow:var(--shadow)" style-hover="background:var(--tang-deep)">C'est parti <i class="ti ti-arrow-right"></i></a>
+      <div style="display:flex;justify-content:center;gap:28px;margin-top:28px;flex-wrap:wrap;color:var(--ink-2);font-size:14px">
+        <span style="display:flex;align-items:center;gap:6px"><i class="ti ti-check" style="color:var(--sage)"></i>Partage optionnel</span>
+        <span style="display:flex;align-items:center;gap:6px"><i class="ti ti-check" style="color:var(--sage)"></i>Modifiable à tout moment</span>
+        <span style="display:flex;align-items:center;gap:6px"><i class="ti ti-check" style="color:var(--sage)"></i>Gratuit</span>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site">
+  <!-- ⚠ GÉNÉRÉ — ne pas modifier à la main.
+       Source : scripts/build-marketing-header.js · régénérer avec
+       `node scripts/build-marketing-header.js`. -->
+  <div class="wrap cols">
+    <div>
+      <a href="/" class="logo"><span class="p">P</span> PairWise</a>
+      <p class="intro">Une seule app pour tes dépenses, ton budget et ton patrimoine — seul ou à deux.</p>
+    </div>
+    <div>
+      <h4>Fonctionnalités</h4>
+      <a href="/fonctionnalites/saisie-langage-naturel">Saisie en langage naturel</a>
+      <a href="/fonctionnalites/transactions-recus">Transactions &amp; reçus</a>
+      <a href="/fonctionnalites/categories-tags">Catégories &amp; tags</a>
+      <a href="/fonctionnalites/multi-devises">Multi-devises</a>
+      <a href="/fonctionnalites/charges-recurrentes">Charges fixes &amp; récurrentes</a>
+      <a href="/fonctionnalites/budgets">Budgets</a>
+      <a href="/fonctionnalites/rapports">Rapports &amp; insights</a>
+      <a href="/fonctionnalites/patrimoine">Patrimoine &amp; investissements</a>
+      <a href="/fonctionnalites/depenses-partagees">Dépenses partagées</a>
+      <a href="/fonctionnalites/objectifs">Objectifs &amp; projets</a>
+    </div>
+    <div>
+      <h4>Pour qui</h4>
+      <span class="soon">En solo</span>
+      <span class="soon">À deux</span>
+      <span class="soon">Voyageurs &amp; nomades</span>
+      <span class="soon">Expatriés</span>
+    </div>
+    <div>
+      <h4>PairWise</h4>
+      <a href="https://app.pairwise.finance/">Ouvrir l'app</a>
+      <a href="/presentation">Tout ce que fait PairWise</a>
+      <span class="soon">Tarifs</span>
+      <a href="/securite">Sécurité</a>
+      <span class="soon">FAQ</span>
+    </div>
+  </div>
+  <div class="wrap copy">© 2026 PairWise · Fait avec soin · Tes données t'appartiennent</div>
+</footer>
+
+<script src="/assets/menu.js" defer></script>
+
+</body>
+</html>

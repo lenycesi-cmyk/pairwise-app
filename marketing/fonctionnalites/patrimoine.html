@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <title>Suivi de patrimoine : calculer ton patrimoine net | PairWise</title>
+  <meta name="description" content="Suis ton patrimoine net : actifs, crédits et capital restant dû, actions et crypto cotées automatiquement, et ce qui l'a fait bouger chaque mois." />
+
+  <!-- Pas de `hreflang="en"` : la page anglaise n'existe pas encore, et
+       declarer une alternative qui repond 404 est pire que ne rien declarer. -->
+  <link rel="canonical" href="https://pairwise.finance/fonctionnalites/patrimoine" />
+  <link rel="alternate" hreflang="fr" href="https://pairwise.finance/fonctionnalites/patrimoine" />
+  <link rel="alternate" hreflang="x-default" href="https://pairwise.finance/fonctionnalites/patrimoine" />
+
+  <!-- Open Graph / partage social -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="PairWise" />
+  <meta property="og:locale" content="fr_FR" />
+  <meta property="og:title" content="Suivi de patrimoine : calculer ton patrimoine net | PairWise" />
+  <meta property="og:description" content="Suis ton patrimoine net : actifs, crédits et capital restant dû, actions et crypto cotées automatiquement, et ce qui l'a fait bouger chaque mois." />
+  <meta property="og:url" content="https://pairwise.finance/fonctionnalites/patrimoine" />
+  <meta property="og:image" content="https://pairwise.finance/assets/og/patrimoine.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <link rel="icon" type="image/png" href="/icon-192.png" />
+
+  <!-- Mêmes polices et icônes que l'app -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Nunito+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+  <link rel="stylesheet" href="/assets/site.css" />
+
+  <!-- Données structurées : logiciel, fil d'Ariane, FAQ -->
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "SoftwareApplication",
+      "name": "PairWise",
+      "applicationCategory": "FinanceApplication",
+      "operatingSystem": "iOS, Android, Web",
+      "url": "https://pairwise.finance/",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" }
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Accueil", "item": "https://pairwise.finance/" },
+        { "@type": "ListItem", "position": 2, "name": "Fonctionnalités", "item": "https://pairwise.finance/fonctionnalites/" },
+        { "@type": "ListItem", "position": 3, "name": "Patrimoine & investissements", "item": "https://pairwise.finance/fonctionnalites/patrimoine" }
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        { "@type": "Question", "name": "Comment calculer son patrimoine net ?", "acceptedAnswer": { "@type": "Answer", "text": "PairWise additionne tout ce que tu possèdes et en déduit ce que tu dois : la valeur de tes actifs moins le capital restant dû de tes crédits." } },
+        { "@type": "Question", "name": "Quels types d'actifs peut-on suivre ?", "acceptedAnswer": { "@type": "Answer", "text": "Dix familles : comptes bancaires (Compte courant, Livret A, LDDS, PEL, CEL, PEA, PEA-PME), liquide, actions, crypto, assurance vie, obligations, immobilier, véhicules, épargne retraite et divers — chacun dans sa propre devise." } },
+        { "@type": "Question", "name": "Les actions et la crypto sont-elles mises à jour toutes seules ?", "acceptedAnswer": { "@type": "Answer", "text": "Oui, les actions et la crypto sont cotées automatiquement et suivent le marché. Les autres actifs reposent sur une valeur que tu renseignes quand elle change." } },
+        { "@type": "Question", "name": "Comment savoir ce qui a fait varier son patrimoine ?", "acceptedAnswer": { "@type": "Answer", "text": "Le widget « Ce qui a bougé » sépare ce qui a porté le mois de ce qui a pesé, actif par actif, et signale ce qui est inchangé, nouveau ou retiré." } },
+        { "@type": "Question", "name": "Peut-on suivre ses crédits et leur capital restant dû ?", "acceptedAnswer": { "@type": "Answer", "text": "Oui. Tu saisis le capital, le taux et la durée ; PairWise en déduit la mensualité et le capital restant dû, qui se déduit de ton patrimoine net. Un calculateur d'échéance permet aussi de simuler un prêt avant de s'engager." } },
+        { "@type": "Question", "name": "À partir de quand voit-on une évolution ?", "acceptedAnswer": { "@type": "Answer", "text": "Dès deux mois enregistrés. Ton patrimoine est enregistré chaque soir, ce qui rend l'historique fiable." } }
+      ]
+    }
+  ]
+}
+  </script>
+</head>
+<body>
+
+<header class="site">
+  <div class="bar">
+    <a href="/" class="logo"><span class="p">P</span> PairWise</a>
+    <!-- ⚠ GÉNÉRÉ — ne pas modifier à la main.
+         Source : scripts/build-marketing-header.js · régénérer avec
+         `node scripts/build-marketing-header.js`. -->
+    <nav data-in-features="1">
+      <span class="mm" data-mm data-menu="features" data-open="0">
+        <button type="button" aria-expanded="false">Fonctionnalités <i class="ti ti-chevron-down"></i></button>
+        <span class="mm-panel">
+          <span class="mm-cols">
+          <span class="mm-col">
+            <span class="mm-h5">Suivre son argent</span>
+            <a class="mm-it" href="/fonctionnalites/saisie-langage-naturel"><span class="mi" style="background:var(--tang-light);color:var(--tang)"><i class="ti ti-sparkles"></i></span><span><b>Saisie en langage naturel</b><small>« 60€ course hier » et c'est rempli</small></span></a>
+            <a class="mm-it" href="/fonctionnalites/transactions-recus"><span class="mi" style="background:var(--sky-light);color:var(--sky)"><i class="ti ti-list-details"></i></span><span><b>Transactions &amp; reçus</b><small>Historique, photos, recherche</small></span></a>
+            <a class="mm-it" href="/fonctionnalites/categories-tags"><span class="mi" style="background:var(--amber-light);color:var(--amber)"><i class="ti ti-tag"></i></span><span><b>Catégories &amp; tags</b><small>Rangement automatique</small></span></a>
+            <a class="mm-it" href="/fonctionnalites/multi-devises"><span class="mi" style="background:var(--sage-light);color:var(--sage)"><i class="ti ti-world"></i></span><span><b>Multi-devises</b><small>Idéal voyageurs &amp; nomades</small></span></a>
+            <a class="mm-it" href="/fonctionnalites/charges-recurrentes"><span class="mi" style="background:var(--lavi-light);color:var(--lavi)"><i class="ti ti-repeat"></i></span><span><b>Charges fixes &amp; récurrentes</b><small>Ce qui tombe chaque mois</small></span></a>
+          </span>
+          <span class="mm-col">
+            <span class="mm-h5">Analyser</span>
+            <a class="mm-it" href="/fonctionnalites/budgets"><span class="mi" style="background:var(--amber-light);color:var(--amber)"><i class="ti ti-chart-pie"></i></span><span><b>Budgets</b><small>Par catégorie, avec alertes</small></span></a>
+            <a class="mm-it" href="/fonctionnalites/rapports"><span class="mi" style="background:var(--sky-light);color:var(--sky)"><i class="ti ti-chart-line"></i></span><span><b>Rapports &amp; insights</b><small>Ce qui bouge, mois par mois</small></span></a>
+            <a class="mm-it" href="/fonctionnalites/patrimoine" aria-current="page"><span class="mi" style="background:var(--lavi-light);color:var(--lavi)"><i class="ti ti-diamond"></i></span><span><b>Patrimoine &amp; investissements</b><small>Actifs, crédits, évolution</small></span></a>
+          </span>
+          <span class="mm-col">
+            <span class="mm-h5">Aller plus loin</span>
+            <a class="mm-it" href="/fonctionnalites/depenses-partagees"><span class="mi" style="background:var(--tang-light);color:var(--tang)"><i class="ti ti-users"></i></span><span><b>Dépenses partagées</b><small>Qui doit quoi, à deux</small></span></a>
+            <a class="mm-it" href="/fonctionnalites/objectifs"><span class="mi" style="background:var(--lavi-light);color:var(--lavi)"><i class="ti ti-target-arrow"></i></span><span><b>Objectifs &amp; projets</b><small>Seul ou en commun</small></span></a>
+            <a class="mm-it" href="/securite"><span class="mi" style="background:var(--sky-light);color:var(--sky)"><i class="ti ti-shield-lock"></i></span><span><b>Sécurité</b><small>Chiffré, lecture seule</small></span></a>
+          </span>
+          </span>
+        </span>
+      </span>
+      <span class="mm" data-mm data-menu="audiences" data-open="0">
+        <button type="button" aria-expanded="false">Pour qui <i class="ti ti-chevron-down"></i></button>
+        <span class="mm-panel">
+          <span class="mm-cols one">
+          <span class="mm-col">
+            <span class="mm-it dim"><span class="mi" style="background:var(--sky-light);color:var(--sky)"><i class="ti ti-user"></i></span><span><b>En solo</b><small>Gérer ses finances personnelles</small></span></span>
+            <span class="mm-it dim"><span class="mi" style="background:var(--tang-light);color:var(--tang)"><i class="ti ti-users"></i></span><span><b>À deux</b><small>Dépenses partagées, budgets communs</small></span></span>
+            <span class="mm-it dim"><span class="mi" style="background:var(--sage-light);color:var(--sage)"><i class="ti ti-plane-tilt"></i></span><span><b>Voyageurs &amp; nomades</b><small>Le multi-devises comme atout</small></span></span>
+            <span class="mm-it dim"><span class="mi" style="background:var(--lavi-light);color:var(--lavi)"><i class="ti ti-world"></i></span><span><b>Expatriés</b><small>Revenus ici, charges là-bas</small></span></span>
+          </span>
+          </span>
+        </span>
+      </span>
+      <span class="soon">Comparatifs</span>
+      <span class="soon">Tarifs</span>
+      <a href="/securite">Sécurité</a>
+    </nav>
+    <a href="https://app.pairwise.finance/" class="login">Connexion</a>
+  </div>
+</header>
+
+<nav class="crumb wrap" aria-label="Fil d'Ariane">
+  <a href="/">Accueil</a><i class="ti ti-chevron-right"></i><span>Fonctionnalités</span><i class="ti ti-chevron-right"></i><b>Patrimoine &amp; investissements</b>
+</nav>
+
+<!-- ============================================================
+     Sections issues du handoff de conception, styles en ligne
+     compris : leurs valeurs SONT la maquette. Seuls les tokens de
+     couleur ont ete retires du prototype, pour que `var(--tang)`
+     et consorts viennent de /assets/site.css — une retouche de la
+     palette se propage alors ici sans toucher une ligne.
+     ============================================================ -->
+<main class="pw">
+<section style="max-width:1060px;margin:0 auto;padding:48px 24px 64px;display:flex;gap:56px;align-items:center;flex-wrap:wrap">
+    <div style="flex:1 1 420px;min-width:320px">
+      <div style="color:var(--tang);text-transform:uppercase;letter-spacing:.08em;font-weight:800;font-size:13px;margin-bottom:14px">Patrimoine &amp; investissements</div>
+      <h1 style="font-family:Poppins,sans-serif;letter-spacing:-0.02em;font-weight:800;font-size:44px;line-height:1.1;margin:0 0 20px;color:var(--ink)">Un suivi de patrimoine qui te dit aussi pourquoi il bouge</h1>
+      <p style="color:var(--ink-2);font-size:18px;margin:0 0 28px;max-width:480px">Ton patrimoine, ce n'est pas le solde de ton compte courant : c'est ce que tu possèdes moins ce que tu dois. Et un chiffre unique ne suffit pas — PairWise te montre ce qui l'a fait monter, ce qui l'a fait descendre, et à quoi tu es exposé.</p>
+      <a href="https://app.pairwise.finance/" style="display:inline-flex;align-items:center;gap:8px;background:var(--tang);color:#fff;padding:14px 28px;border-radius:12px;font-family:Poppins,sans-serif;font-weight:700;font-size:16px;text-decoration:none;box-shadow:var(--shadow)" style-hover="background:var(--tang-deep)">C'est parti <i class="ti ti-arrow-right"></i></a>
+      <div style="margin-top:14px;color:var(--ink-3);font-size:14px">Gratuit pour commencer, sans carte bancaire.</div>
+    </div>
+
+    <div style="flex:0 1 360px;min-width:300px;background:var(--bg-card);border-radius:18px;padding:24px;box-shadow:var(--shadow-lg)" aria-hidden="true">
+      <div style="color:var(--ink-3);text-transform:uppercase;letter-spacing:.06em;font-weight:700;font-size:12px;margin-bottom:8px">Patrimoine net</div>
+      <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:20px;flex-wrap:wrap">
+        <span style="font-family:Poppins,sans-serif;font-weight:800;font-size:34px">104 500 €</span>
+        <span style="font-weight:700;font-size:14px;color:var(--sage)">+1 520 € ce mois</span>
+      </div>
+      <div style="display:flex;gap:18px;flex-wrap:wrap">
+        <div style="flex:1 1 140px;min-width:130px">
+          <div style="color:var(--sage);font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Actifs</div>
+          <div style="display:flex;flex-direction:column;gap:6px;font-size:13px">
+            <div style="display:flex;justify-content:space-between;gap:8px"><span style="color:var(--ink-2)">Compte courant</span><span style="font-weight:700">4 200 €</span></div>
+            <div style="display:flex;justify-content:space-between;gap:8px"><span style="color:var(--ink-2)">Livret A</span><span style="font-weight:700">12 000 €</span></div>
+            <div style="display:flex;justify-content:space-between;gap:8px"><span style="color:var(--ink-2)">PEA</span><span style="font-weight:700">18 400 €</span></div>
+            <div style="display:flex;justify-content:space-between;gap:8px"><span style="color:var(--ink-2)">Bitcoin</span><span style="font-weight:700">5 300 €</span></div>
+            <div style="display:flex;justify-content:space-between;gap:8px"><span style="color:var(--ink-2)">Appartement</span><span style="font-weight:700">240 000 €</span></div>
+          </div>
+        </div>
+        <div style="flex:1 1 140px;min-width:130px">
+          <div style="color:var(--tang);font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Passifs</div>
+          <div style="display:flex;flex-direction:column;gap:6px;font-size:13px">
+            <div style="display:flex;justify-content:space-between;gap:8px"><span style="color:var(--ink-2)">Crédit immobilier</span><span style="font-weight:700">168 000 €</span></div>
+            <div style="display:flex;justify-content:space-between;gap:8px"><span style="color:var(--ink-2)">Prêt auto</span><span style="font-weight:700">7 400 €</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="background:var(--panel);padding:56px 0">
+    <div style="max-width:1060px;margin:0 auto;padding:0 24px">
+      <h2 style="font-family:Poppins,sans-serif;letter-spacing:-0.02em;font-size:28px;margin:0 0 12px">Mes actifs</h2>
+      <p style="color:var(--ink-2);max-width:620px;margin:0 0 22px">Dix familles d'actifs, chacune dans sa propre devise. Les actions et la crypto sont cotées automatiquement — leur valeur suit le marché sans que tu la saisisses. Pour le reste, tu renseignes la valeur quand elle change, et PairWise affiche la plus-value depuis l'achat si tu as indiqué ton montant investi.</p>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px">
+        <span style="background:var(--bg-card);border-radius:10px;padding:7px 13px;font-size:13px;font-weight:700;box-shadow:var(--shadow)">Comptes bancaires</span>
+        <span style="background:var(--bg-card);border-radius:10px;padding:7px 13px;font-size:13px;font-weight:700;box-shadow:var(--shadow)">Liquide</span>
+        <span style="background:var(--sage-light);color:var(--sage);border-radius:10px;padding:7px 13px;font-size:13px;font-weight:700">Actions <i class="ti ti-refresh" style="font-size:12px"></i></span>
+        <span style="background:var(--sage-light);color:var(--sage);border-radius:10px;padding:7px 13px;font-size:13px;font-weight:700">Crypto <i class="ti ti-refresh" style="font-size:12px"></i></span>
+        <span style="background:var(--bg-card);border-radius:10px;padding:7px 13px;font-size:13px;font-weight:700;box-shadow:var(--shadow)">Assurance vie</span>
+        <span style="background:var(--bg-card);border-radius:10px;padding:7px 13px;font-size:13px;font-weight:700;box-shadow:var(--shadow)">Obligations</span>
+        <span style="background:var(--bg-card);border-radius:10px;padding:7px 13px;font-size:13px;font-weight:700;box-shadow:var(--shadow)">Immobilier</span>
+        <span style="background:var(--bg-card);border-radius:10px;padding:7px 13px;font-size:13px;font-weight:700;box-shadow:var(--shadow)">Véhicules</span>
+        <span style="background:var(--bg-card);border-radius:10px;padding:7px 13px;font-size:13px;font-weight:700;box-shadow:var(--shadow)">Épargne retraite</span>
+        <span style="background:var(--bg-card);border-radius:10px;padding:7px 13px;font-size:13px;font-weight:700;box-shadow:var(--shadow)">Divers</span>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+        <span style="color:var(--ink-3);font-size:13px;font-weight:700">Sous-types :</span>
+        <span style="border:1px solid var(--rule);border-radius:20px;padding:4px 11px;font-size:12px;font-weight:600;color:var(--ink-2)">Compte courant</span>
+        <span style="border:1px solid var(--rule);border-radius:20px;padding:4px 11px;font-size:12px;font-weight:600;color:var(--ink-2)">Livret A</span>
+        <span style="border:1px solid var(--rule);border-radius:20px;padding:4px 11px;font-size:12px;font-weight:600;color:var(--ink-2)">LDDS</span>
+        <span style="border:1px solid var(--rule);border-radius:20px;padding:4px 11px;font-size:12px;font-weight:600;color:var(--ink-2)">PEL</span>
+        <span style="border:1px solid var(--rule);border-radius:20px;padding:4px 11px;font-size:12px;font-weight:600;color:var(--ink-2)">CEL</span>
+        <span style="border:1px solid var(--rule);border-radius:20px;padding:4px 11px;font-size:12px;font-weight:600;color:var(--ink-2)">PEA</span>
+        <span style="border:1px solid var(--rule);border-radius:20px;padding:4px 11px;font-size:12px;font-weight:600;color:var(--ink-2)">PEA-PME</span>
+      </div>
+    </div>
+  </section>
+
+  <section style="max-width:1060px;margin:0 auto;padding:56px 24px;display:flex;gap:48px;align-items:center;flex-wrap:wrap">
+    <div style="flex:1 1 380px;min-width:300px">
+      <h2 style="font-family:Poppins,sans-serif;letter-spacing:-0.02em;font-size:28px;margin:0 0 12px">Mes passifs</h2>
+      <p style="color:var(--ink-2);margin:0 0 12px;max-width:460px">Crédit immobilier, prêt auto, crédit à la consommation, prêt étudiant, prêt personnel : tu saisis le capital, le taux et la durée, et PairWise en déduit la mensualité et le capital restant dû, qui se retranche de ton patrimoine net.</p>
+      <p style="color:var(--ink-2);margin:0;max-width:460px">Un calculateur d'échéance permet aussi de simuler un prêt avant de s'engager.</p>
+    </div>
+    <div style="flex:0 1 340px;min-width:280px;background:var(--bg-card);border-radius:16px;padding:22px;box-shadow:var(--shadow)" aria-hidden="true">
+      <div style="color:var(--ink-3);text-transform:uppercase;letter-spacing:.06em;font-weight:700;font-size:11px;margin-bottom:14px">Calculateur d'échéance</div>
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px"><span style="color:var(--ink-3)">Capital</span><span style="font-weight:700">20 000 €</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px"><span style="color:var(--ink-3)">Taux</span><span style="font-weight:700">3,90 %</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:14px"><span style="color:var(--ink-3)">Durée</span><span style="font-weight:700">60 mois</span></div>
+      <div style="border-top:1px solid var(--rule);padding-top:14px;display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:13px;color:var(--ink-2)">Mensualité</span><span style="font-family:Poppins,sans-serif;font-weight:800;font-size:22px;color:var(--tang)">367,24 €</span></div>
+        <div style="display:flex;justify-content:space-between"><span style="font-size:13px;color:var(--ink-2)">Coût total des intérêts</span><span style="font-weight:700;font-size:13px">2 034 €</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section style="background:var(--panel);padding:56px 0">
+    <div style="max-width:1060px;margin:0 auto;padding:0 24px">
+      <h2 style="font-family:Poppins,sans-serif;letter-spacing:-0.02em;font-size:28px;margin:0 0 12px">Comment ça bouge</h2>
+      <p style="color:var(--ink-2);max-width:620px;margin:0 0 24px">Un tableau mois par mois — pas une courbe vague — et, juste à côté, la réponse à « pourquoi ça a changé ? ». Ton patrimoine est enregistré chaque soir : l'historique se remplit dès deux mois enregistrés.</p>
+      <div style="display:flex;gap:20px;flex-wrap:wrap">
+        <div style="flex:1 1 380px;min-width:320px;background:var(--bg-card);border-radius:16px;padding:20px;box-shadow:var(--shadow)" aria-hidden="true">
+          <div style="color:var(--ink-3);text-transform:uppercase;letter-spacing:.06em;font-weight:700;font-size:11px;margin-bottom:12px">Évolution mensuelle</div>
+          <div style="display:grid;grid-template-columns:1fr auto auto auto;gap:8px 12px;font-size:13px;align-items:center">
+            <span style="color:var(--ink-3);font-weight:700;font-size:11px">Mois</span>
+            <span style="color:var(--ink-3);font-weight:700;font-size:11px;text-align:right">Actifs</span>
+            <span style="color:var(--ink-3);font-weight:700;font-size:11px;text-align:right">Passifs</span>
+            <span style="color:var(--ink-3);font-weight:700;font-size:11px;text-align:right">Variation</span>
+
+            <span style="font-weight:600">Janvier</span>
+            <span style="text-align:right">277 510 €</span>
+            <span style="text-align:right">177 300 €</span>
+            <span style="text-align:right;color:var(--ink-3)">—</span>
+
+            <span style="font-weight:600">Février</span>
+            <span style="text-align:right">279 330 €</span>
+            <span style="text-align:right">176 350 €</span>
+            <span style="text-align:right;color:var(--sage);font-weight:700">+2 770 €</span>
+
+            <span style="font-weight:600">Mars</span>
+            <span style="text-align:right">279 900 €</span>
+            <span style="text-align:right">175 400 €</span>
+            <span style="text-align:right;color:var(--sage);font-weight:700">+1 520 €</span>
+          </div>
+        </div>
+        <div style="flex:1 1 300px;min-width:280px;display:flex;flex-direction:column;gap:14px" aria-hidden="true">
+          <div style="background:var(--bg-card);border-radius:16px;padding:18px;box-shadow:var(--shadow)">
+            <div style="color:var(--sage);font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Ce qui a porté le mois</div>
+            <div style="display:flex;justify-content:space-between;font-size:14px;margin-bottom:6px"><span>PEA</span><span style="font-weight:700;color:var(--sage)">+1 240 €</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:14px"><span>Bitcoin</span><span style="font-weight:700;color:var(--sage)">+680 €</span></div>
+          </div>
+          <div style="background:var(--bg-card);border-radius:16px;padding:18px;box-shadow:var(--shadow)">
+            <div style="color:var(--tang);font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Ce qui a pesé</div>
+            <div style="display:flex;justify-content:space-between;font-size:14px"><span>Appartement</span><span style="font-weight:700;color:var(--tang)">−400 €</span></div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;color:var(--ink-3);font-size:12px;align-items:center">
+            <span style="font-weight:700">Aussi signalés :</span>
+            <span style="border:1px solid var(--rule);border-radius:20px;padding:3px 10px;font-weight:600">inchangé</span>
+            <span style="border:1px solid var(--rule);border-radius:20px;padding:3px 10px;font-weight:600">nouveau</span>
+            <span style="border:1px solid var(--rule);border-radius:20px;padding:3px 10px;font-weight:600">retiré</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="max-width:1060px;margin:0 auto;padding:56px 24px;display:flex;gap:48px;align-items:center;flex-wrap:wrap">
+    <div style="flex:1 1 340px;min-width:300px">
+      <h2 style="font-family:Poppins,sans-serif;letter-spacing:-0.02em;font-size:28px;margin:0 0 12px">Exposition par devise</h2>
+      <p style="color:var(--ink-2);margin:0 0 10px;max-width:440px">Combien tu détiens dans chaque monnaie. Un expatrié ou un nomade a des soldes répartis sur plusieurs devises sans jamais en avoir la vue d'ensemble : ici, elle tient en un graphique.</p>
+      <p style="color:var(--ink-3);font-size:14px;margin:0;max-width:440px">Soldes détenus par devise, hors actions et crypto.</p>
+    </div>
+    <div style="flex:0 1 360px;min-width:280px;background:var(--bg-card);border-radius:16px;padding:22px;box-shadow:var(--shadow)" aria-hidden="true">
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px"><span style="font-weight:700">EUR</span><span style="color:var(--ink-2)">16 660 € · 68 %</span></div>
+          <div style="background:var(--panel);border-radius:6px;height:10px"><div style="width:68%;height:100%;border-radius:6px;background:var(--sky)"></div></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px"><span style="font-weight:700">USD</span><span style="color:var(--ink-2)">5 390 € · 22 %</span></div>
+          <div style="background:var(--panel);border-radius:6px;height:10px"><div style="width:22%;height:100%;border-radius:6px;background:var(--lavi)"></div></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px"><span style="font-weight:700">THB</span><span style="color:var(--ink-2)">2 450 € · 10 %</span></div>
+          <div style="background:var(--panel);border-radius:6px;height:10px"><div style="width:10%;height:100%;border-radius:6px;background:var(--amber)"></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="background:var(--panel);padding:72px 0">
+    <div style="max-width:1060px;margin:0 auto;padding:0 24px;display:flex;gap:48px;align-items:center;flex-wrap:wrap">
+      <div style="flex:1 1 380px;min-width:300px">
+        <h2 style="font-family:Poppins,sans-serif;letter-spacing:-0.02em;font-size:30px;margin:0 0 14px">Et si j'avais investi mes dépenses superflues ?</h2>
+        <p style="color:var(--ink-2);margin:0 0 12px;max-width:460px">Choisis une période — 3 mois, 6 mois, 1 an — et, si tu veux, une catégorie ou une sous-catégorie de dépense. PairWise prend ce que tu as réellement dépensé et calcule, à partir des cours historiques réels, ce que cette somme vaudrait aujourd'hui placée dans l'un de tes actifs suivis.</p>
+        <p style="color:var(--ink-2);margin:0 0 10px;max-width:460px">Sur 6 mois, 540 € de livraison de repas vaudraient environ 710 € en Bitcoin. Ce n'est pas un reproche, juste un ordre de grandeur.</p>
+        <p style="color:var(--ink-3);font-size:14px;margin:0;max-width:460px">La comparaison nécessite d'avoir dans ton patrimoine un actif suivi automatiquement, par exemple Bitcoin.</p>
+      </div>
+      <div style="flex:0 1 340px;min-width:280px;background:var(--bg-card);border-radius:18px;padding:24px;box-shadow:var(--shadow-lg)" aria-hidden="true">
+        <div style="color:var(--ink-3);text-transform:uppercase;letter-spacing:.06em;font-weight:700;font-size:11px;margin-bottom:14px">Et si j'avais investi ?</div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px"><span style="color:var(--ink-3)">Poste</span><span style="font-weight:700">Livraison de repas</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px"><span style="color:var(--ink-3)">Période</span><span style="font-weight:700">6 derniers mois</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px"><span style="color:var(--ink-3)">Placé en</span><span style="font-weight:700">Bitcoin</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:16px"><span style="color:var(--ink-3)">Dépensé</span><span style="font-weight:700">540,00 €</span></div>
+        <div style="border-top:1px solid var(--rule);padding-top:16px">
+          <div style="font-size:13px;color:var(--ink-2);margin-bottom:4px">Vaudrait aujourd'hui</div>
+          <div style="font-family:Poppins,sans-serif;font-weight:800;font-size:32px;color:var(--sage)">≈ 710 €</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="max-width:1060px;margin:0 auto;padding:64px 24px">
+    <h2 style="font-family:Poppins,sans-serif;letter-spacing:-0.02em;font-size:28px;text-align:center;margin:0 0 36px">Pour qui</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px">
+      <div style="background:var(--bg-card);border-radius:16px;padding:24px;box-shadow:var(--shadow)">
+        <i class="ti ti-user" style="color:var(--tang);font-size:24px"></i>
+        <h3 style="font-family:Poppins,sans-serif;font-size:18px;margin:14px 0 8px">En solo</h3>
+        <p style="color:var(--ink-2);font-size:15px;margin:0">Un patrimoine complet — actifs, crédits, plus-values — pas juste un solde bancaire.</p>
+      </div>
+      <div style="background:var(--bg-card);border-radius:16px;padding:24px;box-shadow:var(--shadow)">
+        <i class="ti ti-users" style="color:var(--tang);font-size:24px"></i>
+        <h3 style="font-family:Poppins,sans-serif;font-size:18px;margin:14px 0 8px">À deux</h3>
+        <p style="color:var(--ink-2);font-size:15px;margin:0">Le patrimoine du foyer d'un côté, ce qui appartient à chacun de l'autre.</p>
+      </div>
+      <div style="background:var(--bg-card);border-radius:16px;padding:24px;box-shadow:var(--shadow)">
+        <i class="ti ti-plane" style="color:var(--tang);font-size:24px"></i>
+        <h3 style="font-family:Poppins,sans-serif;font-size:18px;margin:14px 0 8px">Voyageurs &amp; nomades</h3>
+        <p style="color:var(--ink-2);font-size:15px;margin:0">Des avoirs dans plusieurs devises, et l'exposition de chacune en un coup d'œil.</p>
+      </div>
+      <div style="background:var(--bg-card);border-radius:16px;padding:24px;box-shadow:var(--shadow)">
+        <i class="ti ti-world" style="color:var(--tang);font-size:24px"></i>
+        <h3 style="font-family:Poppins,sans-serif;font-size:18px;margin:14px 0 8px">Expatriés</h3>
+        <p style="color:var(--ink-2);font-size:15px;margin:0">Des comptes ici et là-bas, réunis dans un seul patrimoine net.</p>
+      </div>
+    </div>
+  </section>
+
+  <section style="background:var(--panel);padding:64px 0">
+    <div style="max-width:760px;margin:0 auto;padding:0 24px">
+      <h2 style="font-family:Poppins,sans-serif;letter-spacing:-0.02em;font-size:30px;text-align:center;margin:0 0 32px">Questions fréquentes</h2>
+      <div style="display:flex;flex-direction:column;gap:12px">
+
+        <details style="background:var(--bg-card);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow)">
+          <summary style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;list-style:none;font-weight:700;font-size:16px;gap:12px">
+            Comment calculer son patrimoine net ?
+            <span class="faq-plus" style="flex:none;color:var(--tang);font-size:20px;transition:transform .15s ease">+</span>
+          </summary>
+          <p style="color:var(--ink-2);margin:14px 0 0">PairWise additionne tout ce que tu possèdes et en déduit ce que tu dois : la valeur de tes actifs moins le capital restant dû de tes crédits.</p>
+        </details>
+
+        <details style="background:var(--bg-card);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow)">
+          <summary style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;list-style:none;font-weight:700;font-size:16px;gap:12px">
+            Quels types d'actifs peut-on suivre ?
+            <span class="faq-plus" style="flex:none;color:var(--tang);font-size:20px;transition:transform .15s ease">+</span>
+          </summary>
+          <p style="color:var(--ink-2);margin:14px 0 0">Dix familles : comptes bancaires (Compte courant, Livret A, LDDS, PEL, CEL, PEA, PEA-PME), liquide, actions, crypto, assurance vie, obligations, immobilier, véhicules, épargne retraite et divers — chacun dans sa propre devise.</p>
+        </details>
+
+        <details style="background:var(--bg-card);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow)">
+          <summary style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;list-style:none;font-weight:700;font-size:16px;gap:12px">
+            Les actions et la crypto sont-elles mises à jour toutes seules ?
+            <span class="faq-plus" style="flex:none;color:var(--tang);font-size:20px;transition:transform .15s ease">+</span>
+          </summary>
+          <p style="color:var(--ink-2);margin:14px 0 0">Oui, les actions et la crypto sont cotées automatiquement et suivent le marché. Les autres actifs reposent sur une valeur que tu renseignes quand elle change.</p>
+        </details>
+
+        <details style="background:var(--bg-card);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow)">
+          <summary style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;list-style:none;font-weight:700;font-size:16px;gap:12px">
+            Comment savoir ce qui a fait varier son patrimoine ?
+            <span class="faq-plus" style="flex:none;color:var(--tang);font-size:20px;transition:transform .15s ease">+</span>
+          </summary>
+          <p style="color:var(--ink-2);margin:14px 0 0">Le widget « Ce qui a bougé » sépare ce qui a porté le mois de ce qui a pesé, actif par actif, et signale ce qui est inchangé, nouveau ou retiré.</p>
+        </details>
+
+        <details style="background:var(--bg-card);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow)">
+          <summary style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;list-style:none;font-weight:700;font-size:16px;gap:12px">
+            Peut-on suivre ses crédits et leur capital restant dû ?
+            <span class="faq-plus" style="flex:none;color:var(--tang);font-size:20px;transition:transform .15s ease">+</span>
+          </summary>
+          <p style="color:var(--ink-2);margin:14px 0 0">Oui. Tu saisis le capital, le taux et la durée ; PairWise en déduit la mensualité et le capital restant dû, qui se déduit de ton patrimoine net. Un calculateur d'échéance permet aussi de simuler un prêt avant de s'engager.</p>
+        </details>
+
+        <details style="background:var(--bg-card);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow)">
+          <summary style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;list-style:none;font-weight:700;font-size:16px;gap:12px">
+            À partir de quand voit-on une évolution ?
+            <span class="faq-plus" style="flex:none;color:var(--tang);font-size:20px;transition:transform .15s ease">+</span>
+          </summary>
+          <p style="color:var(--ink-2);margin:14px 0 0">Dès deux mois enregistrés. Ton patrimoine est enregistré chaque soir, ce qui rend l'historique fiable.</p>
+        </details>
+
+      </div>
+    </div>
+  </section>
+
+  <section style="background:var(--band);padding:72px 0;position:relative;overflow:hidden">
+    <i class="ti ti-chart-line" style="position:absolute;top:20px;left:6%;font-size:120px;color:var(--ink);opacity:.15" aria-hidden="true"></i>
+    <i class="ti ti-building-bank" style="position:absolute;bottom:10px;right:8%;font-size:100px;color:var(--ink);opacity:.15" aria-hidden="true"></i>
+    <div style="max-width:760px;margin:0 auto;padding:0 24px;text-align:center;position:relative;z-index:1">
+      <div style="color:var(--tang);text-transform:uppercase;letter-spacing:.08em;font-weight:800;font-size:13px;margin-bottom:14px">Prêt à y voir clair ?</div>
+      <h2 style="font-family:Poppins,sans-serif;letter-spacing:-0.02em;font-weight:800;font-size:34px;margin:0 0 28px">Ce que tu possèdes, moins ce que tu dois.</h2>
+      <a href="https://app.pairwise.finance/" style="display:inline-flex;align-items:center;gap:8px;background:var(--tang);color:#fff;padding:14px 28px;border-radius:12px;font-family:Poppins,sans-serif;font-weight:700;font-size:16px;text-decoration:none;box-shadow:var(--shadow)" style-hover="background:var(--tang-deep)">C'est parti <i class="ti ti-arrow-right"></i></a>
+      <div style="display:flex;justify-content:center;gap:28px;margin-top:28px;flex-wrap:wrap;color:var(--ink-2);font-size:14px">
+        <span style="display:flex;align-items:center;gap:6px"><i class="ti ti-check" style="color:var(--sage)"></i>Sans compte pour commencer</span>
+        <span style="display:flex;align-items:center;gap:6px"><i class="ti ti-check" style="color:var(--sage)"></i>Données sur l'appareil</span>
+        <span style="display:flex;align-items:center;gap:6px"><i class="ti ti-check" style="color:var(--sage)"></i>Gratuit</span>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site">
+  <!-- ⚠ GÉNÉRÉ — ne pas modifier à la main.
+       Source : scripts/build-marketing-header.js · régénérer avec
+       `node scripts/build-marketing-header.js`. -->
+  <div class="wrap cols">
+    <div>
+      <a href="/" class="logo"><span class="p">P</span> PairWise</a>
+      <p class="intro">Une seule app pour tes dépenses, ton budget et ton patrimoine — seul ou à deux.</p>
+    </div>
+    <div>
+      <h4>Fonctionnalités</h4>
+      <a href="/fonctionnalites/saisie-langage-naturel">Saisie en langage naturel</a>
+      <a href="/fonctionnalites/transactions-recus">Transactions &amp; reçus</a>
+      <a href="/fonctionnalites/categories-tags">Catégories &amp; tags</a>
+      <a href="/fonctionnalites/multi-devises">Multi-devises</a>
+      <a href="/fonctionnalites/charges-recurrentes">Charges fixes &amp; récurrentes</a>
+      <a href="/fonctionnalites/budgets">Budgets</a>
+      <a href="/fonctionnalites/rapports">Rapports &amp; insights</a>
+      <a href="/fonctionnalites/patrimoine">Patrimoine &amp; investissements</a>
+      <a href="/fonctionnalites/depenses-partagees">Dépenses partagées</a>
+      <a href="/fonctionnalites/objectifs">Objectifs &amp; projets</a>
+    </div>
+    <div>
+      <h4>Pour qui</h4>
+      <span class="soon">En solo</span>
+      <span class="soon">À deux</span>
+      <span class="soon">Voyageurs &amp; nomades</span>
+      <span class="soon">Expatriés</span>
+    </div>
+    <div>
+      <h4>PairWise</h4>
+      <a href="https://app.pairwise.finance/">Ouvrir l'app</a>
+      <a href="/presentation">Tout ce que fait PairWise</a>
+      <span class="soon">Tarifs</span>
+      <a href="/securite">Sécurité</a>
+      <span class="soon">FAQ</span>
+    </div>
+  </div>
+  <div class="wrap copy">© 2026 PairWise · Fait avec soin · Tes données t'appartiennent</div>
+</footer>
+
+<script src="/assets/menu.js" defer></script>
+
+</body>
+</html>
