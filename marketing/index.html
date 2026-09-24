@@ -231,14 +231,22 @@
 <a class="act-cta-hit" id="actCta" href="https://app.pairwise.finance/" hidden>C'est parti</a>
 
 <main class="acts" id="acts">
-  <section class="act" id="acte-1" data-measured="0" data-hold="0.7"
+  <!-- L'acte 1 n'a NI pause d'introduction NI amorce morte, contrairement aux
+       quatre autres. Son texte d'ouverture est le premier ecran du site : il
+       est deja lu, pose par son animation d'entree, avant que la main ne touche
+       la molette. Lui garder la pause revenait a demander huit crans de molette
+       pour le premier mouvement — le visiteur qui arrive croit la page figee et
+       repart. `data-skip` enleve en plus les 3 % de chronologie que l'acte
+       passe a ne rien faire, si bien que le tout premier cran bouge la scene. -->
+  <section class="act" id="acte-1" data-measured="0" data-hold="0" data-skip="0.03"
            data-src="/actes/acte-1-vue-claire" aria-label="Acte 1 — Vue claire">
     <div class="act__pin"></div>
   </section>
-  <!-- data-hold : chaque acte ouvre sur un texte qui, sans cela, defile a la
-       meme vitesse que la suite — on lui passe dessus sans le lire. La scene
-       tient sa premiere image pendant 0,7 ecran de defilement avant de
-       demarrer. -->
+  <!-- data-hold : les actes SUIVANTS ouvrent sur un texte qui, sans cela,
+       defile a la meme vitesse que la suite — on lui passe dessus sans le lire.
+       La scene tient sa premiere image pendant 0,7 ecran de defilement avant de
+       demarrer. Ils arrivent en cours de route, au milieu d'un geste de
+       molette ; l'acte 1, lui, attend deja a l'ecran. -->
   <!-- data-hold-end : la carte « Détail par membre » n'arrive qu'au tout dernier
        instant de la chronologie de l'acte 2. Sans cette pause de sortie, elle se
        montrait et la transition l'emportait aussitot. -->
