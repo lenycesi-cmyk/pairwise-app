@@ -28,7 +28,7 @@
   // Reperer d'un coup d'oeil, dans la console, si le navigateur execute bien
   // la derniere version : un pilote perime et une page a jour donnent des
   // symptomes trompeurs (deux actes empiles, barres de defilement en trop).
-  var VERSION = "actes-18";
+  var VERSION = "actes-19";
   if (window.console) console.info("PairWise " + VERSION);
 
   /* Hauteur de l'en-tête. Elle ÉTAIT écrite en dur à 64, la valeur de
@@ -333,6 +333,44 @@
         "#widgets .sum__v{font-size:21px}";
       doc.head.appendChild(st);
     },
+    /* SCENE FINALE DE L'ACTE 3. Trois blocs s'y partagent la hauteur — la pile
+       de cartes, la phrase de cloture, le globe — et chacun etait ancre dans
+       une unite differente : la pile part du haut en `vh` mais mesure ses
+       cartes en pixels, la phrase se pose a 46 % de la hauteur, et le globe est
+       accroche au BAS avec un diametre fixe de 1050 px. Quand la fenetre
+       raccourcit, les trois se rapprochent a des vitesses differentes et
+       finissent par se recouvrir : la phrase mordait sur la derniere carte des
+       860 px de haut, et sur le dessin du globe des 900.
+       On les remet dans la MEME unite. La pile recoit une hauteur en `vh` et
+       ses cartes la remplissent, si bien qu'on sait toujours ou elle finit ; la
+       phrase se place juste dessous plutot qu'a un pourcentage de l'ecran ; le
+       globe voit son diametre suivre la hauteur au lieu de rester fixe — sans
+       quoi, sur une fenetre courte, il monte tout seul dans le texte.
+       Le haut PEINT du globe n'est pas le haut de sa boite : le dessin est
+       inscrit dans une image carree avec de la transparence autour, et il
+       tourne. Une fois la rotation finie, son point le plus haut est a 0,343
+       diametre au-dessus du centre — lequel est exactement sur le bord bas de
+       la scene. C'est ce chiffre, releve sur l'image, qui fixe la marge. */
+    "acte-3": function (doc) {
+      inject(doc,
+        ".stack{top:5vh;height:min(36vh,330px);width:min(560px,88vw);gap:1.6vh}" +
+        ".tx{flex:1;padding:0 clamp(16px,1.6vw,24px);gap:clamp(12px,1.2vw,18px);" +
+        "border-radius:clamp(14px,1.9vh,20px)}" +
+        ".tx__flag{width:clamp(34px,5.2vh,50px);height:clamp(34px,5.2vh,50px);" +
+        "font-size:clamp(15px,2.4vh,22px);border-radius:clamp(10px,1.5vh,14px)}" +
+        ".tx__name{font-size:clamp(14px,1.9vh,17px)}" +
+        ".tx__place{font-size:clamp(11.5px,1.5vh,14px);margin-top:2px}" +
+        ".tx__amt{font-size:clamp(15px,2.1vh,19px)}" +
+        ".tx__rate{font-size:clamp(9.5px,1.2vh,11px);padding:2px 8px;margin-top:3px}" +
+        // La phrase suit la pile au lieu de suivre l'ecran. Elle s'elargit
+        // aussi : a 540 px elle tombait sur trois lignes la ou deux suffisent,
+        // et chaque ligne gagnee est de la hauteur rendue au globe.
+        ".closing{top:calc(8vh + min(36vh,330px));width:min(760px,92vw)}" +
+        ".closing p{font-size:clamp(15px,2.5vh,24px)}" +
+        ".globe{--g:min(1050px,116vh);width:var(--g);height:var(--g);" +
+        "margin-left:calc(var(--g) / -2);margin-bottom:calc(var(--g) / -2)}");
+    },
+
     /* L'acte 4 ne declare aucune regle pour le paragraphe de son introduction :
        il retombait sur la marge par defaut du navigateur et venait se coller
        sous le titre. On reprend le format de l'acte 3. */
