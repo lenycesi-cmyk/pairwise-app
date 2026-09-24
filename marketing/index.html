@@ -1,9 +1,10 @@
 <!doctype html>
 <!-- data-theme="light" : les cinq actes sont dessines en clair, et rien dans
-     leur document ne suit le theme du systeme. Sans ce verrou, un visiteur en
-     mode sombre avait un en-tete nuit pose sur des scenes creme. site.css
-     garde deja cette echappatoire (`:root:not([data-theme="light"])`), donc
-     aucune regle n'a eu a bouger. -->
+     leur document ne suit le theme du systeme. Ce verrou a ete pose quand
+     site.css basculait encore en nuit avec le systeme ; ce n'est plus le cas,
+     le site entier est clair par defaut. On le garde parce que cette page est
+     la seule a poser un en-tete de site par-dessus des documents etrangers :
+     l'y dire explicitement coute une ligne et evite d'avoir a le redecouvrir. -->
 <html lang="fr" data-theme="light" style="color-scheme: light">
 <head>
   <meta charset="UTF-8" />
