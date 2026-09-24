@@ -1,24 +1,48 @@
 /* PairWise — site marketing (pairwise.finance)
    Feuille de styles partagée par toutes les pages statiques. Reprend les tokens
-   de l'app (src/index.css) : mêmes couleurs, mêmes polices, thème clair + nuit. */
+   de l'app (src/index.css) : mêmes couleurs, mêmes polices. Le site est clair,
+   dans les tons papier des actes ; le thème nuit ne sort plus que sur demande
+   explicite (voir plus bas). */
 
 :root {
+  /* Le site est CLAIR, comme les actes. `color-scheme` est pose ici et non
+     page par page : il fait suivre les controles de formulaire et les barres
+     de defilement du navigateur, qui sinon restent nuit sur un systeme nuit. */
+  color-scheme: light;
   --ink: #2b2621; --ink-2: #6e665d; --ink-3: #a69c8f; --ink-4: #c9c0b4;
-  --bg: #fbf7f1; --bg-card: #ffffff; --rule: rgba(43, 38, 33, 0.12);
-  --panel: #f3ede3; --band: #f0e7d8;
+  /* Tons papier repris des actes (`--paper`, `--paper-warm`) : un cran plus
+     chauds et plus sableux que les precedents, qui tiraient vers le gris. */
+  --bg: #f9f1e6; --bg-card: #ffffff; --rule: rgba(43, 38, 33, 0.09);
+  /* `--band` n'habille QUE la bande d'appel a l'action, en fin de page. Elle
+     passe au vert sauge : la page traverse alors trois tons — creme, sable,
+     sauge — au lieu de poser deux fois le meme sable. */
+  --panel: #f4ede3; --band: #eceee5;
   --tang: #e9673f; --tang-light: color-mix(in srgb, var(--tang) 15%, #fff); --tang-deep: #cf5730;
   --sage: #7fa98a; --sage-light: color-mix(in srgb, var(--sage) 15%, #fff);
   --lavi: #9c8fc6; --lavi-light: color-mix(in srgb, var(--lavi) 15%, #fff);
   --sky: #6aa0cc; --sky-light: color-mix(in srgb, var(--sky) 15%, #fff);
   --amber: #e0952e; --amber-light: color-mix(in srgb, var(--amber) 15%, #fff);
-  --shadow: 0 14px 40px rgba(43, 38, 33, .10);
-  --shadow-lg: 0 30px 70px rgba(43, 38, 33, .16);
+  --shadow: 0 16px 44px rgba(26, 26, 24, .10);
+  --shadow-lg: 0 30px 70px rgba(26, 26, 24, .14);
   --font-display: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-sans: "Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
-/* Thème nuit — repris de src/index.css [data-theme="pairwise-dark"]. */
+/* Thème nuit — repris de src/index.css [data-theme="pairwise-dark"].
+   Il ne s'applique plus QUE sur demande explicite, `data-theme="dark"`.
+
+   Il etait aussi branche sur `@media (prefers-color-scheme: dark)`, si bien
+   que toute page chargeant cette feuille basculait en nuit des que le systeme
+   du visiteur l'etait. Personne n'avait choisi ca : c'est le theme nuit de
+   l'app, hérite tel quel, et les pages du site sont dessinees en creme. Un
+   visiteur en mode sombre voyait donc un site que personne n'a jamais dessine.
+   La page des actes s'en protegeait avec un `data-theme="light"` pose a la
+   main — verrou qu'il fallait alors penser a reporter sur chaque page creee,
+   et que deux pages croyaient d'ailleurs porter sous le nom, inerte, de
+   `data-theme-default`. Couper la regle a la source vaut mieux que repeter
+   sept fois son antidote. */
 :root[data-theme="dark"] {
+  color-scheme: dark;
   --ink: #eef2f6; --ink-2: #b4bec8; --ink-3: #8b95a0; --ink-4: #5b6670;
   --bg: #0a1520; --bg-card: #14202d; --rule: #2b3540; --panel: #101c28; --band: #0f1d2b;
   --tang: #ff7458; --tang-light: #3e2f35; --tang-deep: #ff8a71;
@@ -28,19 +52,6 @@
   --amber: #fcb452; --amber-light: #3e3b34;
   --shadow: 0 14px 40px rgba(0, 0, 0, .4); --shadow-lg: 0 30px 70px rgba(0, 0, 0, .5);
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --ink: #eef2f6; --ink-2: #b4bec8; --ink-3: #8b95a0; --ink-4: #5b6670;
-    --bg: #0a1520; --bg-card: #14202d; --rule: #2b3540; --panel: #101c28; --band: #0f1d2b;
-    --tang: #ff7458; --tang-light: #3e2f35; --tang-deep: #ff8a71;
-    --sage: #5abb88; --sage-light: #213c3d;
-    --lavi: #7aa8e0; --lavi-light: #1b334a;
-    --sky: #2ea4dc; --sky-light: #19384d;
-    --amber: #fcb452; --amber-light: #3e3b34;
-    --shadow: 0 14px 40px rgba(0, 0, 0, .4); --shadow-lg: 0 30px 70px rgba(0, 0, 0, .5);
-  }
-}
-
 *, *::before, *::after { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
 body {
@@ -105,7 +116,7 @@ header.site .hcta:hover { background: #d85a34; }
 @media (max-width: 820px) { .hero .grid { grid-template-columns: 1fr; gap: 30px; } .hero h1 { font-size: 34px; } }
 
 /* ---- Démo « live » ---- */
-.demo { background: var(--bg-card); border: 1px solid var(--rule); border-radius: 22px; padding: 20px; box-shadow: var(--shadow); }
+.demo { background: var(--bg-card); border: 1px solid var(--rule); border-radius: 24px; padding: 20px; box-shadow: var(--shadow); }
 .demo .field { display: flex; align-items: center; gap: 10px; background: var(--bg); border: 1.5px solid var(--tang); border-radius: 15px; padding: 4px 6px 4px 15px; box-shadow: 0 6px 18px var(--tang-light); }
 .demo .field .spark { color: var(--tang); font-size: 20px; }
 .demo .field .typed { flex: 1; font-size: 16px; font-weight: 600; color: var(--ink); padding: 12px 0; }
@@ -128,7 +139,10 @@ header.site .hcta:hover { background: #d85a34; }
 
 /* ============ Sections ============ */
 section { padding: 48px 0; }
-section.alt { background: var(--panel); border-top: .5px solid var(--rule); border-bottom: .5px solid var(--rule); }
+/* Pas de filet entre les sections : c'est le changement de teinte qui separe,
+   comme d'un acte a l'autre. Un trait gris par-dessus ne separe rien de plus et
+   durcit une page dont tout le propos est d'etre douce. */
+section.alt { background: var(--panel); }
 .h2 { font-size: 30px; font-weight: 700; margin: 8px 0 10px; text-wrap: balance; }
 .lede { font-size: 18px; color: var(--ink-2); max-width: 620px; margin: 0 0 30px; }
 
@@ -182,7 +196,7 @@ details.q[open] summary .plus { transform: rotate(45deg); }
 details.q p { margin: 0 2px 18px; color: var(--ink-2); font-size: 15.5px; }
 
 /* ============ Bande CTA ============ */
-.cta-band { background: var(--band); border-top: .5px solid var(--rule); padding: 66px 0; text-align: center; position: relative; overflow: hidden; }
+.cta-band { background: var(--band); padding: 66px 0; text-align: center; position: relative; overflow: hidden; }
 .cta-band .eyebrow { color: var(--ink-3); }
 .cta-band h2 { font-size: 40px; font-weight: 700; margin: 14px auto 26px; max-width: 620px; text-wrap: balance; }
 .cta-band .btn-primary { font-size: 18px; padding: 16px 30px; }
@@ -192,7 +206,7 @@ details.q p { margin: 0 2px 18px; color: var(--ink-2); font-size: 15.5px; }
 @media (max-width: 600px) { .cta-band h2 { font-size: 30px; } .cta-band .float { display: none; } }
 
 /* ============ Footer ============ */
-footer.site { background: var(--panel); border-top: .5px solid var(--rule); padding: 42px 0 30px; }
+footer.site { background: var(--panel); padding: 42px 0 30px; }
 footer.site .cols { display: grid; grid-template-columns: 1.4fr repeat(3, 1fr); gap: 26px; }
 @media (max-width: 720px) { footer.site .cols { grid-template-columns: 1fr 1fr; } }
 footer.site h4 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-3); margin: 0 0 12px; }
