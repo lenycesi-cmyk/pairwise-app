@@ -1,0 +1,491 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <title>Catégoriser ses dépenses : catégories et tags | PairWise</title>
+  <meta name="description" content="Catégorise chaque dépense en deux clics et ajoute des tags transversaux pour suivre un voyage, un remboursement ou tes achats impulsifs, sans effort." />
+
+  <!-- Pas de `hreflang="en"` : la page anglaise n'existe pas encore, et
+       declarer une alternative qui repond 404 est pire que ne rien declarer. -->
+  <link rel="canonical" href="https://pairwise.finance/fonctionnalites/categories-tags" />
+  <link rel="alternate" hreflang="fr" href="https://pairwise.finance/fonctionnalites/categories-tags" />
+  <link rel="alternate" hreflang="x-default" href="https://pairwise.finance/fonctionnalites/categories-tags" />
+
+  <!-- Open Graph / partage social -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="PairWise" />
+  <meta property="og:locale" content="fr_FR" />
+  <meta property="og:title" content="Catégoriser ses dépenses : catégories et tags | PairWise" />
+  <meta property="og:description" content="Catégorise chaque dépense en deux clics et ajoute des tags transversaux pour suivre un voyage, un remboursement ou tes achats impulsifs, sans effort." />
+  <meta property="og:url" content="https://pairwise.finance/fonctionnalites/categories-tags" />
+  <meta property="og:image" content="https://pairwise.finance/assets/og/categories-tags.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <link rel="icon" type="image/png" href="/icon-192.png" />
+
+  <!-- Mêmes polices et icônes que l'app -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Nunito+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+  <link rel="stylesheet" href="/assets/site.css" />
+
+  <!-- Données structurées : logiciel, fil d'Ariane, FAQ -->
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "SoftwareApplication",
+      "name": "PairWise",
+      "applicationCategory": "FinanceApplication",
+      "operatingSystem": "iOS, Android, Web",
+      "url": "https://pairwise.finance/",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" }
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Accueil", "item": "https://pairwise.finance/" },
+        { "@type": "ListItem", "position": 2, "name": "Fonctionnalités", "item": "https://pairwise.finance/fonctionnalites/" },
+        { "@type": "ListItem", "position": 3, "name": "Catégories & tags", "item": "https://pairwise.finance/fonctionnalites/categories-tags" }
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        { "@type": "Question", "name": "Quelle différence entre une catégorie et un tag ?", "acceptedAnswer": { "@type": "Answer", "text": "La catégorie dit ce qu'est la dépense : une seule par dépense, avec un deuxième niveau (la sous-catégorie). Le tag dit pourquoi tu l'as faite : une dépense peut en porter plusieurs, et un tag traverse toutes les catégories, par exemple pour rassembler tout un voyage." } },
+        { "@type": "Question", "name": "Peut-on créer ses propres catégories ?", "acceptedAnswer": { "@type": "Answer", "text": "Oui. Tu pars de 18 catégories de dépense fournies d'origine, plus Revenus et Investissements, chacune avec ses sous-catégories prêtes à l'emploi. Tu peux créer, renommer ou supprimer une catégorie, choisir son icône et sa couleur, ajouter ou retirer des sous-catégories, et réordonner la liste par glisser-déposer." } },
+        { "@type": "Question", "name": "Combien de tags peut-on mettre sur une dépense ?", "acceptedAnswer": { "@type": "Answer", "text": "Autant que tu veux. Contrairement à la catégorie, qui est unique, une dépense peut porter plusieurs tags à la fois, par exemple #vacances et #pro sur le même repas." } },
+        { "@type": "Question", "name": "Faut-il tout classer à la main ?", "acceptedAnswer": { "@type": "Answer", "text": "Non. La catégorie est devinée automatiquement à la saisie, et PairWise apprend : une description déjà classée retrouve sa catégorie la fois suivante. Les tags peuvent aussi se poser en langage naturel, en écrivant par exemple resto pro." } },
+        { "@type": "Question", "name": "Peut-on suivre un budget sur un tag ?", "acceptedAnswer": { "@type": "Answer", "text": "Oui. En plus des budgets par catégorie, tu peux créer un budget sur un tag, par exemple pour te fixer une limite sur tes achats impulsifs, ce qu'une catégorie seule ne permet pas." } }
+      ]
+    }
+  ]
+}
+  </script>
+</head>
+<body>
+
+<header class="site">
+  <div class="bar">
+    <a href="/" class="logo"><span class="p">P</span> PairWise</a>
+    <!-- ⚠ GÉNÉRÉ — ne pas modifier à la main.
+         Source : scripts/build-marketing-header.js · régénérer avec
+         `node scripts/build-marketing-header.js`. -->
+    <nav data-in-features="1">
+      <span class="mm" data-mm data-menu="features" data-open="0">
+        <button type="button" aria-expanded="false">Fonctionnalités <i class="ti ti-chevron-down"></i></button>
+        <span class="mm-panel">
+          <span class="mm-cols">
+          <span class="mm-col">
+            <span class="mm-h5">Suivre son argent</span>
+            <a class="mm-it" href="/fonctionnalites/saisie-langage-naturel"><span class="mi" style="background:var(--tang-light);color:var(--tang)"><i class="ti ti-sparkles"></i></span><span><b>Saisie en langage naturel</b><small>« 60€ course hier » et c'est rempli</small></span></a>
+            <a class="mm-it" href="/fonctionnalites/transactions-recus"><span class="mi" style="background:var(--sky-light);color:var(--sky)"><i class="ti ti-list-details"></i></span><span><b>Transactions &amp; reçus</b><small>Historique, photos, recherche</small></span></a>
+            <a class="mm-it" href="/fonctionnalites/categories-tags" aria-current="page"><span class="mi" style="background:var(--amber-light);color:var(--amber)"><i class="ti ti-tag"></i></span><span><b>Catégories &amp; tags</b><small>Rangement automatique</small></span></a>
+            <a class="mm-it" href="/fonctionnalites/multi-devises"><span class="mi" style="background:var(--sage-light);color:var(--sage)"><i class="ti ti-world"></i></span><span><b>Multi-devises</b><small>Idéal voyageurs &amp; nomades</small></span></a>
+            <a class="mm-it" href="/fonctionnalites/charges-recurrentes"><span class="mi" style="background:var(--lavi-light);color:var(--lavi)"><i class="ti ti-repeat"></i></span><span><b>Charges fixes &amp; récurrentes</b><small>Ce qui tombe chaque mois</small></span></a>
+          </span>
+          <span class="mm-col">
+            <span class="mm-h5">Analyser</span>
+            <a class="mm-it" href="/fonctionnalites/budgets"><span class="mi" style="background:var(--amber-light);color:var(--amber)"><i class="ti ti-chart-pie"></i></span><span><b>Budgets</b><small>Par catégorie, avec alertes</small></span></a>
+            <a class="mm-it" href="/fonctionnalites/rapports"><span class="mi" style="background:var(--sky-light);color:var(--sky)"><i class="ti ti-chart-line"></i></span><span><b>Rapports &amp; insights</b><small>Ce qui bouge, mois par mois</small></span></a>
+            <a class="mm-it" href="/fonctionnalites/patrimoine"><span class="mi" style="background:var(--lavi-light);color:var(--lavi)"><i class="ti ti-diamond"></i></span><span><b>Patrimoine &amp; investissements</b><small>Actifs, crédits, évolution</small></span></a>
+          </span>
+          <span class="mm-col">
+            <span class="mm-h5">Aller plus loin</span>
+            <a class="mm-it" href="/fonctionnalites/depenses-partagees"><span class="mi" style="background:var(--tang-light);color:var(--tang)"><i class="ti ti-users"></i></span><span><b>Dépenses partagées</b><small>Qui doit quoi, à deux</small></span></a>
+            <a class="mm-it" href="/fonctionnalites/objectifs"><span class="mi" style="background:var(--lavi-light);color:var(--lavi)"><i class="ti ti-target-arrow"></i></span><span><b>Objectifs &amp; projets</b><small>Seul ou en commun</small></span></a>
+            <a class="mm-it" href="/securite"><span class="mi" style="background:var(--sky-light);color:var(--sky)"><i class="ti ti-shield-lock"></i></span><span><b>Sécurité</b><small>Chiffré, lecture seule</small></span></a>
+          </span>
+          </span>
+        </span>
+      </span>
+      <span class="mm" data-mm data-menu="audiences" data-open="0">
+        <button type="button" aria-expanded="false">Pour qui <i class="ti ti-chevron-down"></i></button>
+        <span class="mm-panel">
+          <span class="mm-cols one">
+          <span class="mm-col">
+            <span class="mm-it dim"><span class="mi" style="background:var(--sky-light);color:var(--sky)"><i class="ti ti-user"></i></span><span><b>En solo</b><small>Gérer ses finances personnelles</small></span></span>
+            <span class="mm-it dim"><span class="mi" style="background:var(--tang-light);color:var(--tang)"><i class="ti ti-users"></i></span><span><b>À deux</b><small>Dépenses partagées, budgets communs</small></span></span>
+            <span class="mm-it dim"><span class="mi" style="background:var(--sage-light);color:var(--sage)"><i class="ti ti-plane-tilt"></i></span><span><b>Voyageurs &amp; nomades</b><small>Le multi-devises comme atout</small></span></span>
+            <span class="mm-it dim"><span class="mi" style="background:var(--lavi-light);color:var(--lavi)"><i class="ti ti-world"></i></span><span><b>Expatriés</b><small>Revenus ici, charges là-bas</small></span></span>
+          </span>
+          </span>
+        </span>
+      </span>
+      <span class="soon">Comparatifs</span>
+      <span class="soon">Tarifs</span>
+      <a href="/securite">Sécurité</a>
+    </nav>
+    <a href="https://app.pairwise.finance/" class="login">Connexion</a>
+  </div>
+</header>
+
+<nav class="crumb wrap" aria-label="Fil d'Ariane">
+  <a href="/">Accueil</a><i class="ti ti-chevron-right"></i><span>Fonctionnalités</span><i class="ti ti-chevron-right"></i><b>Catégories &amp; tags</b>
+</nav>
+
+<!-- ============================================================
+     Sections issues du handoff de conception, styles en ligne
+     compris : leurs valeurs SONT la maquette. Seuls les tokens de
+     couleur ont ete retires du prototype, pour que `var(--tang)`
+     et consorts viennent de /assets/site.css — une retouche de la
+     palette se propage alors ici sans toucher une ligne.
+     ============================================================ -->
+<main class="pw">
+<section style="max-width:1060px;margin:0 auto;padding:48px 24px 64px;display:flex;gap:56px;align-items:center;flex-wrap:wrap">
+    <div style="flex:1 1 420px;min-width:320px">
+      <div style="color:var(--tang);text-transform:uppercase;letter-spacing:.08em;font-weight:800;font-size:13px;margin-bottom:14px">Catégories &amp; tags</div>
+      <h1 style="font-family:Poppins,sans-serif;letter-spacing:-0.02em;font-weight:800;font-size:44px;line-height:1.1;margin:0 0 20px;color:var(--ink)">Tu ne dépenses pas par catégorie. Tu dépenses pour des raisons.</h1>
+      <p style="color:var(--ink-2);font-size:18px;margin:0 0 28px;max-width:480px">Une seule étiquette par dépense ne raconte jamais ta vie. Alors PairWise te laisse catégoriser tes dépenses sur deux axes : la <strong>catégorie</strong> dit ce que c'était, le <strong>tag</strong> dit pourquoi tu l'as fait. L'une répond à « où part mon argent ? », l'autre à « combien m'a coûté ce voyage ? ».</p>
+      <a href="https://app.pairwise.finance/" style="display:inline-flex;align-items:center;gap:8px;background:var(--tang);color:#fff;padding:14px 28px;border-radius:12px;font-family:Poppins,sans-serif;font-weight:700;font-size:16px;text-decoration:none;box-shadow:var(--shadow)" style-hover="background:var(--tang-deep)">C'est parti <i class="ti ti-arrow-right"></i></a>
+      <div style="margin-top:14px;color:var(--ink-3);font-size:14px">Gratuit pour commencer, sans carte bancaire.</div>
+    </div>
+
+    <div style="flex:0 1 320px" aria-hidden="true">
+      <div style="width:300px;background:linear-gradient(155deg,#4a545f 0%,#20262d 38%,#12161b 100%);border-radius:44px;padding:12px;box-shadow:0 0 0 1px rgba(255,255,255,.18), 0 26px 60px rgba(0,0,0,.45);margin:0 auto">
+        <div style="position:relative;background:var(--bg);border-radius:31px;overflow:hidden;min-height:420px;padding:22px 16px 16px">
+          <div style="position:absolute;top:10px;left:50%;transform:translateX(-50%);width:84px;height:20px;background:#12161b;border-radius:12px;z-index:2"></div>
+          <div style="margin-top:24px;background:var(--bg-card);border-radius:16px;padding:16px;box-shadow:var(--shadow)">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+              <span style="width:40px;height:40px;border-radius:11px;background:var(--tang-light);color:var(--tang);display:flex;align-items:center;justify-content:center;font-size:19px"><i class="ti ti-tools-kitchen-2"></i></span>
+              <div style="flex:1">
+                <div style="font-weight:700;font-size:15px">Time Out Market</div>
+                <div style="font-size:12px;color:var(--ink-3)">Aujourd'hui</div>
+              </div>
+              <div style="font-weight:700;font-size:16px;color:var(--tang)">-46,00 €</div>
+            </div>
+            <div style="border-top:1px solid var(--rule);padding-top:12px;display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;align-items:center;justify-content:space-between">
+                <span style="font-size:13px;color:var(--ink-3)">Catégorie</span>
+                <span style="font-size:13px;font-weight:700">Alimentation › Take away</span>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between">
+                <span style="font-size:13px;color:var(--ink-3)">Tags</span>
+                <span style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
+                  <span style="background:var(--lavi-light);color:var(--lavi);border-radius:20px;padding:4px 10px;font-size:12px;font-weight:700;white-space:nowrap;flex:none">🏖️ vacances</span>
+                  <span style="background:var(--lavi-light);color:var(--lavi);border-radius:20px;padding:4px 10px;font-size:12px;font-weight:700;white-space:nowrap;flex:none">😎 yolo</span>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="background:var(--panel);padding:64px 0">
+    <div style="max-width:1060px;margin:0 auto;padding:0 24px;display:flex;gap:48px;align-items:center;flex-wrap:wrap">
+      <div style="flex:1 1 380px;min-width:300px">
+        <h2 style="font-family:Poppins,sans-serif;letter-spacing:-0.02em;font-size:28px;margin:0 0 14px">Pourquoi classer ses dépenses</h2>
+        <p style="color:var(--ink-2);margin:0 0 14px;max-width:460px">Sans classement, un relevé bancaire n'est qu'une liste de commerçants : on voit les débits, pas les habitudes.<br>La catégorie transforme la liste en réponse :<br>« l'alimentation, c'est 420 € ce mois-ci ».</p>
+        <p style="color:var(--ink-2);margin:0;max-width:460px">Mais « Alimentation : 420 € » ne t'aide pas à mieux comprendre tes habitudes. La sous-catégorie, elle, montre où ça part vraiment.</p>
+      </div>
+      <div style="flex:1 1 340px;min-width:300px;background:var(--bg-card);border-radius:16px;padding:22px;box-shadow:var(--shadow)">
+        <div style="color:var(--ink-3);text-transform:uppercase;letter-spacing:.06em;font-weight:700;font-size:12px;margin-bottom:12px">Ce mois-ci</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <span style="font-family:Poppins,sans-serif;font-weight:700;font-size:15px">Alimentation</span>
+          <span style="font-weight:700;font-size:15px;color:var(--tang)">420 €</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span>Courses</span><span style="color:var(--ink-3)">260 € <span style="color:var(--ink-4);font-size:11px">· 62 %</span></span></div>
+            <div style="background:var(--panel);border-radius:6px;height:8px"><div style="width:62%;height:100%;border-radius:6px;background:var(--tang)"></div></div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span>Livraison de repas</span><span style="color:var(--ink-3)">90 € <span style="color:var(--ink-4);font-size:11px">· 21 %</span></span></div>
+            <div style="background:var(--panel);border-radius:6px;height:8px"><div style="width:21%;height:100%;border-radius:6px;background:var(--amber)"></div></div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span>Café à emporter</span><span style="color:var(--ink-3)">40 € <span style="color:var(--ink-4);font-size:11px">· 10 %</span></span></div>
+            <div style="background:var(--panel);border-radius:6px;height:8px"><div style="width:10%;height:100%;border-radius:6px;background:var(--sky)"></div></div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span>Boulangerie</span><span style="color:var(--ink-3)">30 € <span style="color:var(--ink-4);font-size:11px">· 7 %</span></span></div>
+            <div style="background:var(--panel);border-radius:6px;height:8px"><div style="width:7%;height:100%;border-radius:6px;background:var(--sage)"></div></div>
+          </div>
+        </div>
+        <p style="color:var(--ink-3);font-size:13px;margin:16px 0 0">C'est la livraison et le café qu'on peut décider de réduire; pas « manger ».</p>
+      </div>
+    </div>
+  </section>
+
+  <section style="max-width:1060px;margin:0 auto;padding:72px 24px">
+    <h2 style="font-family:Poppins,sans-serif;letter-spacing:-0.02em;font-size:28px;text-align:center;margin:0 0 36px">Catégorie ou tag ?</h2>
+    <div style="background:var(--bg-card);border-radius:16px;box-shadow:var(--shadow);overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:15px;min-width:640px">
+        <thead>
+          <tr>
+            <th style="text-align:left;padding:18px 20px;border-bottom:1px solid var(--rule);color:var(--ink-3);font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;width:170px"></th>
+            <th style="text-align:left;padding:18px 20px;border-bottom:1px solid var(--rule)">
+              <div style="display:flex;align-items:center;gap:9px">
+                <span style="width:30px;height:30px;border-radius:9px;background:var(--tang-light);color:var(--tang);display:flex;align-items:center;justify-content:center;font-size:16px"><i class="ti ti-category-2"></i></span>
+                <span style="font-family:Poppins,sans-serif;font-size:16px;font-weight:700">Catégorie</span>
+              </div>
+            </th>
+            <th style="text-align:left;padding:18px 20px;border-bottom:1px solid var(--rule)">
+              <div style="display:flex;align-items:center;gap:9px">
+                <span style="width:30px;height:30px;border-radius:9px;background:var(--sky-light);color:var(--sky);display:flex;align-items:center;justify-content:center;font-size:16px"><i class="ti ti-subtask"></i></span>
+                <span style="font-family:Poppins,sans-serif;font-size:16px;font-weight:700">Sous-catégorie</span>
+              </div>
+            </th>
+            <th style="text-align:left;padding:18px 20px;border-bottom:1px solid var(--rule)">
+              <div style="display:flex;align-items:center;gap:9px">
+                <span style="width:30px;height:30px;border-radius:9px;background:var(--amber-light);color:var(--amber);display:flex;align-items:center;justify-content:center;font-size:16px"><i class="ti ti-tag"></i></span>
+                <span style="font-family:Poppins,sans-serif;font-size:16px;font-weight:700">Tag</span>
+              </div>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row" style="text-align:left;padding:16px 20px;border-bottom:1px solid var(--rule);font-weight:700;color:var(--ink);vertical-align:top">Ce que ça dit</th>
+            <td style="padding:16px 20px;border-bottom:1px solid var(--rule);color:var(--ink-2);vertical-align:top">Ce qu'est la dépense</td>
+            <td style="padding:16px 20px;border-bottom:1px solid var(--rule);color:var(--ink-2);vertical-align:top">Le détail à l'intérieur</td>
+            <td style="padding:16px 20px;border-bottom:1px solid var(--rule);color:var(--ink-2);vertical-align:top">Pourquoi tu l'as faite</td>
+          </tr>
+          <tr>
+            <th scope="row" style="text-align:left;padding:16px 20px;border-bottom:1px solid var(--rule);font-weight:700;color:var(--ink);vertical-align:top">Combien par dépense</th>
+            <td style="padding:16px 20px;border-bottom:1px solid var(--rule);color:var(--ink-2);vertical-align:top">Une seule</td>
+            <td style="padding:16px 20px;border-bottom:1px solid var(--rule);color:var(--ink-2);vertical-align:top">Une seule, dans sa catégorie</td>
+            <td style="padding:16px 20px;border-bottom:1px solid var(--rule);color:var(--ink-2);vertical-align:top">Autant que tu veux</td>
+          </tr>
+          <tr>
+            <th scope="row" style="text-align:left;padding:16px 20px;border-bottom:1px solid var(--rule);font-weight:700;color:var(--ink);vertical-align:top">Portée</th>
+            <td style="padding:16px 20px;border-bottom:1px solid var(--rule);color:var(--ink-2);vertical-align:top">Le premier niveau</td>
+            <td style="padding:16px 20px;border-bottom:1px solid var(--rule);color:var(--ink-2);vertical-align:top">Rattachée à une catégorie</td>
+            <td style="padding:16px 20px;border-bottom:1px solid var(--rule);color:var(--ink-2);vertical-align:top">Traverse toutes les catégories</td>
+          </tr>
+          <tr>
+            <th scope="row" style="text-align:left;padding:16px 20px;font-weight:700;color:var(--ink);vertical-align:top">Exemple</th>
+            <td style="padding:16px 20px;vertical-align:top"><span style="background:var(--tang-light);color:var(--tang);border-radius:20px;padding:4px 11px;font-size:13px;font-weight:700;white-space:nowrap">Transport</span></td>
+            <td style="padding:16px 20px;vertical-align:top"><span style="background:var(--sky-light);color:var(--sky);border-radius:20px;padding:4px 11px;font-size:13px;font-weight:700;white-space:nowrap">Transports en commun</span></td>
+            <td style="padding:16px 20px;vertical-align:top"><span style="background:var(--amber-light);color:var(--amber);border-radius:20px;padding:4px 11px;font-size:13px;font-weight:700;white-space:nowrap">🏖️ vacances</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section style="background:var(--panel);padding:72px 0">
+    <div style="max-width:1060px;margin:0 auto;padding:0 24px">
+      <h2 style="font-family:Poppins,sans-serif;letter-spacing:-0.02em;font-size:28px;text-align:center;margin:0 0 8px">L'exemple : un week-end à Lisbonne</h2>
+      <p style="text-align:center;color:var(--ink-2);max-width:560px;margin:0 auto 36px">Cinq dépenses, quatre catégories différentes, un seul tag : <strong style="color: var(--lavi);">🏖️vacances</strong>.</p>
+
+      <div style="background:var(--bg-card);border-radius:16px;box-shadow:var(--shadow);overflow:hidden;margin-bottom:32px">
+        <div style="display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--rule)">
+          <span style="width:32px;height:32px;border-radius:9px;background:var(--sky-light);color:var(--sky);display:flex;align-items:center;justify-content:center"><i class="ti ti-bus"></i></span>
+          <div style="flex:1">
+            <div style="font-weight:700;font-size:14px">Vol Paris–Lisbonne</div>
+            <div style="font-size:12px;color:var(--ink-3)">Transport › Transports en commun</div>
+          </div>
+          <span style="background:var(--lavi-light);color:var(--lavi);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700">🏖️ vacances</span>
+          <div style="font-weight:700;font-size:14px;color:var(--tang);width:64px;text-align:right">180 €</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--rule)">
+          <span style="width:32px;height:32px;border-radius:9px;background:var(--amber-light);color:var(--amber);display:flex;align-items:center;justify-content:center"><i class="ti ti-building"></i></span>
+          <div style="flex:1">
+            <div style="font-weight:700;font-size:14px">Appartement 3 nuits</div>
+            <div style="font-size:12px;color:var(--ink-3)">Voyages › Hébergement</div>
+          </div>
+          <span style="background:var(--lavi-light);color:var(--lavi);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700">🏖️ vacances</span>
+          <div style="font-weight:700;font-size:14px;color:var(--tang);width:64px;text-align:right">240 €</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--rule)">
+          <span style="width:32px;height:32px;border-radius:9px;background:var(--tang-light);color:var(--tang);display:flex;align-items:center;justify-content:center"><i class="ti ti-tools-kitchen-2"></i></span>
+          <div style="flex:1">
+            <div style="font-weight:700;font-size:14px">Dîner Time Out Market</div>
+            <div style="font-size:12px;color:var(--ink-3)">Alimentation › Take away</div>
+          </div>
+          <span style="background:var(--lavi-light);color:var(--lavi);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700">🏖️ vacances</span>
+          <div style="font-weight:700;font-size:14px;color:var(--tang);width:64px;text-align:right">46 €</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--rule)">
+          <span style="width:32px;height:32px;border-radius:9px;background:var(--sky-light);color:var(--sky);display:flex;align-items:center;justify-content:center"><i class="ti ti-bus"></i></span>
+          <div style="flex:1">
+            <div style="font-weight:700;font-size:14px">Tramway &amp; métro</div>
+            <div style="font-size:12px;color:var(--ink-3)">Transport › Transports en commun</div>
+          </div>
+          <span style="background:var(--lavi-light);color:var(--lavi);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700">🏖️ vacances</span>
+          <div style="font-weight:700;font-size:14px;color:var(--tang);width:64px;text-align:right">18 €</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;padding:14px 18px">
+          <span style="width:32px;height:32px;border-radius:9px;background:var(--sage-light);color:var(--sage);display:flex;align-items:center;justify-content:center"><i class="ti ti-ticket"></i></span>
+          <div style="flex:1">
+            <div style="font-weight:700;font-size:14px">Musée du Fado</div>
+            <div style="font-size:12px;color:var(--ink-3)">Loisirs &amp; sorties › Musées</div>
+          </div>
+          <span style="background:var(--lavi-light);color:var(--lavi);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700">🏖️ vacances</span>
+          <div style="font-weight:700;font-size:14px;color:var(--tang);width:64px;text-align:right">12 €</div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:24px;flex-wrap:wrap">
+        <div style="flex:1 1 320px;min-width:280px;background:var(--bg-card);border-radius:16px;padding:24px;box-shadow:var(--shadow)">
+          <h3 style="font-family:Poppins,sans-serif;font-size:17px;margin:0 0 14px">Vu par catégories:</h3>
+          <div style="display:flex;flex-direction:column;gap:10px;font-size:14px">
+            <div style="display:flex;justify-content:space-between"><span>Transport — 340 € ce mois</span><span style="color:var(--ink-3)">dont 198 € ici</span></div>
+            <div style="display:flex;justify-content:space-between"><span>Voyages — 240 € ce mois</span><span style="color:var(--ink-3)">dont 240 € ici</span></div>
+            <div style="display:flex;justify-content:space-between"><span>Alimentation — 420 € ce mois</span><span style="color:var(--ink-3)">dont 46 € ici</span></div>
+            <div style="display:flex;justify-content:space-between"><span>Loisirs &amp; sorties — 95 € ce mois</span><span style="color:var(--ink-3)">dont 12 € ici</span></div>
+          </div>
+          <p style="color:var(--ink-3);font-size:13px;margin:16px 0 0">Le voyage se dilue dans quatre catégories. Il devient invisible.</p>
+        </div>
+        <div style="flex:1 1 320px;min-width:280px;background:var(--lavi-light);border-radius:16px;padding:24px;box-shadow:var(--shadow)">
+          <h3 style="font-family:Poppins,sans-serif;font-size:17px;margin:0 0 14px;color:var(--ink)">Vu par le tag&nbsp;<strong style="background:var(--amber-light);color:var(--amber);border-radius:20px;padding:2px 10px;font-weight:700">&nbsp;🏖️vacances&nbsp;</strong></h3>
+          <div style="font-family:Poppins,sans-serif;font-weight:800;font-size:38px;color:var(--lavi)">496 €</div>
+          <p style="color:var(--ink-2);font-size:14px;margin:8px 0 0">Le coût réel du week-end, reconstitué d'un seul filtre — sans avoir rien classé différemment.</p>
+        </div>
+      </div>
+      <p style="text-align:center;font-weight:700;margin:32px 0 0;font-size:16px">La catégorie répond à « où part mon argent ? », le tag à « combien m'a coûté ce truc-là ? ».</p>
+
+      <div style="max-width:640px;margin:28px auto 0;background:var(--bg-card);border-radius:14px;padding:18px 22px;box-shadow:var(--shadow);display:flex;gap:14px;align-items:center">
+        <span style="width:36px;height:36px;border-radius:10px;background:var(--lavi-light);color:var(--lavi);display:flex;align-items:center;justify-content:center;flex:none"><i class="ti ti-briefcase"></i></span>
+        <p style="margin:0;color:var(--ink-2);font-size:14px">Un déjeuner client reste une dépense <strong>Alimentation › Take away</strong> — mais le tag <strong style="color:var(--lavi)">💼 pro</strong> permet de sortir la note de frais à la fin du mois, sans créer de catégorie « professionnel » artificielle.</p>
+      </div>
+    </div>
+  </section>
+
+  <section style="max-width:1060px;margin:0 auto;padding:72px 24px">
+    <h2 style="font-family:Poppins,sans-serif;letter-spacing:-0.02em;font-size:28px;text-align:center;margin:0 0 36px">Ce que tu peux régler</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px">
+      <div style="background:var(--bg-card);border-radius:14px;padding:18px;box-shadow:var(--shadow);text-align:center">
+        <i class="ti ti-pencil" style="color:var(--tang);font-size:22px"></i>
+        <div style="font-size:14px;font-weight:700;margin-top:10px">Créer ou renommer</div>
+      </div>
+      <div style="background:var(--bg-card);border-radius:14px;padding:18px;box-shadow:var(--shadow);text-align:center">
+        <i class="ti ti-palette" style="color:var(--tang);font-size:22px"></i>
+        <div style="font-size:14px;font-weight:700;margin-top:10px">Icône &amp; couleur</div>
+      </div>
+      <div style="background:var(--bg-card);border-radius:14px;padding:18px;box-shadow:var(--shadow);text-align:center">
+        <i class="ti ti-list" style="color:var(--tang);font-size:22px"></i>
+        <div style="font-size:14px;font-weight:700;margin-top:10px">Sous-catégories</div>
+      </div>
+      <div style="background:var(--bg-card);border-radius:14px;padding:18px;box-shadow:var(--shadow);text-align:center">
+        <i class="ti ti-arrows-sort" style="color:var(--tang);font-size:22px"></i>
+        <div style="font-size:14px;font-weight:700;margin-top:10px">Réordonner (glisser)</div>
+      </div>
+      <div style="background:var(--bg-card);border-radius:14px;padding:18px;box-shadow:var(--shadow);text-align:center">
+        <i class="ti ti-tag" style="color:var(--lavi);font-size:22px"></i>
+        <div style="font-size:14px;font-weight:700;margin-top:10px">Tags personnalisés</div>
+      </div>
+      <div style="background:var(--bg-card);border-radius:14px;padding:18px;box-shadow:var(--shadow);text-align:center">
+        <i class="ti ti-target-arrow" style="color:var(--lavi);font-size:22px"></i>
+        <div style="font-size:14px;font-weight:700;margin-top:10px">Budget sur un tag</div>
+      </div>
+    </div>
+  </section>
+
+  <section style="background:var(--panel);padding:64px 0">
+    <div style="max-width:760px;margin:0 auto;padding:0 24px">
+      <h2 style="font-family:Poppins,sans-serif;letter-spacing:-0.02em;font-size:30px;text-align:center;margin:0 0 32px">Questions fréquentes</h2>
+      <div style="display:flex;flex-direction:column;gap:12px">
+
+        <details style="background:var(--bg-card);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow)">
+          <summary style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;list-style:none;font-weight:700;font-size:16px;gap:12px">
+            Quelle différence entre une catégorie et un tag ?
+            <span class="faq-plus" style="flex:none;color:var(--tang);font-size:20px;transition:transform .15s ease">+</span>
+          </summary>
+          <p style="color:var(--ink-2);margin:14px 0 0">La catégorie dit ce qu'est la dépense : une seule par dépense, avec un deuxième niveau (la sous-catégorie). Le tag dit pourquoi tu l'as faite : une dépense peut en porter plusieurs, et un tag traverse toutes les catégories, par exemple pour rassembler tout un voyage.</p>
+        </details>
+
+        <details style="background:var(--bg-card);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow)">
+          <summary style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;list-style:none;font-weight:700;font-size:16px;gap:12px">
+            Peut-on créer ses propres catégories ?
+            <span class="faq-plus" style="flex:none;color:var(--tang);font-size:20px;transition:transform .15s ease">+</span>
+          </summary>
+          <p style="color:var(--ink-2);margin:14px 0 0">Oui. Tu pars de 18 catégories de dépense fournies d'origine, plus Revenus et Investissements, chacune avec ses sous-catégories prêtes à l'emploi. Tu peux créer, renommer ou supprimer une catégorie, choisir son icône et sa couleur, ajouter ou retirer des sous-catégories, et réordonner la liste par glisser-déposer.</p>
+        </details>
+
+        <details style="background:var(--bg-card);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow)">
+          <summary style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;list-style:none;font-weight:700;font-size:16px;gap:12px">
+            Combien de tags peut-on mettre sur une dépense ?
+            <span class="faq-plus" style="flex:none;color:var(--tang);font-size:20px;transition:transform .15s ease">+</span>
+          </summary>
+          <p style="color:var(--ink-2);margin:14px 0 0">Autant que tu veux. Contrairement à la catégorie, qui est unique, une dépense peut porter plusieurs tags à la fois, par exemple #vacances et #pro sur le même repas.</p>
+        </details>
+
+        <details style="background:var(--bg-card);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow)">
+          <summary style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;list-style:none;font-weight:700;font-size:16px;gap:12px">
+            Faut-il tout classer à la main ?
+            <span class="faq-plus" style="flex:none;color:var(--tang);font-size:20px;transition:transform .15s ease">+</span>
+          </summary>
+          <p style="color:var(--ink-2);margin:14px 0 0">Non. La catégorie est devinée automatiquement à la saisie, et PairWise apprend : une description déjà classée retrouve sa catégorie la fois suivante. Les tags peuvent aussi se poser en langage naturel, en écrivant par exemple resto pro.</p>
+        </details>
+
+        <details style="background:var(--bg-card);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow)">
+          <summary style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;list-style:none;font-weight:700;font-size:16px;gap:12px">
+            Peut-on suivre un budget sur un tag ?
+            <span class="faq-plus" style="flex:none;color:var(--tang);font-size:20px;transition:transform .15s ease">+</span>
+          </summary>
+          <p style="color:var(--ink-2);margin:14px 0 0">Oui. En plus des budgets par catégorie, tu peux créer un budget sur un tag, par exemple pour te fixer une limite sur tes achats impulsifs, ce qu'une catégorie seule ne permet pas.</p>
+        </details>
+
+      </div>
+    </div>
+  </section>
+
+  <section style="background:var(--band);padding:72px 0;position:relative;overflow:hidden">
+    <i class="ti ti-tag" style="position:absolute;top:20px;left:6%;font-size:120px;color:var(--ink);opacity:.15" aria-hidden="true"></i>
+    <i class="ti ti-category-2" style="position:absolute;bottom:10px;right:8%;font-size:100px;color:var(--ink);opacity:.15" aria-hidden="true"></i>
+    <div style="max-width:760px;margin:0 auto;padding:0 24px;text-align:center;position:relative;z-index:1">
+      <div style="color:var(--tang);text-transform:uppercase;letter-spacing:.08em;font-weight:800;font-size:13px;margin-bottom:14px">Prêt à y voir clair ?</div>
+      <h2 style="font-family:Poppins,sans-serif;letter-spacing:-0.02em;font-weight:800;font-size:34px;margin:0 0 28px">Sais enfin où part ton argent, et pourquoi.</h2>
+      <a href="https://app.pairwise.finance/" style="display:inline-flex;align-items:center;gap:8px;background:var(--tang);color:#fff;padding:14px 28px;border-radius:12px;font-family:Poppins,sans-serif;font-weight:700;font-size:16px;text-decoration:none;box-shadow:var(--shadow)" style-hover="background:var(--tang-deep)">C'est parti <i class="ti ti-arrow-right"></i></a>
+      <div style="display:flex;justify-content:center;gap:28px;margin-top:28px;flex-wrap:wrap;color:var(--ink-2);font-size:14px">
+        <span style="display:flex;align-items:center;gap:6px"><i class="ti ti-check" style="color:var(--sage)"></i>Sans compte pour commencer</span>
+        <span style="display:flex;align-items:center;gap:6px"><i class="ti ti-check" style="color:var(--sage)"></i>Données sur l'appareil</span>
+        <span style="display:flex;align-items:center;gap:6px"><i class="ti ti-check" style="color:var(--sage)"></i>Gratuit</span>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site">
+  <!-- ⚠ GÉNÉRÉ — ne pas modifier à la main.
+       Source : scripts/build-marketing-header.js · régénérer avec
+       `node scripts/build-marketing-header.js`. -->
+  <div class="wrap cols">
+    <div>
+      <a href="/" class="logo"><span class="p">P</span> PairWise</a>
+      <p class="intro">Une seule app pour tes dépenses, ton budget et ton patrimoine — seul ou à deux.</p>
+    </div>
+    <div>
+      <h4>Fonctionnalités</h4>
+      <a href="/fonctionnalites/saisie-langage-naturel">Saisie en langage naturel</a>
+      <a href="/fonctionnalites/transactions-recus">Transactions &amp; reçus</a>
+      <a href="/fonctionnalites/categories-tags">Catégories &amp; tags</a>
+      <a href="/fonctionnalites/multi-devises">Multi-devises</a>
+      <a href="/fonctionnalites/charges-recurrentes">Charges fixes &amp; récurrentes</a>
+      <a href="/fonctionnalites/budgets">Budgets</a>
+      <a href="/fonctionnalites/rapports">Rapports &amp; insights</a>
+      <a href="/fonctionnalites/patrimoine">Patrimoine &amp; investissements</a>
+      <a href="/fonctionnalites/depenses-partagees">Dépenses partagées</a>
+      <a href="/fonctionnalites/objectifs">Objectifs &amp; projets</a>
+    </div>
+    <div>
+      <h4>Pour qui</h4>
+      <span class="soon">En solo</span>
+      <span class="soon">À deux</span>
+      <span class="soon">Voyageurs &amp; nomades</span>
+      <span class="soon">Expatriés</span>
+    </div>
+    <div>
+      <h4>PairWise</h4>
+      <a href="https://app.pairwise.finance/">Ouvrir l'app</a>
+      <a href="/presentation">Tout ce que fait PairWise</a>
+      <span class="soon">Tarifs</span>
+      <a href="/securite">Sécurité</a>
+      <span class="soon">FAQ</span>
+    </div>
+  </div>
+  <div class="wrap copy">© 2026 PairWise · Fait avec soin · Tes données t'appartiennent</div>
+</footer>
+
+<script src="/assets/menu.js" defer></script>
+
+</body>
+</html>

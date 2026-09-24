@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Génère l'en-tête du site marketing dans TOUTES les pages, depuis la source
-// unique ci-dessous.
+// Génère l'en-tête ET le pied de page du site marketing dans TOUTES les pages,
+// depuis la source unique ci-dessous.
 //
 // POURQUOI un script plutôt qu'un include. Le site est du HTML statique sans
 // étape de construction, et l'en-tête était donc recopié à la main dans chaque
@@ -36,22 +36,23 @@ const FEATURES = [
     items: [
       { icon: "ti-sparkles", tone: "tang", label: "Saisie en langage naturel", desc: "« 60€ course hier » et c'est rempli", href: "/fonctionnalites/saisie-langage-naturel" },
       { icon: "ti-list-details", tone: "sky", label: "Transactions &amp; reçus", desc: "Historique, photos, recherche", href: "/fonctionnalites/transactions-recus" },
-      { icon: "ti-tag", tone: "amber", label: "Catégories &amp; tags", desc: "Rangement automatique", href: null },
-      { icon: "ti-world", tone: "sage", label: "Multi-devises", desc: "Idéal voyageurs &amp; nomades", href: null },
+      { icon: "ti-tag", tone: "amber", label: "Catégories &amp; tags", desc: "Rangement automatique", href: "/fonctionnalites/categories-tags" },
+      { icon: "ti-world", tone: "sage", label: "Multi-devises", desc: "Idéal voyageurs &amp; nomades", href: "/fonctionnalites/multi-devises" },
+      { icon: "ti-repeat", tone: "lavi", label: "Charges fixes &amp; récurrentes", desc: "Ce qui tombe chaque mois", href: "/fonctionnalites/charges-recurrentes" },
     ],
   },
   {
     title: "Analyser",
     items: [
-      { icon: "ti-chart-pie", tone: "amber", label: "Budgets", desc: "Par catégorie, avec alertes", href: null },
-      { icon: "ti-chart-line", tone: "sky", label: "Rapports &amp; insights", desc: "Ce qui bouge, mois par mois", href: null },
-      { icon: "ti-diamond", tone: "lavi", label: "Patrimoine &amp; investissements", desc: "Actifs, crédits, évolution", href: null },
+      { icon: "ti-chart-pie", tone: "amber", label: "Budgets", desc: "Par catégorie, avec alertes", href: "/fonctionnalites/budgets" },
+      { icon: "ti-chart-line", tone: "sky", label: "Rapports &amp; insights", desc: "Ce qui bouge, mois par mois", href: "/fonctionnalites/rapports" },
+      { icon: "ti-diamond", tone: "lavi", label: "Patrimoine &amp; investissements", desc: "Actifs, crédits, évolution", href: "/fonctionnalites/patrimoine" },
     ],
   },
   {
     title: "Aller plus loin",
     items: [
-      { icon: "ti-users", tone: "tang", label: "Dépenses partagées", desc: "Qui doit quoi, à deux", href: null },
+      { icon: "ti-users", tone: "tang", label: "Dépenses partagées", desc: "Qui doit quoi, à deux", href: "/fonctionnalites/depenses-partagees" },
       { icon: "ti-target-arrow", tone: "lavi", label: "Objectifs &amp; projets", desc: "Seul ou en commun", href: "/fonctionnalites/objectifs" },
       { icon: "ti-shield-lock", tone: "sky", label: "Sécurité", desc: "Chiffré, lecture seule", href: "/securite" },
     ],
@@ -84,6 +85,13 @@ const PAGES = [
   { file: "fonctionnalites/objectifs.html", active: "/fonctionnalites/objectifs" },
   { file: "fonctionnalites/saisie-langage-naturel.html", active: "/fonctionnalites/saisie-langage-naturel" },
   { file: "fonctionnalites/transactions-recus.html", active: "/fonctionnalites/transactions-recus" },
+  { file: "fonctionnalites/categories-tags.html", active: "/fonctionnalites/categories-tags" },
+  { file: "fonctionnalites/multi-devises.html", active: "/fonctionnalites/multi-devises" },
+  { file: "fonctionnalites/charges-recurrentes.html", active: "/fonctionnalites/charges-recurrentes" },
+  { file: "fonctionnalites/budgets.html", active: "/fonctionnalites/budgets" },
+  { file: "fonctionnalites/rapports.html", active: "/fonctionnalites/rapports" },
+  { file: "fonctionnalites/patrimoine.html", active: "/fonctionnalites/patrimoine" },
+  { file: "fonctionnalites/depenses-partagees.html", active: "/fonctionnalites/depenses-partagees" },
 ];
 
 // ── Rendu ────────────────────────────────────────────────────────────────
@@ -149,6 +157,59 @@ function renderHeader(active, cta) {
   );
 }
 
+/* ── Pied de page ─────────────────────────────────────────────────────────
+   Il est genere ICI, depuis la meme source que le menu, pour la raison qui a
+   fait naitre ce script : recopie a la main dans chaque page, il avait DEJA
+   diverge — quatre versions differentes pour six pages, et une colonne
+   « Fonctionnalites » qui listait six entrees quand le menu en annonçait dix.
+   Le pied de page est le second jeu de liens internes du site ; le laisser
+   derriver revient a decider au hasard quelles pages sont maillees.
+
+   La colonne « Fonctionnalites » se deduit de FEATURES, Securite exceptee :
+   elle a sa place dans la colonne PairWise, et y figurer deux fois n'ajoute
+   rien. Meme regle que le menu pour les pages qui n'existent pas encore : un
+   <span> inerte, jamais un lien mort. */
+function renderFooterLink(it) {
+  return it.href
+    ? `      <a href="${it.href}">${it.label}</a>\n`
+    : `      <span class="soon">${it.label}</span>\n`;
+}
+
+function renderFooter() {
+  const feats = FEATURES.flatMap((c) => c.items).filter((it) => it.href !== "/securite");
+  const auds = AUDIENCES.flatMap((c) => c.items);
+  return (
+    `<footer class="site">\n` +
+    `  <!-- ⚠ GÉNÉRÉ — ne pas modifier à la main.\n` +
+    `       Source : scripts/build-marketing-header.js · régénérer avec\n` +
+    `       \`node scripts/build-marketing-header.js\`. -->\n` +
+    `  <div class="wrap cols">\n` +
+    `    <div>\n` +
+    `      <a href="/" class="logo"><span class="p">P</span> PairWise</a>\n` +
+    `      <p class="intro">Une seule app pour tes dépenses, ton budget et ton patrimoine — seul ou à deux.</p>\n` +
+    `    </div>\n` +
+    `    <div>\n` +
+    `      <h4>Fonctionnalités</h4>\n` +
+    feats.map(renderFooterLink).join("") +
+    `    </div>\n` +
+    `    <div>\n` +
+    `      <h4>Pour qui</h4>\n` +
+    auds.map(renderFooterLink).join("") +
+    `    </div>\n` +
+    `    <div>\n` +
+    `      <h4>PairWise</h4>\n` +
+    `      <a href="https://app.pairwise.finance/">Ouvrir l'app</a>\n` +
+    `      <a href="/presentation">Tout ce que fait PairWise</a>\n` +
+    `      <span class="soon">Tarifs</span>\n` +
+    `      <a href="/securite">Sécurité</a>\n` +
+    `      <span class="soon">FAQ</span>\n` +
+    `    </div>\n` +
+    `  </div>\n` +
+    `  <div class="wrap copy">© 2026 PairWise · Fait avec soin · Tes données t'appartiennent</div>\n` +
+    `</footer>`
+  );
+}
+
 const MENU_SCRIPT = '<script src="/assets/menu.js" defer></script>';
 
 function apply(html, active, cta) {
@@ -156,6 +217,7 @@ function apply(html, active, cta) {
     /<header class="site">[\s\S]*?<\/header>/,
     () => renderHeader(active, cta)
   );
+  out = out.replace(/<footer class="site">[\s\S]*?<\/footer>/, () => renderFooter());
   // Le script partagé doit être présent une fois et une seule.
   if (!out.includes('src="/assets/menu.js"')) {
     out = out.replace("</body>", `${MENU_SCRIPT}\n\n</body>`);
