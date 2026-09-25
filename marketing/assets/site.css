@@ -14,9 +14,24 @@
      chauds et plus sableux que les precedents, qui tiraient vers le gris. */
   --bg: #f9f1e6; --bg-card: #ffffff; --rule: rgba(43, 38, 33, 0.09);
   /* `--band` n'habille QUE la bande d'appel a l'action, en fin de page. Elle
-     passe au vert sauge : la page traverse alors trois tons — creme, sable,
-     sauge — au lieu de poser deux fois le meme sable. */
-  --panel: #f4ede3; --band: #eceee5;
+     passe au vert sauge : la page traverse alors trois tons — creme, ciel,
+     sauge — au lieu de poser deux fois le meme sable.
+
+     UN TON, UN ROLE. `--panel` peignait a la fois les grandes bandes de
+     section et les petites surfaces a l'interieur des maquettes — champs,
+     pastilles, pistes de jauge. Le foncer pour mieux separer les bandes
+     assombrissait du meme coup chaque pastille de chaque page. Il garde donc
+     son metier, les petites surfaces, et deux jetons nouveaux prennent le
+     reste : `--sec-b` pour le fond qui alterne, `--bar` pour la barre du haut.
+
+     POURQUOI DU BLEU ET NON UN SABLE PLUS FONCE. Deux fonds ne se separent pas
+     seulement par la clarte : l'ecart percu combine clarte et teinte. Un sable
+     a #f0e2cd s'ecartait du creme de 7,6 (CIELAB dE76) mais en perdant cinq
+     points de clarte — la page s'alourdissait pour se separer. Ce bleu-gris
+     s'ecarte de 10,0 en n'en perdant qu'un et demi : il separe davantage sans
+     rien assombrir. A 4 % de saturation c'est du papier, pas le signal
+     « investissement » que `--sky` porte ailleurs. */
+  --panel: #f4ede3; --band: #eceee5; --sec-b: #e9eef4; --bar: #fdfbf7;
   --tang: #e9673f; --tang-light: color-mix(in srgb, var(--tang) 15%, #fff); --tang-deep: #cf5730;
   --sage: #7fa98a; --sage-light: color-mix(in srgb, var(--sage) 15%, #fff);
   --lavi: #9c8fc6; --lavi-light: color-mix(in srgb, var(--lavi) 15%, #fff);
@@ -45,6 +60,7 @@
   color-scheme: dark;
   --ink: #eef2f6; --ink-2: #b4bec8; --ink-3: #8b95a0; --ink-4: #5b6670;
   --bg: #0a1520; --bg-card: #14202d; --rule: #2b3540; --panel: #101c28; --band: #0f1d2b;
+  --sec-b: #111e2b; --bar: #0d1a26;
   --tang: #ff7458; --tang-light: #3e2f35; --tang-deep: #ff8a71;
   --sage: #5abb88; --sage-light: #213c3d;
   --lavi: #7aa8e0; --lavi-light: #1b334a;
@@ -69,8 +85,12 @@ a { color: inherit; }
 /* ============ Header ============ */
 header.site {
   position: sticky; top: 0; z-index: 20;
-  background: color-mix(in srgb, var(--bg) 90%, transparent);
-  backdrop-filter: blur(10px); border-bottom: .5px solid var(--rule);
+  /* La barre a SA couleur, et non plus celle du fond de page. Tiree de `--bg`,
+     elle etait exactement la teinte du premier bloc : rien ne la detachait de
+     ce qu'elle surplombe, hormis un filet d'un demi-pixel. Elle est aussi
+     opaque desormais — translucide au-dessus d'un fond qui alterne, elle
+     changeait de couleur au defilement, ce qui est le contraire d'un repere. */
+  background: var(--bar); border-bottom: .5px solid var(--rule);
 }
 header.site .bar { display: flex; align-items: center; gap: 26px; height: 64px; max-width: 1060px; margin: 0 auto; padding: 0 24px; }
 .logo { display: flex; align-items: center; gap: 9px; font-family: var(--font-display); font-weight: 700; font-size: 18px; text-decoration: none; color: var(--ink); }
@@ -142,7 +162,15 @@ section { padding: 48px 0; }
 /* Pas de filet entre les sections : c'est le changement de teinte qui separe,
    comme d'un acte a l'autre. Un trait gris par-dessus ne separe rien de plus et
    durcit une page dont tout le propos est d'etre douce. */
-section.alt { background: var(--panel); }
+section.alt { background: var(--sec-b); }
+
+/* Les pages de fonctionnalites issues du handoff n'ont pas de classe `alt` :
+   elles alternent par POSITION, un bloc sur deux. Une regle vaut mieux que les
+   vingt-et-un fonds que les maquettes portaient en ligne — et elle a corrige
+   au passage la page « Depenses partagees », ou deux blocs voisins tiraient le
+   meme ton. La bande de cloture garde son sauge : elle porte le sien en ligne,
+   qui l'emporte quelle que soit sa parite. */
+main.pw > section:nth-of-type(even) { background: var(--sec-b); }
 .h2 { font-size: 30px; font-weight: 700; margin: 8px 0 10px; text-wrap: balance; }
 .lede { font-size: 18px; color: var(--ink-2); max-width: 620px; margin: 0 0 30px; }
 
