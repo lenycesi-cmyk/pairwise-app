@@ -28,7 +28,7 @@
   // Reperer d'un coup d'oeil, dans la console, si le navigateur execute bien
   // la derniere version : un pilote perime et une page a jour donnent des
   // symptomes trompeurs (deux actes empiles, barres de defilement en trop).
-  var VERSION = "actes-19";
+  var VERSION = "actes-20";
   if (window.console) console.info("PairWise " + VERSION);
 
   /* Hauteur de l'en-tête. Elle ÉTAIT écrite en dur à 64, la valeur de
@@ -149,15 +149,53 @@
      unique laisserait la fin de l'acte tomber à côté de la fin de sa section.
      On remesure donc à chaque changement de hauteur du document de l'acte. */
   function watch(act, frame) {
-    var doc = docOf(frame);
-    if (!doc) { degrade(act); return; }
+    install(act, frame);
+    /* UN ACTE PEUT SE RECHARGER TOUT SEUL, et emporter alors tout ce qu'on lui
+       a injecte. Les actes 3 et 4 posent chacun `location.reload()` sur le
+       redimensionnement de leur fenetre — leur facon a eux de refaire des
+       mesures qu'ils prennent une fois pour toutes. Or l'iframe est
+       redimensionnee des que la largeur utile de la page change, ce qui arrive
+       precisement au montage : les sections prennent leur hauteur, le document
+       grandit, la barre de defilement apparait, et voila une quinzaine de
+       pixels de moins.
+       Le document adapte etait donc remplace quelques centaines de
+       millisecondes plus tard par un document NEUF, sans rien. Aucune erreur,
+       aucune trace : seulement une barre de defilement qui reapparait, une
+       etiquette « prototype » qui ressort et un cadrage qui redevient celui du
+       fichier d'origine. C'est ce qu'on voyait sur l'acte 3, et sur un seul
+       navigateur — il faut que la barre de defilement soit de celles qui
+       prennent de la place. */
+    frame.addEventListener("load", function () { install(act, frame); });
+  }
+
+  /* Tout ce qu'un acte recoit de la page, en un seul endroit : rejouable a
+     l'identique sur un document neuf. */
+  function adapt(act, doc) {
     try {
+      // Le tampon est pose D'ABORD : `watch` et l'evenement `load` arrivent tous
+      // deux au montage, et sans cela le document recevait deux fois chaque
+      // feuille injectee.
+      // Il dit aussi « ce document a recu ses adaptations » : `sync` le relit a
+      // chaque image, filet qui rattrape un remplacement que l'evenement `load`
+      // n'aurait pas signale.
+      if (doc.documentElement.dataset.pwAdapted === VERSION) return;
+      doc.documentElement.dataset.pwAdapted = VERSION;
       hideScrollbar(doc);
       hide(doc, COMMON_HIDE);
       inject(doc, INTRO_SIZE);
       if (ADAPT[act.id]) ADAPT[act.id](doc);
       if (act.id === "acte-2") fitWidgets(doc);
+      // L'entree de l'acte 1 a peut-etre deja ete coupee : elle doit le rester.
+      if (act._entered) doc.documentElement.classList.add("pw-entered");
     } catch (err) { /* décor : jamais bloquant */ }
+  }
+
+  function install(act, frame) {
+    var doc = docOf(frame);
+    if (!doc) { degrade(act); return; }
+    adapt(act, doc);
+    // Un document neuf peut ne pas avoir la meme course que le precedent.
+    act._range = 0;
     measure(act, frame);
     /* On surveille le CORPS, pas `documentElement`. La boîte de l'element racine
        ne grandit pas forcement avec son contenu — un acte qui pose une hauteur
@@ -181,7 +219,8 @@
        animation qui allonge une scene). On relit la hauteur quelques secondes,
        puis on arrete — ce n'est pas une boucle permanente. */
     var tries = 0;
-    var poll = setInterval(function () {
+    clearInterval(act._poll);
+    var poll = act._poll = setInterval(function () {
       var d = docOf(frame);
       if (!d || ++tries > 20) { clearInterval(poll); return; }
       if (d.documentElement.scrollHeight - frame.clientHeight !== act._range) {
@@ -220,7 +259,9 @@
 
   var ADAPT = {
     "acte-1": function (doc) {
-      hide(doc, ".nav");
+      // Le titre du panneau et ses trois colonnes disent deja d'ou viennent les
+      // chiffres ; la phrase en dessous ne faisait que le repeter.
+      hide(doc, ".nav, .insights__sub");
       /* ENTREE. Le premier ecran etait fige pendant toute la pause
          d'introduction — or c'est la, dans les deux premieres secondes, qu'on
          decide de rester. Le titre se pose, puis les fragments arrivent l'un
@@ -299,7 +340,11 @@
         ".insights__title{font-size:20px}" +
         ".insights__period{font-size:12px}" +
         ".insights__sub{font-size:14px}" +
-        ".bars{height:230px}" +
+        /* La phrase retiree au-dessus laissait 39 px : sans les rendre, la barre
+           la plus haute remontait et son etiquette chiffree traversait le titre
+           du panneau. On en rend 32, assez pour degager l'etiquette — qui est
+           posee 23 px au-dessus de sa barre — sans rouvrir tout le trou. */
+        ".bars{height:230px;margin-top:32px}" +
         ".bar{max-width:74px}" +
         ".bar__val{font-size:13px;top:-23px}" +
         ".bar-col__lbl{font-size:13px}" +
@@ -379,7 +424,17 @@
       /* La taille est posee pour tous par INTRO_SIZE ; il reste ici la marge,
          la largeur et la couleur, que cet acte ne declarait pas du tout. */
       st.textContent =
-        ".intro p{margin:20px auto 0;max-width:520px;color:var(--ink-soft)}";
+        ".intro p{margin:20px auto 0;max-width:520px;color:var(--ink-soft)}" +
+        /* LE NUAGE DE DEVANT REMONTE. Il est pose a 140 px au-dessus de la
+           barre du premier objectif et n'y bouge plus — seule son opacite est
+           animee. Son dessin retombait donc de 56 px sur la carte, pile sur le
+           pourcentage qui grimpe : l'animation que la scene raconte etait
+           cachee par son propre decor.
+           Le decalage passe par `top` et surtout pas par `translate` : GSAP
+           anime la position du nuage, donc la transformation lui appartient —
+           `top` la precede et s'y ajoute. Le nuage d'ARRIERE ne bouge pas, il
+           passe derriere les cartes et n'a jamais gene. */
+        ".plane-clouds-front{top:-70px}";
       doc.head.appendChild(st);
     },
 
@@ -619,6 +674,8 @@
       if (!act._range || !act._frame) continue;
       var doc = docOf(act._frame);
       if (!doc) continue;
+      // Document remplace depuis la derniere image ? On le rhabille.
+      if (doc.documentElement.dataset.pwAdapted !== VERSION) adapt(act, doc);
       var start = act.offsetTop - BAR_H;
       var hold = act._hold || 0;
       var p = (y - start - hold) / act._course;

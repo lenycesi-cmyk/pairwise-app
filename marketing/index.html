@@ -262,10 +262,13 @@
            data-src="/actes/acte-3-multi-devises" aria-label="Acte 3 — Multi-devises">
     <div class="act__pin"></div>
   </section>
-  <!-- data-speed : les cinq actes se suivaient au meme rythme, texte puis
-       animation puis texte. Celui-ci joue la meme scene sur un tiers de
-       defilement en moins — une respiration plus seche au milieu du parcours. -->
-  <section class="act" id="acte-4" data-measured="0" data-hold="0.7" data-speed="1.35" data-transition="flip-boat"
+  <!-- data-speed : le rythme de cet acte, et de lui seul. Il a d'abord joue sa
+       scene sur un tiers de defilement en MOINS (1,35), pour une respiration
+       plus seche au milieu du parcours. C'etait trop : l'avion grandit, la
+       barre se remplit et le pourcentage grimpe presque en meme temps, et on
+       passait dessus sans les voir. La vitesse baisse de 30 % (1,35 → 0,95),
+       ce qui le rend meme un rien plus lent que ses voisins. -->
+  <section class="act" id="acte-4" data-measured="0" data-hold="0.7" data-speed="0.95" data-transition="flip-boat"
            data-src="/actes/acte-4-objectifs" aria-label="Acte 4 — Objectifs et projets">
     <div class="act__pin"></div>
   </section>
