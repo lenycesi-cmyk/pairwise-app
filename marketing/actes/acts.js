@@ -28,7 +28,7 @@
   // Reperer d'un coup d'oeil, dans la console, si le navigateur execute bien
   // la derniere version : un pilote perime et une page a jour donnent des
   // symptomes trompeurs (deux actes empiles, barres de defilement en trop).
-  var VERSION = "actes-20";
+  var VERSION = "actes-21";
   if (window.console) console.info("PairWise " + VERSION);
 
   /* Hauteur de l'en-tête. Elle ÉTAIT écrite en dur à 64, la valeur de
@@ -886,17 +886,36 @@
     out.className = "act__pin is-on is-leaving";
     var e = ease(t);
 
+    /* LES GLISSEMENTS SUIVENT LA MOLETTE AU PIXEL, sans courbe — d'ou `t` et
+       non `e` ci-dessous.
+
+       La courbe `1 - (1-t)^3` est faite pour une animation jouee dans le temps :
+       depart franc, arrivee douce. Accrochee au DEFILEMENT, elle fait tout
+       l'inverse de ce qu'on croit regler — elle expedie les deux tiers du
+       mouvement dans le premier tiers de la bande. L'acte sortant etait donc
+       tire hors de l'ecran presque d'un coup, et ce qu'il restait a voir sur le
+       cote n'etait plus sa scene mais sa MARGE : du papier vide, d'autant plus
+       large que l'ecran l'est. Puis les trois quarts restants de la bande
+       servaient a resorber un liseré de quelques pourcents, qu'on croyait
+       coince.
+
+       Le rapport direct rend a la transition ce que son commentaire annonce :
+       les deux actes glissent comme une pellicule, a la vitesse du geste, et
+       c'est leur CONTENU qu'on voit passer.
+
+       La bascule de l'acte 4 garde la courbe : une rotation se lit mieux
+       amortie, et rien n'y decouvre de marge vide. */
     if (kind === "slide-up") {
       /* Le sortant quitte l'ecran ENTIEREMENT, a la meme vitesse que l'entrant
          arrive : les deux glissent comme une pellicule. Il ne reculait que de
          18 % auparavant, si bien qu'une bande de l'acte precedent restait
          visible a cote du nouveau pendant toute la transition — on croyait a un
          reste d'affichage, pas a un mouvement. */
-      into.style.transform = "translate3d(0," + ((1 - e) * 100) + "%,0)";
-      out.style.transform = "translate3d(0," + (-e * 100) + "%,0)";
+      into.style.transform = "translate3d(0," + ((1 - t) * 100) + "%,0)";
+      out.style.transform = "translate3d(0," + (-t * 100) + "%,0)";
     } else if (kind === "slide-left") {
-      into.style.transform = "translate3d(" + ((1 - e) * 100) + "%,0,0)";
-      out.style.transform = "translate3d(" + (-e * 100) + "%,0,0)";
+      into.style.transform = "translate3d(" + ((1 - t) * 100) + "%,0,0)";
+      out.style.transform = "translate3d(" + (-t * 100) + "%,0,0)";
     } else if (kind === "flip-boat") {
       leaving.classList.add("is-flipping");
       out.style.transformOrigin = "50% 100%";
