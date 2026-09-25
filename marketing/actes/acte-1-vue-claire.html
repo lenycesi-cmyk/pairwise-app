@@ -280,7 +280,7 @@
         <div class="row" data-row data-target="out" data-step="12" data-ico="⛽" data-cls="ic--transport" data-amt="80,00 €"><span class="row__icon ic--transport">⛽</span><span class="row__body"><div class="row__name">Essence</div><div class="row__cat">Transport · samedi</div></span><span class="row__amt">− 80,00 €</span></div>
         <div class="row" data-row data-target="in" data-step="90" data-ico="💼" data-cls="ic--salary" data-amt="+2 600 $"><span class="row__icon ic--salary">💼</span><span class="row__body"><div class="row__name">Salaire</div><div class="row__cat">Revenu · le 1er</div></span><span class="row__amt row__amt--pos">+2 600 $</span></div>
         <div class="row" data-row data-target="inv" data-step="35" data-ico="📈" data-cls="ic--invest" data-amt="300 €"><span class="row__icon ic--invest">📈</span><span class="row__body"><div class="row__name">Assurance vie</div><div class="row__cat">Investissement · mensuel</div></span><span class="row__amt row__amt--inv">− 300 €</span></div>
-        <div class="row" data-row data-target="out" data-step="29" data-ico="🏠" data-cls="ic--home" data-amt="900 €"><span class="row__icon ic--home">🏠</span><span class="row__body"><div class="row__name">Loyer</div><div class="row__cat">Charges · récurrent</div></span><span class="row__amt">− 900 €</span></div>
+        <div class="row" data-row data-target="out" data-step="29" data-ico="🏠" data-cls="ic--home" data-amt="540 €"><span class="row__icon ic--home">🏠</span><span class="row__body"><div class="row__name">Loyer</div><div class="row__cat">Charges · récurrent</div></span><span class="row__amt">− 540 €</span></div>
       </div>
 
       <div class="input-bar" id="inputBar"><span class="input-bar__text" id="inputText"></span><span class="input-bar__cursor" id="cursor"></span><span class="input-bar__btn">↵</span></div>
@@ -302,7 +302,7 @@
             <span class="bar-col__lbl">Revenus</span>
           </div>
           <div class="bar-col">
-            <div class="bar bar--out" id="barOut"><span class="bar__val" id="valOut">1 145 €</span></div>
+            <div class="bar bar--out" id="barOut"><span class="bar__val" id="valOut">1 200 €</span></div>
             <span class="bar-col__lbl">Dépenses</span>
           </div>
           <div class="bar-col">
@@ -322,10 +322,10 @@
             <text class="donut__center-lbl" x="55" y="67" text-anchor="middle">DÉPENSES</text>
           </svg>
           <div class="legend" id="legend">
-            <div class="legend__item" data-leg><span class="legend__dot" style="background:#6aa0cc"></span><span class="legend__name">Logement</span><span class="legend__pct">79 %</span></div>
-            <div class="legend__item" data-leg><span class="legend__dot" style="background:#e0952e"></span><span class="legend__name">Alimentation</span><span class="legend__pct">8 %</span></div>
-            <div class="legend__item" data-leg><span class="legend__dot" style="background:#6d5170"></span><span class="legend__name">Transport</span><span class="legend__pct">7 %</span></div>
-            <div class="legend__item" data-leg><span class="legend__dot" style="background:#a9743f"></span><span class="legend__name">Sorties</span><span class="legend__pct">6 %</span></div>
+            <div class="legend__item" data-leg><span class="legend__dot" style="background:#6aa0cc"></span><span class="legend__name">Logement</span><span class="legend__pct">45 %</span></div>
+            <div class="legend__item" data-leg><span class="legend__dot" style="background:#e0952e"></span><span class="legend__name">Alimentation</span><span class="legend__pct">21 %</span></div>
+            <div class="legend__item" data-leg><span class="legend__dot" style="background:#6d5170"></span><span class="legend__name">Transport</span><span class="legend__pct">16 %</span></div>
+            <div class="legend__item" data-leg><span class="legend__dot" style="background:#a9743f"></span><span class="legend__name">Sorties</span><span class="legend__pct">18 %</span></div>
           </div>
         </div>
 
@@ -353,7 +353,12 @@
   const segs = gsap.utils.toArray('[data-seg]');
   const legs = gsap.utils.toArray('[data-leg]');
 
-  const SHARES = [79, 8, 7, 6];              // Logement, Alimentation, Transport, Sorties
+  const SHARES = [45, 21, 16, 18];           // Logement, Alimentation, Transport, Sorties
+  // 79 % au logement venait d'un calcul exact sur les seules lignes visibles
+  // (900 € de loyer sur 1 145 € de depenses). Exact, mais faux a lire : aucun
+  // budget ne ressemble a ca. Le panneau montre desormais QUELQUES
+  // transactions du mois, pas toutes, et la repartition est celle d'un mois
+  // entier — le loyer reste la part dominante sans ecraser le reste.
   const C = 2 * Math.PI * 45;
   const BARS = { in: document.getElementById('barIn'), out: document.getElementById('barOut'), inv: document.getElementById('barInv') };
   const VALS = { in: document.getElementById('valIn'), out: document.getElementById('valOut'), inv: document.getElementById('valInv') };
@@ -375,7 +380,7 @@
     Object.values(VALS).forEach(v => v.style.opacity = 1);
     segs.forEach((s, i) => s.setAttribute('stroke-dasharray', (SHARES[i] / 100 * C) + ' ' + C));
     gsap.set(legs, { opacity: 1 });
-    document.getElementById('donutTotal').textContent = '1 145 €';
+    document.getElementById('donutTotal').textContent = '1 200 €';
     gsap.set('#insightsNote', { opacity: 1 });
     document.getElementById('scrollCue').style.opacity = '0';
   } else {
@@ -468,7 +473,7 @@
       master.to(legs[i], { opacity: 1, x: 0, duration: 0.32, ease: 'power2.out' }, PIE + 0.04 + i * 0.16);
     });
     master.to({ v: 0 }, {
-      v: 1145, duration: 0.7, ease: 'power1.out',
+      v: 1200, duration: 0.7, ease: 'power1.out',
       onUpdate: function () { document.getElementById('donutTotal').textContent = Math.round(this.targets()[0].v).toLocaleString('fr-FR') + ' €'; }
     }, PIE + 0.1);
 
