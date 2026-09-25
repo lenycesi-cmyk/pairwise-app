@@ -28,7 +28,7 @@
   // Reperer d'un coup d'oeil, dans la console, si le navigateur execute bien
   // la derniere version : un pilote perime et une page a jour donnent des
   // symptomes trompeurs (deux actes empiles, barres de defilement en trop).
-  var VERSION = "actes-21";
+  var VERSION = "actes-22";
   if (window.console) console.info("PairWise " + VERSION);
 
   /* Hauteur de l'en-tête. Elle ÉTAIT écrite en dur à 64, la valeur de
@@ -457,11 +457,29 @@
        qui gouverne la fenetre — et la barre se style alors depuis `body`, pas
        depuis `html`. La regle ne s'appliquait donc pas, et la barre de l'acte
        restait visible a cote de celle de la page. On vise les deux, plus les
-       eventuels conteneurs defilants a l'interieur. */
+       eventuels conteneurs defilants a l'interieur.
+
+       ON LA REND TRANSPARENTE, ON NE LUI RETIRE PAS SA PLACE. `scrollbar-width:
+       none` et `::-webkit-scrollbar{width:0}` ne cachent pas la barre : ils la
+       suppriment, et rendent sa gouttiere au contenu. Sur un systeme a barres
+       classiques — Chrome sur Windows, par exemple — la fenetre de l'acte
+       s'elargit alors d'une quinzaine de pixels D'UN COUP.
+
+       Or les actes 3 et 4 posent `location.reload()` sur le redimensionnement
+       de leur fenetre. Notre masquage declenchait donc leur rechargement ; le
+       document neuf revenait avec sa barre, on la masquait de nouveau, et
+       l'acte se rejouait en boucle — sa chronologie est en `scrub`, donc on la
+       voyait litteralement redefiler depuis son debut a chaque tour.
+
+       Mesure a l'appui : faire varier de 15 px la largeur interne de l'acte 3
+       fait passer son compteur de navigations de 1 a 2. La transparence, elle,
+       ne touche a aucune largeur. */
     st.textContent =
-      "html,body,*{scrollbar-width:none;-ms-overflow-style:none}" +
-      "html::-webkit-scrollbar,body::-webkit-scrollbar," +
-      "*::-webkit-scrollbar{width:0;height:0;display:none}";
+      "html,body{scrollbar-color:transparent transparent}" +
+      "html::-webkit-scrollbar,body::-webkit-scrollbar,*::-webkit-scrollbar," +
+      "*::-webkit-scrollbar-track,*::-webkit-scrollbar-thumb," +
+      "*::-webkit-scrollbar-corner" +
+      "{background:transparent;border:0;box-shadow:none}";
     doc.head.appendChild(st);
   }
 
