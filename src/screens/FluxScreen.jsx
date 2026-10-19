@@ -136,6 +136,7 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
       if (cat.id === "income") continue;
       let total = 0;
       const subtotals = {};
+      const subTx = {};
       for (const tx of transactions) {
         if (!inRange(tx)) continue;
         if (tx.type === "expense" && tx.categoryId === cat.id) {
@@ -144,9 +145,15 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
           const val = toBase(tx) * f;
           total += val;
           subtotals[tx.subcategory] = (subtotals[tx.subcategory] || 0) + val;
+      // Les mouvements qui ont fabrique chaque sous-total sont gardes au
+      // passage : c'est le meme parcours, aucune lecture de plus. Tries du plus
+      // recent au plus ancien — la question posee est « ce qui a eu lieu
+      // pendant la periode », et la ligne commence par sa date.
+          (subTx[tx.subcategory] ||= []).push({ tx, value: val });
         }
       }
-      if (total > 0) result[cat.id] = { category: cat, total, subtotals };
+      for (const list of Object.values(subTx)) list.sort((a, b) => new Date(b.tx.date) - new Date(a.tx.date));
+      if (total > 0) result[cat.id] = { category: cat, total, subtotals, subTx };
     }
     return result;
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -361,13 +368,16 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
               {!editMode && <p style={{ fontSize: 11, color: "var(--ink-3)", marginBottom: 8 }}>{t("dashboard_tap_category")}</p>}
               {Object.values(categoryTotals)
                 .sort((a, b) => b.total - a.total)
-                .map(({ category, total, subtotals }) => (
+                .map(({ category, total, subtotals, subTx }) => (
                   <CategoryRow
                     key={category.id}
                     category={category}
                     total={total}
                     maxTotal={maxCatTotal}
                     subtotals={subtotals}
+                    subTx={subTx}
+                    displayCurrency={displayCurrency}
+                    onSelectTransaction={editMode ? undefined : onEditTransaction}
                     formatAmount={fmt}
                     totalExpenses={monthFlow.expense}
                     currencySymbol={symbol}

@@ -437,6 +437,7 @@ function AppContent() {
             sharedMonth={sharedMonth}
             onSharedMonthChange={setSharedMonth}
             onOpenMenu={() => setDrawerOpen(true)}
+            onEditTransaction={openEdit}
           />
         </Suspense>
       )}

@@ -14,6 +14,17 @@
 
 export const RELEASE_NOTES = [
   {
+    version: "2026.10.19",
+    date: "2026-10-19",
+    items: [
+      {
+        icon: "\ud83d\udd0d",
+        fr: { title: "Descendre jusqu'aux transactions depuis « Dépenses par catégorie »", body: "Le widget s'arrêtait à la sous-catégorie : pour savoir ce qu'il y avait dans « Mariages », il fallait quitter l'écran. Une seconde flèche, sur chaque sous-catégorie, déplie maintenant les mouvements de la période, du plus récent au plus ancien. Touchez-en un pour l'ouvrir. Au-delà de huit, le reste se déplie à la demande. Sur l'Accueil et le Flux, chaque ligne affiche la part qui vous revient, celle-là même qui a été comptée dans le total au-dessus." },
+        en: { title: "Drill down to transactions from “Spending by category”", body: "The widget stopped at the subcategory: to find out what was inside “Weddings”, you had to leave the screen. A second arrow, on every subcategory, now unfolds the period's movements, newest first. Tap one to open it. Past eight, the rest unfolds on demand. On Home and Flow, each row shows the share that falls to you — the very one counted in the total above." },
+      },
+    ],
+  },
+  {
     version: "2026.09.23.1",
     date: "2026-09-23",
     items: [
