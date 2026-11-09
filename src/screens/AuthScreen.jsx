@@ -317,7 +317,9 @@ export default function AuthScreen({ defaultMode = "login", draft = [], language
         flexDirection: "column",
         alignItems: "center",
         justifyContent: draftPanel ? "flex-start" : "center",
-        padding: draftPanel && !isDesktop ? "1.1rem 1.25rem" : "2rem 1.5rem",
+        padding: draftPanel && !isDesktop
+          ? "calc(1.1rem + var(--safe-top)) 1.25rem calc(1.1rem + env(safe-area-inset-bottom))"
+          : "calc(2rem + var(--safe-top)) 1.5rem calc(2rem + env(safe-area-inset-bottom))",
       }}
     >
       {/* Ambiance décorative (mêmes couches que la landing), derrière le contenu. */}

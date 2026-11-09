@@ -16,7 +16,7 @@ export function BrandRow() {
 // Écran d'attente pendant la création de l'espace / la migration du brouillon.
 export function Splash({ text }) {
   return (
-    <div style={{ ...screenWrap, alignItems: "center", justifyContent: "center", gap: 16, padding: 24 }}>
+    <div style={{ ...screenWrap, alignItems: "center", justifyContent: "center", gap: 16, padding: "calc(24px + var(--safe-top)) 24px 24px" }}>
       <i className="ti ti-loader-2 pw-spin" style={{ fontSize: 30, color: "var(--tang)" }} />
       <span style={{ fontSize: 14, color: "var(--ink-3)", textAlign: "center" }}>{text}</span>
     </div>

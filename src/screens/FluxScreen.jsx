@@ -575,7 +575,7 @@ export default function FluxScreen({ onOpenMenu, onOpenTransactions, onOpenRecur
         className="pw-sticky-header"
         style={{
           position: "sticky", top: 0, zIndex: 30, background: "var(--bg)",
-          padding: "1rem 1.25rem 0.5rem",
+          padding: "calc(1rem + var(--safe-top)) 1.25rem 0.5rem",
         }}
       >
         {(() => {

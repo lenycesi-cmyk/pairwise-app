@@ -133,7 +133,7 @@ function ModalWrapper({ onClose, title, children }) {
           display: "flex",
           alignItems: "center",
           gap: 12,
-          padding: "14px 20px",
+          padding: "calc(14px + var(--safe-top)) 20px 14px",
           borderBottom: "0.5px solid var(--rule)",
         }}
       >

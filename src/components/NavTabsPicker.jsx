@@ -103,7 +103,7 @@ export default function NavTabsPicker({ onClose }) {
         style={{
           position: "sticky", top: 0, zIndex: 10, background: "var(--bg)",
           display: "flex", alignItems: "center", gap: 12,
-          padding: "14px 20px", borderBottom: "0.5px solid var(--rule)",
+          padding: "calc(14px + var(--safe-top)) 20px 14px", borderBottom: "0.5px solid var(--rule)",
         }}
       >
         <button

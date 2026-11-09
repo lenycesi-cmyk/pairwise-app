@@ -310,7 +310,7 @@ export default function AddAssetScreen({ onClose, editingAsset, initialTypeId })
       <div
         style={{
           flexShrink: 0, display: "flex", alignItems: "center", gap: 12,
-          padding: "14px 20px", background: "var(--bg)",
+          padding: "calc(14px + var(--safe-top)) 20px 14px", background: "var(--bg)",
           borderBottom: "0.5px solid var(--rule)", zIndex: 10,
         }}
       >

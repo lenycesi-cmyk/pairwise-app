@@ -9,7 +9,7 @@ export default function LanguageScreen({ onClose }) {
   const { language, updateLanguage } = useFinance();
 
   return (
-    <div style={{ padding: "1.5rem 1.25rem 6rem" }}>
+    <div style={{ padding: "calc(1.5rem + var(--safe-top)) 1.25rem 6rem" }}>
       <div style={{ display: "flex", alignItems: "center", marginBottom: 16 }}>
         <button onClick={onClose} aria-label="Fermer" style={{ background: "none", border: "none" }}>
           <i className="ti ti-x" style={{ fontSize: 20 }} aria-hidden="true" />

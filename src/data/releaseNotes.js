@@ -14,6 +14,17 @@
 
 export const RELEASE_NOTES = [
   {
+    version: "2026.11.09",
+    date: "2026-11-09",
+    items: [
+      {
+        icon: "\ud83d\udcf1",
+        fr: { title: "Plus rien ne passe sous l'heure et la batterie sur iPhone", body: "Install\u00e9e sur l'\u00e9cran d'accueil d'un iPhone \u00e0 encoche ou \u00e0 Dynamic Island, l'app commen\u00e7ait tout en haut de l'\u00e9cran : le logo, le bouton Connexion et les titres d'onglets se retrouvaient cach\u00e9s derri\u00e8re l'heure et la batterie. Toutes les barres du haut descendent maintenant sous la barre d'\u00e9tat, et celles du bas s'arr\u00eatent au-dessus de la barre de navigation du t\u00e9l\u00e9phone." },
+        en: { title: "Nothing sits under the clock and battery on iPhone any more", body: "Installed on the home screen of an iPhone with a notch or a Dynamic Island, the app started at the very top of the screen: the logo, the Log in button and the tab titles ended up hidden behind the clock and the battery. Every top bar now sits below the status bar, and the bottom ones stop above the phone's navigation bar." },
+      },
+    ],
+  },
+  {
     version: "2026.10.19",
     date: "2026-10-19",
     items: [

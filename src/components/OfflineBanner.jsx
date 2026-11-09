@@ -25,7 +25,7 @@ export default function OfflineBanner() {
         alignItems: "center",
         justifyContent: "center",
         gap: 8,
-        padding: "6px 12px",
+        padding: "calc(6px + var(--safe-top)) 12px 6px",
         fontSize: 12.5,
         fontWeight: 500,
         color: "#fff",

@@ -313,7 +313,7 @@ export default function OnboardingEntry({ language, onSignIn, onNext }) {
   const editSheet = editId && form && (
     <div
       onClick={closeEdit}
-      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.35)", zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: isDesktop ? 24 : 10 }}
+      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.35)", zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: isDesktop ? 24 : "calc(10px + var(--safe-top)) 10px calc(10px + env(safe-area-inset-bottom))" }}
     >
       <div
         onClick={(e) => e.stopPropagation()}
@@ -537,7 +537,7 @@ export default function OnboardingEntry({ language, onSignIn, onNext }) {
             défilante : il descendait avec la liste et sortait de l'écran dès
             quelques lignes ajoutées — c'est-à-dire précisément au moment où
             l'utilisateur a fini de saisir et cherche à continuer. */}
-        <div style={{ flex: "none", padding: "12px 20px 16px", borderTop: "0.5px solid var(--rule)", background: "var(--bg)" }}>
+        <div style={{ flex: "none", padding: "12px 20px calc(16px + env(safe-area-inset-bottom))", borderTop: "0.5px solid var(--rule)", background: "var(--bg)" }}>
           <div style={{ maxWidth: 360, margin: "0 auto" }}>{ctaBtn}</div>
         </div>
         {editSheet}
@@ -555,7 +555,7 @@ export default function OnboardingEntry({ language, onSignIn, onNext }) {
         {breakdownBlock}
         {listBlock()}
       </div>
-      <div style={{ flex: "none", padding: "12px 20px 16px", borderTop: "0.5px solid var(--rule)", background: "var(--bg)" }}>
+      <div style={{ flex: "none", padding: "12px 20px calc(16px + env(safe-area-inset-bottom))", borderTop: "0.5px solid var(--rule)", background: "var(--bg)" }}>
         {ctaBtn}
       </div>
       {editSheet}
