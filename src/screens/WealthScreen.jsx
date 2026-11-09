@@ -1796,7 +1796,7 @@ export default function WealthScreen({ onOpenCalculator, addButtonRef, onOpenMen
           <AssetComments assetId={commentsAsset.id} bare />
         </CommentsModal>
       )}
-      <div className="pw-sticky-header" style={{ position: "sticky", top: 0, zIndex: 30, background: "var(--bg)", marginLeft: "-1.25rem", marginRight: "-1.25rem", padding: "1rem 1.25rem 0.5rem" }}>
+      <div className="pw-sticky-header" style={{ position: "sticky", top: 0, zIndex: 30, background: "var(--bg)", marginLeft: "-1.25rem", marginRight: "-1.25rem", padding: "calc(1rem + var(--safe-top)) 1.25rem 0.5rem" }}>
         {(() => {
           const actions = (
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>

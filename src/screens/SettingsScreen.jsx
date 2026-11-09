@@ -226,7 +226,7 @@ export default function SettingsScreen({ onOpenMenu, onOpenRecurring, onOpenCate
   return (
     <div style={{ minHeight: "100dvh" }}>
       {/* En-tête d'onglet (Réglages est désormais un onglet plein écran). */}
-      <div style={{ position: "sticky", top: 0, zIndex: 10, background: "var(--bg)" }}>
+      <div style={{ position: "sticky", top: 0, zIndex: 10, background: "var(--bg)", paddingTop: "var(--safe-top)" }}>
         {/* Grille d'en-tête alignée sur la colonne de contenu (maxWidth 640,
             calée à gauche sur desktop). La barre sticky, elle, reste pleine
             largeur pour son fond. */}

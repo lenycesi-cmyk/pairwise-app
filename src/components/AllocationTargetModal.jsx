@@ -110,7 +110,7 @@ export default function AllocationTargetModal({
       className="pw-dialog-backdrop"
       style={{
         position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.4)",
-        display: "flex", alignItems: "center", justifyContent: "center", padding: "0 12px",
+        display: "flex", alignItems: "center", justifyContent: "center", padding: "var(--safe-top) 12px env(safe-area-inset-bottom)",
       }}
     >
       <div

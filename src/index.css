@@ -91,6 +91,19 @@
      only needs to override it here. */
   --app-shell-width: 480px;
 
+  /* Hauteur de la barre d'état qui RECOUVRE l'app : en PWA installée sur iOS,
+     index.html demande `viewport-fit=cover` + `black-translucent`, donc la
+     fenêtre commence sous l'encoche / la Dynamic Island et tout ce qui touche
+     y = 0 passe dessous. Chaque BARRE HAUTE ajoute donc cette valeur à son
+     padding-top : c'est la barre elle-même qui paie le dégagement, pour que son
+     fond remonte sous la barre d'état plutôt que de laisser le contenu défiler
+     à nu derrière l'heure. Ne jamais poser ce dégagement sur le conteneur
+     DÉFILANT à la place : un en-tête `sticky` s'y recale sur le haut du
+     scrollport, donc il repasserait sous la barre d'état dès le premier
+     défilement. Vaut 0 partout ailleurs — desktop, Android, navigateur — donc
+     l'ajouter ne change rien hors de ce cas. */
+  --safe-top: env(safe-area-inset-top, 0px);
+
   --radius-sm: 10px;
   --radius-md: 14px;
   --radius-lg: 20px;

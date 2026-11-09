@@ -98,7 +98,7 @@ export default function BankPickerModal({ asset, onClose, onPlaid }) {
         position: "fixed", inset: 0, zIndex: 300,
         background: "color-mix(in srgb, var(--ink) 40%, transparent)",
         display: "flex", alignItems: "center", justifyContent: "center",
-        padding: 16,
+        padding: "calc(16px + var(--safe-top)) 16px calc(16px + env(safe-area-inset-bottom))",
       }}
       onClick={onClose}
     >

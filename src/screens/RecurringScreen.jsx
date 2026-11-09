@@ -173,7 +173,7 @@ export default function RecurringScreen({ onClose, initialEditId }) {
       <div
         style={{
           position: "sticky", top: 0, zIndex: 10, display: "flex", alignItems: "center", gap: 12,
-          padding: "14px 20px", background: "var(--bg)", borderBottom: "0.5px solid var(--rule)",
+          padding: "calc(14px + var(--safe-top)) 20px 14px", background: "var(--bg)", borderBottom: "0.5px solid var(--rule)",
         }}
       >
         <button

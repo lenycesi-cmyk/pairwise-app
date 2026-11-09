@@ -1491,7 +1491,7 @@ export default function ReportsScreen({ onOpenBreakdown, sharedMonth, onSharedMo
   return (
     <div style={{ padding: "0 1.25rem 6rem" }}>
       {/* En-tête collant : titre + filtres temporels, alignés à gauche. */}
-      <div className="pw-sticky-header" style={{ position: "sticky", top: 0, zIndex: 30, background: "var(--bg)", marginLeft: "-1.25rem", marginRight: "-1.25rem", padding: "1rem 1.25rem 0.5rem" }}>
+      <div className="pw-sticky-header" style={{ position: "sticky", top: 0, zIndex: 30, background: "var(--bg)", marginLeft: "-1.25rem", marginRight: "-1.25rem", padding: "calc(1rem + var(--safe-top)) 1.25rem 0.5rem" }}>
         {(() => {
           const actions = (
             <div style={{ display: "flex", alignItems: "center", gap: 6 * headerScale }}>

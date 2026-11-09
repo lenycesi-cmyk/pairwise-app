@@ -547,6 +547,6 @@ const screenStyle = {
   flexDirection: "column",
   alignItems: "center",
   justifyContent: "center",
-  padding: "2rem 1.5rem",
+  padding: "calc(2rem + var(--safe-top)) 1.5rem calc(2rem + env(safe-area-inset-bottom))",
   textAlign: "center",
 };

@@ -50,7 +50,7 @@ export default function GoalsScreen({ onOpenMenu, openSignal }) {
         style={{
           position: "sticky", top: 0, zIndex: 10, background: "var(--bg)",
           display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center",
-          gap: 8, padding: "1rem 1.25rem",
+          gap: 8, padding: "calc(1rem + var(--safe-top)) 1.25rem 1rem",
         }}
       >
         <div style={{ justifySelf: "start" }}><HeaderMenuButton onClick={onOpenMenu} /></div>
@@ -192,7 +192,7 @@ function GoalEditor({ goal, assets, defaultCurrency, t, onClose, onSave, onArchi
 
   return (
     <div className="app-modal">
-      <div style={{ position: "sticky", top: 0, zIndex: 10, background: "var(--bg)", display: "flex", alignItems: "center", gap: 10, padding: "1rem 1.25rem", borderBottom: "0.5px solid var(--rule)" }}>
+      <div style={{ position: "sticky", top: 0, zIndex: 10, background: "var(--bg)", display: "flex", alignItems: "center", gap: 10, padding: "calc(1rem + var(--safe-top)) 1.25rem 1rem", borderBottom: "0.5px solid var(--rule)" }}>
         <button onClick={onClose} aria-label={t("dashboard_done")} style={{ background: "none", border: "none", display: "flex" }}>
           <i className="ti ti-x" style={{ fontSize: 20 }} aria-hidden="true" />
         </button>
@@ -291,7 +291,7 @@ function GoalEditor({ goal, assets, defaultCurrency, t, onClose, onSave, onArchi
 
       {/* Footer collant : le bouton d'enregistrement reste visible même en
           faisant défiler le formulaire (même pattern que les autres modales). */}
-      <div style={{ position: "sticky", bottom: 0, background: "var(--bg)", borderTop: "0.5px solid var(--rule)", padding: "0.75rem 1.25rem" }}>
+      <div style={{ position: "sticky", bottom: 0, background: "var(--bg)", borderTop: "0.5px solid var(--rule)", padding: "0.75rem 1.25rem calc(0.75rem + env(safe-area-inset-bottom))" }}>
         <div style={{ maxWidth: 560, margin: "0 auto" }}>
           <button
             onClick={save}

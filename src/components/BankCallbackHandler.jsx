@@ -82,7 +82,8 @@ export default function BankCallbackHandler() {
         position: "fixed", inset: 0, zIndex: 400,
         background: "color-mix(in srgb, var(--bg) 92%, transparent)",
         backdropFilter: "blur(4px)",
-        display: "flex", alignItems: "center", justifyContent: "center", padding: 24,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        padding: "calc(24px + var(--safe-top)) 24px calc(24px + env(safe-area-inset-bottom))",
       }}
     >
       <div

@@ -18,7 +18,10 @@ export const screenWrap = {
   // paraissaient trop larges sur desktop.
   maxWidth: 430,
   margin: "0 auto",
-  padding: "0",
+  // Dégagement sous la barre d'état iOS (PWA installée) : le fond de la
+  // page le remplit déjà (body et AmbientBackdrop portent la même couleur
+  // que l'en-tête), donc la bande reste invisible.
+  paddingTop: "var(--safe-top)",
 };
 
 export const scrollArea = {
