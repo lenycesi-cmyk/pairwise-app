@@ -14,6 +14,17 @@
 
 export const RELEASE_NOTES = [
   {
+    version: "2026.11.19",
+    date: "2026-11-19",
+    items: [
+      {
+        icon: "\ud83d\udd0e",
+        fr: { title: "Filtrer l'historique sur les revenus, les d\u00e9penses ou les investissements", body: "Le panneau de filtres des Transactions gagne une ligne \u00ab Type \u00bb. Jusqu'ici, isoler ses revenus supposait de passer par la cat\u00e9gorie \u2014 et aucun choix de cat\u00e9gorie ne montrait TOUS les investissements, qui se r\u00e9partissent entre \u00ab Investissements \u00bb et \u00ab \u00c9pargne \u00bb. Le type les rassemble. Il accorde aussi le reste du panneau : demander les revenus ne propose plus les 21 cat\u00e9gories de d\u00e9penses, et changer de type efface une cat\u00e9gorie devenue incompatible plut\u00f4t que de vider la liste sans rien dire." },
+        en: { title: "Filter your history by income, expenses or investments", body: "The Transactions filter panel gains a \u201cType\u201d row. Until now, isolating your income meant going through the category \u2014 and no single category showed ALL your investments, which are split between \u201cInvestments\u201d and \u201cSavings\u201d. The type brings them together. It also keeps the rest of the panel in step: asking for income no longer offers the 21 expense categories, and switching type clears a category that no longer fits instead of emptying the list without a word." },
+      },
+    ],
+  },
+  {
     version: "2026.11.09",
     date: "2026-11-09",
     items: [

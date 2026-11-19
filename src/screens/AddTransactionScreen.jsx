@@ -12,6 +12,7 @@ import { useRevealOnOpen, useRevealOnFocus, revealElement } from "../hooks/useRe
 import { useCategoryName } from "../hooks/useCategoryName";
 import AdvancedSplitSelector from "../components/AdvancedSplitSelector";
 import { getMemberKey, memberShareFraction } from "../utils/members";
+import { categoriesForType } from "../utils/txTypes";
 import { buildSuggestionIndex, getSuggestions, findExactMatch } from "../utils/descriptionSuggestions";
 import TransactionComments from "../components/TransactionComments";
 import TagInput from "../components/TagInput";
@@ -304,11 +305,7 @@ export default function AddTransactionScreen({ onClose, editingTx }) {
   const [showNewSub, setShowNewSub] = useState(false);
   const [newSubName, setNewSubName] = useState("");
 
-  const availableCategories = categories.filter((c) =>
-    type === "income" ? c.id === "income" :
-    type === "investment" ? (c.id === "investment" || c.id === "savings") :
-    c.id !== "income" && c.id !== "investment" && c.id !== "savings"
-  );
+  const availableCategories = categoriesForType(categories, type);
 
   const selectedCategory = categories.find((c) => c.id === categoryId);
 
