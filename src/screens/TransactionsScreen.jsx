@@ -5,6 +5,7 @@ import Avatar from "../components/Avatar";
 import { useTranslation } from "../hooks/useTranslation";
 import { getMemberKey, memberShareFraction } from "../utils/members";
 import { usedTags } from "../utils/tags";
+import { categoriesForType, typeOfCategoryId, txType } from "../utils/txTypes";
 import TagChip from "../components/TagChip";
 import TransactionComments from "../components/TransactionComments";
 import CommentsModal from "../components/CommentsModal";
@@ -50,6 +51,11 @@ export default function TransactionsScreen({ onEdit, sharedMonth }) {
   const [categoryFilter, setCategoryFilter] = useState(null);
   const [subcategoryFilter, setSubcategoryFilter] = useState(null);
   const [tagFilter, setTagFilter] = useState(null);
+  // Revenus / dépenses / investissements. Se lit sur le champ `type` de la
+  // transaction, donc INDÉPENDAMMENT du catalogue de catégories : c'est ce qui
+  // le rend capable de montrer tous les investissements, que la catégorie ne
+  // sait pas faire (ils s'étalent sur `investment` ET `savings`).
+  const [typeFilter, setTypeFilter] = useState("all");
   const [periodFilter, setPeriodFilter] = useState(sharedMonth ? "month" : "all");
   // Tous les filtres sont repliés derrière l'icône entonnoir ; chaque dimension
   // (catégorie / sous-catégorie / tag) ouvre son sélecteur à la demande, sur le
@@ -81,6 +87,9 @@ export default function TransactionsScreen({ onEdit, sharedMonth }) {
       result = result.filter(
         (tx) => tx.paidBy === filter || memberShareFraction(tx, filter, members) > 0
       );
+    }
+    if (typeFilter !== "all") {
+      result = result.filter((tx) => txType(tx) === typeFilter);
     }
     if (categoryFilter) {
       result = result.filter((tx) => tx.categoryId === categoryFilter);
@@ -154,13 +163,13 @@ export default function TransactionsScreen({ onEdit, sharedMonth }) {
       );
     }
     return result;
-  }, [transactions, filter, members, categoryFilter, subcategoryFilter, tagFilter, periodFilter, searchText, sharedMonth, sortBy, defaultCurrency]);
+  }, [transactions, filter, members, typeFilter, categoryFilter, subcategoryFilter, tagFilter, periodFilter, searchText, sharedMonth, sortBy, defaultCurrency]);
 
   // Le tri compte dans la pastille de l'entonnoir : un ordre inhabituel change
   // la liste autant qu'un filtre, et rien d'autre à l'écran ne le signale.
   const anyFilterActive =
-    filter !== "all" || periodFilter !== "all" || !!categoryFilter || !!subcategoryFilter ||
-    !!tagFilter || sortBy !== "date";
+    filter !== "all" || periodFilter !== "all" || typeFilter !== "all" ||
+    !!categoryFilter || !!subcategoryFilter || !!tagFilter || sortBy !== "date";
 
   const grouped = useMemo(() => {
     const groups = {};
@@ -178,6 +187,25 @@ export default function TransactionsScreen({ onEdit, sharedMonth }) {
 
   function getCategory(id) {
     return categories.find((c) => c.id === id) || categories[0];
+  }
+
+  // Le sélecteur de catégorie ne propose que les catégories du type choisi :
+  // avoir demandé les revenus puis devoir faire défiler 21 catégories de
+  // dépenses n'aide personne.
+  const pickerCategories =
+    typeFilter === "all" ? categories : categoriesForType(categories, typeFilter);
+
+  // Changer de type EFFACE une catégorie devenue incompatible. La laisser en
+  // place donnerait une combinaison qui ne peut renvoyer que zéro ligne
+  // (« Revenus » + « Logement ») : la liste se viderait sans que rien ne dise
+  // pourquoi, et on croirait n'avoir rien dépensé. La sous-catégorie suit,
+  // n'ayant plus de catégorie à qualifier.
+  function selectType(key) {
+    setTypeFilter(key);
+    if (key !== "all" && categoryFilter && typeOfCategoryId(categoryFilter) !== key) {
+      setCategoryFilter(null);
+      setSubcategoryFilter(null);
+    }
   }
 
   function getMemberName(uid) {
@@ -595,6 +623,24 @@ export default function TransactionsScreen({ onEdit, sharedMonth }) {
             </div>
           </div>
 
+          {/* Type — entre Période et Catégorie : l'entonnoir va du plus large au
+              plus étroit, et le type commande la catégorie, donc il la précède. */}
+          <div>
+            <div style={FILTER_LABEL}>{t("tx_filter_type")}</div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {[
+                { key: "all", label: t("tx_filter_all") },
+                { key: "income", label: t("tx_type_income") },
+                { key: "expense", label: t("tx_type_expense") },
+                { key: "investment", label: t("tx_type_investment") },
+              ].map((o) => (
+                <FilterChip key={o.key} active={typeFilter === o.key} onClick={() => selectType(o.key)}>
+                  {o.label}
+                </FilterChip>
+              ))}
+            </div>
+          </div>
+
           {/* Catégorie — sélecteur dépliant, comme à la création d'une transaction */}
           <div>
             <div style={FILTER_LABEL}>{t("tx_category")}</div>
@@ -615,7 +661,7 @@ export default function TransactionsScreen({ onEdit, sharedMonth }) {
                     label={t("tx_filter_all_categories")}
                     onClick={() => { setCategoryFilter(null); setSubcategoryFilter(null); setShowCatPicker(false); }}
                   />
-                  {categories.map((c) => (
+                  {pickerCategories.map((c) => (
                     <PickerOption
                       key={c.id}
                       sel={categoryFilter === c.id}

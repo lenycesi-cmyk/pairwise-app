@@ -7,6 +7,7 @@ import { normalizeText, buildSuggestionIndex, getSuggestions } from "./descripti
 import { MERCHANT_SYNONYMS } from "../data/merchantSynonyms";
 import { SUGGESTED_TAGS } from "../data/suggestedTags";
 import { getMemberKey } from "./members";
+import { categoriesForType } from "./txTypes";
 
 // Mots-clés parlés (FR/EN) → tag préréglé. À l'oral personne ne dit « hashtag »,
 // donc on reconnaît les tournures courantes et on retombe sur le tag normalisé.
@@ -162,11 +163,7 @@ function detectDate(norm) {
 
 // Cherche une catégorie/sous-catégorie dont le nom apparaît dans le texte.
 function matchCategory(norm, categories, type) {
-  const pool = categories.filter((c) =>
-    type === "income" ? c.id === "income" :
-    type === "investment" ? (c.id === "investment" || c.id === "savings") :
-    c.id !== "income" && c.id !== "investment" && c.id !== "savings"
-  );
+  const pool = categoriesForType(categories, type);
   // Sous-catégories d'abord (plus précis)
   for (const c of pool) {
     for (const sub of c.subcategories || []) {

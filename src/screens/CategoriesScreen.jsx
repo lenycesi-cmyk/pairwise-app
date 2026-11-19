@@ -4,6 +4,7 @@ import IconPicker from "../components/IconPicker";
 import { AVATAR_COLOR_PALETTE } from "../utils/memberColors";
 import SortableList from "../components/SortableList";
 import { useTranslation } from "../hooks/useTranslation";
+import { categoriesForType } from "../utils/txTypes";
 import { useCategoryName } from "../hooks/useCategoryName";
 
 export default function CategoriesScreen() {
@@ -18,9 +19,7 @@ export default function CategoriesScreen() {
   const [showIconPicker, setShowIconPicker] = useState(false);
   const [newSubInputs, setNewSubInputs] = useState({});
 
-  const editableCategories = categories.filter(
-    (c) => c.id !== "income" && c.id !== "investment" && c.id !== "savings"
-  );
+  const editableCategories = categoriesForType(categories, "expense");
 
   function persist(updated) {
     const others = categories.filter(

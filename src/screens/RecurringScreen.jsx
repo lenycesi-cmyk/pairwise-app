@@ -6,6 +6,7 @@ import { useTranslation } from "../hooks/useTranslation";
 import { useRevealOnOpen } from "../hooks/useRevealOnOpen";
 import { useCategoryName } from "../hooks/useCategoryName";
 import { getMemberKey } from "../utils/members";
+import { categoriesForType } from "../utils/txTypes";
 
 // Segment/chip sélectionnable, cohérent avec AddTransactionScreen.
 function segStyle(selected, accent) {
@@ -81,11 +82,7 @@ export default function RecurringScreen({ onClose, initialEditId }) {
   }, [initialEditId]);
 
   const now = new Date();
-  const availableCategories = categories.filter((c) =>
-    type === "income" ? c.id === "income" :
-    type === "investment" ? (c.id === "investment" || c.id === "savings") :
-    c.id !== "income" && c.id !== "investment" && c.id !== "savings"
-  );
+  const availableCategories = categoriesForType(categories, type);
   const selectedCategory = categories.find((c) => c.id === categoryId);
   // Income et Investment ont aussi besoin d'une attribution membre (à qui le
   // revenu / l'investissement récurrent est rattaché), comme dans AddTransactionScreen.
